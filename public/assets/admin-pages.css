@@ -184,19 +184,43 @@
   margin: 0;
 }
 
-.preset-card iframe {
-  width: 100%;
-  aspect-ratio: 3 / 4;
+/* Each preset preview renders at four times the card's width, then is scaled down, so the
+   card shows the site as a desktop visitor would see it rather than a phone layout. */
+.preset-frame {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
   border: thin solid var(--color-border);
   border-radius: var(--radius-s);
+}
+
+.preset-frame iframe {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 400%;
+  height: 400%;
+  border: 0;
+  transform: scale(0.25);
+  transform-origin: 0 0;
   pointer-events: none;
 }
 
 .design-workspace {
   display: grid;
-  grid-template-columns: minmax(18rem, 26rem) 1fr;
+  grid-template-columns: minmax(20rem, 30rem) minmax(0, 1fr);
   gap: var(--space-l);
   align-items: start;
+}
+
+/* Fieldsets default to min-content width, which would push the form under the preview. */
+.design-form,
+.design-form fieldset {
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+.swatches code {
+  overflow-wrap: anywhere;
 }
 
 .design-preview {

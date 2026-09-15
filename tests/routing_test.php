@@ -74,6 +74,18 @@ test('/en is locale detection, even if a page somehow has the slug "en"', functi
     assertEquals(301, dispatch('/en')->status, 'status');
 });
 
+// Managed nginx setups (CloudPanel among them) answer any URL ending in a static-file
+// extension from disk and never pass a miss to PHP, so such a route would 404 there.
+test('no route path ends in a file extension', function () {
+    $source = (string) file_get_contents(dirname(__DIR__) . '/app/bootstrap.php');
+    preg_match_all("~->(?:get|post)\('([^']+)'~", $source, $routes);
+
+    assertTrue(count($routes[1]) > 10, 'routes not found in bootstrap.php');
+    foreach ($routes[1] as $path) {
+        assertTrue(!preg_match('~\.[A-Za-z0-9]+$~', $path), "route {$path} ends in a file extension");
+    }
+});
+
 test('a locale that is not enabled in the database is not a locale', function () {
     $db = installedSite(['en' => 'English']);
     createPage($db, 'en', 'hello', 'Hello');

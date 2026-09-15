@@ -59,7 +59,9 @@ foreach (Typography::PAIRINGS as $name => $pairing) {
 <?php foreach (array_keys(Presets::ALL) as $preset): ?>
                 <form method="post" action="<?= e(Url::admin('design')) ?>" class="preset-card">
                     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                    <iframe src="<?= e(Url::withQuery(Url::admin('design', 'preview'), ['preset' => $preset, 'specimen' => '1'])) ?>" title="<?= e(t('design.preset.' . $preset)) ?>" loading="lazy" tabindex="-1"></iframe>
+                    <div class="preset-frame">
+                        <iframe src="<?= e(Url::withQuery(Url::admin('design', 'preview'), ['preset' => $preset, 'specimen' => '1'])) ?>" title="<?= e(t('design.preset.' . $preset)) ?>" loading="lazy" tabindex="-1"></iframe>
+                    </div>
                     <h3><?= e(t('design.preset.' . $preset)) ?></h3>
                     <p class="hint"><?= e(t('design.preset.' . $preset . '_hint')) ?></p>
                     <button type="submit" name="action" value="preset:<?= e($preset) ?>" class="button button-quiet"><?= e(t('design.load_preset')) ?></button>

@@ -77,7 +77,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/design', [DesignController::class, 'show'], $requireAdmin);
     $router->post('/admin/design', [DesignController::class, 'save'], $requireAdmin);
     $router->get('/admin/design/preview', [DesignController::class, 'preview'], $requireAdmin);
-    $router->get('/admin/design/preview.css', [DesignController::class, 'previewCss'], $requireAdmin);
+    $router->get('/admin/design/stylesheet', [DesignController::class, 'previewCss'], $requireAdmin);
     $router->get('/admin/design/check', [DesignController::class, 'check'], $requireAdmin);
 
     // Pages: the home page of a locale has the empty slug. Slugs are one path segment.

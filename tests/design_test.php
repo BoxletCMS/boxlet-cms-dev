@@ -173,9 +173,9 @@ test('the preview reflects submitted values and may only be framed by the site',
 
     assertEquals(200, $preview->status, 'status');
     assertContains("frame-ancestors 'self'", $preview->headers['Content-Security-Policy'] ?? '', 'CSP');
-    assertContains('/admin/design/preview.css?seed=%236d28d9', $preview->body, 'preview stylesheet link');
+    assertContains('/admin/design/stylesheet?seed=%236d28d9', $preview->body, 'preview stylesheet link');
     assertContains('surface-gradient', $preview->body, 'specimen sections');
-    $css = dispatch('/admin/design/preview.css?seed=%236d28d9&secondary=%231e1045&use_secondary=1&typography=grotesk&scale=1.5&spacing=normal&radius=round&shadow=layered&container=wide&surface_contrast=high');
+    $css = dispatch('/admin/design/stylesheet?seed=%236d28d9&secondary=%231e1045&use_secondary=1&typography=grotesk&scale=1.5&spacing=normal&radius=round&shadow=layered&container=wide&surface_contrast=high');
     assertContains('--color-accent: #6d28d9;', $css->body, 'preview tokens');
     assertEquals('text/css; charset=utf-8', $css->headers['Content-Type'] ?? null, 'content type');
 });
@@ -192,7 +192,7 @@ test('the check endpoint returns contrast errors keyed by decision', function ()
 test('the design screen and its endpoints require an admin session', function () {
     installedSite(['en' => 'English']);
 
-    foreach (['/admin/design', '/admin/design/preview', '/admin/design/preview.css', '/admin/design/check'] as $path) {
+    foreach (['/admin/design', '/admin/design/preview', '/admin/design/stylesheet', '/admin/design/check'] as $path) {
         assertEquals('/admin/login', dispatch($path)->headers['Location'] ?? null, $path);
     }
 });

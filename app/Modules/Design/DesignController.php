@@ -66,7 +66,7 @@ final class DesignController
     public function preview(Request $request, string $locale, array $params): Response
     {
         $decisions = $this->previewDecisions($request->query);
-        Url::useStylesheet(Url::withQuery(Url::admin('design', 'preview.css'), self::query($decisions)));
+        Url::useStylesheet(Url::withQuery(Url::admin('design', 'stylesheet'), self::query($decisions)));
 
         $registry = $this->container->get('blocks');
         $home = ($request->query['specimen'] ?? '') === '1' ? null : $this->db()->one(

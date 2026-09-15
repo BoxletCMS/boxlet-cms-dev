@@ -4,6 +4,7 @@ use App\Core\Config;
 use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
+use App\Core\RewriteCheck;
 use App\Core\Router;
 use App\Core\View;
 use App\Modules\Design\TokenCompiler;
@@ -25,7 +26,7 @@ if (!is_file($tokensFile)) {
 }
 
 $request = Request::fromGlobals();
-Url::configure($request->basePath, (bool) $config->get('app.pretty_urls', true), $config->get('locales.primary'));
+Url::configure($request->basePath, $config->get('locales.primary'));
 
 $container = new Container();
 $container->set('config', fn () => $config);
@@ -43,6 +44,9 @@ $container->set('router', function (Container $c): Router {
     // No home route yet, so / and /hr/ land on the 404 page. That is expected.
     $router->get('/hello', [PageController::class, 'hello']);
     $router->setNotFound([PageController::class, 'notFound']);
+
+    // Answers RewriteCheck::works(), which the installer (Slice 2) calls.
+    $router->get(RewriteCheck::PROBE_PATH, [RewriteCheck::class, 'respond']);
 
     return $router;
 });

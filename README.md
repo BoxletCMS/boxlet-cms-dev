@@ -6,6 +6,7 @@ A small self-hosted PHP CMS for people who build many small sites.
 
 - PHP 8.1 or newer
 - Extensions: pdo, pdo_sqlite, mbstring, fileinfo, json
+- URL rewriting: Apache `mod_rewrite` or nginx `try_files` (required, see Deployment)
 - Composer (development only; release ZIPs ship with `vendor/`)
 
 ## Development server
@@ -30,13 +31,26 @@ Static analysis: `composer install` (includes dev tools), then `vendor/bin/phpst
 In every case the document root must point at `public/`. `app/`, `config/`,
 `storage/` and `vendor/` must not be reachable from the web.
 
+**URL rewriting is required, not optional.** Every request that is not a real file
+must reach `public/index.php`. There is no fallback URL mode. The installer checks
+this and refuses to continue without it.
+
 ### Apache (shared hosting)
 
-Set the document root to `public/`. `public/.htaccess` rewrites every request that
-is not a real file to `index.php`.
+Set the document root to `public/`, enable `mod_rewrite` and allow `.htaccess`
+overrides. `public/.htaccess` already contains the rules:
 
-If the host has no `mod_rewrite`, set `APP_PRETTY_URLS=false` in `.env`; generated
-links then take the form `index.php?route=/en/hello`.
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+```
+
+If `mod_rewrite` is missing, the site shows a page explaining how to enable it
+instead of a bare 404.
 
 The `.htaccess` files containing `Require all denied` in `app/`, `config/` and
 `storage/` are a safety net for hosts that cannot move the document root. They are
@@ -53,7 +67,8 @@ location / {
 ```
 
 Nginx ignores `.htaccess` files entirely, so the document root is the only
-protection for `app/`, `config/` and `storage/`.
+protection for `app/`, `config/` and `storage/`. On a managed host without access to
+the server block, ask the provider to add the `try_files` line.
 
 ## License
 

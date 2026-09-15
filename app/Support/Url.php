@@ -10,13 +10,11 @@ namespace App\Support;
 final class Url
 {
     private static string $basePath = '';
-    private static bool $prettyUrls = true;
     private static string $primaryLocale = '';
 
-    public static function configure(string $basePath, bool $prettyUrls, string $primaryLocale): void
+    public static function configure(string $basePath, string $primaryLocale): void
     {
         self::$basePath = rtrim($basePath, '/');
-        self::$prettyUrls = $prettyUrls;
         self::$primaryLocale = $primaryLocale;
     }
 
@@ -35,7 +33,7 @@ final class Url
             $path = '/' . rawurlencode($locale) . $path;
         }
 
-        return self::route($path);
+        return self::$basePath . $path;
     }
 
     /**
@@ -44,15 +42,5 @@ final class Url
     public static function asset(string $path): string
     {
         return self::$basePath . '/' . ltrim($path, '/');
-    }
-
-    private static function route(string $path): string
-    {
-        if (self::$prettyUrls) {
-            return self::$basePath . $path;
-        }
-
-        // $path segments are already percent-encoded, and "/" is legal in a query value.
-        return self::$basePath . '/index.php?route=' . $path;
     }
 }

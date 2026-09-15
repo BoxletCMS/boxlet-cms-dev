@@ -25,20 +25,12 @@ final class Request
         $scriptDir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php')));
         $basePath = rtrim($scriptDir, '/');
 
-        // index.php?route=/en/hello is the fallback for hosts without mod_rewrite.
-        if (isset($query['route']) && is_string($query['route'])) {
-            $path = $query['route'];
-            unset($query['route']);
-        } else {
-            $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
-            if ($basePath !== '' && str_starts_with($path, $basePath . '/')) {
-                $path = substr($path, strlen($basePath));
-            }
-            if (str_starts_with($path, '/index.php')) {
-                $path = substr($path, strlen('/index.php'));
-            }
-            $path = rawurldecode($path);
+        // URL rewriting is required, so the path always comes from the request URI.
+        $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+        if ($basePath !== '' && str_starts_with($path, $basePath . '/')) {
+            $path = substr($path, strlen($basePath));
         }
+        $path = rawurldecode($path);
 
         $headers = [];
         foreach ($_SERVER as $name => $value) {

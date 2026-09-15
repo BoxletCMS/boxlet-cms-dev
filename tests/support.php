@@ -21,17 +21,6 @@ function test(string $name, Closure $body): void
     TestSuite::$tests[] = [TestSuite::$group . ': ' . $name, $body];
 }
 
-/**
- * Registers the test twice: once with pretty URLs, once with the index.php?route=
- * fallback. The body receives $pretty.
- */
-function testBothModes(string $name, Closure $body): void
-{
-    foreach (['pretty' => true, 'fallback' => false] as $mode => $pretty) {
-        test("{$name} [{$mode}]", static fn () => $body($pretty));
-    }
-}
-
 function fail(string $message): never
 {
     throw new AssertionFailed($message);
@@ -65,29 +54,18 @@ function export(mixed $value): string
 }
 
 /**
- * The URL a page link or redirect should have in the given mode. Written out
- * independently of App\Support\Url so tests do not trust the code they check.
- */
-function expectedUrl(string $path, bool $pretty): string
-{
-    return $pretty ? $path : '/index.php?route=' . $path;
-}
-
-/**
  * Dispatches a GET request through app/bootstrap.php and the Router, as
- * public/index.php does, without a web server. $pretty selects both how the request
- * arrives (/en/hello vs index.php?route=/en/hello) and how URLs are generated.
- * $configureRouter may add routes before dispatch.
+ * public/index.php does, without a web server. $configureRouter may add routes
+ * before dispatch.
  */
-function dispatch(string $path, bool $pretty, ?Closure $configureRouter = null): Response
+function dispatch(string $path, ?Closure $configureRouter = null): Response
 {
-    $saved = [$_SERVER, $_GET, $_POST, $_ENV];
+    $saved = [$_SERVER, $_GET, $_POST];
     try {
-        $_ENV['APP_PRETTY_URLS'] = $pretty ? 'true' : 'false';
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['SCRIPT_NAME'] = '/index.php';
-        $_SERVER['REQUEST_URI'] = $pretty ? $path : '/index.php?route=' . rawurlencode($path);
-        $_GET = $pretty ? [] : ['route' => $path];
+        $_SERVER['REQUEST_URI'] = $path;
+        $_GET = [];
         $_POST = [];
 
         $container = require dirname(__DIR__) . '/app/bootstrap.php';
@@ -99,7 +77,7 @@ function dispatch(string $path, bool $pretty, ?Closure $configureRouter = null):
 
         return $router->dispatch($container->get('request'));
     } finally {
-        [$_SERVER, $_GET, $_POST, $_ENV] = $saved;
+        [$_SERVER, $_GET, $_POST] = $saved;
     }
 }
 

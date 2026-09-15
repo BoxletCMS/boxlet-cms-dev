@@ -3,6 +3,46 @@
 use App\Core\ErrorHandler;
 use Dotenv\Dotenv;
 
+// URL rewriting is required. On Apache without mod_rewrite, public/.htaccess sends
+// every 404 here as an ErrorDocument, which Apache marks with REDIRECT_STATUS=404.
+// Explain the fix before anything else boots: no autoloader, templates or database.
+if (($_SERVER['REDIRECT_STATUS'] ?? '') === '404') {
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    // The Apache rules below must match public/.htaccess.
+    echo <<<'HTML'
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>URL rewriting is required</title></head>
+<body>
+<h1>URL rewriting is required</h1>
+<p>Boxlet needs the web server to send every request that is not a real file to
+<code>index.php</code>. It is not doing that on this server yet.</p>
+<p>In every case the document root must be the <code>public/</code> directory.</p>
+
+<h2>Apache</h2>
+<p>Enable <code>mod_rewrite</code> (on a shared host, ask your provider) and allow
+<code>.htaccess</code> overrides. <code>public/.htaccess</code> already contains:</p>
+<pre>&lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+&lt;/IfModule&gt;</pre>
+
+<h2>nginx</h2>
+<p>Add this to the server block (on a managed host, ask your provider):</p>
+<pre>location / {
+    try_files $uri $uri/ /index.php?$query_string;
+}</pre>
+</body>
+</html>
+
+HTML;
+    exit;
+}
+
 $root = dirname(__DIR__);
 
 if (!is_file($root . '/vendor/autoload.php')) {

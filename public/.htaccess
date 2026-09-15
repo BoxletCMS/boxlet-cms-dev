@@ -1,4 +1,5 @@
 # Apache only. Nginx ignores this file; see README "Deployment" for try_files.
+# URL rewriting is required: there is no fallback URL mode.
 
 <IfModule mod_negotiation.c>
     Options -MultiViews -Indexes
@@ -6,6 +7,7 @@
 
 DirectoryIndex index.php
 
+# If you change these rules, update the copy shown by public/index.php.
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
@@ -15,5 +17,8 @@ DirectoryIndex index.php
     RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
-# Without mod_rewrite, set APP_PRETTY_URLS=false in .env. Links are then generated
-# as index.php?route=/en/hello, which reaches index.php without any rewriting.
+# Without mod_rewrite, send 404s to index.php. It sees REDIRECT_STATUS=404 and shows
+# how to enable rewriting instead of a bare server 404.
+<IfModule !mod_rewrite.c>
+    ErrorDocument 404 /index.php
+</IfModule>

@@ -14,8 +14,10 @@ use App\Support\Url;
 $value = static fn (string $key, string $default = ''): string => is_string($old[$key] ?? null) ? $old[$key] : $default;
 $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>' : '';
 ?>
-        <h1><?= e(t('pages.new')) ?></h1>
-        <form method="post" action="<?= e(Url::admin('pages')) ?>" class="stack">
+        <div class="page-header">
+            <h1><?= e(t('pages.new')) ?></h1>
+        </div>
+        <form method="post" action="<?= e(Url::admin('pages')) ?>" class="stack panel">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <div class="field">
                 <label for="page-title"><?= e(t('pages.field.title')) ?></label>

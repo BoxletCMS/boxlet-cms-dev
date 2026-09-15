@@ -1,8 +1,8 @@
 /*
- * Design screen. Optional: without JavaScript, "Update preview" submits the form into
- * the preview frame and Save posts normally. With it, the preview and the inline
- * contrast messages follow every change. All derivation and validation stays on the
- * server; this only asks for it.
+ * Design screen. Optional: without JavaScript, "Update preview" submits the separate
+ * preview form into the preview frame and Save posts normally. With it, the preview,
+ * the colour readouts and the inline contrast messages follow every change. All
+ * derivation and validation stays on the server; this only asks for it.
  */
 (function () {
   'use strict';
@@ -44,6 +44,16 @@
     });
   }
 
+  // The hex next to each colour input, so the value is readable and not only visible.
+  function showColourValues() {
+    form.querySelectorAll('[data-colour-for]').forEach(function (output) {
+      var input = document.getElementById(output.getAttribute('data-colour-for'));
+      if (input) {
+        output.textContent = input.value;
+      }
+    });
+  }
+
   function refresh() {
     var params = query();
     preview.src = form.getAttribute('data-preview-url') + '?' + params;
@@ -67,17 +77,14 @@
 
   function changed() {
     dirty = true;
+    showColourValues();
     window.clearTimeout(timer);
     timer = window.setTimeout(refresh, 250);
   }
 
   form.addEventListener('input', changed);
   form.addEventListener('change', changed);
-  form.addEventListener('submit', function (event) {
-    var submitter = event.submitter;
-    if (submitter && submitter.hasAttribute('data-preview-button')) {
-      return; // previewing is not saving
-    }
+  form.addEventListener('submit', function () {
     dirty = false;
   });
   window.addEventListener('beforeunload', function (event) {
@@ -86,4 +93,13 @@
       event.returnValue = '';
     }
   });
+
+  // With JavaScript the preview button just refreshes the frame in place.
+  var previewButton = document.querySelector('[data-preview-button]');
+  if (previewButton) {
+    previewButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      refresh();
+    });
+  }
 })();

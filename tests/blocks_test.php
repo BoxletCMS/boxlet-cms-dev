@@ -139,10 +139,12 @@ test('no block template or front-end stylesheet hard-codes a colour, size, font 
         assertTrue(!preg_match('~\bstyle\s*=|<style|font-family|box-shadow~i', $source, $match), "{$name} contains " . ($match[0] ?? ''));
     }
 
-    // In the stylesheets, these properties may only take a custom property.
+    // In the front-end stylesheets, these properties may only take a custom property.
+    // The admin's stylesheets are deliberately the other way round: they define their own
+    // literal values and may never read a site token (tests/admin_test.php).
     // \s*+ is possessive: without it the lookahead could match after backtracking over a space.
     $mustUseVar = '~^\s*(color|background|background-color|border-color|font-family|font-size|box-shadow|border-radius)\s*:\s*+(?!var\(|inherit|transparent|none|currentColor|0;)([^;]+);~mi';
-    foreach (['site.css', 'sections.css', 'admin.css', 'admin-pages.css'] as $css) {
+    foreach (['site.css', 'sections.css'] as $css) {
         $source = (string) file_get_contents($root . '/public/assets/' . $css);
         assertTrue(!preg_match($literal, $source, $match), "{$css} contains the literal " . ($match[0] ?? ''));
         assertTrue(!preg_match($mustUseVar, $source, $match), "{$css} sets " . trim($match[0] ?? '') . ' without a custom property');

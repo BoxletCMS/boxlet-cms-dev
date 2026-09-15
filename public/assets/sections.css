@@ -12,6 +12,7 @@
   --section-button-bg: var(--color-accent);
   --section-button-text: var(--color-on-accent);
   --section-card: var(--color-surface);
+  --section-border: var(--color-border);
   --section-rhythm: var(--space-xl);
   --section-width: var(--container-width);
   --divider-depth: var(--space-xl);
@@ -43,6 +44,7 @@
   --section-button-bg: var(--color-on-contrast);
   --section-button-text: var(--color-contrast);
   --section-card: var(--color-contrast-raised);
+  --section-border: var(--color-muted-on-contrast);
 }
 
 .surface-gradient {
@@ -52,6 +54,7 @@
   --section-button-bg: var(--color-on-gradient);
   --section-button-text: var(--color-gradient-start);
   --section-card: var(--color-gradient-end);
+  --section-border: var(--color-on-gradient);
 
   background-image: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end));
 }
@@ -80,15 +83,29 @@
   --section-width: none;
 }
 
+/* A narrow measure is a reading column: two columns inside it leave neither the picture
+   nor the text enough room, so a picture-and-text block stacks. */
+.width-narrow .image-text {
+  grid-template-columns: 1fr;
+}
+
 /* Align */
 
 .align-center {
   text-align: center;
 }
 
+/* Centre the section's own children. Deliberately not justify-items: that resolves a
+   nested grid's columns to their content width, which collapses a media placeholder
+   sized as a percentage of the column it sits in. */
 .align-center .container > * {
-  justify-items: center;
   margin-inline: auto;
+}
+
+/* A rule down the left edge of a centred quote reads as detached from it. */
+.align-center .richtext blockquote {
+  padding-inline-start: 0;
+  border-inline-start: 0;
 }
 
 /* Divider: drawn on the top edge of the section it belongs to. */

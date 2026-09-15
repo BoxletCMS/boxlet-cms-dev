@@ -1,0 +1,146 @@
+/* Admin buttons, feedback and the installer's progress parts. Admin tokens only
+ * (--ui-*), defined in admin.css: no value from the site's tokens.css reaches the
+ * admin. Loaded by the admin, the login screen and the installer. */
+
+/* Feedback. A save confirmation has to be visible without hunting for it, so it sits at
+   the top of the content column in its own colour. */
+
+.notice {
+  display: block;
+  margin: 0 0 var(--ui-5);
+  padding: var(--ui-3) var(--ui-4);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-left: var(--ui-1) solid var(--ui-ink-faint);
+  border-radius: var(--ui-radius-m);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.notice-success {
+  background: var(--ui-success-soft);
+  border-color: var(--ui-success);
+  color: var(--ui-success);
+  font-weight: 550;
+}
+
+.notice-error {
+  background: var(--ui-danger-soft);
+  border-color: var(--ui-danger);
+  color: var(--ui-danger);
+  font-weight: 550;
+}
+
+.notice-warning {
+  background: var(--ui-warning-soft);
+  border-color: var(--ui-warning);
+  color: var(--ui-warning);
+}
+
+/* Buttons */
+
+.button {
+  display: inline-block;
+  justify-self: start;
+  padding: var(--ui-2) var(--ui-4);
+  border: var(--ui-border) solid transparent;
+  border-radius: var(--ui-radius-m);
+  background: var(--ui-accent);
+  color: var(--ui-on-accent);
+  font: inherit;
+  font-weight: 550;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin a.button {
+  color: var(--ui-on-accent);
+}
+
+.button:hover {
+  background: var(--ui-accent-dark);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button-secondary,
+.admin a.button-secondary {
+  background: var(--ui-panel);
+  border-color: var(--ui-line-strong);
+  color: var(--ui-ink);
+}
+
+.button-secondary:hover {
+  background: var(--ui-panel-sunken);
+}
+
+.button-quiet,
+.button-ghost,
+.admin a.button-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ui-accent);
+}
+
+.button-quiet:hover,
+.button-ghost:hover {
+  background: var(--ui-accent-soft);
+}
+
+.button-danger {
+  color: var(--ui-danger);
+}
+
+.button-danger:hover {
+  background: var(--ui-danger-soft);
+}
+
+.restart {
+  margin-top: var(--ui-6);
+}
+
+/* Installer steps and requirement checks */
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-3);
+  margin: 0 0 var(--ui-5);
+  padding: 0;
+  list-style: none;
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-sm);
+}
+
+.steps [aria-current] {
+  color: var(--ui-ink);
+  font-weight: 600;
+}
+
+.checks {
+  display: grid;
+  gap: var(--ui-2);
+  margin: 0 0 var(--ui-5);
+  padding: 0;
+  list-style: none;
+}
+
+.check-status {
+  display: inline-block;
+  min-width: var(--ui-6);
+  font-weight: 700;
+}
+
+.check-fail .check-status {
+  color: var(--ui-danger);
+}
+
+.check-warn .check-status {
+  color: var(--ui-warning);
+}
+
+.check-ok .check-status {
+  color: var(--ui-success);
+}

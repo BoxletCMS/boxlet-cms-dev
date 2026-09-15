@@ -1,268 +1,200 @@
-/* Admin shell additions: page list and page editor. Loaded after admin.css by the admin
-   layout only. Only custom properties from tokens.css: no literal colours, pixel
-   values, fonts or shadows. */
+/* The page list and the page editor. Admin tokens only (--ui-*). */
 
-/* Shared helpers */
-
-.visually-hidden {
-  position: absolute;
-  width: 1em;
-  height: 1em;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+.page-subtitle {
+  margin: calc(var(--ui-3) * -1) 0 var(--ui-5);
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-sm);
 }
 
-/* admin.js adds .js to <html>; without it, JavaScript-only controls stay hidden. */
-.js-only {
-  display: none;
+.address {
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-sm);
 }
 
-.js .js-only {
-  display: inline-block;
+.empty-state {
+  padding: var(--ui-7) var(--ui-5);
+  background: var(--ui-panel);
+  border: var(--ui-border) dashed var(--ui-line-strong);
+  border-radius: var(--ui-radius-l);
+  text-align: center;
 }
 
-.js .no-js-only {
-  display: none;
+.empty-state p {
+  margin: 0 0 var(--ui-4);
+  color: var(--ui-ink-muted);
 }
 
-.checkbox {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-}
+/* Editor */
 
-.field textarea {
-  font: inherit;
-  padding: var(--space-s);
-  color: var(--color-text);
-  background: var(--color-background);
-  border: thin solid var(--color-muted);
-  border-radius: var(--radius-m);
-}
-
-.field-error {
-  margin: 0;
-  color: var(--color-accent);
-  font-weight: bold;
-}
-
-.field-row {
+.editor-form {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: var(--space-s);
+  gap: var(--ui-5);
 }
 
-/* Page list */
+.editor-meta {
+  display: grid;
+  gap: var(--ui-4);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
 
-.page-header {
+.editor-section-title {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-m);
-  margin-bottom: var(--space-m);
+  align-items: baseline;
+  gap: var(--ui-3);
+  margin: var(--ui-2) 0 0;
 }
 
-.page-header h1 {
-  margin: 0;
-  flex: 1;
-}
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-background);
-}
-
-.table th,
-.table td {
-  padding: var(--space-s) var(--space-m);
-  text-align: left;
-  vertical-align: top;
-  border-bottom: thin solid var(--color-surface);
-}
-
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-m);
-}
-
-.row-actions form {
+.editor-section-title h2 {
   margin: 0;
 }
-
-.status {
-  font-weight: bold;
-}
-
-.status-draft {
-  color: var(--color-muted);
-}
-
-/* Page editor */
 
 .block-list {
   display: grid;
-  gap: var(--space-m);
+  gap: var(--ui-4);
 }
 
+/* One block: a panel with a header strip, so a long page reads as a stack of cards. */
+
 .block-editor {
-  background: var(--color-background);
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-s);
+  min-width: 0;
+  min-inline-size: 0;
 }
 
 .block-editor-legend {
   display: flex;
   align-items: center;
-  gap: var(--space-s);
-  padding-inline: var(--space-s);
-  font-weight: bold;
+  gap: var(--ui-2);
+  float: left;
+  inline-size: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--ui-3) var(--ui-4);
+  background: var(--ui-panel-sunken);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l) var(--ui-radius-l) 0 0;
+  font-size: var(--ui-text-sm);
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ui-ink-muted);
+}
+
+/* A floated legend leaves the fields to clear it; this is the body they sit in. */
+.block-body {
+  clear: both;
+  display: grid;
+  gap: var(--ui-4);
+  padding: var(--ui-5) var(--ui-4);
 }
 
 .block-editor-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-m);
+  gap: var(--ui-1);
+  padding: var(--ui-2) var(--ui-4);
+  border-top: var(--ui-border) solid var(--ui-line);
+  background: var(--ui-panel-sunken);
+  border-radius: 0 0 var(--ui-radius-l) var(--ui-radius-l);
+}
+
+.block-editor-controls .checkbox {
+  font-size: var(--ui-text-sm);
 }
 
 .drag-handle {
-  color: var(--color-muted);
+  margin-inline-end: var(--ui-1);
+  color: var(--ui-ink-faint);
   cursor: grab;
   user-select: none;
 }
 
 .is-dragging {
   opacity: 0.5;
+  outline: 2px dashed var(--ui-accent);
+}
+
+/* Section style, folded away until wanted */
+
+.block-style {
+  border-top: var(--ui-border) dashed var(--ui-line);
+  padding-top: var(--ui-3);
+}
+
+.block-style > summary {
+  cursor: pointer;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+  font-weight: 550;
+}
+
+.block-style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--ui-3);
+  margin-top: var(--ui-4);
+}
+
+.block-style-grid .field select {
+  max-inline-size: none;
 }
 
 .block-add {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: var(--space-m);
+  gap: var(--ui-3);
+  padding: var(--ui-4);
+  background: var(--ui-panel);
+  border: var(--ui-border) dashed var(--ui-line-strong);
+  border-radius: var(--ui-radius-l);
+}
+
+.block-add .field {
+  flex: 1;
+  min-width: 12rem;
+  max-width: 20rem;
+}
+
+.block-add .field select {
+  max-inline-size: none;
+}
+
+/* Save bar: the primary action stays reachable at the bottom of a long page. */
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-3);
+  margin-top: var(--ui-2);
+  padding: var(--ui-3) var(--ui-4);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-m);
+}
+
+.editor-actions .hint {
+  flex: 1;
 }
 
 .editor-secondary {
-  margin-top: var(--space-l);
+  margin-top: var(--ui-6);
+  padding-top: var(--ui-4);
+  border-top: var(--ui-border) solid var(--ui-line);
 }
 
-.block-style summary {
-  cursor: pointer;
-  color: var(--color-muted);
-}
-
-.block-style-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: var(--space-s);
-  margin-top: var(--space-s);
-}
-
-/* Design screen */
-
-.preset-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--space-m);
-  margin-bottom: var(--space-xl);
-}
-
-.preset-card {
-  display: grid;
-  gap: var(--space-s);
-  padding: var(--space-s);
-  background: var(--color-background);
-  border-radius: var(--radius-m);
-}
-
-.preset-card h3 {
-  margin: 0;
-}
-
-/* Each preset preview renders at four times the card's width, then is scaled down, so the
-   card shows the site as a desktop visitor would see it rather than a phone layout. */
-.preset-frame {
-  position: relative;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  border: thin solid var(--color-border);
-  border-radius: var(--radius-s);
-}
-
-.preset-frame iframe {
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 400%;
-  height: 400%;
-  border: 0;
-  transform: scale(0.25);
-  transform-origin: 0 0;
-  pointer-events: none;
-}
-
-.design-workspace {
-  display: grid;
-  grid-template-columns: minmax(20rem, 30rem) minmax(0, 1fr);
-  gap: var(--space-l);
-  align-items: start;
-}
-
-/* Fieldsets default to min-content width, which would push the form under the preview. */
-.design-form,
-.design-form fieldset {
-  min-width: 0;
-  min-inline-size: 0;
-}
-
-.swatches code {
-  overflow-wrap: anywhere;
-}
-
-.design-preview {
-  position: sticky;
-  top: var(--space-m);
-}
-
-.design-preview iframe {
-  width: 100%;
-  height: 85vh;
-  background: var(--color-background);
-  border: thin solid var(--color-border);
-  border-radius: var(--radius-m);
-}
-
-.swatches {
-  display: grid;
-  gap: var(--space-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.swatches li {
-  display: grid;
-  grid-template-columns: 1.25em 1fr auto;
-  gap: var(--space-s);
-  align-items: center;
-}
-
-.swatches svg {
-  width: 1.25em;
-  height: 1.25em;
-  border: thin solid var(--color-border);
-}
-
-@media (max-width: 60rem) {
-  .design-workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .design-preview {
-    position: static;
+@media (max-width: 40rem) {
+  .block-body {
+    padding-inline: var(--ui-3);
   }
 }

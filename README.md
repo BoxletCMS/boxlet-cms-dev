@@ -59,7 +59,10 @@ that are not enabled, nor paths Boxlet uses itself such as `admin`.
 **Design** in the admin sets how the whole site looks, without writing CSS:
 
 - **Characters.** Editorial, Minimal, Bold, Soft and Brutalist each set every decision
-  at once. Using one fills in the form; the site changes when you press Save design.
+  at once, and each composes a page differently: reading measure, vertical rhythm,
+  alignment, section edges and how a hero is arranged. Using one fills in the form; the
+  site changes when you press Save design. On a site that already has pages you choose
+  explicitly between saving the design alone and also resetting every section's style.
 - **Eight decisions.** Main colour (and an optional second), typeface pairing, type
   scale, spacing, corners, shadows, content width and surface contrast. Everything else
   (the palette, sizes, spacing scale) is derived and shown, not edited.
@@ -73,6 +76,10 @@ alignment, top edge) and, where the block offers several, a **Layout**.
 The compiled stylesheet is `public/cache/tokens.{hash}.css`; the name changes on every
 save, so visitors never see a stale design. Fonts are served from the site itself
 (`public/assets/fonts`, SIL Open Font License), never from Google Fonts.
+
+The admin has a fixed design system of its own and never renders with the site's tokens,
+so the tool you judge a design with does not change as you change the design. The only
+place the site's own design appears in the admin is the preview pane.
 
 ### Demo site
 

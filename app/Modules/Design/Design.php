@@ -31,8 +31,9 @@ final class Design
     }
 
     /**
-     * Stores validated decisions and publishes their stylesheet. Recompiling happens here,
-     * on save, never on an ordinary request.
+     * Stores validated decisions and publishes their stylesheet. This is where a design
+     * is normally compiled; the one other path is the missing-file guard in
+     * stylesheet(), which keeps a fresh deploy from rendering unstyled.
      *
      * @param array<string, string> $decisions
      * @return string the new stylesheet's file name

@@ -7,7 +7,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
-use App\Modules\Design\SectionStyle;
+use App\Modules\Design\Composition;
 use App\Support\Url;
 
 /**
@@ -28,6 +28,7 @@ final class PagesController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/index', [
             'title' => t('pages.title'),
             'nav' => 'pages',
+            'styles' => ['admin-pages.css'],
             'pages' => Page::all($this->db()),
             'localeLabels' => array_column($this->container->get('locales'), 'label', 'code'),
         ]);
@@ -88,7 +89,7 @@ final class PagesController
                 $types[] = $type;
             }
         }
-        $id = Page::create($db, $registry, $pageLocale, $title, $slug, $template['id'] ?? null, $types, SectionStyle::DEFAULTS);
+        $id = Page::create($db, $registry, $pageLocale, $title, $slug, $template['id'] ?? null, $types, Composition::active($db));
         $this->container->get('session')->set('flash', t('pages.created'));
 
         return Response::redirect(Url::admin('pages', $id));
@@ -139,6 +140,7 @@ final class PagesController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/create', [
             'title' => t('pages.new'),
             'nav' => 'pages',
+            'styles' => ['admin-pages.css'],
             'old' => $old,
             'errors' => $errors,
             'locales' => $this->container->get('locales'),

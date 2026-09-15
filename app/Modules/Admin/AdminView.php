@@ -27,6 +27,10 @@ final class AdminView
         $data += [
             'title' => t('admin.brand'),
             'nav' => '',
+            // Stylesheets this screen needs on top of the shell's own, and whether it
+            // wants the wide column (the Design screen does; a form does not).
+            'styles' => [],
+            'wide' => false,
             'siteName' => is_string($siteName) ? $siteName : '',
             'flash' => is_string($flash) ? $flash : null,
             'csrf' => $session->csrfToken(),

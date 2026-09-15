@@ -13,6 +13,15 @@ final class Url
     private static string $primaryLocale = '';
     private static string $origin = '';
     private static string $stylesheet = '';
+    private static string $publicPath = '';
+
+    /**
+     * Where public/ lives on disk, so versioned() can hash the files it links.
+     */
+    public static function usePublicPath(string $directory): void
+    {
+        self::$publicPath = rtrim($directory, '/');
+    }
 
     /**
      * Sets the design stylesheet every layout links: the compiled tokens.{hash}.css, or
@@ -118,5 +127,26 @@ final class Url
     public static function asset(string $path): string
     {
         return self::$basePath . '/' . ltrim($path, '/');
+    }
+
+    /**
+     * A stylesheet or script under public/ with a hash of its content in the query
+     * string, so an edited file is a new URL that no browser or proxy has cached.
+     *
+     * tokens.css carries its hash in the file name because it is generated; these are
+     * real files shipped with the release, and renaming them would need a build step the
+     * install cannot run. The query string is enough: the web server still answers from
+     * disk without PHP (SPEC §5.4).
+     */
+    public static function versioned(string $path): string
+    {
+        $url = self::asset($path);
+        $file = self::$publicPath . '/' . ltrim($path, '/');
+        if (self::$publicPath === '' || !is_file($file)) {
+            return $url;
+        }
+        $hash = hash_file('sha256', $file);
+
+        return $hash === false ? $url : self::withQuery($url, ['v' => substr($hash, 0, 12)]);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Modules\Design\SectionStyle;
+use App\Modules\Design\Composition;
 
 /**
  * One block's field group in the page editor. Also rendered with $index '__INDEX__'
@@ -10,17 +10,22 @@ use App\Modules\Design\SectionStyle;
  * @var int|string $index
  * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string} $block
  * @var array<string, string> $errors
+ * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
  */
 $known = $registry->has($block['type']);
 $prefix = 'blocks[' . $index . ']';
 $idPrefix = 'block-' . $index . '-';
+// Section style opens when it differs from what the active character would give this
+// block, so a hand-tuned section announces itself and a composed one stays quiet.
+$composed = $known ? Composition::style($character, $block['type']) : [];
 ?>
             <fieldset class="block-editor" data-block>
                 <legend class="block-editor-legend">
                     <span class="drag-handle js-only" data-drag-handle title="<?= e(t('pages.drag')) ?>" aria-hidden="true">&#8942;&#8942;</span>
                     <?= e($known ? t('block.' . $block['type']) : t('pages.block.unknown', ['type' => $block['type']])) ?>
                 </legend>
+                <div class="block-body">
                 <input type="hidden" name="<?= e($prefix) ?>[type]" value="<?= e($block['type']) ?>">
 <?php if ($block['id'] !== null): ?>
                 <input type="hidden" name="<?= e($prefix) ?>[id]" value="<?= e($block['id']) ?>">
@@ -74,10 +79,10 @@ $idPrefix = 'block-' . $index . '-';
                     </select>
                 </div>
 <?php endif; ?>
-                <details class="block-style"<?= $block['style'] !== SectionStyle::DEFAULTS ? ' open' : '' ?>>
+                <details class="block-style"<?= $block['style'] !== $composed ? ' open' : '' ?>>
                     <summary><?= e(t('style.title')) ?></summary>
                     <div class="block-style-grid">
-<?php foreach (SectionStyle::OPTIONS as $styleKey => $styleValues): ?>
+<?php foreach (\App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $styleValues): ?>
                         <div class="field">
                             <label for="<?= e($idPrefix . 'style-' . $styleKey) ?>"><?= e(t('style.' . $styleKey)) ?></label>
                             <select id="<?= e($idPrefix . 'style-' . $styleKey) ?>" name="<?= e($prefix) ?>[style][<?= e($styleKey) ?>]">
@@ -90,10 +95,11 @@ $idPrefix = 'block-' . $index . '-';
                     </div>
                 </details>
 <?php endif; ?>
+                </div>
                 <div class="block-editor-controls">
-                    <button type="submit" name="action" value="up-<?= e($index) ?>" class="button button-quiet" data-editor-action="up"><?= e(t('pages.move_up')) ?></button>
-                    <button type="submit" name="action" value="down-<?= e($index) ?>" class="button button-quiet" data-editor-action="down"><?= e(t('pages.move_down')) ?></button>
-                    <button type="button" class="button button-quiet js-only" data-editor-action="remove"><?= e(t('pages.remove')) ?></button>
+                    <button type="submit" name="action" value="up-<?= e($index) ?>" class="button button-ghost" data-editor-action="up"><?= e(t('pages.move_up')) ?></button>
+                    <button type="submit" name="action" value="down-<?= e($index) ?>" class="button button-ghost" data-editor-action="down"><?= e(t('pages.move_down')) ?></button>
+                    <button type="button" class="button button-ghost button-danger js-only" data-editor-action="remove"><?= e(t('pages.remove')) ?></button>
                     <label class="checkbox no-js-only">
                         <input type="checkbox" name="<?= e($prefix) ?>[_delete]" value="1">
                         <span><?= e(t('pages.remove_on_save')) ?></span>

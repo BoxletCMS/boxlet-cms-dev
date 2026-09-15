@@ -13,13 +13,14 @@ return [
     'auth.throttled' => 'Too many login attempts. Try again in :minutes minutes.',
 
     'admin.brand' => 'Boxlet',
+    'admin.skip' => 'Skip to content',
     'admin.nav.label' => 'Admin navigation',
     'admin.nav.dashboard' => 'Dashboard',
     'admin.nav.pages' => 'Pages',
     'admin.nav.design' => 'Design',
     'admin.logout' => 'Log out',
     'admin.dashboard.title' => 'Dashboard',
-    'admin.dashboard.intro' => 'You are logged in. Create and edit your site\'s content under Pages.',
+    'admin.dashboard.intro' => 'You are logged in. Create and edit your site\'s content under Pages, and choose how it looks under Design.',
 
     'install.title' => 'Install Boxlet',
     'install.brand' => 'Boxlet installer',
@@ -202,6 +203,7 @@ return [
     'pages.remove_on_save' => 'Remove when saving',
     'pages.drag' => 'Drag to reorder',
     'pages.save' => 'Save page',
+    'pages.save_hint' => 'Nothing on this page is stored until you press Save.',
     'pages.required_marker' => '(required)',
     'pages.layout' => 'Layout',
     'pages.block.unknown' => 'Unknown block type “:type”, kept unchanged',

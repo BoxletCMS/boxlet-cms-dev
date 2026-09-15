@@ -12,11 +12,13 @@ use App\Modules\Pages\Page;
 use App\Support\Url;
 
 /**
- * Admin Design screen: presets, the eight decisions, and a live preview.
+ * Admin Design screen: characters (layer 0), the eight decisions (layer 1), and a live
+ * preview.
  *
- * Saving is an ordinary form post that works without JavaScript. The preview and the
- * contrast check are GET endpoints that derive tokens for the submitted values without
- * writing anything.
+ * Saving is an ordinary form post that works without JavaScript. Applying a character
+ * to a site that already has blocks offers two explicit buttons — the design alone, or
+ * the design with its composition — because the second overwrites section styles the
+ * user may have chosen by hand (SPEC §5.4).
  */
 final class DesignController
 {
@@ -33,33 +35,56 @@ final class DesignController
     }
 
     /**
-     * Save, or load a preset into the form. A loaded preset changes nothing on the site
-     * until the form is saved: Save is the confirmation.
+     * Save, or load a character into the form. A loaded character changes nothing on the
+     * site until the form is saved: Save is the confirmation.
      *
      * @param array<string, string> $params
      */
     public function save(Request $request, string $locale, array $params): Response
     {
         $action = $request->input('action');
-        if (str_starts_with($action, 'preset:') && isset(Presets::ALL[substr($action, 7)])) {
+        if (str_starts_with($action, 'preset:') && Presets::exists(substr($action, 7))) {
             $name = substr($action, 7);
 
-            return $this->form(Presets::get($name), [], t('design.preset_loaded', ['preset' => t('design.preset.' . $name)]));
+            return $this->form(
+                Presets::get($name),
+                [],
+                t('design.preset_loaded', ['preset' => t('design.preset.' . $name)]),
+                200,
+                $name,
+            );
         }
 
+        $character = $request->input('character');
+        $character = Presets::exists($character) ? $character : '';
         $result = Tokens::validate(self::submitted($request->body));
         if ($result['errors'] !== []) {
-            return $this->form($result['decisions'], $result['errors'], t('design.not_saved'), 422);
+            return $this->form($result['decisions'], $result['errors'], t('design.not_saved'), 422, $character);
         }
-        Design::save($this->db(), $result['decisions'], (string) $this->container->get('config')->get('app.cache_path'));
-        $this->container->get('session')->set('flash', t('design.saved'));
+
+        $db = $this->db();
+        Design::save($db, $result['decisions'], (string) $this->container->get('config')->get('app.cache_path'));
+        $message = t('design.saved');
+        if ($character !== '') {
+            Composition::remember($db, $character);
+            if ($action === 'save_composition') {
+                $count = Composition::apply($db, $this->container->get('blocks'), $character);
+                $message = t('design.saved_with_composition', [
+                    'count' => $count,
+                    'character' => t('design.preset.' . $character),
+                ]);
+            }
+        }
+        $this->container->get('session')->set('flash', $message);
 
         return Response::redirect(Url::admin('design'));
     }
 
     /**
-     * The site rendered with the submitted (or a preset's) values, for an iframe on the
-     * Design screen: the primary home page if there is one, else a specimen of every surface.
+     * The site rendered with the submitted values, for the iframe on the Design screen:
+     * the primary home page if there is one, else a specimen of every surface. With a
+     * character named, blocks are composed as that character composes them, so the
+     * preview shows the shape the page would take and not only its colours.
      *
      * @param array<string, string> $params
      */
@@ -68,22 +93,32 @@ final class DesignController
         $decisions = $this->previewDecisions($request->query);
         Url::useStylesheet(Url::withQuery(Url::admin('design', 'stylesheet'), self::query($decisions)));
 
+        $character = is_string($request->query['character'] ?? null) ? $request->query['character'] : '';
+        $character = Presets::exists($character) ? $character : null;
         $registry = $this->container->get('blocks');
         $home = ($request->query['specimen'] ?? '') === '1' ? null : $this->db()->one(
             'SELECT p.id FROM pages p JOIN locales l ON l.code = p.locale WHERE p.slug = ? AND l.is_primary = 1',
             [''],
         );
-        $html = '';
+
+        $blocks = [];
         if ($home !== null) {
             foreach (Page::blocks($this->db(), (int) $home['id']) as $block) {
                 if ($registry->has($block['type'])) {
-                    $html .= $registry->render($block['type'], $block['content'], $block['style'], $block['layout']);
+                    $blocks[] = [$block['type'], $block['content'], $block['style'], $block['layout']];
                 }
             }
         } else {
-            foreach (self::specimen() as [$type, $content, $style, $layout]) {
-                $html .= $registry->render($type, $content, $style, $layout);
+            $blocks = self::specimen();
+        }
+
+        $html = '';
+        foreach ($blocks as [$type, $content, $style, $layout]) {
+            if ($character !== null) {
+                $style = Composition::style($character, $type);
+                $layout = Composition::layout($registry, $character, $type);
             }
+            $html .= $registry->render($type, $content, $style, $layout);
         }
 
         $view = new View(dirname(__DIR__) . '/Pages/views');
@@ -158,7 +193,7 @@ final class DesignController
     private function previewDecisions(array $query): array
     {
         $preset = $query['preset'] ?? null;
-        if (is_string($preset) && isset(Presets::ALL[$preset])) {
+        if (is_string($preset) && Presets::exists($preset)) {
             return Presets::get($preset);
         }
         if (!isset($query['seed'])) {
@@ -186,18 +221,30 @@ final class DesignController
     /**
      * @param array<string, string> $decisions
      * @param array<string, string> $errors
+     * @param string                $character the character loaded into the form, if any
      */
-    private function form(array $decisions, array $errors, ?string $notice, int $status = 200): Response
+    private function form(array $decisions, array $errors, ?string $notice, int $status = 200, string $character = ''): Response
     {
+        $db = $this->db();
+        $previewQuery = self::query($decisions);
+        if ($character !== '') {
+            $previewQuery['character'] = $character;
+        }
+
         return AdminView::render($this->container, __DIR__ . '/views', 'design', [
             'title' => t('design.title'),
             'nav' => 'design',
+            'styles' => ['admin-design.css'],
+            'wide' => true,
             'decisions' => $decisions,
             'errors' => $errors,
             'notice' => $notice,
+            'character' => $character,
+            'activeCharacter' => Composition::active($db),
+            'hasBlocks' => Composition::hasBlocks($db),
             'colors' => Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']),
             'derived' => Tokens::derive($decisions),
-            'previewUrl' => Url::withQuery(Url::admin('design', 'preview'), self::query($decisions)),
+            'previewUrl' => Url::withQuery(Url::admin('design', 'preview'), $previewQuery),
         ], $status);
     }
 

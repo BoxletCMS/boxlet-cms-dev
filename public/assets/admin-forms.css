@@ -1,0 +1,264 @@
+/* The admin's form controls, tables and status pills. Admin tokens only (--ui-*): no
+ * value from the site's tokens.css ever reaches the admin. Loaded by the admin shell,
+ * the login screen and the installer. */
+
+/* Helpers */
+
+.visually-hidden {
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* admin.js adds .js to <html>; without it, JavaScript-only controls stay hidden. */
+.js-only {
+  display: none;
+}
+
+.js .js-only {
+  display: inline-block;
+}
+
+.js .no-js-only {
+  display: none;
+}
+
+/* Groups */
+
+.stack {
+  display: grid;
+  gap: var(--ui-5);
+}
+
+.fieldset {
+  display: grid;
+  gap: var(--ui-4);
+  margin: 0;
+  padding: var(--ui-5);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-s);
+  /* Fieldsets are min-content wide by default, which collapses them inside a grid. */
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+.fieldset > legend {
+  padding-inline: var(--ui-2);
+  margin-inline-start: calc(var(--ui-2) * -1);
+  font-size: var(--ui-text-sm);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ui-ink-muted);
+}
+
+/* Fields */
+
+.field {
+  display: grid;
+  gap: var(--ui-2);
+  min-width: 0;
+}
+
+.field > label,
+.field > .field-label {
+  font-weight: 550;
+  line-height: var(--ui-leading-tight);
+}
+
+.field input,
+.field select,
+.field textarea {
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: 34rem;
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+}
+
+.field textarea {
+  max-inline-size: none;
+  line-height: var(--ui-leading);
+  resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--ui-ink-faint);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--ui-accent);
+}
+
+.field input[type="checkbox"] {
+  inline-size: auto;
+  accent-color: var(--ui-accent);
+}
+
+.field .hint {
+  order: 3;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  font-weight: 500;
+}
+
+.checkbox input {
+  inline-size: auto;
+  accent-color: var(--ui-accent);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--ui-2);
+  max-inline-size: 34rem;
+}
+
+.field-row input {
+  max-inline-size: none;
+}
+
+.field-error {
+  margin: 0;
+  order: 4;
+  padding-inline-start: var(--ui-2);
+  border-inline-start: var(--ui-1) solid var(--ui-danger);
+  color: var(--ui-danger);
+  font-size: var(--ui-text-sm);
+  font-weight: 550;
+}
+
+.field-error[hidden] {
+  display: none;
+}
+
+/* A colour input, shown as the colour it holds rather than as a widget. The default
+   control collapses its swatch to a sliver as soon as the input has padding, so the
+   padding goes on the wrapper and the swatch is given the whole control. */
+
+.colour-field {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-3);
+}
+
+/* Two classes deep, so it beats the `.field input` sizing rather than stretching into a
+   full-width bar. */
+.colour-field .colour-input {
+  inline-size: 3.5rem;
+  block-size: 2.5rem;
+  max-inline-size: none;
+  flex: none;
+  padding: 0;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.colour-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.colour-input::-webkit-color-swatch {
+  border: 0;
+}
+
+.colour-input::-moz-color-swatch {
+  border: 0;
+}
+
+.colour-value {
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-ink-muted);
+}
+
+/* Tables */
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--ui-3) var(--ui-4);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.table thead th {
+  background: var(--ui-panel-sunken);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover {
+  background: var(--ui-panel-sunken);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-1);
+}
+
+.row-actions form {
+  margin: 0;
+}
+
+/* Status pills */
+
+.status {
+  display: inline-block;
+  padding: var(--ui-1) var(--ui-2);
+  border-radius: var(--ui-radius-s);
+  background: var(--ui-success-soft);
+  color: var(--ui-success);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.status-draft {
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  color: var(--ui-ink-muted);
+}

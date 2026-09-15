@@ -22,8 +22,8 @@ use App\Support\Url;
     <link rel="canonical" href="<?= e($canonical) ?>">
 <?php endif; ?>
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
-    <link rel="stylesheet" href="<?= e(Url::asset('assets/site.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::asset('assets/sections.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
 </head>
 <body>
     <main>

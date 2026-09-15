@@ -3,11 +3,13 @@
 namespace App\Modules\Design;
 
 /**
- * Layer 0: the five characters. Each is a complete set of layer-1 decisions; applying
- * one copies its values, and nothing refers back to the preset afterwards.
+ * Layer 0: the five characters. Each is a complete set of layer-1 decisions plus the
+ * composition it gives a page: the layer-2 section style and layer-3 layout new blocks
+ * start from (SPEC §5.4).
  *
- * They differ in structure, not only hue: type pairing and scale, spacing rhythm,
- * radius, shadow, container width and surface contrast all change between them.
+ * They differ in structure, not only hue. Tokens change type, scale, spacing, radius,
+ * shadow, container and surface contrast; composition changes the shape of the page
+ * itself: measure, vertical rhythm, alignment, section boundaries and hero arrangement.
  */
 final class Presets
 {
@@ -47,10 +49,74 @@ final class Presets
     ];
 
     /**
+     * Layers 2 and 3 per character. `section` is the section style every block starts
+     * from, `surfaces` overrides the surface for one block type, and `layouts` picks the
+     * arrangement of a block type that offers several. A block type named nowhere takes
+     * `section` and its own default layout, so a character keeps working when Slice 9
+     * adds six more blocks.
+     *
+     * The five differ in measure, rhythm, alignment, section boundary and hero
+     * arrangement, so switching character changes how a page is composed and not only
+     * how it is painted.
+     */
+    public const COMPOSITION = [
+        // A reading column: narrow measure, plenty of air, everything ranged left,
+        // no rules between sections. The page is one quiet text.
+        'editorial' => [
+            'section' => ['surface' => 'plain', 'rhythm' => 'airy', 'width' => 'narrow', 'align' => 'left', 'divider' => 'none'],
+            'surfaces' => ['image_text' => 'tinted'],
+            'layouts' => ['hero' => 'left', 'image_text' => 'image-left', 'text' => 'single'],
+        ],
+        // Even and quiet: normal measure and rhythm, centred, every section separated by
+        // a hairline rule. Nothing shouts, nothing is full-bleed.
+        'minimal' => [
+            'section' => ['surface' => 'plain', 'rhythm' => 'normal', 'width' => 'normal', 'align' => 'center', 'divider' => 'line'],
+            'surfaces' => [],
+            'layouts' => ['hero' => 'center', 'image_text' => 'image-left', 'text' => 'single'],
+        ],
+        // Big and confident: a wide measure, ranged left so headlines run long, slanted
+        // section edges, and the surfaces used hard — gradient hero, contrast panels.
+        'bold' => [
+            'section' => ['surface' => 'plain', 'rhythm' => 'normal', 'width' => 'wide', 'align' => 'left', 'divider' => 'slant'],
+            'surfaces' => ['hero' => 'gradient', 'image_text' => 'contrast', 'text' => 'tinted'],
+            'layouts' => ['hero' => 'center', 'image_text' => 'image-left', 'text' => 'single'],
+        ],
+        // Relaxed and open: airy rhythm, curved section edges, and heroes split so the
+        // text sits beside its image rather than under it.
+        'soft' => [
+            'section' => ['surface' => 'plain', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'curve'],
+            'surfaces' => ['hero' => 'tinted', 'text' => 'tinted'],
+            'layouts' => ['hero' => 'split', 'image_text' => 'image-right', 'text' => 'single'],
+        ],
+        // Dense and flush: full-bleed sections, tight rhythm, no dividers at all, split
+        // heroes and slabs of contrast. Edge to edge, nothing centred.
+        'brutalist' => [
+            'section' => ['surface' => 'plain', 'rhythm' => 'tight', 'width' => 'full', 'align' => 'left', 'divider' => 'none'],
+            'surfaces' => ['hero' => 'contrast', 'text' => 'tinted'],
+            'layouts' => ['hero' => 'split', 'image_text' => 'image-left', 'text' => 'columns'],
+        ],
+    ];
+
+    /**
+     * The layer-1 decisions of a character, falling back to the default character.
+     *
      * @return array<string, string>
      */
     public static function get(string $name): array
     {
         return self::ALL[$name] ?? self::ALL[self::DEFAULT];
+    }
+
+    public static function exists(string $name): bool
+    {
+        return isset(self::ALL[$name]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function names(): array
+    {
+        return array_keys(self::ALL);
     }
 }

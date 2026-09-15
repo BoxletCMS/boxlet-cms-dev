@@ -4,6 +4,7 @@ namespace App\Modules\Pages;
 
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Modules\Design\Composition;
 use Closure;
 use Throwable;
 
@@ -72,15 +73,17 @@ final class Page
     }
 
     /**
-     * Creates a draft page with empty blocks of the given types, each in its default
-     * layout and section style. The page and each block start their own groups.
+     * Creates a draft page with empty blocks of the given types, each composed as the
+     * active character composes that block type (SPEC §5.4). The page and each block
+     * start their own groups.
      *
-     * @param list<string>          $blockTypes
-     * @param array<string, string> $defaultStyle
+     * @param list<string> $blockTypes
+     * @param string|null  $character   the character new blocks start from; null for the
+     *                                  block's own defaults
      */
-    public static function create(Db $db, Blocks $registry, string $locale, string $title, string $slug, ?int $templateId, array $blockTypes, array $defaultStyle = []): int
+    public static function create(Db $db, Blocks $registry, string $locale, string $title, string $slug, ?int $templateId, array $blockTypes, ?string $character = null): int
     {
-        return self::transaction($db, static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes, $defaultStyle): int {
+        return self::transaction($db, static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes, $character): int {
             $now = gmdate('Y-m-d H:i:s');
             $db->query(
                 'INSERT INTO pages (locale, slug, title, status, template_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -89,7 +92,13 @@ final class Page
             $id = (int) $db->lastInsertId();
             $db->query('UPDATE pages SET content_group_id = id WHERE id = ?', [$id]);
             foreach ($blockTypes as $sort => $type) {
-                $block = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => $defaultStyle, 'layout' => $registry->layout($type, null)];
+                $block = [
+                    'id' => null,
+                    'type' => $type,
+                    'content' => $registry->normalize($type, []),
+                    'style' => Composition::style($character, $type),
+                    'layout' => Composition::layout($registry, $character, $type),
+                ];
                 self::insertBlock($db, $id, $block, $sort, $now);
             }
 

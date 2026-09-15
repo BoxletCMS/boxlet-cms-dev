@@ -31,7 +31,7 @@ final class DemoSite
 
         $pages = self::pages();
         foreach ($pages as $page) {
-            $id = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, [], SectionStyle::DEFAULTS);
+            $id = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, []);
             $blocks = [];
             foreach ($page['blocks'] as [$type, $content, $style, $layout]) {
                 foreach ($registry->get($type)['fields'] as $name => $field) {

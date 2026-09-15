@@ -8,6 +8,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
+use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Support\Url;
 
@@ -70,7 +71,14 @@ final class PageEditorController
 
         if ($action === 'add' && $registry->has($request->input('add_type'))) {
             $type = $request->input('add_type');
-            $blocks[] = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => SectionStyle::DEFAULTS, 'layout' => $registry->layout($type, null)];
+            $character = Composition::active($db);
+            $blocks[] = [
+                'id' => null,
+                'type' => $type,
+                'content' => $registry->normalize($type, []),
+                'style' => Composition::style($character, $type),
+                'layout' => Composition::layout($registry, $character, $type),
+            ];
 
             return $this->form($page, $title, $slug, $blocks);
         }
@@ -154,6 +162,8 @@ final class PageEditorController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/edit', [
             'title' => t('pages.edit'),
             'nav' => 'pages',
+            'styles' => ['admin-pages.css'],
+            'character' => Composition::active($this->db()),
             'page' => $page,
             'titleValue' => $title,
             'slugValue' => $slug,

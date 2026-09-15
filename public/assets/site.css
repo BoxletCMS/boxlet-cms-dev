@@ -77,11 +77,13 @@ code {
   text-decoration: none;
 }
 
+/* Always outlined: on a low-contrast surface the fill alone is invisible, and an
+   invisible placeholder reads as a hole in the page rather than as a picture. */
 .media-placeholder {
   width: 100%;
   aspect-ratio: 4 / 3;
   background: var(--section-card);
-  border: var(--border-card) solid var(--section-text);
+  border: var(--border-width) solid var(--section-border);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-m);
 }
@@ -152,6 +154,23 @@ code {
   grid-template-columns: 1fr 1fr;
 }
 
+/* A split hero with no picture splits its own text instead of leaving half the section
+   empty: the heading takes one column, the subheading and button the other. */
+.layout-split .hero:not(:has(.hero-media)) {
+  grid-template-columns: 1fr;
+}
+
+.layout-split .hero:not(:has(.hero-media)) .hero-text {
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--space-xl);
+  align-items: start;
+  max-width: none;
+}
+
+.layout-split .hero:not(:has(.hero-media)) .hero-heading {
+  grid-row: span 2;
+}
+
 /* Text and image-text */
 
 .text-heading,
@@ -182,8 +201,13 @@ code {
 
 @media (max-width: 40rem) {
   .layout-split .hero,
+  .layout-split .hero:not(:has(.hero-media)) .hero-text,
   .image-text {
     grid-template-columns: 1fr;
+  }
+
+  .layout-split .hero:not(:has(.hero-media)) .hero-heading {
+    grid-row: auto;
   }
 
   .layout-image-right .image-text-media {

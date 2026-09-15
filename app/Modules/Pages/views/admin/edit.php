@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Design\Composition;
 use App\Support\Url;
 
 /**
@@ -13,6 +14,7 @@ use App\Support\Url;
  * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
+ * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
  * @var string $csrf
  */
@@ -30,23 +32,28 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php if ($notice !== null): ?>
         <p class="notice notice-error" role="alert"><?= e($notice) ?></p>
 <?php endif; ?>
-        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="stack" data-page-editor>
+        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="editor-form" data-page-editor>
             <?php /* First submit button in the form: pressing Enter in a field saves. */ ?>
             <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-            <div class="field">
-                <label for="page-title"><?= e(t('pages.field.title')) ?></label>
-                <input type="text" id="page-title" name="title" value="<?= e($titleValue) ?>" maxlength="255" required>
-                <?= $error('title') ?>
-            </div>
-            <div class="field">
-                <label for="page-slug"><?= e(t('pages.field.slug')) ?></label>
-                <input type="text" id="page-slug" name="slug" value="<?= e($slugValue) ?>" maxlength="100" autocapitalize="off" spellcheck="false" aria-describedby="page-slug-hint">
-                <span class="hint" id="page-slug-hint"><?= e(t('pages.field.slug_hint')) ?></span>
-                <?= $error('slug') ?>
+
+            <div class="panel editor-meta">
+                <div class="field">
+                    <label for="page-title"><?= e(t('pages.field.title')) ?></label>
+                    <input type="text" id="page-title" name="title" value="<?= e($titleValue) ?>" maxlength="255" required>
+                    <?= $error('title') ?>
+                </div>
+                <div class="field">
+                    <label for="page-slug"><?= e(t('pages.field.slug')) ?></label>
+                    <input type="text" id="page-slug" name="slug" value="<?= e($slugValue) ?>" maxlength="100" autocapitalize="off" spellcheck="false" aria-describedby="page-slug-hint">
+                    <span class="hint" id="page-slug-hint"><?= e(t('pages.field.slug_hint')) ?></span>
+                    <?= $error('slug') ?>
+                </div>
             </div>
 
-            <h2><?= e(t('pages.blocks')) ?></h2>
+            <div class="editor-section-title">
+                <h2><?= e(t('pages.blocks')) ?></h2>
+            </div>
             <div class="block-list" data-block-list>
 <?php foreach ($blocks as $index => $block): ?>
 <?php require __DIR__ . '/block.php'; ?>
@@ -65,11 +72,12 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php endforeach; ?>
                     </select>
                 </div>
-                <button type="submit" name="action" value="add" class="button button-quiet" data-editor-action="add"><?= e(t('pages.add')) ?></button>
+                <button type="submit" name="action" value="add" class="button button-secondary" data-editor-action="add"><?= e(t('pages.add')) ?></button>
             </div>
 
             <div class="editor-actions">
                 <button type="submit" name="action" value="save" class="button"><?= e(t('pages.save')) ?></button>
+                <span class="hint"><?= e(t('pages.save_hint')) ?></span>
             </div>
             <input type="hidden" name="_end" value="1">
         </form>
@@ -78,7 +86,13 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         <template data-block-template="<?= e($type) ?>">
 <?php
     $index = '__INDEX__';
-    $block = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => \App\Modules\Design\SectionStyle::DEFAULTS, 'layout' => $registry->layout($type, null)];
+    $block = [
+        'id' => null,
+        'type' => $type,
+        'content' => $registry->normalize($type, []),
+        'style' => Composition::style($character, $type),
+        'layout' => Composition::layout($registry, $character, $type),
+    ];
     require __DIR__ . '/block.php';
 ?>
         </template>
@@ -89,10 +103,10 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="return" value="edit">
                 <input type="hidden" name="status" value="<?= $published ? 'draft' : 'published' ?>">
-                <button type="submit" class="button button-quiet"><?= e(t($published ? 'pages.unpublish' : 'pages.publish')) ?></button>
+                <button type="submit" class="button button-secondary"><?= e(t($published ? 'pages.unpublish' : 'pages.publish')) ?></button>
             </form>
             <form method="post" action="<?= e(Url::admin('pages', $pageId, 'delete')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                <button type="submit" class="button button-quiet" data-confirm="<?= e(t('pages.delete_confirm', ['title' => (string) $page['title']])) ?>"><?= e(t('pages.delete')) ?></button>
+                <button type="submit" class="button button-ghost button-danger" data-confirm="<?= e(t('pages.delete_confirm', ['title' => (string) $page['title']])) ?>"><?= e(t('pages.delete')) ?></button>
             </form>
         </div>

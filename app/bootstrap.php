@@ -33,6 +33,7 @@ $blocks = Blocks::discover($root . '/app/Blocks');
 
 $request = Request::fromGlobals();
 Url::configure($request->basePath, '');
+Url::usePublicPath($root . '/public');
 
 $container = new Container();
 $container->set('config', fn () => $config);

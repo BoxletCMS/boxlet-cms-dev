@@ -19,6 +19,10 @@ php -S localhost:8000 -t public
 Then open <http://localhost:8000/hello> (English, the primary locale, no prefix) or
 <http://localhost:8000/hr/hello> (Croatian). `/en/hello` redirects to `/hello`.
 
+## Tests
+
+Run `php tests/run.php` (no web server or database needed; exits non-zero on failure).
+
 ## Deployment
 
 In every case the document root must point at `public/`. `app/`, `config/`,

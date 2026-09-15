@@ -1,8 +1,6 @@
 <?php
 
 use App\Core\ErrorHandler;
-use App\Core\Request;
-use App\Support\Url;
 use Dotenv\Dotenv;
 
 $root = dirname(__DIR__);
@@ -19,9 +17,4 @@ Dotenv::createImmutable($root)->safeLoad();
 ErrorHandler::register((bool) env('APP_DEBUG', false));
 
 $container = require $root . '/app/bootstrap.php';
-$request = Request::fromGlobals();
-
-$config = $container->get('config');
-Url::configure($request->basePath, (bool) $config->get('app.pretty_urls', true), $config->get('locales.primary'));
-
-$container->get('router')->dispatch($request)->send();
+$container->get('router')->dispatch($container->get('request'))->send();

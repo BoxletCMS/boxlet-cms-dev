@@ -12,8 +12,14 @@ use Throwable;
  */
 final class View
 {
-    public function __construct(private readonly string $directory)
-    {
+    /**
+     * @param string      $directory       where templates live
+     * @param string|null $layoutDirectory where the layout lives, when another module owns it
+     */
+    public function __construct(
+        private readonly string $directory,
+        private readonly ?string $layoutDirectory = null,
+    ) {
     }
 
     /**
@@ -25,24 +31,24 @@ final class View
     public function render(string $template, string $locale, array $data = [], ?string $layout = 'layout'): string
     {
         $data = ['locale' => $locale] + $data;
-        $content = $this->renderFile($template, $data);
+        $content = $this->renderFile($this->directory, $template, $data);
 
         if ($layout === null) {
             return $content;
         }
 
-        return $this->renderFile($layout, ['content' => $content] + $data);
+        return $this->renderFile($this->layoutDirectory ?? $this->directory, $layout, ['content' => $content] + $data);
     }
 
     /**
      * @param array<string, mixed> $data
      */
-    private function renderFile(string $template, array $data): string
+    private function renderFile(string $directory, string $template, array $data): string
     {
         if (!preg_match('~^[a-z0-9_-]+(/[a-z0-9_-]+)*$~', $template)) {
             throw new InvalidArgumentException("Invalid template name: {$template}");
         }
-        $file = $this->directory . '/' . $template . '.php';
+        $file = $directory . '/' . $template . '.php';
         if (!is_file($file)) {
             throw new RuntimeException("Template not found: {$template}");
         }

@@ -12,6 +12,8 @@ use App\Modules\Admin\RequireAdmin;
 use App\Modules\Auth\AuthController;
 use App\Modules\Design\TokenCompiler;
 use App\Modules\Pages\PageController;
+use App\Modules\Pages\PageEditorController;
+use App\Modules\Pages\PagesController;
 use App\Support\Url;
 
 /**
@@ -57,17 +59,25 @@ $container->set('router', function (Container $c) use ($request): Router {
     Url::configure($request->basePath, $primary);
     $router = new Router($c, array_column($locales, 'code'), $primary);
 
-    // TEMPORARY (Slice 1): hard-coded page until Slice 3 serves pages from the database.
-    // No home route yet, so / and /hr/ land on the 404 page. That is expected.
-    $router->get('/hello', [PageController::class, 'hello']);
-    $router->setNotFound([PageController::class, 'notFound']);
-
-    // Admin routes never carry a locale prefix (SPEC §5.1).
+    // Admin routes never carry a locale prefix (SPEC §5.1). They are registered before
+    // the page route, whose variable pattern would otherwise shadow them.
     $requireAdmin = [[RequireAdmin::class, 'handle']];
     $router->get('/admin/login', [AuthController::class, 'showLogin']);
     $router->post('/admin/login', [AuthController::class, 'login']);
     $router->post('/admin/logout', [AuthController::class, 'logout'], $requireAdmin);
     $router->get('/admin', [DashboardController::class, 'index'], $requireAdmin);
+    $router->get('/admin/pages', [PagesController::class, 'index'], $requireAdmin);
+    $router->get('/admin/pages/new', [PagesController::class, 'create'], $requireAdmin);
+    $router->post('/admin/pages', [PagesController::class, 'store'], $requireAdmin);
+    $router->get('/admin/pages/{id:\d+}', [PageEditorController::class, 'edit'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/status', [PagesController::class, 'status'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/delete', [PagesController::class, 'delete'], $requireAdmin);
+
+    // Pages: the home page of a locale has the empty slug. Slugs are one path segment.
+    $router->get('/', [PageController::class, 'show']);
+    $router->get('/{slug:[a-z0-9]+(?:-[a-z0-9]+)*}', [PageController::class, 'show']);
+    $router->setNotFound([PageController::class, 'notFound']);
 
     return $router;
 });

@@ -37,13 +37,20 @@ final class Url
     }
 
     /**
-     * URL inside the admin, which never carries a locale prefix: admin('login').
+     * URL inside the admin, which never carries a locale prefix, from path segments:
+     * admin('login'), admin('pages', 12, 'status').
      */
-    public static function admin(string $path = ''): string
+    public static function admin(string|int ...$segments): string
     {
-        $path = trim($path, '/');
+        $path = '';
+        foreach ($segments as $segment) {
+            $segment = trim((string) $segment, '/');
+            if ($segment !== '') {
+                $path .= '/' . rawurlencode($segment);
+            }
+        }
 
-        return self::$basePath . '/admin' . ($path === '' ? '' : '/' . $path);
+        return self::$basePath . '/admin' . $path;
     }
 
     /**

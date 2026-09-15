@@ -108,7 +108,7 @@ final class TestSite
  * does, without a web server. The session is plain $_SESSION, which persists across
  * dispatches within a test.
  *
- * @param array<string, string> $body POST fields
+ * @param array<string, mixed> $body POST fields
  */
 function dispatch(
     string $path,

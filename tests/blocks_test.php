@@ -129,7 +129,7 @@ test('no block template or front-end stylesheet hard-codes a colour, size, font 
     // In the stylesheets, these properties may only take a custom property.
     // \s*+ is possessive: without it the lookahead could match after backtracking over a space.
     $mustUseVar = '~^\s*(color|background|background-color|border-color|font-family|font-size|box-shadow|border-radius)\s*:\s*+(?!var\(|inherit|transparent|none|currentColor|0;)([^;]+);~mi';
-    foreach (['site.css', 'admin.css'] as $css) {
+    foreach (['site.css', 'admin.css', 'admin-pages.css'] as $css) {
         $source = (string) file_get_contents($root . '/public/assets/' . $css);
         assertTrue(!preg_match($literal, $source, $match), "{$css} contains the literal " . ($match[0] ?? ''));
         assertTrue(!preg_match($mustUseVar, $source, $match), "{$css} sets " . trim($match[0] ?? '') . ' without a custom property');

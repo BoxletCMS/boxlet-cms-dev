@@ -8,7 +8,7 @@ use App\Support\Url;
  * @var string $locale
  * @var string $title
  * @var string $content rendered HTML of the page template
- * @var list<array{code: string, label: string}> $locales enabled locales
+ * @var array<int, array<string, mixed>> $locales enabled locales, with code and label
  */
 ?>
 <!doctype html>
@@ -21,15 +21,17 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::asset('assets/site.css')) ?>">
 </head>
 <body>
-    <main class="container">
+    <main>
 <?= $content ?>
     </main>
+<?php if (count($locales) > 1): ?>
     <footer class="container">
         <nav class="locale-switcher">
 <?php foreach ($locales as $option): ?>
-            <a href="<?= e(Url::page($option['code'], 'hello')) ?>" hreflang="<?= e($option['code']) ?>"<?= $option['code'] === $locale ? ' aria-current="true"' : '' ?>><?= e($option['label']) ?></a>
+            <a href="<?= e(Url::page((string) $option['code'])) ?>" hreflang="<?= e($option['code']) ?>" lang="<?= e($option['code']) ?>"<?= $option['code'] === $locale ? ' aria-current="true"' : '' ?>><?= e($option['label']) ?></a>
 <?php endforeach; ?>
         </nav>
     </footer>
+<?php endif; ?>
 </body>
 </html>

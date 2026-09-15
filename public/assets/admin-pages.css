@@ -1,0 +1,152 @@
+/* Admin shell additions: page list and page editor. Loaded after admin.css by the admin
+   layout only. Only custom properties from tokens.css: no literal colours, pixel
+   values, fonts or shadows. */
+
+/* Shared helpers */
+
+.visually-hidden {
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* admin.js adds .js to <html>; without it, JavaScript-only controls stay hidden. */
+.js-only {
+  display: none;
+}
+
+.js .js-only {
+  display: inline-block;
+}
+
+.js .no-js-only {
+  display: none;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.field textarea {
+  font: inherit;
+  padding: var(--space-s);
+  color: var(--color-text);
+  background: var(--color-background);
+  border: thin solid var(--color-muted);
+  border-radius: var(--radius-base);
+}
+
+.field-error {
+  margin: 0;
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-s);
+}
+
+/* Page list */
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-m);
+  margin-bottom: var(--space-m);
+}
+
+.page-header h1 {
+  margin: 0;
+  flex: 1;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-background);
+}
+
+.table th,
+.table td {
+  padding: var(--space-s) var(--space-m);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: thin solid var(--color-surface);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-m);
+}
+
+.row-actions form {
+  margin: 0;
+}
+
+.status {
+  font-weight: bold;
+}
+
+.status-draft {
+  color: var(--color-muted);
+}
+
+/* Page editor */
+
+.block-list {
+  display: grid;
+  gap: var(--space-m);
+}
+
+.block-editor {
+  background: var(--color-background);
+}
+
+.block-editor-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  padding-inline: var(--space-s);
+  font-weight: bold;
+}
+
+.block-editor-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-m);
+}
+
+.drag-handle {
+  color: var(--color-muted);
+  cursor: grab;
+  user-select: none;
+}
+
+.is-dragging {
+  opacity: 0.5;
+}
+
+.block-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-m);
+}
+
+.editor-secondary {
+  margin-top: var(--space-l);
+}

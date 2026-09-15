@@ -7,6 +7,9 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
 
+/**
+ * Front end: renders a published page's blocks in order, or the 404 page.
+ */
 final class PageController
 {
     public function __construct(private readonly Container $container)
@@ -14,19 +17,26 @@ final class PageController
     }
 
     /**
-     * TEMPORARY (Slice 1): a hard-coded page. Slice 3 replaces it with pages from the
-     * database.
-     *
-     * @param array<string, string> $params
+     * @param array<string, string> $params slug, absent for the home page
      */
-    public function hello(Request $request, string $locale, array $params): Response
+    public function show(Request $request, string $locale, array $params): Response
     {
-        $copy = [
-            'en' => ['title' => 'Hello', 'intro' => 'Boxlet is running.'],
-            'hr' => ['title' => 'Bok', 'intro' => 'Boxlet radi.'],
-        ];
+        $db = $this->container->get('db');
+        $page = Page::published($db, $locale, $params['slug'] ?? '');
+        if ($page === null) {
+            return $this->notFound($request, $locale, $params);
+        }
 
-        return $this->render('hello', $locale, $copy[$locale] ?? $copy['en']);
+        $registry = $this->container->get('blocks');
+        $html = '';
+        foreach (Page::blocks($db, (int) $page['id']) as $block) {
+            // A block whose type was removed from app/Blocks cannot render; skip it.
+            if ($registry->has($block['type'])) {
+                $html .= $registry->render($block['type'], $block['content'], $block['style']);
+            }
+        }
+
+        return $this->render('page', $locale, ['title' => (string) $page['title'], 'blocksHtml' => $html]);
     }
 
     /**

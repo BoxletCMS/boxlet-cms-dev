@@ -42,6 +42,32 @@ server cannot answer while it is busy with the installer. After installing, add
 To reinstall, delete `storage/install.lock` and `.env`, and start from an empty
 database.
 
+## Pages
+
+Log in at `/admin` and open **Pages**. A new page can start from a template, which
+pre-fills its blocks. Edit the blocks, reorder them (drag, or Move up / Move down),
+and press **Save page**; nothing is saved until you do, and leaving with unsaved
+changes asks first. Editing and saving also work with JavaScript turned off.
+
+A page is a draft until published; visitors get a 404 for drafts. The page with an
+empty address is the home page of its language: `/` for the primary language, `/hr/`
+for Croatian. Addresses cannot be language codes such as `de`, even for languages
+that are not enabled, nor paths Boxlet uses itself such as `admin`.
+
+### max_input_vars
+
+The editor sends a whole page as one form, and PHP silently drops fields beyond its
+`max_input_vars` setting (default 1000, roughly a hundred blocks). Boxlet detects
+this and refuses the save with a message rather than saving a page with content
+missing. The installer shows the current value. To raise it, set in `php.ini`,
+`.user.ini` or your hosting panel:
+
+```ini
+max_input_vars = 3000
+```
+
+On Apache with mod_php, `php_value max_input_vars 3000` in `.htaccess` also works.
+
 ## Tests
 
 Run `php tests/run.php`. It needs no web server; exits non-zero on failure.

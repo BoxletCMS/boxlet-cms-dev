@@ -19,7 +19,7 @@ final class Requirements
         $checks = [
             self::item('php', t('install.req.php', ['version' => PHP_VERSION]), version_compare(PHP_VERSION, '8.1.0', '>='), true),
         ];
-        foreach (['pdo', 'mbstring', 'fileinfo', 'json', 'session'] as $extension) {
+        foreach (['pdo', 'mbstring', 'fileinfo', 'json', 'session', 'dom'] as $extension) {
             $checks[] = self::item('extension', t('install.req.extension', ['name' => $extension]), extension_loaded($extension), true);
         }
         $checks[] = self::item('driver', t('install.req.driver'), extension_loaded('pdo_mysql') || extension_loaded('pdo_sqlite'), true);
@@ -31,6 +31,10 @@ final class Requirements
         $checks[] = self::item('env', t('install.req.env', ['path' => $envPath]), $envWritable, true);
         $checks[] = self::item('rewrite', t('install.req.rewrite'), $rewriteWorks(), true);
 
+        // The page editor sends a whole page as one form; PHP silently drops fields past
+        // this limit. Reported, not blocking: the editor refuses truncated saves.
+        $inputVars = (int) ini_get('max_input_vars');
+        $checks[] = self::item('input_vars', t('install.opt.input_vars', ['limit' => $inputVars]), $inputVars >= 1000, false);
         $checks[] = self::item('intl', t('install.opt.intl'), extension_loaded('intl'), false);
         $checks[] = self::item('images', t('install.opt.images'), extension_loaded('gd') || extension_loaded('imagick'), false);
         $checks[] = self::item('avif', t('install.opt.avif'), self::avif(), false);

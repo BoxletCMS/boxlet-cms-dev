@@ -192,3 +192,5 @@ fieldset {
   background: var(--color-surface);
   border-radius: var(--radius-base);
 }
+
+/* Page list and editor styles live in admin-pages.css. */

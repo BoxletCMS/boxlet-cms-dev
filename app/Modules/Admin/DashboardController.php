@@ -5,7 +5,6 @@ namespace App\Modules\Admin;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
-use App\Core\View;
 
 final class DashboardController
 {
@@ -20,15 +19,9 @@ final class DashboardController
      */
     public function index(Request $request, string $locale, array $params): Response
     {
-        $row = $this->container->get('db')->one('SELECT value_json FROM settings WHERE `key` = ?', ['site_name']);
-        $siteName = $row === null ? '' : json_decode((string) $row['value_json']);
-
-        $html = (new View(__DIR__ . '/views'))->render('dashboard', 'en', [
+        return AdminView::render($this->container, __DIR__ . '/views', 'dashboard', [
             'title' => t('admin.dashboard.title'),
-            'siteName' => is_string($siteName) ? $siteName : '',
-            'csrf' => $this->container->get('session')->csrfToken(),
+            'nav' => 'dashboard',
         ]);
-
-        return Response::admin($html);
     }
 }

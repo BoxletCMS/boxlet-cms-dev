@@ -1,7 +1,9 @@
 <?php
 
+use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Migrator;
+use App\Modules\Pages\Page;
 use Dotenv\Dotenv;
 
 // Database and site fixtures. Every test builds the state it needs from scratch:
@@ -134,6 +136,29 @@ function createAdmin(Db $db, string $email, string $password): void
         'INSERT INTO admin (email, password_hash, created_at) VALUES (?, ?, ?)',
         [$email, password_hash($password, PASSWORD_DEFAULT), gmdate('Y-m-d H:i:s')],
     );
+}
+
+/**
+ * A page created through the model, with the given blocks, published unless told not to.
+ *
+ * @param list<array{type: string, content: array<string, mixed>}> $blocks
+ */
+function createPage(Db $db, string $locale, string $slug, string $title, bool $published = true, array $blocks = []): int
+{
+    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    $id = Page::create($db, $registry, $locale, $title, $slug, null, []);
+    if ($blocks !== []) {
+        $rows = [];
+        foreach ($blocks as $block) {
+            $rows[] = ['id' => null, 'type' => $block['type'], 'content' => $registry->normalize($block['type'], $block['content'])];
+        }
+        Page::update($db, $id, $title, $slug, $rows);
+    }
+    if ($published) {
+        Page::setStatus($db, $id, true);
+    }
+
+    return $id;
 }
 
 function removeTree(string $path): void

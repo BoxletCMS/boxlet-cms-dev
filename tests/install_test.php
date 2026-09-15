@@ -7,6 +7,7 @@ use App\Core\Session;
 use App\Modules\Install\DatabaseSetup;
 use App\Modules\Install\InstallController;
 use App\Modules\Install\Installer;
+use App\Modules\Install\Requirements;
 use App\Support\Url;
 use Dotenv\Dotenv;
 
@@ -181,6 +182,22 @@ test('the language list has every ISO 639-1 code with a native name', function (
     foreach (array_keys($languages) as $code) {
         assertTrue((bool) preg_match('~^[a-z]{2}$~', (string) $code), "{$code} is a two-letter code");
     }
+});
+
+test('the requirements report max_input_vars and require dom', function () {
+    $checks = Requirements::check(dirname(__DIR__), tmpPath(''), tmpPath('.env'), static fn (): bool => true);
+    $labels = array_column($checks, 'label');
+
+    assertTrue(in_array(t('install.req.extension', ['name' => 'dom']), $labels, true), 'dom is not a required extension');
+    $inputVars = null;
+    foreach ($checks as $check) {
+        if ($check['id'] === 'input_vars') {
+            $inputVars = $check;
+        }
+    }
+    $inputVars ??= fail('no max_input_vars check');
+    assertEquals(false, $inputVars['required'], 'max_input_vars blocks installation');
+    assertContains((string) ini_get('max_input_vars'), $inputVars['label'], 'label');
 });
 
 test('Db refuses drivers other than mysql and sqlite', function () {

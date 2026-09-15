@@ -26,7 +26,10 @@ final class Url
      */
     public static function page(string $locale, string $slug = ''): string
     {
-        $segments = array_map('rawurlencode', array_filter(explode('/', $slug), 'strlen'));
+        $segments = array_map(
+            'rawurlencode',
+            array_filter(explode('/', $slug), static fn (string $segment): bool => $segment !== ''),
+        );
         $path = '/' . implode('/', $segments);
         if ($locale !== self::$primaryLocale) {
             $path = '/' . rawurlencode($locale) . $path;

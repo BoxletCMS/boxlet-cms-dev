@@ -1,4 +1,16 @@
-<?php use App\Support\Url; ?>
+<?php
+
+use App\Support\Url;
+
+/**
+ * Provided by View::render().
+ *
+ * @var string $locale
+ * @var string $title
+ * @var string $content rendered HTML of the page template
+ * @var array<string, array{label: string}> $locales enabled locales
+ */
+?>
 <!doctype html>
 <html lang="<?= e($locale) ?>">
 <head>

@@ -12,8 +12,10 @@ use RuntimeException;
 final class TokenCompiler
 {
     /**
-     * @param array<string, array<string, string>> $tokens group => name => value,
-     *                                                     emitted as --group-name
+     * Values are validated here rather than trusted from the type: from Slice 4 they
+     * come from the design_tokens table.
+     *
+     * @param array<mixed> $tokens group => name => scalar value, emitted as --group-name
      */
     public function compile(array $tokens, string $target): void
     {

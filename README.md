@@ -23,6 +23,8 @@ Then open <http://localhost:8000/hello> (English, the primary locale, no prefix)
 
 Run `php tests/run.php` (no web server or database needed; exits non-zero on failure).
 
+Static analysis: `composer install` (includes dev tools), then `vendor/bin/phpstan analyse`.
+
 ## Deployment
 
 In every case the document root must point at `public/`. `app/`, `config/`,

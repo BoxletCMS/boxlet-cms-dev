@@ -1,0 +1,15 @@
+/vendor/
+.env
+/storage/*
+!/storage/.gitkeep
+!/storage/.htaccess
+/public/cache/*
+!/public/cache/.gitkeep
+/public/uploads/*
+!/public/uploads/.gitkeep
+*.sqlite
+*.sqlite-journal
+.DS_Store
+id_rsa*
+id_ed25519*
+*.pem

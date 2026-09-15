@@ -1,0 +1,19 @@
+# Apache only. Nginx ignores this file; see README "Deployment" for try_files.
+
+<IfModule mod_negotiation.c>
+    Options -MultiViews -Indexes
+</IfModule>
+
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Real files and directories (assets, cache, uploads) are served directly.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Without mod_rewrite, set APP_PRETTY_URLS=false in .env. Links are then generated
+# as index.php?route=/en/hello, which reaches index.php without any rewriting.

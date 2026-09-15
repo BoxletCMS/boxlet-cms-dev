@@ -21,6 +21,7 @@ ErrorHandler::register((bool) env('APP_DEBUG', false));
 $container = require $root . '/app/bootstrap.php';
 $request = Request::fromGlobals();
 
-Url::configure($request->basePath, (bool) $container->get('config')->get('app.pretty_urls', true));
+$config = $container->get('config');
+Url::configure($request->basePath, (bool) $config->get('app.pretty_urls', true), $config->get('locales.primary'));
 
 $container->get('router')->dispatch($request)->send();

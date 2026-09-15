@@ -16,8 +16,8 @@ cp .env.example .env        # set APP_DEBUG=true for readable error traces
 php -S localhost:8000 -t public
 ```
 
-Then open <http://localhost:8000/en/hello> or <http://localhost:8000/hr/hello>.
-`/` redirects to the default locale.
+Then open <http://localhost:8000/hello> (English, the primary locale, no prefix) or
+<http://localhost:8000/hr/hello> (Croatian). `/en/hello` redirects to `/hello`.
 
 ## Deployment
 

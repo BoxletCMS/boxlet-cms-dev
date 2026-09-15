@@ -19,13 +19,9 @@ final class Response
         return new self($body, $status, ['Content-Type' => 'text/html; charset=utf-8']);
     }
 
-    /**
-     * Always 302: the default-locale prefix mode is configurable, and a cached 301
-     * would break sites that later switch modes.
-     */
-    public static function redirect(string $location): self
+    public static function redirect(string $location, int $status = 302): self
     {
-        return new self('', 302, ['Location' => $location]);
+        return new self('', $status, ['Location' => $location]);
     }
 
     public function send(): void

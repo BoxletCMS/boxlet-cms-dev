@@ -12,18 +12,20 @@ use function FastRoute\simpleDispatcher;
  * Locale-aware front-end router over FastRoute. Routes are registered without the
  * locale; every request is resolved to a locale before a route is matched.
  *
- *   /                 302 to /{default}/
- *   /hello            302 to /{default}/hello   (no locale segment)
- *   /de/hello         404 when de is not enabled (never redirected: soft 404)
- *   /en               302 to /en/
- *   /en/hello         dispatch "/hello" with locale "en"
+ * A first segment is a locale only if it is an enabled locale. With primary "en" and
+ * "hr" enabled:
  *
- * A first segment counts as a locale segment when it is shaped like a locale code.
+ *   /hello            dispatch "/hello" with locale "en"
+ *   /hr/hello         dispatch "/hello" with locale "hr"
+ *   /en/hello         301 to /hello        (primary never carries a prefix)
+ *   /en/  and  /en    301 to /
+ *   /hr               301 to /hr/
+ *   /de/hello         dispatch "/de/hello" with locale "en", which 404s
+ *
+ * /, /hr/ and every other home page 404 until Slice 3 adds a home route. Expected.
  */
 final class Router
 {
-    private const LOCALE_SHAPE = '~^[a-z]{2}(-[a-z]{2,4})?$~i';
-
     /** @var list<array{string, string, array{class-string, string}}> */
     private array $routes = [];
 
@@ -36,7 +38,7 @@ final class Router
     public function __construct(
         private readonly Container $container,
         private readonly array $locales,
-        private readonly string $defaultLocale,
+        private readonly string $primaryLocale,
     ) {
     }
 
@@ -59,29 +61,26 @@ final class Router
     public function dispatch(Request $request): Response
     {
         $path = $request->path;
-        $first = explode('/', ltrim($path, '/'), 2)[0];
+        $locale = $this->primaryLocale;
+        $segments = explode('/', ltrim($path, '/'), 2);
 
-        if ($first === '') {
-            return Response::redirect(Url::page($this->defaultLocale));
-        }
-        if (!preg_match(self::LOCALE_SHAPE, $first)) {
-            return Response::redirect(Url::page($this->defaultLocale, $path));
-        }
-        if (!in_array($first, $this->locales, true)) {
-            return $this->notFound($request, $this->defaultLocale);
-        }
+        if (in_array($segments[0], $this->locales, true)) {
+            $locale = $segments[0];
+            $slug = $segments[1] ?? null;
 
-        $routePath = substr($path, strlen($first) + 1);
-        if ($routePath === '') {
-            return Response::redirect(Url::page($first));
+            // Permanent: the primary locale is immutable, so these forms never change.
+            if ($locale === $this->primaryLocale || $slug === null) {
+                return Response::redirect(Url::page($locale, $slug ?? ''), 301);
+            }
+            $path = substr($path, strlen($locale) + 1);
         }
 
-        $result = $this->dispatcher()->dispatch($request->method, $routePath);
+        $result = $this->dispatcher()->dispatch($request->method, $path);
 
         return match ($result[0]) {
-            Dispatcher::FOUND => $this->call($result[1], $request, $first, $result[2]),
-            Dispatcher::METHOD_NOT_ALLOWED => $this->methodNotAllowed($request, $first, $result[1]),
-            default => $this->notFound($request, $first),
+            Dispatcher::FOUND => $this->call($result[1], $request, $locale, $result[2]),
+            Dispatcher::METHOD_NOT_ALLOWED => $this->methodNotAllowed($request, $locale, $result[1]),
+            default => $this->notFound($request, $locale),
         };
     }
 

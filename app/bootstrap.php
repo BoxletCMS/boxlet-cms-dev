@@ -29,10 +29,11 @@ $container->set('router', function (Container $c): Router {
     $router = new Router(
         $c,
         array_keys($c->get('config')->get('locales.enabled', [])),
-        $c->get('config')->get('locales.default'),
+        $c->get('config')->get('locales.primary'),
     );
 
     // TEMPORARY (Slice 1): hard-coded page until Slice 3 serves pages from the database.
+    // No home route yet, so / and /hr/ land on the 404 page. That is expected.
     $router->get('/hello', [PageController::class, 'hello']);
     $router->setNotFound([PageController::class, 'notFound']);
 

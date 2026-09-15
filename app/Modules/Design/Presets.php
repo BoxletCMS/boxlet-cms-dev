@@ -20,9 +20,10 @@ final class Presets
             'seed' => '#8a1c2b', 'secondary' => '#1f1a17', 'typography' => 'editorial', 'scale' => '1.333',
             'spacing' => 'roomy', 'radius' => 'subtle', 'shadow' => 'none', 'container' => 'narrow', 'surface_contrast' => 'low',
         ],
-        // Restraint: one sans family on a tight scale, even spacing, barely rounded, flat.
+        // Restraint: near-neutral graphite, one sans family on a tight scale, even spacing,
+        // barely rounded, flat.
         'minimal' => [
-            'seed' => '#2f4f6f', 'secondary' => '', 'typography' => 'modern', 'scale' => '1.2',
+            'seed' => '#3a4250', 'secondary' => '', 'typography' => 'modern', 'scale' => '1.2',
             'spacing' => 'normal', 'radius' => 'subtle', 'shadow' => 'none', 'container' => 'normal', 'surface_contrast' => 'low',
         ],
         // Loud: a condensed-feeling grotesk on the steepest scale, saturated violet,
@@ -31,11 +32,11 @@ final class Presets
             'seed' => '#6d28d9', 'secondary' => '#1e1045', 'typography' => 'grotesk', 'scale' => '1.5',
             'spacing' => 'normal', 'radius' => 'round', 'shadow' => 'layered', 'container' => 'wide', 'surface_contrast' => 'high',
         ],
-        // Gentle: a rounded family, relaxed spacing, pill shapes, soft shadows, a pale
-        // second colour for contrast sections.
+        // Gentle: sage green, a rounded family, generous spacing, pill shapes, soft
+        // shadows, a pale cream second colour for contrast sections.
         'soft' => [
-            'seed' => '#0e6f73', 'secondary' => '#fbe3e8', 'typography' => 'rounded', 'scale' => '1.25',
-            'spacing' => 'roomy', 'radius' => 'pill', 'shadow' => 'soft', 'container' => 'normal', 'surface_contrast' => 'medium',
+            'seed' => '#3b6b4f', 'secondary' => '#f5ecdc', 'typography' => 'rounded', 'scale' => '1.25',
+            'spacing' => 'generous', 'radius' => 'pill', 'shadow' => 'soft', 'container' => 'normal', 'surface_contrast' => 'medium',
         ],
         // Raw: monospace in capitals, compact spacing on a big scale, hard offset shadows
         // and thick rules, square corners, full-width, pure blue on stark yellow.

@@ -15,7 +15,7 @@ body {
 .container {
   max-width: var(--container-width);
   margin-inline: auto;
-  padding-inline: var(--space-m);
+  padding-inline: var(--space-l);
 }
 
 h1,

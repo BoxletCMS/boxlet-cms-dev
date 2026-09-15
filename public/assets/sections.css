@@ -103,6 +103,13 @@
   padding-top: calc(var(--section-rhythm) + var(--divider-depth));
 }
 
+/* The section above a shaped edge keeps extra room at its bottom, so the edge never
+   covers its content, whatever that section's rhythm. */
+.block:has(+ .divider-slant),
+.block:has(+ .divider-curve) {
+  padding-bottom: calc(var(--section-rhythm) + var(--divider-depth));
+}
+
 .divider-slant {
   clip-path: polygon(0 var(--divider-depth), 100% 0, 100% 100%, 0 100%);
 }

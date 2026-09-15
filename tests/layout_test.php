@@ -21,7 +21,7 @@ testBothDrivers('a declared layout is saved; one the block does not declare fall
 
     assertRedirectedTo("/admin/pages/{$id}", $save('split'));
     assertEquals('split', layoutOf($db, $blockId), 'declared layout');
-    assertContains('class="block block-hero layout-split"', dispatch('/about')->body, 'rendered layout');
+    assertContains('class="block block-hero layout-split ', dispatch('/about')->body, 'rendered layout');
 
     assertRedirectedTo("/admin/pages/{$id}", $save('image-left'));
     assertEquals('center', layoutOf($db, $blockId), "image_text's layout on a hero");
@@ -32,7 +32,7 @@ testBothDrivers('a stored layout the definition no longer declares renders as th
     $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'hero', 'content' => ['heading' => 'Hi']]]);
     $db->query('UPDATE page_blocks SET layout = ?', ['removed-in-a-later-version']);
 
-    assertContains('class="block block-hero layout-center"', dispatch('/about')->body, 'front end');
+    assertContains('class="block block-hero layout-center ', dispatch('/about')->body, 'front end');
     assertContains('<option value="center" selected>', dispatch("/admin/pages/{$id}")->body, 'editor');
 });
 

@@ -35,7 +35,7 @@
   box-sizing: border-box;
   padding: var(--space-l);
   background: var(--color-background);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-m);
 }
 
 .admin-bar {
@@ -78,7 +78,7 @@ fieldset {
   margin: 0;
   padding: var(--space-m);
   border: thin solid var(--color-muted);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-m);
 }
 
 .field {
@@ -93,7 +93,7 @@ fieldset {
   color: var(--color-text);
   background: var(--color-background);
   border: thin solid var(--color-muted);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-m);
 }
 
 .choice {
@@ -111,7 +111,7 @@ fieldset {
   padding: var(--space-s) var(--space-m);
   background: var(--color-surface);
   border-left: var(--space-s) solid var(--color-muted);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-m);
 }
 
 .notice-error,
@@ -125,16 +125,16 @@ fieldset {
   display: inline-block;
   font: inherit;
   padding: var(--space-s) var(--space-m);
-  color: var(--color-background);
+  color: var(--color-on-accent);
   background: var(--color-accent);
   border: 0;
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-m);
   text-decoration: none;
   cursor: pointer;
 }
 
 .admin a.button {
-  color: var(--color-background);
+  color: var(--color-on-accent);
 }
 
 .button-quiet {
@@ -190,7 +190,7 @@ fieldset {
   padding: var(--space-m);
   overflow-x: auto;
   background: var(--color-surface);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-m);
 }
 
 /* Page list and editor styles live in admin-pages.css. */

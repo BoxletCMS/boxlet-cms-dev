@@ -10,7 +10,8 @@ use App\Core\Session;
 use App\Modules\Admin\DashboardController;
 use App\Modules\Admin\RequireAdmin;
 use App\Modules\Auth\AuthController;
-use App\Modules\Design\TokenCompiler;
+use App\Modules\Design\Design;
+use App\Modules\Design\DesignController;
 use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageEditorController;
 use App\Modules\Pages\PagesController;
@@ -25,11 +26,7 @@ use App\Support\Url;
 $root = dirname(__DIR__);
 $config = new Config($root . '/config');
 $storage = (string) $config->get('app.storage_path');
-
-$tokensFile = $root . '/public/cache/tokens.css';
-if (!is_file($tokensFile)) {
-    (new TokenCompiler())->compile($config->get('tokens', []), $tokensFile);
-}
+$cache = (string) $config->get('app.cache_path');
 
 // Loaded eagerly: a malformed block definition must fail at boot, not at render.
 $blocks = Blocks::discover($root . '/app/Blocks');
@@ -48,7 +45,7 @@ $container->set('locales', fn (Container $c) => $c->get('db')->all(
     'SELECT code, label, is_primary FROM locales WHERE enabled = 1 ORDER BY sort, code'
 ));
 
-$container->set('router', function (Container $c) use ($request): Router {
+$container->set('router', function (Container $c) use ($request, $cache): Router {
     $locales = $c->get('locales');
     $primary = '';
     foreach ($locales as $locale) {
@@ -58,6 +55,8 @@ $container->set('router', function (Container $c) use ($request): Router {
     }
     $origin = Url::origin($request->https, (string) ($_SERVER['SERVER_NAME'] ?? 'localhost'), (int) ($_SERVER['SERVER_PORT'] ?? 0));
     Url::configure($request->basePath, $primary, $origin);
+    // The compiled design stylesheet; its hashed name changes whenever the design is saved.
+    Url::useStylesheet(Url::asset('cache/' . Design::stylesheet($c->get('db'), $cache)));
     $router = new Router($c, array_column($locales, 'code'), $primary);
 
     // Admin routes never carry a locale prefix (SPEC §5.1). They are registered before
@@ -74,6 +73,12 @@ $container->set('router', function (Container $c) use ($request): Router {
     $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/status', [PagesController::class, 'status'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/delete', [PagesController::class, 'delete'], $requireAdmin);
+
+    $router->get('/admin/design', [DesignController::class, 'show'], $requireAdmin);
+    $router->post('/admin/design', [DesignController::class, 'save'], $requireAdmin);
+    $router->get('/admin/design/preview', [DesignController::class, 'preview'], $requireAdmin);
+    $router->get('/admin/design/preview.css', [DesignController::class, 'previewCss'], $requireAdmin);
+    $router->get('/admin/design/check', [DesignController::class, 'check'], $requireAdmin);
 
     // Pages: the home page of a locale has the empty slug. Slugs are one path segment.
     $router->get('/', [PageController::class, 'show']);

@@ -29,7 +29,8 @@ function t(string $key, array $replace = []): string
 {
     static $strings = null;
     if ($strings === null) {
-        $strings = require dirname(__DIR__, 2) . '/lang/en.php';
+        $lang = dirname(__DIR__, 2) . '/lang';
+        $strings = (require $lang . '/en.php') + (require $lang . '/design.php');
     }
     $text = is_array($strings) && is_string($strings[$key] ?? null) ? $strings[$key] : $key;
     foreach ($replace as $name => $value) {

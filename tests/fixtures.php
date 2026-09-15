@@ -3,6 +3,7 @@
 use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Migrator;
+use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\Page;
 use Dotenv\Dotenv;
 
@@ -125,7 +126,11 @@ function installedSite(array $locales = ['en' => 'English', 'hr' => 'Hrvatski'],
             ['DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'],
             array_slice(array_values(mysqlTestConfig()), 1),
         ));
-    TestSite::$env = $database + ['STORAGE_PATH' => $storage, 'APP_KEY' => 'test-key-not-a-secret'];
+    TestSite::$env = $database + [
+        'STORAGE_PATH' => $storage,
+        'CACHE_PATH' => tmpPath('cache'),
+        'APP_KEY' => 'test-key-not-a-secret',
+    ];
 
     return $db;
 }
@@ -154,7 +159,7 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
                 'id' => null,
                 'type' => $block['type'],
                 'content' => $registry->normalize($block['type'], $block['content']),
-                'style' => $block['style'] ?? [],
+                'style' => SectionStyle::normalize($block['style'] ?? []),
                 'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
             ];
         }

@@ -1,0 +1,117 @@
+/* Layer 2: section styles (SPEC §5.4), the only place these classes are styled.
+   Written entirely in layer-1 custom properties from tokens.css.
+
+   A section sets the colours that apply inside it as --section-* properties; block CSS
+   in site.css uses only those, so every block works on every surface. */
+
+.block {
+  --section-bg: var(--color-background);
+  --section-text: var(--color-text);
+  --section-muted: var(--color-muted);
+  --section-link: var(--color-link);
+  --section-button-bg: var(--color-accent);
+  --section-button-text: var(--color-on-accent);
+  --section-card: var(--color-surface);
+  --section-rhythm: var(--space-xl);
+  --section-width: var(--container-width);
+  --divider-depth: var(--space-xl);
+
+  position: relative;
+  padding-block: var(--section-rhythm);
+  color: var(--section-text);
+  background: var(--section-bg);
+}
+
+.block > .container {
+  max-width: var(--section-width);
+  padding-block: 0;
+}
+
+/* Surface */
+
+.surface-tinted {
+  --section-bg: var(--color-surface);
+  --section-card: var(--color-background);
+}
+
+.surface-contrast,
+.surface-image {
+  --section-bg: var(--color-contrast);
+  --section-text: var(--color-on-contrast);
+  --section-muted: var(--color-muted-on-contrast);
+  --section-link: var(--color-on-contrast);
+  --section-button-bg: var(--color-on-contrast);
+  --section-button-text: var(--color-contrast);
+  --section-card: var(--color-contrast-raised);
+}
+
+.surface-gradient {
+  --section-text: var(--color-on-gradient);
+  --section-muted: var(--color-on-gradient);
+  --section-link: var(--color-on-gradient);
+  --section-button-bg: var(--color-on-gradient);
+  --section-button-text: var(--color-gradient-start);
+  --section-card: var(--color-gradient-end);
+
+  background-image: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end));
+}
+
+/* Rhythm */
+
+.rhythm-tight {
+  --section-rhythm: var(--space-l);
+}
+
+.rhythm-airy {
+  --section-rhythm: var(--space-3xl);
+}
+
+/* Width */
+
+.width-narrow {
+  --section-width: var(--container-narrow);
+}
+
+.width-wide {
+  --section-width: var(--container-wide);
+}
+
+.width-full {
+  --section-width: none;
+}
+
+/* Align */
+
+.align-center {
+  text-align: center;
+}
+
+.align-center .container > * {
+  justify-items: center;
+  margin-inline: auto;
+}
+
+/* Divider: drawn on the top edge of the section it belongs to. */
+
+.divider-line {
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.divider-slant,
+.divider-curve {
+  margin-top: calc(var(--divider-depth) * -1);
+  padding-top: calc(var(--section-rhythm) + var(--divider-depth));
+}
+
+.divider-slant {
+  clip-path: polygon(0 var(--divider-depth), 100% 0, 100% 100%, 0 100%);
+}
+
+.divider-curve {
+  border-top-left-radius: 50% var(--divider-depth);
+  border-top-right-radius: 50% var(--divider-depth);
+}
+
+main > .block:first-child {
+  margin-top: 0;
+}

@@ -4,7 +4,10 @@ use App\Core\ErrorHandler;
 use App\Core\Request;
 use App\Core\RewriteCheck;
 use App\Core\Session;
+use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
+use App\Modules\Design\Tokens;
+use App\Modules\Design\Typography;
 use App\Modules\Install\InstallController;
 use App\Support\Url;
 
@@ -27,9 +30,13 @@ $storage = $root . '/storage';
 $request = Request::fromGlobals();
 Url::configure($request->basePath, '');
 
-$tokensFile = $root . '/public/cache/tokens.css';
-if (!is_file($tokensFile) && is_writable(dirname($tokensFile))) {
-    (new TokenCompiler())->compile(require $root . '/config/tokens.php', $tokensFile);
+// Before installation there is no database, so the installer is styled with the default
+// preset. Once installed, the site owns public/cache and the installer leaves it alone.
+$cache = $root . '/public/cache';
+if (!is_file($storage . '/install.lock') && is_dir($cache) && is_writable($cache)) {
+    $defaults = Presets::get(Presets::DEFAULT);
+    $fonts = Typography::fontFaces($defaults['typography'], '../assets/fonts');
+    Url::useStylesheet(Url::asset('cache/' . (new TokenCompiler())->compile(Tokens::derive($defaults), $cache, $fonts)));
 }
 
 // When storage/ is not writable, fall back to PHP's session path so the requirements

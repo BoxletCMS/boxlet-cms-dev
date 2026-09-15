@@ -1,6 +1,8 @@
 <?php
 
 $storage = (string) env('STORAGE_PATH', 'storage');
+$cache = (string) env('CACHE_PATH', 'public/cache');
+$fromRoot = static fn (string $path): string => str_starts_with($path, '/') ? $path : dirname(__DIR__) . '/' . $path;
 
 return [
     'name' => 'Boxlet',
@@ -8,5 +10,7 @@ return [
     // Secret for hashing IPs and emails in login_attempts. Written by the installer.
     'key' => (string) env('APP_KEY', ''),
     // Relative paths resolve from the project root.
-    'storage_path' => str_starts_with($storage, '/') ? $storage : dirname(__DIR__) . '/' . $storage,
+    'storage_path' => $fromRoot($storage),
+    // Where the compiled tokens.{hash}.css is written; public/cache unless a test moves it.
+    'cache_path' => $fromRoot($cache),
 ];

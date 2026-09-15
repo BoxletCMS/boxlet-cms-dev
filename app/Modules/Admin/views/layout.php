@@ -22,7 +22,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title><?= e($title) ?></title>
-    <link rel="stylesheet" href="<?= e(Url::asset('cache/tokens.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::asset('assets/admin.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::asset('assets/admin-pages.css')) ?>">
     <script src="<?= e(Url::asset('assets/admin.js')) ?>" defer></script>
@@ -33,6 +33,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
         <nav class="admin-nav" aria-label="<?= e(t('admin.nav.label')) ?>">
             <a href="<?= e(Url::admin()) ?>"<?= $current('dashboard') ?>><?= e(t('admin.nav.dashboard')) ?></a>
             <a href="<?= e(Url::admin('pages')) ?>"<?= $current('pages') ?>><?= e(t('admin.nav.pages')) ?></a>
+            <a href="<?= e(Url::admin('design')) ?>"<?= $current('design') ?>><?= e(t('admin.nav.design')) ?></a>
         </nav>
         <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

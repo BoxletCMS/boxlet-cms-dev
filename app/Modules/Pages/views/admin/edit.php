@@ -78,7 +78,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         <template data-block-template="<?= e($type) ?>">
 <?php
     $index = '__INDEX__';
-    $block = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => [], 'layout' => $registry->layout($type, null)];
+    $block = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => \App\Modules\Design\SectionStyle::DEFAULTS, 'layout' => $registry->layout($type, null)];
     require __DIR__ . '/block.php';
 ?>
         </template>

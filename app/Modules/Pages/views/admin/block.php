@@ -1,4 +1,7 @@
 <?php
+
+use App\Modules\Design\SectionStyle;
+
 /**
  * One block's field group in the page editor. Also rendered with $index '__INDEX__'
  * inside a <template> that admin.js clones. admin.js never knows which fields a block
@@ -71,6 +74,21 @@ $idPrefix = 'block-' . $index . '-';
                     </select>
                 </div>
 <?php endif; ?>
+                <details class="block-style"<?= $block['style'] !== SectionStyle::DEFAULTS ? ' open' : '' ?>>
+                    <summary><?= e(t('style.title')) ?></summary>
+                    <div class="block-style-grid">
+<?php foreach (SectionStyle::OPTIONS as $styleKey => $styleValues): ?>
+                        <div class="field">
+                            <label for="<?= e($idPrefix . 'style-' . $styleKey) ?>"><?= e(t('style.' . $styleKey)) ?></label>
+                            <select id="<?= e($idPrefix . 'style-' . $styleKey) ?>" name="<?= e($prefix) ?>[style][<?= e($styleKey) ?>]">
+<?php foreach ($styleValues as $styleValue): ?>
+                                <option value="<?= e($styleValue) ?>"<?= ($block['style'][$styleKey] ?? '') === $styleValue ? ' selected' : '' ?>><?= e(t('style.' . $styleKey . '.' . $styleValue)) ?></option>
+<?php endforeach; ?>
+                            </select>
+                        </div>
+<?php endforeach; ?>
+                    </div>
+                </details>
 <?php endif; ?>
                 <div class="block-editor-controls">
                     <button type="submit" name="action" value="up-<?= e($index) ?>" class="button button-quiet" data-editor-action="up"><?= e(t('pages.move_up')) ?></button>

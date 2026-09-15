@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
+use App\Modules\Design\SectionStyle;
 use App\Support\Url;
 
 /**
@@ -87,7 +88,7 @@ final class PagesController
                 $types[] = $type;
             }
         }
-        $id = Page::create($db, $registry, $pageLocale, $title, $slug, $template['id'] ?? null, $types);
+        $id = Page::create($db, $registry, $pageLocale, $title, $slug, $template['id'] ?? null, $types, SectionStyle::DEFAULTS);
         $this->container->get('session')->set('flash', t('pages.created'));
 
         return Response::redirect(Url::admin('pages', $id));

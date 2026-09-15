@@ -16,6 +16,7 @@ return [
     'admin.nav.label' => 'Admin navigation',
     'admin.nav.dashboard' => 'Dashboard',
     'admin.nav.pages' => 'Pages',
+    'admin.nav.design' => 'Design',
     'admin.logout' => 'Log out',
     'admin.dashboard.title' => 'Dashboard',
     'admin.dashboard.intro' => 'You are logged in. Create and edit your site\'s content under Pages.',

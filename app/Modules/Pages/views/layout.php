@@ -21,8 +21,9 @@ use App\Support\Url;
 <?php if ($canonical !== null): ?>
     <link rel="canonical" href="<?= e($canonical) ?>">
 <?php endif; ?>
-    <link rel="stylesheet" href="<?= e(Url::asset('cache/tokens.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::asset('assets/site.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::asset('assets/sections.css')) ?>">
 </head>
 <body>
     <main>

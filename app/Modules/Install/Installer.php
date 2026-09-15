@@ -4,6 +4,8 @@ namespace App\Modules\Install;
 
 use App\Core\Db;
 use App\Core\Migrator;
+use App\Modules\Design\Design;
+use App\Modules\Design\Presets;
 use ErrorException;
 use RuntimeException;
 use Throwable;
@@ -18,6 +20,7 @@ final class Installer
         private readonly string $root,
         private readonly string $storage,
         private readonly string $envPath,
+        private readonly string $cacheDirectory,
     ) {
     }
 
@@ -55,6 +58,9 @@ final class Installer
             $pdo->rollBack();
             throw $e;
         }
+
+        // A new site starts with the default character, compiled so its first page is styled.
+        Design::save($db, Presets::get(Presets::DEFAULT), $this->cacheDirectory);
 
         $values = ['APP_DEBUG' => 'false', 'APP_KEY' => bin2hex(random_bytes(32))];
         foreach ($env as $key => $value) {

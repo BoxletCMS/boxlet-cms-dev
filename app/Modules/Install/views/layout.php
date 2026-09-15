@@ -21,7 +21,7 @@ use App\Support\Url;
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title><?= e($title) ?></title>
-    <link rel="stylesheet" href="<?= e(Url::asset('cache/tokens.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::asset('assets/admin.css')) ?>">
 </head>
 <body class="admin admin-centered">

@@ -29,6 +29,7 @@ function installer(bool $rewriteWorks = true): InstallController
         $dir . '/install.php',
         new Session(),
         static fn (): bool => $rewriteWorks,
+        $dir . '/cache',
     );
 }
 
@@ -139,6 +140,9 @@ testBothDrivers('a full install creates the admin, primary locale, settings, .en
     assertEquals([['hr', 'Hrvatski', 1, 1]], $locales, 'locales: only the primary, enabled');
     $siteName = $db->one('SELECT value_json FROM settings WHERE `key` = ?', ['site_name']);
     assertEquals('"Test Site"', $siteName['value_json'] ?? null, 'settings.site_name');
+    assertEquals(9, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), 'design decisions stored');
+    $stylesheet = json_decode((string) ($db->one('SELECT value_json FROM settings WHERE `key` = ?', ['tokens_css'])['value_json'] ?? ''), true);
+    assertTrue(is_string($stylesheet) && is_file($dir . '/cache/' . $stylesheet), 'the default design stylesheet was not compiled');
 
     assertEquals(403, installGet($installer)->status, 'the installer refuses to run again');
 });

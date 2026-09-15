@@ -12,6 +12,31 @@ final class Url
     private static string $basePath = '';
     private static string $primaryLocale = '';
     private static string $origin = '';
+    private static string $stylesheet = '';
+
+    /**
+     * Sets the design stylesheet every layout links: the compiled tokens.{hash}.css, or
+     * the admin preview's stylesheet.
+     */
+    public static function useStylesheet(string $href): void
+    {
+        self::$stylesheet = $href;
+    }
+
+    public static function stylesheet(): string
+    {
+        return self::$stylesheet !== '' ? self::$stylesheet : self::asset('cache/tokens.css');
+    }
+
+    /**
+     * $url with a query string appended.
+     *
+     * @param array<string, string> $query
+     */
+    public static function withQuery(string $url, array $query): string
+    {
+        return $query === [] ? $url : $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($query);
+    }
 
     /**
      * @param string $origin scheme and host for absolute URLs, e.g. https://example.com

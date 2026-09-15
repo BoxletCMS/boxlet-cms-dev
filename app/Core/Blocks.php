@@ -2,6 +2,7 @@
 
 namespace App\Core;
 
+use App\Modules\Design\SectionStyle;
 use RuntimeException;
 use Throwable;
 
@@ -196,6 +197,7 @@ final class Blocks
             require $__template;
         };
 
+        $style = SectionStyle::normalize($style);
         ob_start();
         try {
             $include($template, $this->normalize($type, $content), $style, $layout);
@@ -204,7 +206,7 @@ final class Blocks
             throw $e;
         }
         $inner = (string) ob_get_clean();
-        $classes = 'block block-' . $type . ' layout-' . $layout;
+        $classes = implode(' ', array_merge(['block', 'block-' . $type, 'layout-' . $layout], SectionStyle::classes($style)));
 
         return '<section class="' . e($classes) . "\">\n<div class=\"container\">\n" . $inner . "</div>\n</section>\n";
     }

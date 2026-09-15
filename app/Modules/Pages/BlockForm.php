@@ -3,6 +3,7 @@
 namespace App\Modules\Pages;
 
 use App\Core\Blocks;
+use App\Modules\Design\SectionStyle;
 use App\Support\RichText;
 use App\Support\SafeUrl;
 
@@ -55,7 +56,7 @@ final class BlockForm
                 'id' => $id,
                 'type' => $type,
                 'content' => $content,
-                'style' => [],
+                'style' => SectionStyle::normalize($raw['style'] ?? null),
                 'layout' => $registry->layout($type, $raw['layout'] ?? null),
             ];
         }

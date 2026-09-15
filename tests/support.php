@@ -127,7 +127,8 @@ function dispatch(
         $_SERVER['SERVER_NAME'] = 'example.test';
         $_SERVER['SERVER_PORT'] = '80';
         unset($_SERVER['HTTPS']);
-        $_GET = [];
+        // As PHP does for a real request: the query string of the path becomes $_GET.
+        parse_str((string) parse_url($path, PHP_URL_QUERY), $_GET);
         $_POST = $body;
 
         $container = require dirname(__DIR__) . '/app/bootstrap.php';

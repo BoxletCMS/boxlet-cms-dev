@@ -32,6 +32,7 @@ final class InstallController
         private readonly string $script,
         private readonly Session $session,
         private readonly Closure $rewriteWorks,
+        private readonly ?string $cacheDirectory = null,
     ) {
     }
 
@@ -160,7 +161,8 @@ final class InstallController
         }
 
         $db = DatabaseSetup::fromEnv($this->root, $state['db']);
-        (new Installer($this->root, $this->storage, $this->envPath))->run($db, $state['db'], $state['admin'], $site);
+        $cache = $this->cacheDirectory ?? $this->root . '/public/cache';
+        (new Installer($this->root, $this->storage, $this->envPath, $cache))->run($db, $state['db'], $state['admin'], $site);
 
         $this->session->remove('install');
         $this->session->regenerate();

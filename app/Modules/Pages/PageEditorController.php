@@ -8,6 +8,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
+use App\Modules\Design\SectionStyle;
 use App\Support\Url;
 
 /**
@@ -69,7 +70,7 @@ final class PageEditorController
 
         if ($action === 'add' && $registry->has($request->input('add_type'))) {
             $type = $request->input('add_type');
-            $blocks[] = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => [], 'layout' => $registry->layout($type, null)];
+            $blocks[] = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => SectionStyle::DEFAULTS, 'layout' => $registry->layout($type, null)];
 
             return $this->form($page, $title, $slug, $blocks);
         }
@@ -135,7 +136,7 @@ final class PageEditorController
                 'id' => $block['id'],
                 'type' => $block['type'],
                 'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
-                'style' => [],
+                'style' => SectionStyle::normalize($block['style']),
                 'layout' => $known ? $registry->layout($block['type'], $block['layout']) : '',
             ];
         }

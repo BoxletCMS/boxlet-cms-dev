@@ -89,7 +89,7 @@ test('a layout the block does not declare falls back to its default', function (
     assertEquals('center', $blocks->layout('hero', 'image-left'), "another block's layout");
     assertEquals('center', $blocks->layout('hero', ''), 'empty');
     assertEquals('center', $blocks->layout('hero', ['split']), 'wrong shape');
-    assertContains('class="block block-hero layout-center"', $blocks->render('hero', ['heading' => 'x'], [], 'gone'), 'render with a removed layout');
+    assertContains('class="block block-hero layout-center ', $blocks->render('hero', ['heading' => 'x'], [], 'gone'), 'render with a removed layout');
 });
 
 test('every block, layout, field and select option has an admin label in lang/en.php', function () {
@@ -116,7 +116,7 @@ test('rendering escapes content and puts type and layout classes on the wrapper'
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
     $html = $blocks->render('hero', ['heading' => '<script>alert(1)</script>', 'cta' => ['label' => 'Go', 'url' => '/go']]);
 
-    assertContains('<section class="block block-hero layout-center">', $html, 'wrapper');
+    assertContains('<section class="block block-hero layout-center surface-plain rhythm-normal width-normal align-left divider-none">', $html, 'wrapper');
     assertContains('&lt;script&gt;alert(1)&lt;/script&gt;', $html, 'escaped heading');
     assertTrue(!str_contains($html, '<script>'), 'raw script tag in output');
     assertContains('<a class="button" href="/go">Go</a>', $html, 'button');
@@ -142,7 +142,7 @@ test('no block template or front-end stylesheet hard-codes a colour, size, font 
     // In the stylesheets, these properties may only take a custom property.
     // \s*+ is possessive: without it the lookahead could match after backtracking over a space.
     $mustUseVar = '~^\s*(color|background|background-color|border-color|font-family|font-size|box-shadow|border-radius)\s*:\s*+(?!var\(|inherit|transparent|none|currentColor|0;)([^;]+);~mi';
-    foreach (['site.css', 'admin.css', 'admin-pages.css'] as $css) {
+    foreach (['site.css', 'sections.css', 'admin.css', 'admin-pages.css'] as $css) {
         $source = (string) file_get_contents($root . '/public/assets/' . $css);
         assertTrue(!preg_match($literal, $source, $match), "{$css} contains the literal " . ($match[0] ?? ''));
         assertTrue(!preg_match($mustUseVar, $source, $match), "{$css} sets " . trim($match[0] ?? '') . ' without a custom property');

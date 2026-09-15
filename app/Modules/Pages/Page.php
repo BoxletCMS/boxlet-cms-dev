@@ -9,6 +9,8 @@ use Throwable;
 
 /**
  * Pages and their blocks. All SQL is portable between MySQL and SQLite (SPEC §5.0).
+ *
+ * @phpstan-type BlockRow array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}
  */
 final class Page
 {
@@ -42,13 +44,16 @@ final class Page
     }
 
     /**
-     * @return list<array{id: int, type: string, content: array<mixed>, style: array<mixed>}>
+     * Stored blocks in order, exactly as stored: callers validate layout and style
+     * against the registry when they use them.
+     *
+     * @return list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string}>
      */
     public static function blocks(Db $db, int $pageId): array
     {
         $blocks = [];
         $rows = $db->all(
-            'SELECT id, block_type, content_json, style_json FROM page_blocks WHERE page_id = ? ORDER BY sort, id',
+            'SELECT id, block_type, content_json, style_json, layout FROM page_blocks WHERE page_id = ? ORDER BY sort, id',
             [$pageId],
         );
         foreach ($rows as $row) {
@@ -59,6 +64,7 @@ final class Page
                 'type' => (string) $row['block_type'],
                 'content' => is_array($content) ? $content : [],
                 'style' => is_array($style) ? $style : [],
+                'layout' => (string) $row['layout'],
             ];
         }
 
@@ -66,14 +72,15 @@ final class Page
     }
 
     /**
-     * Creates a draft page with empty blocks of the given types. The page and each block
-     * start their own content and block groups.
+     * Creates a draft page with empty blocks of the given types, each in its default
+     * layout and section style. The page and each block start their own groups.
      *
-     * @param list<string> $blockTypes
+     * @param list<string>          $blockTypes
+     * @param array<string, string> $defaultStyle
      */
-    public static function create(Db $db, Blocks $registry, string $locale, string $title, string $slug, ?int $templateId, array $blockTypes): int
+    public static function create(Db $db, Blocks $registry, string $locale, string $title, string $slug, ?int $templateId, array $blockTypes, array $defaultStyle = []): int
     {
-        return self::transaction($db, static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes): int {
+        return self::transaction($db, static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes, $defaultStyle): int {
             $now = gmdate('Y-m-d H:i:s');
             $db->query(
                 'INSERT INTO pages (locale, slug, title, status, template_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -82,7 +89,8 @@ final class Page
             $id = (int) $db->lastInsertId();
             $db->query('UPDATE pages SET content_group_id = id WHERE id = ?', [$id]);
             foreach ($blockTypes as $sort => $type) {
-                self::insertBlock($db, $id, $type, $registry->normalize($type, []), $sort, $now);
+                $block = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => $defaultStyle, 'layout' => $registry->layout($type, null)];
+                self::insertBlock($db, $id, $block, $sort, $now);
             }
 
             return $id;
@@ -92,10 +100,10 @@ final class Page
     /**
      * Saves the whole page: title, slug and the block list in order. Blocks with an id of
      * this page are updated (never their type), blocks without one are inserted, and this
-     * page's blocks missing from the list are deleted. A null content keeps the stored
-     * content, for blocks whose type is no longer installed.
+     * page's blocks missing from the list are deleted. A null content keeps everything
+     * stored, for blocks whose type is no longer installed.
      *
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null}> $blocks
+     * @param list<BlockRow> $blocks
      */
     public static function update(Db $db, int $id, string $title, string $slug, array $blocks): void
     {
@@ -114,12 +122,12 @@ final class Page
                         $db->query('UPDATE page_blocks SET sort = ? WHERE id = ? AND page_id = ?', [$sort, $block['id'], $id]);
                     } else {
                         $db->query(
-                            'UPDATE page_blocks SET sort = ?, content_json = ?, updated_at = ? WHERE id = ? AND page_id = ?',
-                            [$sort, self::json($block['content']), $now, $block['id'], $id],
+                            'UPDATE page_blocks SET sort = ?, content_json = ?, style_json = ?, layout = ?, updated_at = ? WHERE id = ? AND page_id = ?',
+                            [$sort, self::json($block['content']), self::json($block['style']), $block['layout'], $now, $block['id'], $id],
                         );
                     }
                 } elseif ($block['content'] !== null) {
-                    self::insertBlock($db, $id, $block['type'], $block['content'], $sort, $now);
+                    self::insertBlock($db, $id, $block, $sort, $now);
                 }
             }
             foreach (array_keys($existing) as $blockId) {
@@ -166,25 +174,27 @@ final class Page
     }
 
     /**
-     * @param array<string, mixed> $content
+     * @param BlockRow $block
      */
-    private static function insertBlock(Db $db, int $pageId, string $type, array $content, int $sort, string $now): void
+    private static function insertBlock(Db $db, int $pageId, array $block, int $sort, string $now): void
     {
         $db->query(
-            'INSERT INTO page_blocks (page_id, block_type, sort, content_json, style_json, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [$pageId, $type, $sort, self::json($content), '{}', $now, $now],
+            'INSERT INTO page_blocks (page_id, block_type, sort, content_json, style_json, layout, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$pageId, $block['type'], $sort, self::json($block['content'] ?? []), self::json($block['style']), $block['layout'], $now, $now],
         );
         $blockId = (int) $db->lastInsertId();
         $db->query('UPDATE page_blocks SET block_group_id = id WHERE id = ?', [$blockId]);
     }
 
     /**
+     * Encodes content or style. An empty style is stored as an object, not a list.
+     *
      * @param array<string, mixed> $value
      */
     private static function json(array $value): string
     {
-        return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return $value === [] ? '{}' : json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**

@@ -124,6 +124,8 @@ function dispatch(
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_SERVER['REQUEST_URI'] = $path;
         $_SERVER['REMOTE_ADDR'] = $ip;
+        $_SERVER['SERVER_NAME'] = 'example.test';
+        $_SERVER['SERVER_PORT'] = '80';
         unset($_SERVER['HTTPS']);
         $_GET = [];
         $_POST = $body;

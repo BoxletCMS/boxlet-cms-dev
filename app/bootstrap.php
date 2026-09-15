@@ -56,7 +56,8 @@ $container->set('router', function (Container $c) use ($request): Router {
             $primary = (string) $locale['code'];
         }
     }
-    Url::configure($request->basePath, $primary);
+    $origin = Url::origin($request->https, (string) ($_SERVER['SERVER_NAME'] ?? 'localhost'), (int) ($_SERVER['SERVER_PORT'] ?? 0));
+    Url::configure($request->basePath, $primary, $origin);
     $router = new Router($c, array_column($locales, 'code'), $primary);
 
     // Admin routes never carry a locale prefix (SPEC §5.1). They are registered before

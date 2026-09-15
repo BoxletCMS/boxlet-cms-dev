@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Support\Url;
 
 /**
  * Front end: renders a published page's blocks in order, or the 404 page.
@@ -22,7 +23,8 @@ final class PageController
     public function show(Request $request, string $locale, array $params): Response
     {
         $db = $this->container->get('db');
-        $page = Page::published($db, $locale, $params['slug'] ?? '');
+        $slug = $params['slug'] ?? '';
+        $page = Page::published($db, $locale, $slug);
         if ($page === null) {
             return $this->notFound($request, $locale, $params);
         }
@@ -32,11 +34,16 @@ final class PageController
         foreach (Page::blocks($db, (int) $page['id']) as $block) {
             // A block whose type was removed from app/Blocks cannot render; skip it.
             if ($registry->has($block['type'])) {
-                $html .= $registry->render($block['type'], $block['content'], $block['style']);
+                $html .= $registry->render($block['type'], $block['content'], $block['style'], $block['layout']);
             }
         }
 
-        return $this->render('page', $locale, ['title' => (string) $page['title'], 'blocksHtml' => $html]);
+        return $this->render('page', $locale, [
+            'title' => (string) $page['title'],
+            'blocksHtml' => $html,
+            // The one address this page is indexed under, whatever variant reached it.
+            'canonical' => Url::canonical($locale, $slug),
+        ]);
     }
 
     /**
@@ -53,11 +60,11 @@ final class PageController
     }
 
     /**
-     * @param array<string, string> $data
+     * @param array<string, mixed> $data
      */
     private function render(string $template, string $locale, array $data, int $status = 200): Response
     {
-        $data['locales'] = $this->container->get('locales');
+        $data += ['canonical' => null, 'locales' => $this->container->get('locales')];
 
         return Response::html((new View(__DIR__ . '/views'))->render($template, $locale, $data), $status);
     }

@@ -69,7 +69,7 @@ final class PageEditorController
 
         if ($action === 'add' && $registry->has($request->input('add_type'))) {
             $type = $request->input('add_type');
-            $blocks[] = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, [])];
+            $blocks[] = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => [], 'layout' => $registry->layout($type, null)];
 
             return $this->form($page, $title, $slug, $blocks);
         }
@@ -123,7 +123,7 @@ final class PageEditorController
     }
 
     /**
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null}>
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
      */
     private function storedBlocks(int $pageId): array
     {
@@ -135,6 +135,8 @@ final class PageEditorController
                 'id' => $block['id'],
                 'type' => $block['type'],
                 'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
+                'style' => [],
+                'layout' => $known ? $registry->layout($block['type'], $block['layout']) : '',
             ];
         }
 
@@ -143,7 +145,7 @@ final class PageEditorController
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null}> $blocks
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     private function form(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200): Response

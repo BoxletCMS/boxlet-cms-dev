@@ -18,7 +18,7 @@ final class Blocks
     /** The subset implemented so far. The rest arrive when a block needs them. */
     public const SUPPORTED_FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'link', 'select'];
 
-    private const KEYS = ['type', 'label', 'icon', 'version', 'fields', 'layouts', 'defaults'];
+    private const KEYS = ['type', 'icon', 'version', 'fields', 'layouts', 'defaults'];
     private const FIELD_KEYS = ['type', 'required', 'translatable', 'options'];
     private const NAME = '~^[a-z][a-z0-9_]*$~';
     private const SLUG = '~^[a-z][a-z0-9_-]*$~';
@@ -74,10 +74,8 @@ final class Blocks
         if (!preg_match(self::NAME, $type) || $definition['type'] !== $type) {
             self::fail($type, "'type' must equal the directory name and match [a-z][a-z0-9_]*");
         }
-        foreach (['label', 'icon'] as $key) {
-            if (!is_string($definition[$key]) || trim($definition[$key]) === '') {
-                self::fail($type, "'{$key}' must be a non-empty string");
-            }
+        if (!is_string($definition['icon']) || trim($definition['icon']) === '') {
+            self::fail($type, "'icon' must be a non-empty string");
         }
         if (!is_int($definition['version']) || $definition['version'] < 1) {
             self::fail($type, "'version' must be an integer of at least 1");
@@ -110,7 +108,6 @@ final class Blocks
 
         return [
             'type' => $type,
-            'label' => $definition['label'],
             'icon' => $definition['icon'],
             'version' => $definition['version'],
             'fields' => $fields,
@@ -145,6 +142,19 @@ final class Blocks
     }
 
     /**
+     * $layout if the block still declares it, otherwise the block's default. A definition
+     * can change under an existing page; a layout it dropped must not break rendering.
+     */
+    public function layout(string $type, mixed $layout): string
+    {
+        $definition = $this->get($type);
+
+        return is_string($layout) && in_array($layout, $definition['layouts'], true)
+            ? $layout
+            : (string) $definition['defaults']['layout'];
+    }
+
+    /**
      * Every field of the block present, with stored values of the wrong shape replaced by
      * the field's empty value, so templates never check whether a key exists.
      *
@@ -176,10 +186,11 @@ final class Blocks
      *
      * @param array<mixed> $content stored content_json
      * @param array<mixed> $style   stored style_json
+     * @param string       $layout  stored layout; one the block no longer declares renders as its default
      */
-    public function render(string $type, array $content, array $style = []): string
+    public function render(string $type, array $content, array $style = [], string $layout = ''): string
     {
-        $layout = (string) $this->get($type)['defaults']['layout'];
+        $layout = $this->layout($type, $layout);
         $template = $this->directory . '/' . $type . '/template.php';
         $include = static function (string $__template, array $content, array $style, string $layout): void {
             require $__template;

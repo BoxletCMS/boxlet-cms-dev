@@ -5,7 +5,7 @@
  * has: it only rewrites blocks[n] and block-n- as groups are added, removed or moved.
  *
  * @var int|string $index
- * @var array{id: int|null, type: string, content: array<string, mixed>|null} $block
+ * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string} $block
  * @var array<string, string> $errors
  * @var \App\Core\Blocks $registry
  */
@@ -60,6 +60,17 @@ $idPrefix = 'block-' . $index . '-';
 <?php endif; ?>
                 </div>
 <?php endforeach; ?>
+<?php $layouts = $registry->get($block['type'])['layouts']; ?>
+<?php if (count($layouts) > 1): ?>
+                <div class="field">
+                    <label for="<?= e($idPrefix) ?>layout"><?= e(t('pages.layout')) ?></label>
+                    <select id="<?= e($idPrefix) ?>layout" name="<?= e($prefix) ?>[layout]">
+<?php foreach ($layouts as $layoutOption): ?>
+                        <option value="<?= e($layoutOption) ?>"<?= $layoutOption === $block['layout'] ? ' selected' : '' ?>><?= e(t('block.' . $block['type'] . '.layout.' . $layoutOption)) ?></option>
+<?php endforeach; ?>
+                    </select>
+                </div>
+<?php endif; ?>
 <?php endif; ?>
                 <div class="block-editor-controls">
                     <button type="submit" name="action" value="up-<?= e($index) ?>" class="button button-quiet" data-editor-action="up"><?= e(t('pages.move_up')) ?></button>

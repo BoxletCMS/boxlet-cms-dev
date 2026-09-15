@@ -1,9 +1,9 @@
 <?php
 
-// Admin labels come from lang/en.php: block.text and block.text.<field>.
+// Admin labels derive from the type in lang/en.php: block.text, block.text.<field>,
+// block.text.layout.<layout>.
 return [
     'type' => 'text',
-    'label' => 'Text',
     'icon' => 'text',
     'version' => 1,
     'fields' => [

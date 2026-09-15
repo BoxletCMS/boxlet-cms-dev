@@ -15,10 +15,11 @@ final class BlockForm
     /**
      * Blocks in submitted order, with every value cleaned for its field type, and errors
      * keyed "position.field". A block marked _delete is left out. An existing block keeps
-     * its stored type whatever the form claims.
+     * its stored type whatever the form claims. A layout the block does not declare
+     * falls back to its default rather than being stored.
      *
      * @param array<int, string> $storedTypes block id => type, for this page's blocks
-     * @return array{blocks: list<array{id: int|null, type: string, content: array<string, mixed>|null}>, errors: array<string, string>}
+     * @return array{blocks: list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>, errors: array<string, string>}
      */
     public static function parse(Blocks $registry, mixed $posted, array $storedTypes): array
     {
@@ -36,7 +37,7 @@ final class BlockForm
 
             if (!$registry->has($type)) {
                 if ($id !== null) {
-                    $blocks[] = ['id' => $id, 'type' => $type, 'content' => null];
+                    $blocks[] = ['id' => $id, 'type' => $type, 'content' => null, 'style' => [], 'layout' => ''];
                 }
                 continue;
             }
@@ -50,15 +51,21 @@ final class BlockForm
                     $errors["{$position}.{$name}"] = $error;
                 }
             }
-            $blocks[] = ['id' => $id, 'type' => $type, 'content' => $content];
+            $blocks[] = [
+                'id' => $id,
+                'type' => $type,
+                'content' => $content,
+                'style' => [],
+                'layout' => $registry->layout($type, $raw['layout'] ?? null),
+            ];
         }
 
         return ['blocks' => $blocks, 'errors' => $errors];
     }
 
     /**
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null}> $blocks
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null}>
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
      */
     public static function move(array $blocks, int $position, string $direction): array
     {

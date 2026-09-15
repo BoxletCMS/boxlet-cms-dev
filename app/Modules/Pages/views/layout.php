@@ -9,6 +9,7 @@ use App\Support\Url;
  * @var string $title
  * @var string $content rendered HTML of the page template
  * @var array<int, array<string, mixed>> $locales enabled locales, with code and label
+ * @var string|null $canonical absolute canonical URL; null on error pages
  */
 ?>
 <!doctype html>
@@ -17,6 +18,9 @@ use App\Support\Url;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title) ?></title>
+<?php if ($canonical !== null): ?>
+    <link rel="canonical" href="<?= e($canonical) ?>">
+<?php endif; ?>
     <link rel="stylesheet" href="<?= e(Url::asset('cache/tokens.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::asset('assets/site.css')) ?>">
 </head>

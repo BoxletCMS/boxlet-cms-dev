@@ -13,7 +13,6 @@ function validBlock(): array
 {
     return [
         'type' => 'sample',
-        'label' => 'Sample',
         'icon' => 'sample',
         'version' => 1,
         'fields' => [
@@ -41,7 +40,8 @@ $malformed = [
     'missing key' => [fn () => array_diff_key(validBlock(), ['icon' => 0]), "Block sample: missing key 'icon'"],
     'unknown key' => [fn () => validBlock() + ['colour' => 'red'], "Block sample: unknown key 'colour'"],
     'type differs from directory' => [fn () => ['type' => 'other'] + validBlock(), "Block sample: 'type' must equal the directory name"],
-    'empty label' => [fn () => ['label' => ' '] + validBlock(), "Block sample: 'label' must be a non-empty string"],
+    'label is no longer part of the contract' => [fn () => ['label' => 'Sample'] + validBlock(), "Block sample: unknown key 'label'"],
+    'empty icon' => [fn () => ['icon' => ' '] + validBlock(), "Block sample: 'icon' must be a non-empty string"],
     'version zero' => [fn () => ['version' => 0] + validBlock(), "Block sample: 'version' must be an integer"],
     'version as string' => [fn () => ['version' => '1'] + validBlock(), "Block sample: 'version' must be an integer"],
     'no fields' => [fn () => ['fields' => []] + validBlock(), "Block sample: 'fields' must be a non-empty array"],
@@ -82,11 +82,24 @@ test('a broken block stops the application at boot', function () {
     assertThrows(fn () => Blocks::discover($dir), "'version' must be an integer");
 });
 
-test('every block, field and select option has an admin label in lang/en.php', function () {
+test('a layout the block does not declare falls back to its default', function () {
+    $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+
+    assertEquals('split', $blocks->layout('hero', 'split'), 'declared layout');
+    assertEquals('center', $blocks->layout('hero', 'image-left'), "another block's layout");
+    assertEquals('center', $blocks->layout('hero', ''), 'empty');
+    assertEquals('center', $blocks->layout('hero', ['split']), 'wrong shape');
+    assertContains('class="block block-hero layout-center"', $blocks->render('hero', ['heading' => 'x'], [], 'gone'), 'render with a removed layout');
+});
+
+test('every block, layout, field and select option has an admin label in lang/en.php', function () {
     $strings = require dirname(__DIR__) . '/lang/en.php';
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
     foreach ($blocks->types() as $type) {
         $keys = ["block.{$type}"];
+        foreach ($blocks->get($type)['layouts'] as $layout) {
+            $keys[] = "block.{$type}.layout.{$layout}";
+        }
         foreach ($blocks->get($type)['fields'] as $name => $field) {
             $keys[] = "block.{$type}.{$name}";
             foreach ($field['options'] ?? [] as $option) {

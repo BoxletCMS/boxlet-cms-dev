@@ -10,7 +10,7 @@ use App\Support\Url;
  * @var array<string, mixed> $page
  * @var string $titleValue
  * @var string $slugValue
- * @var list<array{id: int|null, type: string, content: array<string, mixed>|null}> $blocks
+ * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
  * @var \App\Core\Blocks $registry
@@ -78,7 +78,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         <template data-block-template="<?= e($type) ?>">
 <?php
     $index = '__INDEX__';
-    $block = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, [])];
+    $block = ['id' => null, 'type' => $type, 'content' => $registry->normalize($type, []), 'style' => [], 'layout' => $registry->layout($type, null)];
     require __DIR__ . '/block.php';
 ?>
         </template>

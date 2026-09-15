@@ -1,10 +1,10 @@
 <?php
 
-// Admin labels come from lang/en.php: block.image_text and block.image_text.<field>.
+// Admin labels derive from the type in lang/en.php: block.image_text, block.image_text.<field>,
+// block.image_text.layout.<layout>.
 // image stores a media id; until the Media module (Slice 5) it renders a placeholder.
 return [
     'type' => 'image_text',
-    'label' => 'Image and text',
     'icon' => 'image-text',
     'version' => 1,
     'fields' => [

@@ -141,7 +141,7 @@ function createAdmin(Db $db, string $email, string $password): void
 /**
  * A page created through the model, with the given blocks, published unless told not to.
  *
- * @param list<array{type: string, content: array<string, mixed>}> $blocks
+ * @param list<array{type: string, content: array<string, mixed>, style?: array<string, string>, layout?: string}> $blocks
  */
 function createPage(Db $db, string $locale, string $slug, string $title, bool $published = true, array $blocks = []): int
 {
@@ -150,7 +150,13 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
     if ($blocks !== []) {
         $rows = [];
         foreach ($blocks as $block) {
-            $rows[] = ['id' => null, 'type' => $block['type'], 'content' => $registry->normalize($block['type'], $block['content'])];
+            $rows[] = [
+                'id' => null,
+                'type' => $block['type'],
+                'content' => $registry->normalize($block['type'], $block['content']),
+                'style' => $block['style'] ?? [],
+                'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
+            ];
         }
         Page::update($db, $id, $title, $slug, $rows);
     }

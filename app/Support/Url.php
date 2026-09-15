@@ -11,11 +11,36 @@ final class Url
 {
     private static string $basePath = '';
     private static string $primaryLocale = '';
+    private static string $origin = '';
 
-    public static function configure(string $basePath, string $primaryLocale): void
+    /**
+     * @param string $origin scheme and host for absolute URLs, e.g. https://example.com
+     */
+    public static function configure(string $basePath, string $primaryLocale, string $origin = ''): void
     {
         self::$basePath = rtrim($basePath, '/');
         self::$primaryLocale = $primaryLocale;
+        self::$origin = rtrim($origin, '/');
+    }
+
+    /**
+     * Scheme, host and non-default port, from the server's own configuration
+     * (SERVER_NAME), never the client's Host header.
+     */
+    public static function origin(bool $https, string $serverName, int $port): string
+    {
+        $default = $https ? 443 : 80;
+
+        return ($https ? 'https://' : 'http://') . $serverName . ($port === 0 || $port === $default ? '' : ':' . $port);
+    }
+
+    /**
+     * Absolute canonical URL of a page: the same address page() gives, without any query
+     * string, on this site's origin.
+     */
+    public static function canonical(string $locale, string $slug = ''): string
+    {
+        return self::$origin . self::page($locale, $slug);
     }
 
     /**
@@ -59,10 +84,7 @@ final class Url
      */
     public static function serverBase(bool $https, string $serverName, int $port): string
     {
-        $default = $https ? 443 : 80;
-        $origin = ($https ? 'https://' : 'http://') . $serverName;
-
-        return $origin . ($port === 0 || $port === $default ? '' : ':' . $port) . self::$basePath;
+        return self::origin($https, $serverName, $port) . self::$basePath;
     }
 
     /**

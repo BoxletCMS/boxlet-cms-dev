@@ -116,4 +116,27 @@ return [
     'install.script_not_deleted' => 'The installer could not delete public/install.php. Delete it now via FTP or your host\'s file manager. It refuses to run again, but it should not stay on the server.',
     'install.locked.title' => 'Boxlet is already installed',
     'install.locked.text' => 'The installer does not run twice. To reinstall, delete storage/install.lock on the server, and use an empty database.',
+
+    // Blocks: block.<type> names the block, block.<type>.<field> its fields, and
+    // block.<type>.<field>.<option> the options of a select.
+    'block.hero' => 'Hero',
+    'block.hero.heading' => 'Heading',
+    'block.hero.subheading' => 'Subheading',
+    'block.hero.image' => 'Image',
+    'block.hero.cta' => 'Button',
+    'block.text' => 'Text',
+    'block.text.heading' => 'Heading',
+    'block.text.body' => 'Text',
+    'block.image_text' => 'Image and text',
+    'block.image_text.heading' => 'Heading',
+    'block.image_text.body' => 'Text',
+    'block.image_text.image' => 'Image',
+    'block.image_text.image_fit' => 'Image fit',
+    'block.image_text.image_fit.cover' => 'Fill the frame',
+    'block.image_text.image_fit.contain' => 'Show the whole image',
+    'block.image_text.link' => 'Link',
+
+    'template.landing' => 'Landing page',
+    'template.article' => 'Article',
+    'template.feature' => 'Feature',
 ];

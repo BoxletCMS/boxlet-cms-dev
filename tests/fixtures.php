@@ -73,10 +73,13 @@ function freshDatabase(string $driver): Db
     }
 
     $db = Db::fromConfig(mysqlTestConfig());
+    // Foreign keys would otherwise dictate the drop order.
+    $db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 0');
     foreach ($db->all('SHOW TABLES') as $row) {
         $table = (string) array_values($row)[0];
         $db->query('DROP TABLE `' . str_replace('`', '``', $table) . '`');
     }
+    $db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 1');
 
     return $db;
 }

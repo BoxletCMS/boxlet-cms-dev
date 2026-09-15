@@ -1,5 +1,6 @@
 <?php
 
+use App\Core\Blocks;
 use App\Core\Config;
 use App\Core\Container;
 use App\Core\Db;
@@ -28,12 +29,16 @@ if (!is_file($tokensFile)) {
     (new TokenCompiler())->compile($config->get('tokens', []), $tokensFile);
 }
 
+// Loaded eagerly: a malformed block definition must fail at boot, not at render.
+$blocks = Blocks::discover($root . '/app/Blocks');
+
 $request = Request::fromGlobals();
 Url::configure($request->basePath, '');
 
 $container = new Container();
 $container->set('config', fn () => $config);
 $container->set('request', fn () => $request);
+$container->set('blocks', fn () => $blocks);
 $container->set('installed', fn () => is_file($storage . '/install.lock'));
 $container->set('db', fn () => Db::fromConfig($config->get('database', [])));
 $container->set('session', fn () => Session::start($storage . '/sessions', $request->https));

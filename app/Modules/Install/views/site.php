@@ -38,5 +38,9 @@ $selectedTimezone = $value('timezone', date_default_timezone_get());
 <?php endforeach; ?>
                 </select>
             </label>
+            <label class="checkbox">
+                <input type="checkbox" name="demo" value="1"<?= $old === [] || $value('demo') === '1' ? ' checked' : '' ?>>
+                <span><?= e(t('install.site.demo')) ?></span>
+            </label>
             <button type="submit" class="button"><?= e(t('install.site.submit')) ?></button>
         </form>

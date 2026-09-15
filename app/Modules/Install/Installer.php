@@ -2,8 +2,10 @@
 
 namespace App\Modules\Install;
 
+use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Migrator;
+use App\Modules\Demo\DemoSite;
 use App\Modules\Design\Design;
 use App\Modules\Design\Presets;
 use ErrorException;
@@ -29,7 +31,7 @@ final class Installer
      * @param array<mixed> $admin email and password_hash
      * @param array{name: string, locale: string, timezone: string} $site
      */
-    public function run(Db $db, array $env, array $admin, array $site): void
+    public function run(Db $db, array $env, array $admin, array $site, bool $demo = false): void
     {
         (new Migrator($db, $this->root . '/migrations'))->migrate();
 
@@ -61,6 +63,9 @@ final class Installer
 
         // A new site starts with the default character, compiled so its first page is styled.
         Design::save($db, Presets::get(Presets::DEFAULT), $this->cacheDirectory);
+        if ($demo) {
+            DemoSite::seed($db, Blocks::discover($this->root . '/app/Blocks'), $site['locale']);
+        }
 
         $values = ['APP_DEBUG' => 'false', 'APP_KEY' => bin2hex(random_bytes(32))];
         foreach ($env as $key => $value) {

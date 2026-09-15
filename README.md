@@ -54,6 +54,35 @@ empty address is the home page of its language: `/` for the primary language, `/
 for Croatian. Addresses cannot be language codes such as `de`, even for languages
 that are not enabled, nor paths Boxlet uses itself such as `admin`.
 
+### Design
+
+**Design** in the admin sets how the whole site looks, without writing CSS:
+
+- **Characters.** Editorial, Minimal, Bold, Soft and Brutalist each set every decision
+  at once. Using one fills in the form; the site changes when you press Save design.
+- **Eight decisions.** Main colour (and an optional second), typeface pairing, type
+  scale, spacing, corners, shadows, content width and surface contrast. Everything else
+  (the palette, sizes, spacing scale) is derived and shown, not edited.
+- **Contrast is enforced.** A colour that would make any text unreadable (below WCAG AA)
+  is refused, with the failing pair named next to the decision that caused it.
+- **Live preview** while you change values, when JavaScript is on. Saving works without.
+
+Each block in the page editor also has a **Section style** (surface, rhythm, width,
+alignment, top edge) and, where the block offers several, a **Layout**.
+
+The compiled stylesheet is `public/cache/tokens.{hash}.css`; the name changes on every
+save, so visitors never see a stale design. Fonts are served from the site itself
+(`public/assets/fonts`, SIL Open Font License), never from Google Fonts.
+
+### Demo site
+
+The installer can add a demo site: four pages that use every block and section style.
+On an installed site without pages, add it from the command line:
+
+```sh
+php migrations/seed.php
+```
+
 ### max_input_vars
 
 The editor sends a whole page as one form, and PHP silently drops fields beyond its

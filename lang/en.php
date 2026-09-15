@@ -108,6 +108,7 @@ return [
     'install.site.locale_immutable' => 'This cannot be changed after installation. The primary language has no prefix in URLs (/about), and every URL on the site is built around it. Other languages can be added later.',
     'install.site.timezone' => 'Time zone',
     'install.site.submit' => 'Install',
+    'install.site.demo' => 'Add a demo site: four example pages to look around, edit or delete',
     'install.site.bad_name' => 'Enter a site name of up to 100 characters.',
     'install.site.bad_locale' => 'Choose a primary language from the list.',
     'install.site.bad_timezone' => 'Choose a time zone from the list.',

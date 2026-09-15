@@ -1,7 +1,7 @@
 # Static analysis: vendor/bin/phpstan analyse
 # No baseline: findings are fixed, or ignored inline with a reason.
 parameters:
-    level: 6
+    level: 8
     # Report anything that would break on the oldest supported PHP (SPEC §2).
     phpVersion: 80100
     paths:

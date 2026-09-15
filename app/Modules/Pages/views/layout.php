@@ -8,7 +8,7 @@ use App\Support\Url;
  * @var string $locale
  * @var string $title
  * @var string $content rendered HTML of the page template
- * @var array<string, array{label: string}> $locales enabled locales
+ * @var list<array{code: string, label: string}> $locales enabled locales
  */
 ?>
 <!doctype html>
@@ -26,8 +26,8 @@ use App\Support\Url;
     </main>
     <footer class="container">
         <nav class="locale-switcher">
-<?php foreach ($locales as $code => $info): ?>
-            <a href="<?= e(Url::page($code, 'hello')) ?>" hreflang="<?= e($code) ?>"<?= $code === $locale ? ' aria-current="true"' : '' ?>><?= e($info['label']) ?></a>
+<?php foreach ($locales as $option): ?>
+            <a href="<?= e(Url::page($option['code'], 'hello')) ?>" hreflang="<?= e($option['code']) ?>"<?= $option['code'] === $locale ? ' aria-current="true"' : '' ?>><?= e($option['label']) ?></a>
 <?php endforeach; ?>
         </nav>
     </footer>

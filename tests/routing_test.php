@@ -10,7 +10,7 @@ use App\Modules\Pages\PageController;
 test('precondition: config has primary en and enabled en, hr', function () {
     $locales = require dirname(__DIR__) . '/config/locales.php';
     assertEquals('en', $locales['primary'], 'locales.primary');
-    assertEquals(['en', 'hr'], array_keys($locales['enabled']), 'enabled locale codes');
+    assertEquals(['en', 'hr'], array_column($locales['enabled'], 'code'), 'enabled locale codes');
 });
 
 function assertPage(Response $response, string $lang, int $status): void

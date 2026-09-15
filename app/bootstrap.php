@@ -35,7 +35,7 @@ $container->set('view', fn () => new View($root . '/app/Modules/Pages/views'));
 $container->set('router', function (Container $c): Router {
     $router = new Router(
         $c,
-        array_keys($c->get('config')->get('locales.enabled', [])),
+        array_column($c->get('config')->get('locales.enabled', []), 'code'),
         $c->get('config')->get('locales.primary'),
     );
 

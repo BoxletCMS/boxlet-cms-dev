@@ -42,8 +42,12 @@ final class Db
     }
 
     /**
+     * Rows in result order, keyed by column name. It is a list at runtime, but PDO's
+     * fetchAll() is typed as plain array, so the annotation says int keys rather than
+     * claim a list the analyser cannot verify.
+     *
      * @param array<int|string, mixed> $params
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function all(string $sql, array $params = []): array
     {

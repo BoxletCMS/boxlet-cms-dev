@@ -2,29 +2,59 @@
 
 namespace App\Core;
 
+use InvalidArgumentException;
 use PDO;
 use PDOStatement;
 
 /**
- * Thin PDO wrapper over SQLite. Connects on first use.
+ * Thin PDO wrapper for MySQL and SQLite. Connects on first use. SQL passed in must be
+ * portable between both engines (SPEC §5.0).
  */
 final class Db
 {
     private ?PDO $pdo = null;
 
-    public function __construct(private readonly string $path)
+    public function __construct(
+        public readonly string $driver,
+        private readonly string $dsn,
+        private readonly ?string $username = null,
+        private readonly ?string $password = null,
+    ) {
+        if ($driver !== 'mysql' && $driver !== 'sqlite') {
+            throw new InvalidArgumentException("Unsupported database driver: {$driver}");
+        }
+    }
+
+    /**
+     * @param array<mixed> $config shaped like config/database.php
+     */
+    public static function fromConfig(array $config): self
     {
+        if (($config['driver'] ?? '') === 'mysql') {
+            $dsn = sprintf(
+                'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+                (string) ($config['host'] ?? ''),
+                (int) ($config['port'] ?? 3306),
+                (string) ($config['database'] ?? ''),
+            );
+
+            return new self('mysql', $dsn, (string) ($config['username'] ?? ''), (string) ($config['password'] ?? ''));
+        }
+
+        return new self('sqlite', 'sqlite:' . (string) ($config['path'] ?? ''));
     }
 
     public function pdo(): PDO
     {
         if ($this->pdo === null) {
-            $this->pdo = new PDO('sqlite:' . $this->path, null, null, [
+            $this->pdo = new PDO($this->dsn, $this->username, $this->password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
-            $this->pdo->exec('PRAGMA foreign_keys = ON');
+            if ($this->driver === 'sqlite') {
+                $this->pdo->exec('PRAGMA foreign_keys = ON');
+            }
         }
 
         return $this->pdo;

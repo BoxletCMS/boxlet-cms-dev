@@ -3,10 +3,10 @@
 namespace App\Core;
 
 /**
- * Checks over HTTP that URL rewriting reaches the front controller. For the installer
- * (Slice 2), where the user is waiting and a failure means something. Never called
- * during page render: a network call to the site itself can hang, is blocked by some
- * hosts and gives wrong answers behind auth or a proxy.
+ * Checks over HTTP that URL rewriting reaches the front controller. For the installer,
+ * where the user is waiting and a failure means something. Never called during page
+ * render: a network call to the site itself can hang, is blocked by some hosts and
+ * gives wrong answers behind auth or a proxy.
  */
 final class RewriteCheck
 {
@@ -38,11 +38,10 @@ final class RewriteCheck
     }
 
     /**
-     * The route handler that answers the probe.
-     *
-     * @param array<string, string> $params
+     * The answer to the probe. public/index.php sends it before bootstrapping, so it
+     * works on a site that has no database yet.
      */
-    public function respond(Request $request, string $locale, array $params): Response
+    public static function response(): Response
     {
         return new Response(self::TOKEN, 200, [
             'Content-Type' => 'text/plain; charset=utf-8',

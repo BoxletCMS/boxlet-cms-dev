@@ -9,8 +9,8 @@ use FastRoute\RouteCollector;
 use function FastRoute\simpleDispatcher;
 
 /**
- * Locale-aware front-end router over FastRoute. Routes are registered without the
- * locale; every request is resolved to a locale before a route is matched.
+ * Locale-aware router over FastRoute. Routes are registered without the locale; every
+ * request is resolved to a locale before a route is matched.
  *
  * A first segment is a locale only if it is an enabled locale. With primary "en" and
  * "hr" enabled:
@@ -21,12 +21,14 @@ use function FastRoute\simpleDispatcher;
  *   /en/  and  /en    301 to /
  *   /hr               301 to /hr/
  *   /de/hello         dispatch "/de/hello" with locale "en", which 404s
+ *   /admin            dispatch "/admin" with the primary locale; admin has no prefix
  *
- * /, /hr/ and every other home page 404 until Slice 3 adds a home route. Expected.
+ * Every non-GET request must carry a valid CSRF token; that is checked here so no
+ * route can forget it. /, /hr/ and other home pages 404 until Slice 3.
  */
 final class Router
 {
-    /** @var list<array{string, string, array{class-string, string}}> */
+    /** @var list<array{string, string, array{class-string, string}, list<array{class-string, string}>}> */
     private array $routes = [];
 
     /** @var array{class-string, string}|null */
@@ -43,11 +45,21 @@ final class Router
     }
 
     /**
-     * @param array{class-string, string} $handler controller class and method
+     * @param array{class-string, string}       $handler    controller class and method
+     * @param list<array{class-string, string}> $middleware class and method returning ?Response
      */
-    public function get(string $path, array $handler): void
+    public function get(string $path, array $handler, array $middleware = []): void
     {
-        $this->routes[] = ['GET', $path, $handler];
+        $this->routes[] = ['GET', $path, $handler, $middleware];
+    }
+
+    /**
+     * @param array{class-string, string}       $handler
+     * @param list<array{class-string, string}> $middleware
+     */
+    public function post(string $path, array $handler, array $middleware = []): void
+    {
+        $this->routes[] = ['POST', $path, $handler, $middleware];
     }
 
     /**
@@ -78,7 +90,7 @@ final class Router
         $result = $this->dispatcher()->dispatch($request->method, $path);
 
         return match ($result[0]) {
-            Dispatcher::FOUND => $this->call($result[1], $request, $locale, $result[2]),
+            Dispatcher::FOUND => $this->run($result[1], $request, $locale, $result[2]),
             Dispatcher::METHOD_NOT_ALLOWED => $this->methodNotAllowed($request, $locale, $result[1]),
             default => $this->notFound($request, $locale),
         };
@@ -87,10 +99,33 @@ final class Router
     private function dispatcher(): Dispatcher
     {
         return simpleDispatcher(function (RouteCollector $collector): void {
-            foreach ($this->routes as [$method, $path, $handler]) {
-                $collector->addRoute($method, $path, $handler);
+            foreach ($this->routes as [$method, $path, $handler, $middleware]) {
+                $collector->addRoute($method, $path, [$handler, $middleware]);
             }
         });
+    }
+
+    /**
+     * @param array{array{class-string, string}, list<array{class-string, string}>} $route
+     * @param array<string, string> $params
+     */
+    private function run(array $route, Request $request, string $locale, array $params): Response
+    {
+        [$handler, $middleware] = $route;
+
+        if ($request->method !== 'GET' && $request->method !== 'HEAD'
+            && !$this->container->get('session')->validCsrf($request->body['_csrf'] ?? null)) {
+            return new Response(t('csrf.invalid'), 403, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
+        foreach ($middleware as [$class, $method]) {
+            $response = (new $class($this->container))->$method($request);
+            if ($response instanceof Response) {
+                return $response;
+            }
+        }
+
+        return $this->call($handler, $request, $locale, $params);
     }
 
     /**

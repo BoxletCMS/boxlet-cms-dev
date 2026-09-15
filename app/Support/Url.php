@@ -37,6 +37,28 @@ final class Url
     }
 
     /**
+     * URL inside the admin, which never carries a locale prefix: admin('login').
+     */
+    public static function admin(string $path = ''): string
+    {
+        $path = trim($path, '/');
+
+        return self::$basePath . '/admin' . ($path === '' ? '' : '/' . $path);
+    }
+
+    /**
+     * This site's absolute base URL as the server itself is configured (SERVER_NAME,
+     * never the client's Host header), for RewriteCheck in the installer.
+     */
+    public static function serverBase(bool $https, string $serverName, int $port): string
+    {
+        $default = $https ? 443 : 80;
+        $origin = ($https ? 'https://' : 'http://') . $serverName;
+
+        return $origin . ($port === 0 || $port === $default ? '' : ':' . $port) . self::$basePath;
+    }
+
+    /**
      * URL of a static file under public/, e.g. asset('cache/tokens.css').
      */
     public static function asset(string $path): string

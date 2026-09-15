@@ -24,6 +24,12 @@ test('the prefix follows the configured primary, not a fixed code', function () 
     assertEquals('/en/hello', Url::page('en', 'hello'), "page('en', 'hello')");
 });
 
+test('admin URLs never carry a locale prefix', function () {
+    Url::configure('', 'hr');
+    assertEquals('/admin', Url::admin(), 'admin()');
+    assertEquals('/admin/login', Url::admin('login'), "admin('login')");
+});
+
 test('slug segments are percent-encoded exactly once', function () {
     Url::configure('', 'en');
     assertEquals('/hr/o%20nama', Url::page('hr', 'o nama'), "page('hr', 'o nama')");

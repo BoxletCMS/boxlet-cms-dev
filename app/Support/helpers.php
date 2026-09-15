@@ -9,19 +9,32 @@ function e(mixed $value): string
 }
 
 /**
- * Read an environment variable loaded from .env, casting "true", "false" and "null".
+ * Read a variable from .env or the real environment. Returns the raw string: nothing
+ * is cast, so a password spelled "true" stays a string. Empty values count as missing.
  */
-function env(string $key, mixed $default = null): mixed
+function env(string $key, ?string $default = null): ?string
 {
     $value = $_ENV[$key] ?? $_SERVER[$key] ?? null;
-    if (!is_string($value)) {
-        return $value ?? $default;
+
+    return is_string($value) && $value !== '' ? $value : $default;
+}
+
+/**
+ * Admin UI string from lang/en.php with :name placeholders replaced. A missing key
+ * returns the key itself, so it shows up rather than rendering blank.
+ *
+ * @param array<string, string|int> $replace
+ */
+function t(string $key, array $replace = []): string
+{
+    static $strings = null;
+    if ($strings === null) {
+        $strings = require dirname(__DIR__, 2) . '/lang/en.php';
+    }
+    $text = is_array($strings) && is_string($strings[$key] ?? null) ? $strings[$key] : $key;
+    foreach ($replace as $name => $value) {
+        $text = str_replace(':' . $name, (string) $value, $text);
     }
 
-    return match (strtolower($value)) {
-        'true' => true,
-        'false' => false,
-        'null', '' => $default,
-        default => $value,
-    };
+    return $text;
 }

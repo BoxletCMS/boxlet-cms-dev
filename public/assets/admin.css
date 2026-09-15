@@ -1,0 +1,194 @@
+/* Admin and installer styles. Only custom properties from tokens.css: no literal
+   colours, pixel values, fonts or shadows. */
+
+.admin {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+}
+
+.admin h1 {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-heading);
+  margin: 0 0 var(--space-m);
+}
+
+.admin a {
+  color: var(--color-accent);
+}
+
+.admin-centered {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: var(--space-m);
+  box-sizing: border-box;
+}
+
+.card {
+  width: 100%;
+  max-width: var(--container-width);
+  box-sizing: border-box;
+  padding: var(--space-l);
+  background: var(--color-background);
+  border-radius: var(--radius-base);
+}
+
+.admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-m);
+  padding: var(--space-s) var(--space-l);
+  background: var(--color-background);
+}
+
+.admin-brand {
+  font-weight: bold;
+}
+
+.admin-nav {
+  display: flex;
+  flex: 1;
+  gap: var(--space-m);
+}
+
+.admin-nav [aria-current] {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.admin-main {
+  max-width: var(--container-width);
+  margin-inline: auto;
+  padding: var(--space-l) var(--space-m);
+}
+
+.stack,
+fieldset {
+  display: grid;
+  gap: var(--space-m);
+}
+
+fieldset {
+  margin: 0;
+  padding: var(--space-m);
+  border: thin solid var(--color-muted);
+  border-radius: var(--radius-base);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-s);
+}
+
+.field input,
+.field select {
+  font: inherit;
+  padding: var(--space-s);
+  color: var(--color-text);
+  background: var(--color-background);
+  border: thin solid var(--color-muted);
+  border-radius: var(--radius-base);
+}
+
+.choice {
+  font-weight: bold;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.notice {
+  display: block;
+  margin: 0 0 var(--space-m);
+  padding: var(--space-s) var(--space-m);
+  background: var(--color-surface);
+  border-left: var(--space-s) solid var(--color-muted);
+  border-radius: var(--radius-base);
+}
+
+.notice-error,
+.notice-warning {
+  border-left-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.button {
+  justify-self: start;
+  display: inline-block;
+  font: inherit;
+  padding: var(--space-s) var(--space-m);
+  color: var(--color-background);
+  background: var(--color-accent);
+  border: 0;
+  border-radius: var(--radius-base);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin a.button {
+  color: var(--color-background);
+}
+
+.button-quiet {
+  color: var(--color-accent);
+  background: transparent;
+  padding-inline: 0;
+}
+
+.restart {
+  margin-top: var(--space-l);
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-m);
+  margin: 0 0 var(--space-l);
+  padding: 0;
+  list-style: none;
+  color: var(--color-muted);
+}
+
+.steps [aria-current] {
+  color: var(--color-text);
+  font-weight: bold;
+}
+
+.checks {
+  display: grid;
+  gap: var(--space-s);
+  margin: 0 0 var(--space-l);
+  padding: 0;
+  list-style: none;
+}
+
+.check-status {
+  display: inline-block;
+  min-width: var(--space-xl);
+  font-weight: bold;
+}
+
+.check-fail .check-status {
+  color: var(--color-accent);
+}
+
+.check-warn .check-status,
+.check-ok .check-status {
+  color: var(--color-muted);
+}
+
+.admin pre {
+  margin: var(--space-s) 0;
+  padding: var(--space-m);
+  overflow-x: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius-base);
+}

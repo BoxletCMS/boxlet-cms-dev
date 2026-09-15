@@ -9,3 +9,6 @@ parameters:
         - config
         - public
         - tests
+    excludePaths:
+        # Scratch files the test suite creates and deletes while it runs.
+        - tests/tmp (?)

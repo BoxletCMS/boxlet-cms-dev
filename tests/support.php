@@ -2,8 +2,13 @@
 
 use App\Core\Response;
 use App\Core\Router;
+use App\Core\Session;
 
 final class AssertionFailed extends RuntimeException
+{
+}
+
+final class TestSkipped extends RuntimeException
 {
 }
 
@@ -21,9 +26,25 @@ function test(string $name, Closure $body): void
     TestSuite::$tests[] = [TestSuite::$group . ': ' . $name, $body];
 }
 
+/**
+ * Registers the test once per database driver. The body receives 'sqlite' or 'mysql';
+ * MySQL runs skip when no test database is configured.
+ */
+function testBothDrivers(string $name, Closure $body): void
+{
+    foreach (['sqlite', 'mysql'] as $driver) {
+        test("{$name} [{$driver}]", static fn () => $body($driver));
+    }
+}
+
 function fail(string $message): never
 {
     throw new AssertionFailed($message);
+}
+
+function skip(string $reason): never
+{
+    throw new TestSkipped($reason);
 }
 
 function assertEquals(mixed $expected, mixed $actual, string $what = 'value'): void
@@ -48,27 +69,67 @@ function assertContains(string $needle, string $haystack, string $what = 'output
     }
 }
 
+/**
+ * Fails unless $action throws an exception whose message contains $messagePart.
+ */
+function assertThrows(Closure $action, string $messagePart): void
+{
+    try {
+        $action();
+    } catch (AssertionFailed $e) {
+        throw $e;
+    } catch (Throwable $e) {
+        if (!str_contains($e->getMessage(), $messagePart)) {
+            fail(sprintf('expected an exception containing %s, got %s', export($messagePart), export($e->getMessage())));
+        }
+
+        return;
+    }
+    fail(sprintf('expected an exception containing %s, nothing was thrown', export($messagePart)));
+}
+
 function export(mixed $value): string
 {
     return str_replace("\n", ' ', var_export($value, true));
 }
 
 /**
- * Dispatches a GET request through app/bootstrap.php and the Router, as
- * public/index.php does, without a web server. $configureRouter may add routes
- * before dispatch.
+ * Environment of the site the current test installed with installedSite(). The runner
+ * clears it before every test.
  */
-function dispatch(string $path, ?Closure $configureRouter = null): Response
+final class TestSite
 {
-    $saved = [$_SERVER, $_GET, $_POST];
+    /** @var array<string, string> */
+    public static array $env = [];
+}
+
+/**
+ * Dispatches a request through app/bootstrap.php and the Router, as public/index.php
+ * does, without a web server. The session is plain $_SESSION, which persists across
+ * dispatches within a test.
+ *
+ * @param array<string, string> $body POST fields
+ */
+function dispatch(
+    string $path,
+    ?Closure $configureRouter = null,
+    string $method = 'GET',
+    array $body = [],
+    string $ip = '203.0.113.10',
+): Response {
+    $saved = [$_SERVER, $_GET, $_POST, $_ENV];
     try {
-        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_ENV = TestSite::$env + $_ENV;
+        $_SERVER['REQUEST_METHOD'] = $method;
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_SERVER['REQUEST_URI'] = $path;
+        $_SERVER['REMOTE_ADDR'] = $ip;
+        unset($_SERVER['HTTPS']);
         $_GET = [];
-        $_POST = [];
+        $_POST = $body;
 
         $container = require dirname(__DIR__) . '/app/bootstrap.php';
+        $container->set('session', static fn () => new Session());
         /** @var Router $router */
         $router = $container->get('router');
         if ($configureRouter !== null) {
@@ -77,7 +138,7 @@ function dispatch(string $path, ?Closure $configureRouter = null): Response
 
         return $router->dispatch($container->get('request'));
     } finally {
-        [$_SERVER, $_GET, $_POST] = $saved;
+        [$_SERVER, $_GET, $_POST, $_ENV] = $saved;
     }
 }
 

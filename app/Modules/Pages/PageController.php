@@ -47,10 +47,8 @@ final class PageController
      */
     private function render(string $template, string $locale, array $data, int $status = 200): Response
     {
-        /** @var View $view */
-        $view = $this->container->get('view');
-        $data['locales'] = $this->container->get('config')->get('locales.enabled');
+        $data['locales'] = $this->container->get('locales');
 
-        return Response::html($view->render($template, $locale, $data), $status);
+        return Response::html((new View(__DIR__ . '/views'))->render($template, $locale, $data), $status);
     }
 }

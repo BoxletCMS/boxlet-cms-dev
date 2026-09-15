@@ -1,6 +1,10 @@
 <?php
 
 use App\Core\ErrorHandler;
+use App\Core\Request;
+use App\Core\Response;
+use App\Core\RewriteCheck;
+use App\Support\Url;
 use Dotenv\Dotenv;
 
 // URL rewriting is required. On Apache without mod_rewrite, public/.htaccess sends
@@ -54,7 +58,19 @@ if (!is_file($root . '/vendor/autoload.php')) {
 require $root . '/vendor/autoload.php';
 
 Dotenv::createImmutable($root)->safeLoad();
-ErrorHandler::register((bool) env('APP_DEBUG', false));
+ErrorHandler::register(filter_var(env('APP_DEBUG', 'false'), FILTER_VALIDATE_BOOL));
+
+// The installer probes this before any database exists, so answer it before booting.
+if (Request::fromGlobals()->path === RewriteCheck::PROBE_PATH) {
+    RewriteCheck::response()->send();
+    exit;
+}
 
 $container = require $root . '/app/bootstrap.php';
+
+if (!$container->get('installed')) {
+    Response::redirect(Url::asset('install.php'))->send();
+    exit;
+}
+
 $container->get('router')->dispatch($container->get('request'))->send();

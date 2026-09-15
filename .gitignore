@@ -1,5 +1,7 @@
 /vendor/
 .env
+.env.test
+/tests/tmp/
 /storage/*
 !/storage/.gitkeep
 !/storage/.htaccess

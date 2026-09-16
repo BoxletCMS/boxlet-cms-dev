@@ -93,6 +93,25 @@ test('guard (source, not behaviour): the admin makes the hidden attribute win', 
     );
 });
 
+// Ctrl+Shift+V belongs to the browser, not to us (2c-3).
+//
+// Measured with a real clipboard — rich markup copied out of a contenteditable with Ctrl+C,
+// then pasted twice: Ctrl+V put <strong>, <em> and <a href> into the field, and
+// Ctrl+Shift+V put "<p>Bold and italic with a link</p>", with no marks at all. Chrome and
+// ProseMirror do it between them, so a handler here would be a second implementation of
+// something already correct, and the one thing worth pinning is that nobody adds one.
+test('guard (source, not behaviour): nothing duplicates the browser\'s plain-text paste', function () {
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext.js');
+
+    assertTrue(!preg_match("~addEventListener\(\s*'paste'~", $js), 'richtext.js handles paste itself again');
+    assertTrue(stripos($js, 'clipboardData') === false, 'richtext.js reads the clipboard itself again');
+
+    // The field promises the chord works. If the promise and the behaviour ever part
+    // company, it should be because someone changed this line on purpose.
+    $lang = require dirname(__DIR__) . '/lang/en.php';
+    assertContains('Ctrl+Shift+V', (string) ($lang['richtext.paste_plain'] ?? ''), 'the hint no longer names the chord');
+});
+
 test('guard (source, not behaviour): the editor still renders the shapes richtext.js binds to', function () {
     $body = dispatch('/admin/pages/' . builderPage())->body;
 

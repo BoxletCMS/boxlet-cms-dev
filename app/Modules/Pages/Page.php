@@ -5,6 +5,7 @@ namespace App\Modules\Pages;
 use App\Core\Blocks;
 use App\Core\Db;
 use App\Modules\Design\Composition;
+use App\Modules\Design\SectionStyle;
 use Closure;
 use Throwable;
 
@@ -66,6 +67,33 @@ final class Page
                 'content' => is_array($content) ? $content : [],
                 'style' => is_array($style) ? $style : [],
                 'layout' => (string) $row['layout'],
+            ];
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * This page's blocks as an editor needs them: content and layout normalised against
+     * the registry, style normalised against the closed sets, and a block whose type is
+     * no longer installed kept with a null content so saving cannot discard it.
+     *
+     * Both editors render from this, so the visual canvas and the fallback form always
+     * agree about what is on the page.
+     *
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
+     */
+    public static function editable(Db $db, Blocks $registry, int $pageId): array
+    {
+        $blocks = [];
+        foreach (self::blocks($db, $pageId) as $block) {
+            $known = $registry->has($block['type']);
+            $blocks[] = [
+                'id' => $block['id'],
+                'type' => $block['type'],
+                'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
+                'style' => SectionStyle::normalize($block['style']),
+                'layout' => $known ? $registry->layout($block['type'], $block['layout']) : '',
             ];
         }
 

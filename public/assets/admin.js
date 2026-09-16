@@ -23,7 +23,12 @@
   if (!form) {
     return;
   }
+  // The visual editor's form has no block list: its blocks live in the canvas iframe and
+  // builder.js drives them. Everything below belongs to the fallback form editor.
   var list = form.querySelector('[data-block-list]');
+  if (!list) {
+    return;
+  }
   var dirty = false;
   var dragged = null;
 

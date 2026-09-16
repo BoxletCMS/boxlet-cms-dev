@@ -25,10 +25,12 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         <div class="page-header">
             <h1><?= e(t('pages.edit')) ?></h1>
             <span class="status status-<?= e($page['status']) ?>"><?= e(t('pages.status.' . $page['status'])) ?></span>
+            <a class="button button-secondary" href="<?= e(Url::admin('pages', $pageId)) ?>"><?= e(t('pages.editor.visual')) ?></a>
 <?php if ($published): ?>
             <a href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>"><?= e(t('pages.view')) ?></a>
 <?php endif; ?>
         </div>
+        <p class="page-subtitle"><?= e(t('pages.editor.fallback_hint')) ?></p>
 <?php if ($notice !== null): ?>
         <p class="notice notice-error" role="alert"><?= e($notice) ?></p>
 <?php endif; ?>

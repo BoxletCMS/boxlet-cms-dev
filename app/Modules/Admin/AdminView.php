@@ -31,6 +31,9 @@ final class AdminView
             // wants the wide column (the Design screen does; a form does not).
             'styles' => [],
             'wide' => false,
+            // A screen that fills the window itself rather than sitting in the reading
+            // column: the visual editor, whose canvas is the screen.
+            'bare' => false,
             'siteName' => is_string($siteName) ? $siteName : '',
             'flash' => is_string($flash) ? $flash : null,
             'csrf' => $session->csrfToken(),

@@ -219,4 +219,16 @@ return [
     'pages.field.media_hint' => 'Media uploads arrive in a later release. For now this stores a media id and the page shows a placeholder.',
     'pages.field.select' => 'Choose one of the options.',
     'pages.field.richtext_hint' => 'HTML allowed: p, br, strong, b, em, i, h2, h3, ul, ol, li, blockquote, and links (a href). Everything else is removed when you save.',
+
+    'pages.canvas' => 'The page',
+    'pages.device.label' => 'Preview width',
+    'pages.device.phone' => 'Phone',
+    'pages.device.tablet' => 'Tablet',
+    'pages.device.desktop' => 'Desktop',
+    'pages.locale_later' => 'Translating a page arrives in a later release.',
+    'pages.editor.fallback' => 'Plain editor',
+    'pages.editor.fallback_hint' => 'A plain form holding every field of every block. It needs no JavaScript, so it is the way to fix a page when the visual editor will not load.',
+    'pages.editor.visual' => 'Visual editor',
+    'pages.panel.nothing_selected' => 'Nothing selected',
+    'pages.panel.nothing_selected_hint' => 'Choose a block on the page to edit what it says.',
 ];

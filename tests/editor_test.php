@@ -2,8 +2,10 @@
 
 use App\Core\Response;
 
-// The editor transport: one plain form that works without JavaScript and never saves a
-// truncated submission.
+// The fallback editor's transport: one plain form that works without JavaScript and
+// never saves a truncated submission. It lives at /admin/pages/{id}/form since Slice
+// 4.6; the visual editor took the bare page URL (tests/builder_test.php). Both post to
+// the same endpoint and are validated by the same code.
 
 /**
  * Just the editor form, where the real field groups are: not the logout form in the
@@ -23,7 +25,7 @@ function editorForm(Response $response): string
 test('the editor is a plain form: named inputs per block, _end last, no inline script', function () {
     $db = adminSite('sqlite');
     $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>A</p>']]]);
-    $response = dispatch("/admin/pages/{$id}");
+    $response = dispatch("/admin/pages/{$id}/form");
 
     assertEquals(200, $response->status, 'status');
     assertContains('name="blocks[0][body]"', $response->body, 'editor');

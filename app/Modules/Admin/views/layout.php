@@ -17,6 +17,7 @@ use App\Support\Url;
  * @var string $nav current section: dashboard, pages or design
  * @var list<string> $styles extra stylesheets under public/assets
  * @var bool $wide whether this screen wants the wide column
+ * @var bool $bare whether this screen fills the window instead of the reading column
  * @var string|null $flash one-time message from the previous request
  * @var string $csrf
  */
@@ -53,7 +54,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
             </form>
         </div>
     </header>
-    <main class="admin-main<?= $wide ? ' admin-main-wide' : '' ?>" id="admin-content">
+    <main class="admin-main<?= $wide ? ' admin-main-wide' : '' ?><?= $bare ? ' admin-main-bare' : '' ?>" id="admin-content">
 <?php if ($flash !== null): ?>
         <p class="notice notice-success" role="status"><?= e($flash) ?></p>
 <?php endif; ?>

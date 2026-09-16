@@ -1,0 +1,187 @@
+/* The visual editor shell: toolbar, canvas and panel. Admin tokens only (--ui-*),
+ * defined in admin.css. The canvas is an iframe, so the site's own CSS is sealed inside
+ * it and cannot reach any of this. */
+
+/* The builder fills the window below the admin bar rather than sitting in the usual
+   reading column: the canvas is the screen. */
+.admin-main-bare {
+  max-width: none;
+  padding: 0;
+}
+
+.builder {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 3.5rem);
+  min-height: 34rem;
+}
+
+/* Toolbar */
+
+.builder-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-3);
+  padding: var(--ui-3) var(--ui-4);
+  background: var(--ui-panel);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.builder-title {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.builder-title input {
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: 28rem;
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid transparent;
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-lg);
+  font-weight: 600;
+}
+
+.builder-title input:hover {
+  border-color: var(--ui-line);
+}
+
+.builder-title input:focus {
+  border-color: var(--ui-accent);
+}
+
+.builder-devices {
+  display: flex;
+  gap: var(--ui-1);
+  padding: var(--ui-1);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.builder-devices .button {
+  padding-block: var(--ui-1);
+  font-size: var(--ui-text-sm);
+}
+
+.builder-devices [aria-pressed="true"] {
+  background: var(--ui-panel);
+  color: var(--ui-ink);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.builder-locale select {
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink-faint);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+}
+
+/* Canvas and panel */
+
+.builder-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.builder-canvas {
+  display: grid;
+  justify-items: center;
+  overflow: auto;
+  padding: var(--ui-4);
+  background: var(--ui-bg);
+}
+
+/* The canvas carries a frame and a shadow so it reads as the site inside the tool,
+   which matters most at phone width where it no longer fills the pane. */
+.builder-canvas iframe {
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 30rem;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+  box-shadow: var(--ui-shadow-m);
+}
+
+.builder-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-4);
+  overflow-y: auto;
+  padding: var(--ui-4);
+  background: var(--ui-panel);
+  border-left: var(--ui-border) solid var(--ui-line);
+}
+
+.panel-empty {
+  padding: var(--ui-5) var(--ui-3);
+  text-align: center;
+}
+
+.panel-empty h2 {
+  margin: 0 0 var(--ui-2);
+  font-size: var(--ui-text-base);
+  color: var(--ui-ink-muted);
+}
+
+.panel-block .block-editor {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.panel-block .block-editor-legend {
+  border-radius: var(--ui-radius-m);
+}
+
+/* The fallback editor reorders blocks by dragging their headers. Here reordering
+   happens on the canvas, so the handle would be a control that does nothing. */
+.panel-block .drag-handle {
+  display: none;
+}
+
+.panel-block .block-body {
+  padding-inline: 0;
+}
+
+/* The panel is narrow: two-column field rows do not fit in it. */
+.panel-block .field-row,
+.panel-block .block-style-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-block .field input,
+.panel-block .field select,
+.panel-block .field textarea {
+  max-inline-size: none;
+}
+
+@media (max-width: 64rem) {
+  .builder {
+    height: auto;
+  }
+
+  .builder-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .builder-canvas iframe {
+    block-size: 60vh;
+  }
+
+  .builder-panel {
+    border-left: 0;
+    border-top: var(--ui-border) solid var(--ui-line);
+  }
+}

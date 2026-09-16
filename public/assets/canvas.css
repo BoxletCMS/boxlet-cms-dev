@@ -1,0 +1,62 @@
+/* The editor's chrome inside the canvas iframe.
+ *
+ * This file lives in a document full of the SITE's tokens, so it must not read one: a
+ * selection outline that changed colour with the design would be unreadable on the
+ * designs that need it most. Its own values are literals, prefixed --bx-, and every
+ * class is bx- so nothing can collide with a block's own class names. */
+
+.bx-canvas {
+  --bx-select: #2f5fd0;
+  --bx-select-soft: rgb(47 95 208 / 0.08);
+  --bx-hover: rgb(47 95 208 / 0.28);
+
+  margin: 0;
+  /* Room to reach the last block's controls without the page ending under them. */
+  padding-bottom: 6rem;
+}
+
+/* Selection is an outline and a class, never a wrapper element: sections.css styles a
+   section by its position among its siblings, so an inserted wrapper would change the
+   page the canvas is meant to be showing. Outline does not affect layout either. */
+
+.bx-canvas [data-bx-index] {
+  cursor: pointer;
+}
+
+.bx-canvas [data-bx-index]:hover {
+  outline: 2px dashed var(--bx-hover);
+  outline-offset: -2px;
+}
+
+.bx-canvas [data-bx-index]:focus-visible {
+  outline: 3px solid var(--bx-select);
+  outline-offset: -3px;
+}
+
+.bx-canvas .bx-selected,
+.bx-canvas .bx-selected:hover {
+  outline: 3px solid var(--bx-select);
+  outline-offset: -3px;
+}
+
+/* A block being dragged into a new position. */
+.bx-canvas .bx-dragging {
+  opacity: 0.4;
+}
+
+.bx-canvas .bx-drop-target {
+  outline: 3px dashed var(--bx-select);
+  outline-offset: -3px;
+}
+
+/* Links must not navigate away from the editor; canvas.js stops the click, and this
+   removes the affordance that says otherwise. */
+.bx-canvas [data-bx-index] a {
+  cursor: inherit;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bx-canvas [data-bx-index] {
+    transition: outline-color 120ms ease-out;
+  }
+}

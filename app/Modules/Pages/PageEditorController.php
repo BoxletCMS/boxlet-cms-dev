@@ -9,7 +9,6 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
-use App\Modules\Design\SectionStyle;
 use App\Support\Url;
 
 /**
@@ -55,7 +54,7 @@ final class PageEditorController
         if (self::truncated($request)) {
             $message = t('pages.editor.truncated', ['limit' => (int) ini_get('max_input_vars')]);
 
-            return $this->form($page, (string) $page['title'], (string) $page['slug'], $this->storedBlocks($id), [], $message, 422);
+            return $this->reject($request, $page, (string) $page['title'], (string) $page['slug'], $this->storedBlocks($id), [], $message);
         }
 
         $registry = $this->registry();
@@ -95,7 +94,7 @@ final class PageEditorController
             $errors['slug'] = $slugProblem;
         }
         if ($errors !== []) {
-            return $this->form($page, $title, $slug, $blocks, $errors, t('pages.editor.errors'), 422);
+            return $this->reject($request, $page, $title, $slug, $blocks, $errors, t('pages.editor.errors'));
         }
 
         Page::update($db, $id, $title, $slug, $blocks);
@@ -132,24 +131,29 @@ final class PageEditorController
     }
 
     /**
+     * A save that did not validate re-renders the editor it was sent from, so nobody is
+     * moved to a different screen at the moment they have to fix something. Everything
+     * before this point — parsing, validation, storage — is the same for both.
+     *
+     * @param array<string, mixed> $page
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
+     * @param array<string, string> $errors
+     */
+    private function reject(Request $request, array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
+    {
+        if ($request->input('editor') === 'builder') {
+            return (new PageBuilderController($this->container))->rejected($page, $title, $slug, $blocks, $errors, $notice);
+        }
+
+        return $this->form($page, $title, $slug, $blocks, $errors, $notice, 422);
+    }
+
+    /**
      * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
      */
     private function storedBlocks(int $pageId): array
     {
-        $registry = $this->registry();
-        $blocks = [];
-        foreach (Page::blocks($this->db(), $pageId) as $block) {
-            $known = $registry->has($block['type']);
-            $blocks[] = [
-                'id' => $block['id'],
-                'type' => $block['type'],
-                'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
-                'style' => SectionStyle::normalize($block['style']),
-                'layout' => $known ? $registry->layout($block['type'], $block['layout']) : '',
-            ];
-        }
-
-        return $blocks;
+        return Page::editable($this->db(), $this->registry(), $pageId);
     }
 
     /**

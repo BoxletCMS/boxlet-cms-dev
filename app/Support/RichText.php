@@ -63,6 +63,9 @@ final class RichText
     /** A p may not contain these, so a div holding one is unwrapped rather than renamed. */
     private const BLOCK = ['p', 'div', 'ul', 'ol', 'li', 'blockquote', 'h2', 'h3', 'table'];
 
+    /** Blocks whose leading and trailing <br> are dropped on save (PLAN.md D-014). */
+    private const TRIM_BREAKS = ['p', 'h2', 'h3', 'li', 'blockquote'];
+
     /** Trix's attachments carry JSON in these; they are its one proprietary format. */
     private const ATTACHMENT_ATTRIBUTES = [
         'data-trix-attachment', 'data-trix-attributes', 'data-trix-content-type',
@@ -146,6 +149,41 @@ final class RichText
             }
             if ($tag === 'a' && $node->hasAttribute('href') && !SafeUrl::isAllowed($node->getAttribute('href'))) {
                 $node->removeAttribute('href');
+            }
+
+            // Last, so the block's final name is known: a div has already become a p.
+            if (in_array($tag, self::TRIM_BREAKS, true)) {
+                self::trimBreaks($node);
+            }
+        }
+    }
+
+    /**
+     * Drops <br> at the very start and end of a block.
+     *
+     * Given <p>alpha</p>, Trix hands back <div><br>alpha<br><br></div>. Without this rule
+     * every open-and-save of a page added a break at each end of every rich text field on
+     * it — including fields nobody edited — and it compounded with each cycle, so text
+     * drifted further from what was written every time the page was opened. Measured in a
+     * browser, not inferred.
+     *
+     * The cost is a deliberate break at the very edge of a paragraph. In Trix a blank line
+     * is a new paragraph, so nothing a person can type is lost with it.
+     */
+    private static function trimBreaks(DOMElement $node): void
+    {
+        foreach ([true, false] as $fromStart) {
+            while (true) {
+                $child = $fromStart ? $node->firstChild : $node->lastChild;
+                // Whitespace between the edge and the break is left where it is; only the
+                // break itself goes.
+                while ($child instanceof DOMText && trim($child->textContent) === '') {
+                    $child = $fromStart ? $child->nextSibling : $child->previousSibling;
+                }
+                if (!$child instanceof DOMElement || strtolower($child->nodeName) !== 'br') {
+                    break;
+                }
+                $node->removeChild($child);
             }
         }
     }

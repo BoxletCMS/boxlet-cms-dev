@@ -47,7 +47,9 @@ $fromTrix = [
     'a numbered list'
         => ['<ol><li>Step one</li><li>Step two</li></ol>', '<ol><li>Step one</li><li>Step two</li></ol>'],
     // The whole Word paste, as Trix reduced it. Everything mso-, every inline style, the
-    // font tag and the table were already gone before our sanitiser saw it.
+    // font tag and the table were already gone before our sanitiser saw it. This case is
+    // about that reduction; the breaks Trix leaves at a paragraph's edges are the case
+    // below, so neither can hide a change in the other.
     'a passage pasted from a word processor'
         => [
             '<div><strong>Bold lead-in</strong> and <em>italic</em> text.</div>'
@@ -55,9 +57,16 @@ $fromTrix = [
             . '<ul><li>First</li><li>Second<ul><li>Nested</li></ul></li></ul>'
             . '<div>Coloured font tag</div><div>Cell</div>',
             '<p><strong>Bold lead-in</strong> and <em>italic</em> text.</p>'
-            . '<p><br>Second paragraph with a <a href="https://example.com/x?a=1">link</a>.<br><br></p>'
+            . '<p>Second paragraph with a <a href="https://example.com/x?a=1">link</a>.</p>'
             . '<ul><li>First</li><li>Second<ul><li>Nested</li></ul></li></ul>'
             . '<p>Coloured font tag</p><p>Cell</p>',
+        ],
+    // Split out of the case above when D-014 changed the rule: it used to assert that the
+    // edge breaks survived, which is the behaviour D-014 removes.
+    'the breaks Trix leaves at a paragraph\'s edges are dropped'
+        => [
+            '<div><br>Second paragraph with a <a href="https://example.com/x?a=1">link</a>.<br><br></div>',
+            '<p>Second paragraph with a <a href="https://example.com/x?a=1">link</a>.</p>',
         ],
 ];
 foreach ($fromTrix as $name => [$input, $expected]) {
@@ -146,6 +155,56 @@ test('link URLs: only site-relative, http(s), mailto and tel', function () {
     foreach ($urls as $url => $allowed) {
         assertEquals($allowed, SafeUrl::isAllowed((string) $url), (string) json_encode((string) $url));
     }
+});
+
+// PLAN.md D-014: rich text survives being opened and saved.
+//
+// Every string here was captured from a browser, not invented. Trix is handed <p>alpha</p>
+// and posts <div><br>alpha<br><br></div>; before the fix each open-and-save added another
+// break at each end, for ever, in every field on any page that was merely opened.
+$roundTrip = [
+    'a paragraph as Trix hands it back'
+        => ['<div><br>alpha<br><br></div>', '<p>alpha</p>'],
+    'one a save had already grown'
+        => ['<div><br><br>alpha<br><br><br></div>', '<p>alpha</p>'],
+    'one grown three times over'
+        => ['<div><br><br><br>alpha<br><br><br><br></div>', '<p>alpha</p>'],
+    'breaks at the edges of a heading'
+        => ['<h1><br>Heading<br></h1>', '<h2>Heading</h2>'],
+    'breaks at the edges of a quote'
+        => ['<blockquote><br>Quote<br><br></blockquote>', '<blockquote>Quote</blockquote>'],
+    'breaks at the edges of a list item'
+        => ['<ul><li><br>one<br></li><li>two<br></li></ul>', '<ul><li>one</li><li>two</li></ul>'],
+    // The rule takes the edges and nothing else: a break between two lines is the author's.
+    'a break in the middle of a paragraph is the author\'s and stays'
+        => ['<div>one<br>two</div>', '<p>one<br>two</p>'],
+    'a paragraph of nothing but a break'
+        => ['<div><br></div>', '<p></p>'],
+];
+foreach ($roundTrip as $name => [$input, $expected]) {
+    test("richtext round trip: {$name}", function () use ($input, $expected) {
+        assertEquals($expected, RichText::sanitize($input), 'normalised');
+        assertEquals($expected, RichText::sanitize($expected), 'not idempotent');
+    });
+}
+
+// The limit of the server rule, pinned so nobody concludes it is the whole fix.
+//
+// It trims a block's own edges, so a break trapped inside a <strong>, <em> or <a> sitting
+// at the edge survives. Measured: with only this rule, those cases went on growing one
+// break per open-and-save. What stops them is giving Trix <div> and <h1> — the shapes it
+// owns — in richtext.js, so they never arise.
+test('richtext round trip: the server rule reaches block edges, not inside inline marks', function () {
+    assertEquals(
+        '<p><strong>bold</strong></p>',
+        RichText::sanitize('<div><strong>bold</strong><br></div>'),
+        'a break outside the mark is at the block edge and goes',
+    );
+    assertEquals(
+        '<p><strong>bold<br></strong></p>',
+        RichText::sanitize('<div><strong>bold<br></strong></div>'),
+        'a break inside the mark is not at the block edge and stays',
+    );
 });
 
 // Guards against regression by deletion. Not behaviour coverage.

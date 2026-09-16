@@ -63,6 +63,15 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                                          attachments are Trix's one proprietary format. */ ?>
                                 <span class="trix-button-group trix-button-group--block-tools" data-trix-button-group="block-tools">
                                     <button type="button" class="trix-button trix-button--icon trix-button--icon-heading-1" data-trix-attribute="heading1" title="<?= e(t('richtext.heading')) ?>" tabindex="-1"><?= e(t('richtext.heading')) ?></button>
+                                    <?php /* heading2 is registered in richtext.js and emits
+                                             h3, which the whitelist already allows. Trix
+                                             ships no icon for a second heading level, and
+                                             .trix-button--icon hides a button's own text,
+                                             so this borrows Trix's heading class for the
+                                             glyph and admin-richtext.css draws it smaller.
+                                             Nothing is copied out of the vendored file, so
+                                             an upgrade moves both buttons together. */ ?>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-heading-1 trix-button--icon-heading-2" data-trix-attribute="heading2" title="<?= e(t('richtext.subheading')) ?>" tabindex="-1"><?= e(t('richtext.subheading')) ?></button>
                                     <button type="button" class="trix-button trix-button--icon trix-button--icon-quote" data-trix-attribute="quote" title="<?= e(t('richtext.quote')) ?>" tabindex="-1"><?= e(t('richtext.quote')) ?></button>
                                     <button type="button" class="trix-button trix-button--icon trix-button--icon-bullet-list" data-trix-attribute="bullet" title="<?= e(t('richtext.bullets')) ?>" tabindex="-1"><?= e(t('richtext.bullets')) ?></button>
                                     <button type="button" class="trix-button trix-button--icon trix-button--icon-number-list" data-trix-attribute="number" title="<?= e(t('richtext.numbers')) ?>" tabindex="-1"><?= e(t('richtext.numbers')) ?></button>

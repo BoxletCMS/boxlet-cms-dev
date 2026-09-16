@@ -229,6 +229,7 @@ return [
     'richtext.url' => 'Address',
     'richtext.url_placeholder' => 'https://example.com',
     'richtext.heading' => 'Heading',
+    'richtext.subheading' => 'Subheading',
     'richtext.quote' => 'Quotation',
     'richtext.bullets' => 'Bulleted list',
     'richtext.numbers' => 'Numbered list',

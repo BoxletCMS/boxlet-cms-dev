@@ -94,6 +94,14 @@
   opacity: 0.55;
 }
 
+/* The subheading button borrows Trix's heading glyph — it carries that class too — and
+   draws it smaller, because a subheading is a smaller heading and Trix ships no icon for
+   a second level. Drawn rather than left blank: .trix-button--icon hides the button's own
+   text, and a control nobody can see is a control nobody uses. */
+.richtext .richtext-toolbar .trix-button--icon-heading-2::before {
+  background-size: 62%;
+}
+
 .richtext-toolbar .trix-button-group-spacer {
   flex: 1;
 }

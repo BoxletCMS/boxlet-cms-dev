@@ -19,6 +19,26 @@
   });
 
   /*
+   * A second heading level, emitting the h3 we already store (PLAN.md D-015).
+   *
+   * Trix ships one heading, h1. The whitelist allows h2 and h3, and h3 had no way through:
+   * Trix did not recognise the element, loaded it as bold text, and the first save stored
+   * it as bold text — the author's subheading gone, permanently, without anyone touching
+   * it. Registering the block attribute gives Trix both a way to write one and a way to
+   * read one back.
+   *
+   * Set before any editor is created below, because Trix builds its parser from this.
+   */
+  if (window.Trix && !window.Trix.config.blockAttributes.heading2) {
+    window.Trix.config.blockAttributes.heading2 = {
+      tagName: 'h3',
+      terminal: true,
+      breakOnReturn: true,
+      group: false,
+    };
+  }
+
+  /*
    * An id Trix binds to must never encode the block's position.
    *
    * Trix resolves its input by id on every access, and a trix-toolbar finds its editors
@@ -31,6 +51,37 @@
    */
   var seq = 0;
 
+  /*
+   * The stored HTML in the shapes Trix owns.
+   *
+   * Trix's block element is <div>, and it offers one heading level, which it emits as
+   * <h1>. Handed a <p> or an <h2> it does not recognise the block: it keeps the words but
+   * marks the boundaries with <br>, and renders a heading as <strong>. Measured in a
+   * browser over three open-and-save cycles, <h2>Heading</h2> became
+   * <p><strong><br><br>Heading<br><br><br></strong></p> — the heading lost on the first
+   * cycle and a break added at each end on every one after, for ever, in every field on
+   * any page that was merely opened and saved.
+   *
+   * Sanitising on save maps div back to p and h1 back to h2, so this is that rule's exact
+   * inverse and nothing about what is stored changes.
+   *
+   * h3 needs no mapping: the heading2 block attribute registered above gives Trix an h3
+   * of its own, so it parses and re-emits one unchanged.
+   */
+  function forEditor(html) {
+    var holder = document.createElement('div');
+    holder.innerHTML = html;
+    holder.querySelectorAll('p, h2').forEach(function (block) {
+      var replacement = document.createElement(block.tagName === 'P' ? 'div' : 'h1');
+      while (block.firstChild) {
+        replacement.appendChild(block.firstChild);
+      }
+      block.replaceWith(replacement);
+    });
+
+    return holder.innerHTML;
+  }
+
   function setup(textarea) {
     if (textarea.hasAttribute('data-richtext-ready') || !window.Trix) {
       return;
@@ -42,7 +93,7 @@
     var hidden = document.createElement('input');
     hidden.type = 'hidden';
     hidden.name = textarea.name;
-    hidden.value = textarea.value;
+    hidden.value = forEditor(textarea.value);
     hidden.id = uid + '-value';
     textarea.removeAttribute('name');
     textarea.insertAdjacentElement('afterend', hidden);
@@ -92,7 +143,7 @@
           toggle.textContent = toggle.getAttribute('data-label-rich');
         } else {
           if (editor.editor) {
-            editor.editor.loadHTML(textarea.value);
+            editor.editor.loadHTML(forEditor(textarea.value));
           }
           toggle.textContent = toggle.getAttribute('data-label-plain');
         }

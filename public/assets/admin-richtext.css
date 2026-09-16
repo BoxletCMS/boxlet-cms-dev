@@ -133,11 +133,25 @@
 
 /* The link dialog */
 
-/* The link dialog sits in the flow, between the buttons and the editor, so it can never
-   cover the text being linked — the one thing you need to see while linking it. Trix
-   places it position:absolute; top:0, which in this narrow panel lands it straight over
-   the first lines of the editor. A closed dialog costs nothing here: Trix hides it with
-   its own injected [data-trix-dialog] { display: none }. */
+/* Closed dialogs are hidden here, not by Trix.
+   Trix injects a stylesheet at runtime carrying [data-trix-dialog] { display: none }.
+   The admin sends default-src 'self' with no style-src, so the browser refuses to apply
+   it: the <style> element is in the document and its rules never take effect. Measured
+   in a browser — a closed dialog reported display:block. That is what "the link dialog
+   covers the text" really was: not an overlay while linking, but a panel always on
+   screen. This stylesheet is served, not inline, so it is not blocked. */
+.richtext-toolbar [data-trix-dialog] {
+  display: none;
+}
+
+.richtext-toolbar [data-trix-dialog][data-trix-active] {
+  display: block;
+}
+
+/* With that fixed, the dialog can sit in the flow between the buttons and the editor,
+   where it cannot cover the text being linked — the one thing you need to see while
+   linking it. Trix would place it position:absolute; top:0, straight over the first
+   lines of the editor in a panel this narrow. */
 .richtext-toolbar .trix-dialog {
   position: static;
   inline-size: auto;

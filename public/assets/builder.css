@@ -9,10 +9,13 @@
   padding: 0;
 }
 
+/* 4rem is the admin bar's height. It is safe as a constant because the bar only grows
+   when it wraps, and below 64rem the breakpoint at the end of this file gives the
+   builder its natural height instead. dvh so mobile browser chrome cannot add a scroll. */
 .builder {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 3.5rem);
+  height: calc(100dvh - 4rem);
   min-height: 34rem;
 }
 
@@ -124,15 +127,81 @@
   border-left: var(--ui-border) solid var(--ui-line);
 }
 
-.panel-empty {
-  padding: var(--ui-5) var(--ui-3);
-  text-align: center;
+.panel-library h2,
+.panel-header h2 {
+  margin: 0;
+  font-size: var(--ui-text-base);
 }
 
-.panel-empty h2 {
-  margin: 0 0 var(--ui-2);
-  font-size: var(--ui-text-base);
-  color: var(--ui-ink-muted);
+.panel-library .hint {
+  margin-bottom: var(--ui-3);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  padding-bottom: var(--ui-3);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.panel-header h2 {
+  flex: 1;
+}
+
+/* The library: one column, so each preview is wide enough to read as a page rather
+   than as a thumbnail. */
+.library-grid {
+  display: grid;
+  gap: var(--ui-3);
+}
+
+.library-card {
+  display: grid;
+  gap: var(--ui-2);
+  padding: var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.library-card:hover {
+  border-color: var(--ui-accent);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.library-card[aria-busy="true"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* The preview renders at desktop width and is scaled down, so the card shows the block
+   as a visitor sees it rather than as a narrow phone layout. */
+.library-frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--ui-panel-sunken);
+  border-radius: var(--ui-radius-s);
+}
+
+.library-frame iframe {
+  position: absolute;
+  inset: 0 auto auto 0;
+  inline-size: 400%;
+  block-size: 400%;
+  border: 0;
+  transform: scale(0.25);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.library-name {
+  font-weight: 550;
 }
 
 .panel-block .block-editor {

@@ -10,6 +10,7 @@ use App\Core\Response;
 use App\Core\View;
 use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
+use App\Modules\Design\Design;
 use App\Support\Url;
 
 /**
@@ -86,6 +87,53 @@ final class PageBuilderController
     }
 
     /**
+     * One new block, as two fragments: the section for the canvas and the field group for
+     * the form. Nothing is written — the block exists only in the page being edited until
+     * Save, exactly like a block added in the fallback editor.
+     *
+     * The response is HTML, not JSON. The server owns what a block is; sending a schema
+     * for the browser to render would put a second copy of the block definition in
+     * JavaScript, which is the thing this design exists to avoid.
+     *
+     * @param array<string, string> $params
+     */
+    public function insert(Request $request, string $locale, array $params): Response
+    {
+        $page = Page::find($this->db(), (int) $params['id']);
+        if ($page === null) {
+            return PagesController::missing();
+        }
+
+        $registry = $this->registry();
+        $type = $request->input('type');
+        if (!$registry->has($type)) {
+            return new Response(t('pages.insert_unknown'), 422, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
+        $character = Composition::active($this->db());
+        $block = [
+            'id' => null,
+            'type' => $type,
+            'content' => $registry->normalize($type, []),
+            'style' => Composition::style($character, $type),
+            'layout' => Composition::layout($registry, $character, $type),
+        ];
+
+        $body = (new View(__DIR__ . '/views'))->render('admin/insert', $locale, [
+            // The browser renumbers every group after inserting, so this index only has
+            // to be unique in the returned markup.
+            'index' => max(0, (int) $request->input('index')),
+            'block' => $block,
+            'errors' => [],
+            'character' => $character,
+            'registry' => $registry,
+            'canvasHtml' => $registry->render($type, $block['content'], $block['style'], $block['layout']),
+        ], null);
+
+        return Response::admin($body);
+    }
+
+    /**
      * Re-renders the builder after a save that did not validate, so the user stays in the
      * editor they were using. PageEditorController calls this; the parsing, validation
      * and storage it runs first are the same for both editors.
@@ -123,7 +171,34 @@ final class PageBuilderController
             'character' => Composition::active($this->db()),
             'registry' => $this->registry(),
             'canvasUrl' => Url::admin('pages', $id, 'canvas'),
+            'insertUrl' => Url::admin('pages', $id, 'block'),
+            'library' => $this->library(),
         ], $status);
+    }
+
+    /**
+     * Every block that can be added, each with a picture of itself rendered from the
+     * block and this site's design (BlockPreview). Missing files are generated here, the
+     * same guard the compiled stylesheet uses.
+     *
+     * @return list<array{type: string, label: string, preview: string}>
+     */
+    private function library(): array
+    {
+        $cache = (string) $this->container->get('config')->get('app.cache_path');
+        $stylesheet = Design::stylesheet($this->db(), $cache);
+        $registry = $this->registry();
+
+        $library = [];
+        foreach ($registry->types() as $type) {
+            $library[] = [
+                'type' => $type,
+                'label' => t('block.' . $type),
+                'preview' => Url::asset('cache/previews/' . BlockPreview::file($registry, $type, $stylesheet, $cache)),
+            ];
+        }
+
+        return $library;
     }
 
     private function registry(): Blocks

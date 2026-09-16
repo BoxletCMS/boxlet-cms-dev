@@ -81,6 +81,19 @@ The admin has a fixed design system of its own and never renders with the site's
 so the tool you judge a design with does not change as you change the design. The only
 place the site's own design appears in the admin is the preview pane.
 
+### Vendored front-end assets
+
+Boxlet has no build step, so the few front-end libraries it uses are committed to the
+repository and loaded with a plain script tag. Each must be permissively licensed,
+dependency-free and a single file.
+
+| Asset | Version | Licence | Used for |
+| --- | --- | --- | --- |
+| [SortableJS](https://github.com/SortableJS/Sortable) | 1.15.6 | MIT | Reordering blocks in the page editor |
+
+The file lives in `public/assets/vendor/` and records its version and source URL in its
+own header. To update one, download the new pinned release over it and change both.
+
 ### Demo site
 
 The installer can add a demo site: four pages that use every block and section style.

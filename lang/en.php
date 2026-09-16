@@ -231,4 +231,18 @@ return [
     'pages.editor.visual' => 'Visual editor',
     'pages.panel.nothing_selected' => 'Nothing selected',
     'pages.panel.nothing_selected_hint' => 'Choose a block on the page to edit what it says.',
+    'pages.panel.done' => 'Done',
+    'pages.insert_unknown' => 'That block type is not installed.',
+
+    'pages.library' => 'Add a block',
+    'pages.library_hint' => 'Each picture is the block as this site renders it.',
+    'pages.insert_here' => 'Add a block here',
+    'pages.insert_at_end' => 'Add a block at the end',
+    'pages.inserting' => 'Adding…',
+    'pages.insert_failed' => 'The block could not be added. Check your connection and try again.',
+
+    // Sample copy for the library previews, rendered from each block's own fields.
+    'preview.heading' => 'A heading sits here',
+    'preview.body' => 'A sentence or two of body copy, set the way this site sets it.',
+    'preview.link' => 'A link',
 ];

@@ -25,9 +25,12 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas.css')) ?>">
+    <?php /* Reordering happens here, inside the canvas, because drag events do not cross
+             a document boundary. See SPEC 3 for the vendored front-end asset rule. */ ?>
+    <script src="<?= e(Url::versioned('assets/vendor/sortable.min.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/canvas.js')) ?>" defer></script>
 </head>
-<body class="bx-canvas">
+<body class="bx-canvas" data-insert-labels="<?= e(t('pages.insert_here') . '|' . t('pages.insert_at_end')) ?>">
     <?php /* Sections are direct children of main, exactly as on the front end: their CSS
              depends on being siblings, so nothing may be inserted between them. */ ?>
     <main data-bx-blocks>

@@ -75,6 +75,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // fallback for a browser without JavaScript or a canvas that will not load.
     $router->get('/admin/pages/{id:\d+}', [PageBuilderController::class, 'edit'], $requireAdmin);
     $router->get('/admin/pages/{id:\d+}/canvas', [PageBuilderController::class, 'canvas'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/block', [PageBuilderController::class, 'insert'], $requireAdmin);
     $router->get('/admin/pages/{id:\d+}/form', [PageEditorController::class, 'edit'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/status', [PagesController::class, 'status'], $requireAdmin);

@@ -11,8 +11,59 @@
   --bx-hover: rgb(47 95 208 / 0.28);
 
   margin: 0;
-  /* Room to reach the last block's controls without the page ending under them. */
-  padding-bottom: 6rem;
+  /* The overlay is positioned against the body, in document coordinates. */
+  position: relative;
+  /* Room for the last insertion control without the page ending under it. */
+  padding-bottom: 4rem;
+}
+
+/* Insertion controls float over the page rather than sitting between the sections,
+   which would break the sibling rules sections.css depends on. */
+
+.bx-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.bx-insert {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  color: var(--bx-select);
+  border: 2px solid var(--bx-select);
+  border-radius: 999rem;
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+}
+
+.bx-canvas:hover .bx-insert {
+  opacity: 0.5;
+}
+
+.bx-insert:hover,
+.bx-insert:focus-visible {
+  opacity: 1;
+  color: #ffffff;
+  background: var(--bx-select);
+}
+
+/* A library preview: one block on its own, shown small and never scrolled. */
+.bx-preview {
+  margin: 0;
+  overflow: hidden;
 }
 
 /* Selection is an outline and a class, never a wrapper element: sections.css styles a

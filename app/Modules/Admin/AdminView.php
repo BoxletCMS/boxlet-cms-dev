@@ -30,6 +30,9 @@ final class AdminView
             // Stylesheets this screen needs on top of the shell's own, and whether it
             // wants the wide column (the Design screen does; a form does not).
             'styles' => [],
+            // Scripts this screen needs beyond admin.js, in load order. Deferred, so they
+            // run in the order they are listed.
+            'scripts' => [],
             'wide' => false,
             // A screen that fills the window itself rather than sitting in the reading
             // column: the visual editor, whose canvas is the screen.

@@ -90,6 +90,7 @@ dependency-free and a single file.
 | Asset | Version | Licence | Used for |
 | --- | --- | --- | --- |
 | [SortableJS](https://github.com/SortableJS/Sortable) | 1.15.6 | MIT | Reordering blocks in the page editor |
+| [Trix](https://github.com/basecamp/trix) | 2.1.19 | MIT | The rich text editor, with attachments disabled |
 
 The file lives in `public/assets/vendor/` and records its version and source URL in its
 own header. To update one, download the new pinned release over it and change both.

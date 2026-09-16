@@ -77,7 +77,9 @@ foreach ($errors as $key => $message) {
 
                 <a class="button button-ghost" href="<?= e(Url::admin('pages', $pageId, 'form')) ?>"><?= e(t('pages.editor.fallback')) ?></a>
 <?php if ($published): ?>
-                <a class="button button-ghost" href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>"><?= e(t('pages.view')) ?></a>
+                <?php /* A new tab: this form holds unsaved work, and navigating away from
+                         it to look at the published page would be a poor trade. */ ?>
+                <a class="button button-ghost" href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>" target="_blank" rel="noopener"><?= e(t('pages.view')) ?></a>
 <?php endif; ?>
                 <button type="submit" name="action" value="save" class="button"><?= e(t('pages.save')) ?></button>
             </div>

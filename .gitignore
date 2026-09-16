@@ -9,6 +9,9 @@
 !/public/cache/.gitkeep
 /public/uploads/*
 !/public/uploads/.gitkeep
+!/public/uploads/.htaccess
+/public/m/*
+!/public/m/.gitkeep
 *.sqlite
 *.sqlite-journal
 .DS_Store

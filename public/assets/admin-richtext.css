@@ -1,0 +1,167 @@
+/* Trix, dressed in the admin's own tokens. Trix ships a complete look of its own; this
+ * overrides what clashes rather than letting a second design system into the admin.
+ * Admin tokens only (--ui-*), as everywhere else in here. */
+
+.richtext {
+  display: grid;
+  gap: var(--ui-2);
+}
+
+/* Which half is on screen. Without JavaScript neither class is set and the textarea —
+   the element that carries the name — is simply visible, which is the fallback. */
+.richtext-rich > textarea,
+.richtext-plain > .richtext-editor,
+.richtext-plain > .richtext-toolbar {
+  display: none;
+}
+
+/* Toolbar */
+
+.richtext-toolbar {
+  margin: 0;
+}
+
+.richtext-toolbar .trix-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-1);
+  align-items: center;
+}
+
+.richtext-toolbar .trix-button-group {
+  display: flex;
+  margin: 0;
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  overflow: hidden;
+}
+
+.richtext-toolbar .trix-button {
+  position: relative;
+  inline-size: 2rem;
+  block-size: 2rem;
+  padding: 0;
+  background: var(--ui-panel);
+  border: 0;
+  border-left: var(--ui-border) solid var(--ui-line);
+  color: var(--ui-ink);
+  cursor: pointer;
+}
+
+.richtext-toolbar .trix-button:first-child {
+  border-left: 0;
+}
+
+.richtext-toolbar .trix-button:hover {
+  background: var(--ui-panel-sunken);
+}
+
+.richtext-toolbar .trix-button.trix-active {
+  background: var(--ui-accent-soft);
+}
+
+.richtext-toolbar .trix-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.richtext-toolbar .trix-button--icon::before {
+  opacity: 0.85;
+}
+
+.richtext-toolbar .trix-button-group-spacer {
+  flex: 1;
+}
+
+/* The editor itself, matching every other field on the panel. */
+
+.richtext-editor {
+  box-sizing: border-box;
+  min-block-size: 12rem;
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+  line-height: var(--ui-leading);
+}
+
+.richtext-editor:focus {
+  border-color: var(--ui-accent);
+  outline: 2px solid var(--ui-accent);
+  outline-offset: -1px;
+}
+
+.richtext-editor h1 {
+  margin: 0 0 var(--ui-2);
+  font-size: var(--ui-text-lg);
+  font-weight: 650;
+}
+
+.richtext-editor blockquote {
+  margin: 0 0 var(--ui-2);
+  padding-inline-start: var(--ui-3);
+  border-inline-start: var(--ui-1) solid var(--ui-line-strong);
+  color: var(--ui-ink-muted);
+}
+
+/* The link dialog */
+
+.richtext-toolbar .trix-dialog {
+  position: absolute;
+  z-index: 5;
+  inline-size: min(24rem, 90%);
+  padding: var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  box-shadow: var(--ui-shadow-m);
+  font-size: var(--ui-text-sm);
+}
+
+.richtext-toolbar .trix-dialog__link-fields {
+  display: flex;
+  gap: var(--ui-2);
+  align-items: center;
+}
+
+.richtext-toolbar .trix-input--dialog {
+  flex: 1;
+  min-inline-size: 0;
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+}
+
+.richtext-toolbar .trix-button--dialog {
+  inline-size: auto;
+  block-size: auto;
+  padding: var(--ui-2) var(--ui-3);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+  font-size: var(--ui-text-sm);
+}
+
+.richtext-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
+  align-items: baseline;
+}
+
+.richtext-actions .button {
+  padding-inline: 0;
+  font-size: var(--ui-text-sm);
+}
+
+/* Attachments are refused before they can be created; this makes certain that nothing
+   of theirs can ever be shown, whatever a later version of Trix does. */
+.richtext-editor .attachment,
+.richtext-editor .attachment-gallery,
+.richtext-toolbar .trix-button-group--file-tools {
+  display: none !important;
+}

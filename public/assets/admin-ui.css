@@ -76,9 +76,14 @@
   background: var(--ui-panel-sunken);
 }
 
+/* Every variant repeats the anchor selector, because `.admin a.button` sets the filled
+   button's white text and outranks a bare `.button-ghost`. Without this an <a> ghost
+   button is white text on a white bar: invisible at rest, appearing only on hover. No
+   control in this admin is ever invisible or outline-only at rest (see CLAUDE.md). */
 .button-quiet,
 .button-ghost,
-.admin a.button-quiet {
+.admin a.button-quiet,
+.admin a.button-ghost {
   background: transparent;
   border-color: transparent;
   color: var(--ui-accent);
@@ -89,7 +94,8 @@
   background: var(--ui-accent-soft);
 }
 
-.button-danger {
+.button-danger,
+.admin a.button-danger {
   color: var(--ui-danger);
 }
 

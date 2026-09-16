@@ -43,11 +43,61 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
 ?>
                 <div class="field">
                     <label for="<?= e($inputId) ?>"><?= e($label) ?></label>
-<?php if ($field['type'] === 'textarea' || $field['type'] === 'richtext'): ?>
-                    <textarea id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" rows="<?= $field['type'] === 'richtext' ? 8 : 3 ?>"><?= e($value) ?></textarea>
 <?php if ($field['type'] === 'richtext'): ?>
+                    <?php /* The textarea is the real field and carries the name. richtext.js
+                             moves the name onto a hidden input and puts Trix above it, so a
+                             browser without JavaScript still edits this page, and the plain
+                             toggle is simply what is underneath rather than a second input
+                             kept in step. */ ?>
+                    <div class="richtext" data-richtext>
+                        <trix-toolbar id="<?= e($inputId) ?>-toolbar" class="richtext-toolbar">
+                            <div class="trix-button-row">
+                                <span class="trix-button-group trix-button-group--text-tools" data-trix-button-group="text-tools">
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-bold" data-trix-attribute="bold" data-trix-key="b" title="<?= e(t('richtext.bold')) ?>" tabindex="-1"><?= e(t('richtext.bold')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-italic" data-trix-attribute="italic" data-trix-key="i" title="<?= e(t('richtext.italic')) ?>" tabindex="-1"><?= e(t('richtext.italic')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-link" data-trix-attribute="href" data-trix-action="link" data-trix-key="k" title="<?= e(t('richtext.link')) ?>" tabindex="-1"><?= e(t('richtext.link')) ?></button>
+                                </span>
+                                <?php /* No strike (del) and no code (pre): the whitelist has
+                                         neither, and a button whose output is discarded on
+                                         save is worse than no button. No attach either —
+                                         attachments are Trix's one proprietary format. */ ?>
+                                <span class="trix-button-group trix-button-group--block-tools" data-trix-button-group="block-tools">
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-heading-1" data-trix-attribute="heading1" title="<?= e(t('richtext.heading')) ?>" tabindex="-1"><?= e(t('richtext.heading')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-quote" data-trix-attribute="quote" title="<?= e(t('richtext.quote')) ?>" tabindex="-1"><?= e(t('richtext.quote')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-bullet-list" data-trix-attribute="bullet" title="<?= e(t('richtext.bullets')) ?>" tabindex="-1"><?= e(t('richtext.bullets')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-number-list" data-trix-attribute="number" title="<?= e(t('richtext.numbers')) ?>" tabindex="-1"><?= e(t('richtext.numbers')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-decrease-nesting-level" data-trix-action="decreaseNestingLevel" title="<?= e(t('richtext.outdent')) ?>" tabindex="-1"><?= e(t('richtext.outdent')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-increase-nesting-level" data-trix-action="increaseNestingLevel" title="<?= e(t('richtext.indent')) ?>" tabindex="-1"><?= e(t('richtext.indent')) ?></button>
+                                </span>
+                                <span class="trix-button-group-spacer"></span>
+                                <span class="trix-button-group trix-button-group--history-tools" data-trix-button-group="history-tools">
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-undo" data-trix-action="undo" data-trix-key="z" title="<?= e(t('richtext.undo')) ?>" tabindex="-1"><?= e(t('richtext.undo')) ?></button>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-redo" data-trix-action="redo" data-trix-key="shift+z" title="<?= e(t('richtext.redo')) ?>" tabindex="-1"><?= e(t('richtext.redo')) ?></button>
+                                </span>
+                            </div>
+                            <?php /* Copied from Trix's own toolbar: the dialog's structure is
+                                     what makes the link button work. */ ?>
+                            <div class="trix-dialogs" data-trix-dialogs>
+                                <div class="trix-dialog trix-dialog--link" data-trix-dialog="href" data-trix-dialog-attribute="href">
+                                    <div class="trix-dialog__link-fields">
+                                        <input type="url" name="href" class="trix-input trix-input--dialog" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>" data-trix-validate-href required data-trix-input>
+                                        <div class="trix-button-group">
+                                            <input type="button" class="trix-button trix-button--dialog" value="<?= e(t('richtext.link')) ?>" data-trix-method="setAttribute">
+                                            <input type="button" class="trix-button trix-button--dialog" value="<?= e(t('richtext.unlink')) ?>" data-trix-method="removeAttribute">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </trix-toolbar>
+                        <textarea id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" rows="8" data-richtext-source><?= e($value) ?></textarea>
+                        <div class="richtext-actions">
+                            <button type="button" class="button button-ghost js-only" data-richtext-toggle data-label-plain="<?= e(t('richtext.plain')) ?>" data-label-rich="<?= e(t('richtext.rich')) ?>"><?= e(t('richtext.plain')) ?></button>
+                            <span class="hint js-only"><?= e(t('richtext.paste_plain')) ?></span>
+                        </div>
+                    </div>
                     <span class="hint"><?= e(t('pages.field.richtext_hint')) ?></span>
-<?php endif; ?>
+<?php elseif ($field['type'] === 'textarea'): ?>
+                    <textarea id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" rows="3"><?= e($value) ?></textarea>
 <?php elseif ($field['type'] === 'media'): ?>
                     <input type="number" id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" value="<?= e($value) ?>" min="1" step="1">
                     <span class="hint"><?= e(t('pages.field.media_hint')) ?></span>

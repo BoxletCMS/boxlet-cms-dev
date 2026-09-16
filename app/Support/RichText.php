@@ -36,6 +36,36 @@ final class RichText
     private const REMOVE_WITH_CONTENT = [
         'script', 'style', 'template', 'iframe', 'object', 'embed', 'svg', 'math',
         'noscript', 'textarea', 'select', 'button', 'form', 'head', 'title',
+        // An attachment's insides are the editor's markup, not the author's words.
+        'figure',
+    ];
+
+    /**
+     * Elements renamed to their nearest allowed equivalent instead of being unwrapped.
+     *
+     * Trix wraps every block in a div and offers a single heading level, which it emits
+     * as h1 (SPEC §5.3). Unwrapping those would throw away the structure the author made:
+     * paragraphs would run together and every heading would become bare text. Renaming
+     * keeps the meaning and lands it inside the whitelist.
+     *
+     * h1 becomes h2 because the page's own title is the h1; a heading inside body copy
+     * sits below it. h4 and deeper collapse to h3, the deepest we allow, which matters for
+     * pasted documents rather than for Trix.
+     */
+    private const RENAME = [
+        'div' => 'p',
+        'h1' => 'h2',
+        'h4' => 'h3',
+        'h5' => 'h3',
+        'h6' => 'h3',
+    ];
+
+    /** A p may not contain these, so a div holding one is unwrapped rather than renamed. */
+    private const BLOCK = ['p', 'div', 'ul', 'ol', 'li', 'blockquote', 'h2', 'h3', 'table'];
+
+    /** Trix's attachments carry JSON in these; they are its one proprietary format. */
+    private const ATTACHMENT_ATTRIBUTES = [
+        'data-trix-attachment', 'data-trix-attributes', 'data-trix-content-type',
     ];
 
     public static function sanitize(string $html): string
@@ -84,11 +114,18 @@ final class RichText
             }
 
             $tag = strtolower($node->nodeName);
-            if (in_array($tag, self::REMOVE_WITH_CONTENT, true)) {
+            if (in_array($tag, self::REMOVE_WITH_CONTENT, true) || self::isAttachment($node)) {
                 $parent->removeChild($node);
                 continue;
             }
             self::clean($node);
+
+            // After the children are cleaned, so a nested div has already become a p or
+            // been unwrapped and the block test below sees the final shape.
+            if (isset(self::RENAME[$tag]) && ($tag !== 'div' || !self::hasBlockChild($node))) {
+                $node = self::rename($parent, $node, self::RENAME[$tag]);
+                $tag = strtolower($node->nodeName);
+            }
 
             if (!isset(self::ALLOWED[$tag])) {
                 while ($node->firstChild !== null) {
@@ -111,5 +148,54 @@ final class RichText
                 $node->removeAttribute('href');
             }
         }
+    }
+
+    /**
+     * Attachments are disabled in the editor itself; this is the backstop, so a later
+     * version of it cannot reintroduce them silently.
+     */
+    private static function isAttachment(DOMElement $node): bool
+    {
+        foreach (self::ATTACHMENT_ATTRIBUTES as $attribute) {
+            if ($node->hasAttribute($attribute)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True when this element holds something a paragraph may not contain, which is what
+     * decides whether a div is renamed to p or unwrapped. Renaming regardless would put a
+     * list inside a paragraph — invalid markup that we would have produced ourselves.
+     */
+    private static function hasBlockChild(DOMElement $node): bool
+    {
+        foreach ($node->childNodes as $child) {
+            if ($child instanceof DOMElement && in_array(strtolower($child->nodeName), self::BLOCK, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The same element under another name, keeping its children and its place.
+     */
+    private static function rename(DOMNode $parent, DOMElement $node, string $name): DOMElement
+    {
+        $document = $node->ownerDocument;
+        if ($document === null) {
+            return $node;
+        }
+        $replacement = $document->createElement($name);
+        while ($node->firstChild !== null) {
+            $replacement->appendChild($node->firstChild);
+        }
+        $parent->replaceChild($replacement, $node);
+
+        return $replacement;
     }
 }

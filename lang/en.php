@@ -151,6 +151,8 @@ return [
     'template.article' => 'Article',
     'template.feature' => 'Feature',
 
+    'install.opt.upload_limits' => 'Uploads: :file per file, :request per request',
+    'install.req.upload_limits_detail' => 'Pictures are uploaded in one request. PHP discards anything larger than these without reporting an error, so a photograph from a modern camera can vanish silently. Ask your host to raise upload_max_filesize and post_max_size to at least 16M, keeping post_max_size the larger of the two.',
     'install.opt.input_vars' => 'max_input_vars: :limit form fields per request',
     'install.req.input_vars_detail' => 'The page editor sends a whole page as one form. Pages with many blocks need more fields; ask your host to raise max_input_vars to at least 3000.',
 
@@ -219,6 +221,24 @@ return [
     'pages.field.media_hint' => 'Media uploads arrive in a later release. For now this stores a media id and the page shows a placeholder.',
     'pages.field.select' => 'Choose one of the options.',
     'pages.field.richtext_hint' => 'HTML allowed: p, br, strong, b, em, i, h2, h3, ul, ol, li, blockquote, and links (a href). Everything else is removed when you save.',
+
+    'richtext.bold' => 'Bold',
+    'richtext.italic' => 'Italic',
+    'richtext.link' => 'Link',
+    'richtext.unlink' => 'Unlink',
+    'richtext.url' => 'Address',
+    'richtext.url_placeholder' => 'https://example.com',
+    'richtext.heading' => 'Heading',
+    'richtext.quote' => 'Quotation',
+    'richtext.bullets' => 'Bulleted list',
+    'richtext.numbers' => 'Numbered list',
+    'richtext.outdent' => 'Move out one level',
+    'richtext.indent' => 'Move in one level',
+    'richtext.undo' => 'Undo',
+    'richtext.redo' => 'Redo',
+    'richtext.plain' => 'Edit as HTML',
+    'richtext.rich' => 'Edit as rich text',
+    'richtext.paste_plain' => 'Ctrl+Shift+V pastes without formatting.',
 
     'pages.canvas' => 'The page',
     'pages.device.label' => 'Preview width',

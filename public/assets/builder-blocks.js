@@ -62,6 +62,11 @@
       api.groups.insertBefore(group, existing[index]);
     }
     api.renumber();
+    // A block arrives as HTML from the server, so its rich text field is a plain textarea
+    // until this turns it into an editor.
+    if (window.boxletRichText) {
+      window.boxletRichText.scan(group);
+    }
     api.tellCanvas('refresh', {});
     api.show(index);
     api.tellCanvas('select', { index: index });

@@ -16,6 +16,7 @@ use App\Support\Url;
  * @var string $siteName
  * @var string $nav current section: dashboard, pages or design
  * @var list<string> $styles extra stylesheets under public/assets
+ * @var list<string> $scripts extra scripts under public/assets, in load order
  * @var bool $wide whether this screen wants the wide column
  * @var bool $bare whether this screen fills the window instead of the reading column
  * @var string|null $flash one-time message from the previous request
@@ -37,6 +38,9 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/' . $style)) ?>">
 <?php endforeach; ?>
     <script src="<?= e(Url::versioned('assets/admin.js')) ?>" defer></script>
+<?php foreach ($scripts as $script): ?>
+    <script src="<?= e(Url::versioned('assets/' . $script)) ?>" defer></script>
+<?php endforeach; ?>
 </head>
 <body class="admin">
     <a class="skip-link" href="#admin-content"><?= e(t('admin.skip')) ?></a>

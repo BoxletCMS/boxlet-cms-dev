@@ -235,7 +235,8 @@ final class PageBuilderController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/builder', [
             'title' => t('pages.edit'),
             'nav' => 'pages',
-            'styles' => ['builder.css'],
+            'styles' => ['vendor/trix.css', 'admin-richtext.css', 'builder.css'],
+            'scripts' => ['vendor/trix.umd.min.js', 'richtext.js'],
             'wide' => true,
             'bare' => true,
             'page' => $page,

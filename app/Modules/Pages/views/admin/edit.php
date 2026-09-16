@@ -11,6 +11,7 @@ use App\Support\Url;
  * @var array<string, mixed> $page
  * @var string $titleValue
  * @var string $slugValue
+ * @var list<array{id: int, title: string, depth: int}> $parents
  * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
@@ -50,6 +51,21 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                     <input type="text" id="page-slug" name="slug" value="<?= e($slugValue) ?>" maxlength="100" autocapitalize="off" spellcheck="false" aria-describedby="page-slug-hint">
                     <span class="hint" id="page-slug-hint"><?= e(t('pages.field.slug_hint')) ?></span>
                     <?= $error('slug') ?>
+                </div>
+                <?php /* The same control the builder has. This form posts to the same
+                         route, which reads parent_id and treats a missing one as "no
+                         parent", so leaving it out here un-parented the page on every
+                         save. A page's parent is changed in page settings and never by
+                         dragging (PLAN.md D-011). */ ?>
+                <div class="field">
+                    <label for="page-parent"><?= e(t('pages.field.parent')) ?></label>
+                    <select id="page-parent" name="parent_id">
+                        <option value=""><?= e(t('pages.parent.none')) ?></option>
+<?php foreach ($parents as $option): ?>
+                        <option value="<?= e($option['id']) ?>"<?= (int) ($page['parent_id'] ?? 0) === $option['id'] ? ' selected' : '' ?>><?= e(str_repeat('— ', $option['depth']) . $option['title']) ?></option>
+<?php endforeach; ?>
+                    </select>
+                    <?= $error('parent') ?>
                 </div>
             </div>
 

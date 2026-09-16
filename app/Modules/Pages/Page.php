@@ -17,14 +17,6 @@ use Throwable;
 final class Page
 {
     /**
-     * @return array<int, array<string, mixed>>
-     */
-    public static function all(Db $db): array
-    {
-        return $db->all('SELECT id, locale, slug, title, status, updated_at FROM pages ORDER BY locale, slug');
-    }
-
-    /**
      * @return array<string, mixed>|null
      */
     public static function find(Db $db, int $id): ?array
@@ -113,9 +105,14 @@ final class Page
     {
         return self::transaction($db, static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes, $character): int {
             $now = gmdate('Y-m-d H:i:s');
+            // A new page goes last among its siblings. Without this every page keeps the
+            // column's default of 0, they all tie, and the order a drag just set is
+            // decided by the title tie-break instead (PLAN.md D-011). New pages are
+            // top-level: the parent is chosen afterwards, in page settings.
+            $next = PageTree::nextSort($db, $locale, null);
             $db->query(
-                'INSERT INTO pages (locale, slug, title, status, template_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [$locale, $slug, $title, 'draft', $templateId, $now, $now],
+                'INSERT INTO pages (locale, slug, title, status, template_id, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [$locale, $slug, $title, 'draft', $templateId, $next, $now, $now],
             );
             $id = (int) $db->lastInsertId();
             $db->query('UPDATE pages SET content_group_id = id WHERE id = ?', [$id]);
@@ -151,16 +148,25 @@ final class Page
     {
         self::transaction($db, static function () use ($db, $id, $page, $blocks): void {
             $now = gmdate('Y-m-d H:i:s');
+            // A page that changes parent joins a different set of siblings, where its old
+            // position means nothing and collides with whoever already holds it. It goes
+            // last in the group it arrives in, the same rule a new page follows.
+            $current = $db->one('SELECT locale, parent_id, sort FROM pages WHERE id = ?', [$id]);
+            $sort = (int) ($current['sort'] ?? 0);
+            if ($current !== null && (int) ($current['parent_id'] ?? 0) !== (int) ($page['parent_id'] ?? 0)) {
+                $sort = PageTree::nextSort($db, (string) $current['locale'], $page['parent_id']);
+            }
             // published_at is stamped the first time a page is published and kept after
             // that, the same rule setStatus() follows.
             $db->query(
-                'UPDATE pages SET title = ?, slug = ?, parent_id = ?, status = ?,
+                'UPDATE pages SET title = ?, slug = ?, parent_id = ?, sort = ?, status = ?,
                         published_at = COALESCE(published_at, ?), updated_at = ?
                  WHERE id = ?',
                 [
                     $page['title'],
                     $page['slug'],
                     $page['parent_id'],
+                    $sort,
                     $page['status'],
                     $page['status'] === 'published' ? $now : null,
                     $now,

@@ -29,9 +29,38 @@ final class PagesController
             'title' => t('pages.title'),
             'nav' => 'pages',
             'styles' => ['admin-pages.css'],
-            'pages' => Page::all($this->db()),
+            // The drag is an addition: the Up and Down buttons work without either file,
+            // and pages.js returns early when Sortable is not there.
+            'scripts' => ['vendor/sortable.min.js', 'pages.js'],
+            'pages' => PageTree::listing($this->db()),
             'localeLabels' => array_column($this->container->get('locales'), 'label', 'code'),
         ]);
+    }
+
+    /**
+     * Reordering, by drag or by the Up and Down buttons. One action for both, because
+     * they are the same change: a sibling group gets a new order. The router checks the
+     * CSRF token on every POST before this runs (Router::dispatch).
+     *
+     * @param array<string, string> $params
+     */
+    public function reorder(Request $request, string $locale, array $params): Response
+    {
+        $order = $request->input('order');
+        $ids = [];
+        foreach (explode(',', $order) as $id) {
+            if (ctype_digit(trim($id))) {
+                $ids[] = (int) $id;
+            }
+        }
+
+        $done = $order !== ''
+            ? PageTree::reorder($this->db(), $ids)
+            : PageTree::move($this->db(), (int) $request->input('id'), $request->input('move'));
+
+        $this->container->get('session')->set('flash', t($done ? 'pages.reordered' : 'pages.reorder_failed'));
+
+        return Response::redirect(Url::admin('pages'));
     }
 
     /**

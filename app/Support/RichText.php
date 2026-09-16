@@ -155,7 +155,49 @@ final class RichText
             if (in_array($tag, self::TRIM_BREAKS, true)) {
                 self::trimBreaks($node);
             }
+
+            if ($tag === 'li') {
+                self::unwrapLoneParagraph($node);
+            }
         }
+    }
+
+    /**
+     * A paragraph that is the only block in a list item is the editor's packaging, not the
+     * author's structure, so it is unwrapped.
+     *
+     * TipTap's schema puts a paragraph inside every list item, so <li>one</li> came back as
+     * <li><p>one</p></li> the first time a field was edited. Measured on the front end:
+     * that list grew from 51px to 67px, because a paragraph inside a list item takes the
+     * normal paragraph margin and gains 16px above and below every item. Storage keeps one
+     * shape whichever editor produced it.
+     *
+     * Only a lone wrapper goes. An item holding two paragraphs keeps both, because that is
+     * something the author made rather than something the editor added. An item holding a
+     * paragraph beside a nested list keeps it too: the paragraph is then not the only block
+     * in the item.
+     *
+     * This removes a wrapper and allows nothing new, so the whitelist is unchanged.
+     */
+    private static function unwrapLoneParagraph(DOMElement $item): void
+    {
+        $blocks = [];
+        foreach ($item->childNodes as $child) {
+            if ($child instanceof DOMElement) {
+                $blocks[] = $child;
+            } elseif ($child instanceof DOMText && trim($child->textContent) !== '') {
+                return; // text beside the paragraph: the item is not just a wrapper
+            }
+        }
+        if (count($blocks) !== 1 || strtolower($blocks[0]->nodeName) !== 'p') {
+            return;
+        }
+
+        $paragraph = $blocks[0];
+        while ($paragraph->firstChild !== null) {
+            $item->insertBefore($paragraph->firstChild, $paragraph);
+        }
+        $item->removeChild($paragraph);
     }
 
     /**

@@ -92,6 +92,44 @@ foreach ($structure as $name => [$input, $expected]) {
     });
 }
 
+// PLAN.md D-017. An editor whose schema wraps every list item in a paragraph would change
+// how existing lists look: measured on the front end, <li><p>one</p></li> renders 16px
+// taller per item than <li>one</li>. Storage keeps one shape whichever editor produced it.
+$listItems = [
+    'a paragraph that is the only block in an item is unwrapped'
+        => ['<ul><li><p>one</p></li><li><p>two</p></li></ul>', '<ul><li>one</li><li>two</li></ul>'],
+    'two paragraphs in one item are the author\'s, and both stay'
+        => ['<ul><li><p>one</p><p>two</p></li></ul>', '<ul><li><p>one</p><p>two</p></li></ul>'],
+    // The paragraph is not the only block here, so it stays — and the inner item, where it
+    // is, loses its wrapper. This shape is the one that still differs from what was stored
+    // before the editor changed.
+    'a paragraph beside a nested list keeps its wrapper'
+        => [
+            '<ul><li><p>Second</p><ul><li><p>Nested</p></li></ul></li></ul>',
+            '<ul><li><p>Second</p><ul><li>Nested</li></ul></li></ul>',
+        ],
+    'marks inside an unwrapped paragraph survive'
+        => ['<ol><li><p><strong>bold</strong> item</p></li></ol>', '<ol><li><strong>bold</strong> item</li></ol>'],
+    'an ordinary item is untouched'
+        => ['<ul><li>plain</li></ul>', '<ul><li>plain</li></ul>'],
+];
+foreach ($listItems as $name => [$input, $expected]) {
+    test("richtext list items: {$name}", function () use ($input, $expected) {
+        assertEquals($expected, RichText::sanitize($input), 'sanitized');
+        assertEquals($expected, RichText::sanitize($expected), 'not idempotent');
+    });
+}
+
+// The round trip that matters for D-017: what the editor posts for a list it was given
+// comes back as exactly what was stored. The right-hand side was captured in a browser.
+test('richtext round trip: a list goes through the editor and is stored unchanged', function () {
+    $stored = '<ul><li>one</li><li>two</li></ul>';
+    $fromEditor = '<ul><li><p>one</p></li><li><p>two</p></li></ul>';
+
+    assertEquals($stored, RichText::sanitize($fromEditor), 'the stored shape changed');
+    assertEquals($stored, RichText::sanitize($stored), 'not idempotent');
+});
+
 // Attachments are disabled in the editor. This is the backstop, so a later version of it
 // cannot reintroduce them silently. Removed with their content: the insides are the
 // editor's markup, not the author's words.
@@ -115,11 +153,12 @@ foreach ($attachments as $name => [$input, $expected]) {
 //
 // This proves the sanitiser does not change its mind. It says nothing about what Trix
 // returns when given already-clean content: that needs a browser, and is checked there.
-test('sanitising is idempotent, so an untouched save rewrites nothing', function () use ($fromTrix, $structure, $attachments) {
+test('sanitising is idempotent, so an untouched save rewrites nothing', function () use ($fromTrix, $structure, $attachments, $listItems) {
     $inputs = array_merge(
         array_column(array_values($fromTrix), 0),
         array_column(array_values($structure), 0),
         array_column(array_values($attachments), 0),
+        array_column(array_values($listItems), 0),
         [
             // The non-breaking space Trix emits for a trailing space. Asserting its exact
             // output would mean an invisible character in this file, so it is pinned by
@@ -223,28 +262,47 @@ test('richtext round trip: the server rule reaches block edges, not inside inlin
 // browser, so nothing below proves the editors are bound correctly — only that the fix
 // has not been removed or written back the old way. The browser check is the real one.
 
-test('guard (source, not behaviour): Trix binds to ids that renumbering cannot reach', function () {
+test('guard (source, not behaviour): the editor binds to ids that renumbering cannot reach', function () {
     $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext.js');
 
-    // The hidden input and the toolbar are named from a counter that belongs to the
-    // editor, so moving the block cannot change what the editor is bound to.
+    // The hidden input is named from a counter that belongs to the editor, so moving the
+    // block cannot change which field the editor writes into. Replaces the Trix-era guard,
+    // which also pinned a toolbar id: the toolbar is markup now, not built here.
     assertContains("'richtext-' + seq++", $js, 'the per-editor id counter is gone');
     assertContains("hidden.id = uid + '-value'", $js, 'the input id is not built from the counter');
-    assertContains("toolbar.id = uid + '-toolbar'", $js, 'the toolbar id is not built from the counter');
 
     // Never from the textarea's id, which carries the block's position.
     assertTrue(!str_contains($js, "textarea.id + '-value'"), 'the input id encodes the block position again');
-    assertTrue(!str_contains($js, "textarea.id + '-toolbar'"), 'the toolbar id encodes the block position again');
 });
 
-test('guard (source, not behaviour): neither editor needs to know about Trix to renumber', function () {
+// TipTap replaces Trix on this branch (PLAN.md D-017). These stand where the Trix guards
+// did: the schema is the storage whitelist, so the editor cannot offer what the server
+// would throw away, and nothing it emits needs the sanitiser to clean up after it.
+test('guard (source, not behaviour): the editor is configured to the storage whitelist', function () {
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext.js');
+
+    foreach (['code: false', 'codeBlock: false', 'strike: false', 'underline: false', 'horizontalRule: false'] as $off) {
+        assertContains($off, $js, "a node outside the whitelist is no longer switched off: {$off}");
+    }
+    assertContains('levels: [2, 3, 4]', $js, 'the heading levels are not pinned to the stored set');
+    // Measured: without this TipTap appends an empty paragraph to any content that does
+    // not end in one, so a field changed on its first save.
+    assertContains('trailingNode: false', $js, 'the trailing paragraph is back');
+    // Measured: TipTap adds target and rel, which the whitelist does not allow.
+    assertContains('HTMLAttributes: { target: null, rel: null }', $js, 'the link emits attributes the whitelist forbids');
+});
+
+test('guard (source, not behaviour): renumbering knows nothing about the rich text editor', function () {
     foreach (['builder.js', 'admin.js'] as $file) {
         $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/' . $file);
 
         assertContains("'block-' + index + '-'", $js, "{$file}: the id renumbering is gone");
-        // If an id Trix binds to encodes the position again, this file has to learn about
-        // Trix to keep the binding intact — which is the shape of the bug, not of the fix.
-        assertTrue(stripos($js, 'trix') === false, "{$file} reaches for Trix");
+        // If an id the editor binds to encodes the position again, this file has to learn
+        // about the editor to keep the binding intact — the shape of the bug, not the fix.
+        // Named for both, so the guard survives the editor changing under it.
+        foreach (['trix', 'tiptap', 'prosemirror'] as $editor) {
+            assertTrue(stripos($js, $editor) === false, "{$file} reaches for {$editor}");
+        }
     }
 });
 
@@ -267,7 +325,10 @@ test('guard (source, not behaviour): the editor still renders the shapes richtex
     $body = dispatch('/admin/pages/' . builderPage())->body;
 
     assertContains('data-richtext', $body, 'the wrapper richtext.js looks for');
-    assertContains('<trix-toolbar', $body, 'the toolbar it now finds by structure');
+    assertContains('data-richtext-toolbar', $body, 'the toolbar it binds by data-rt');
+    assertContains('data-richtext-link', $body, 'the link row it opens');
+    assertContains('data-rt="h3"', $body, 'a heading level button');
+    assertContains('data-rt="undo"', $body, 'the history buttons');
     assertContains('data-richtext-source', $body, 'the textarea it upgrades');
     // The textarea keeps its position-shaped id: label[for] follows it, and renumbering
     // it is correct. Only the ids Trix binds to had to stop encoding position.

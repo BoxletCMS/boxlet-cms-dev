@@ -172,7 +172,7 @@
    * so place() can set it up as a new editor.
    *
    * A clone of a live editor is not an editor: it carries data-richtext-ready, so setup
-   * skips it, and a <trix-editor> still bound to the block it was copied from. What is on
+   * skips it, and an editor host still bound to the block it was copied from. What is on
    * screen matters too — in rich mode the text lives in the hidden input, while the
    * textarea still holds what the server rendered, so a copy that ignored it would show
    * the old text and quietly discard the author's edits.
@@ -189,7 +189,7 @@
         textarea.name = hidden.name;
         hidden.remove();
       }
-      var editor = field.querySelector('trix-editor');
+      var editor = field.querySelector('[data-richtext-editor]');
       if (editor) {
         editor.remove();
       }

@@ -12,6 +12,14 @@ use DOMText;
  * saved (SPEC §5.3). Elements outside the whitelist are unwrapped, keeping their text;
  * a few are removed together with their content. Only <a href> keeps an attribute, and
  * only with a URL that SafeUrl allows.
+ *
+ * This decides what may be stored at all. What an allowed block then looks like — a div
+ * that should be a paragraph, a heading level we do not store, a break an editor left at a
+ * block's edge, a paragraph wrapping a list item's text — is BlockShape, which this calls
+ * as it walks. The two were one file until it passed the size limit.
+ *
+ * This is the security boundary. It runs on save whatever the editor sends, and it keeps
+ * one stored shape however the markup was produced.
  */
 final class RichText
 {
@@ -40,40 +48,6 @@ final class RichText
         // An attachment's insides are the editor's markup, not the author's words.
         'figure',
     ];
-
-    /**
-     * Elements renamed to their nearest allowed equivalent instead of being unwrapped.
-     *
-     * An editor or a pasted document may wrap blocks in divs, or use heading levels we do
-     * not store. Unwrapping those would throw away the structure the author made:
-     * paragraphs would run together and every heading would become bare text. Renaming
-     * keeps the meaning and lands it inside the whitelist.
-     *
-     * h1 becomes h2 because the page's own title is the h1; a heading inside body copy
-     * sits below it. h5 and deeper collapse to h4, the deepest we store (PLAN.md D-016),
-     * which matters mostly for pasted documents.
-     */
-    private const RENAME = [
-        'div' => 'p',
-        'h1' => 'h2',
-        'h5' => 'h4',
-        'h6' => 'h4',
-    ];
-
-    /** A p may not contain these, so a div holding one is unwrapped rather than renamed. */
-    private const BLOCK = ['p', 'div', 'ul', 'ol', 'li', 'blockquote', 'h2', 'h3', 'h4', 'table'];
-
-    /** Blocks whose leading and trailing <br> are dropped on save (PLAN.md D-014). */
-    private const TRIM_BREAKS = ['p', 'h2', 'h3', 'h4', 'li', 'blockquote'];
-
-    /** Blocks whose lone paragraph wrapper is the editor's packaging (PLAN.md D-017). */
-    private const UNWRAP_LONE_PARAGRAPH = ['li', 'blockquote'];
-
-    /**
-     * What may follow that paragraph and still leave it a wrapper. Both may hold a list
-     * after their text, which is structure the author made rather than packaging.
-     */
-    private const AFTER_LONE_PARAGRAPH = ['li' => ['ul', 'ol'], 'blockquote' => ['ul', 'ol']];
 
     /**
      * Attachment markup carries JSON in these. No editor in this project may store its own
@@ -136,12 +110,10 @@ final class RichText
             }
             self::clean($node);
 
-            // After the children are cleaned, so a nested div has already become a p or
-            // been unwrapped and the block test below sees the final shape.
-            if (isset(self::RENAME[$tag]) && ($tag !== 'div' || !self::hasBlockChild($node))) {
-                $node = self::rename($parent, $node, self::RENAME[$tag]);
-                $tag = strtolower($node->nodeName);
-            }
+            // After the children are cleaned, so a nested div has already become a p and
+            // the block test inside sees the final shape.
+            $node = BlockShape::rename($parent, $node, $tag);
+            $tag = strtolower($node->nodeName);
 
             if (!isset(self::ALLOWED[$tag])) {
                 while ($node->firstChild !== null) {
@@ -164,95 +136,14 @@ final class RichText
                 $node->removeAttribute('href');
             }
 
-            // Last, so the block's final name is known: a div has already become a p.
-            if (in_array($tag, self::TRIM_BREAKS, true)) {
-                self::trimBreaks($node);
-            }
-
-            if (in_array($tag, self::UNWRAP_LONE_PARAGRAPH, true)) {
-                self::unwrapLoneParagraph($node);
-            }
+            // Last, so the block's final name is known and its children are settled.
+            BlockShape::tidy($node, $tag);
         }
     }
 
     /**
-     * A paragraph wrapping the text of a list item or a quote is the editor's packaging,
-     * not the author's structure, so it is unwrapped.
-     *
-     * TipTap's schema puts a paragraph inside every list item and quote, so <li>one</li>
-     * came back as <li><p>one</p></li> the first time a field was edited. Measured on the
-     * front end: that list grew from 51px to 67px, because a paragraph inside a list item
-     * takes the normal paragraph margin and gains 16px above and below every item. Storage
-     * keeps one shape whichever editor produced it.
-     *
-     * What survives is what the author made. Two paragraphs in one item or quote are kept,
-     * both of them. Either may hold a list after its text, so a paragraph followed only by
-     * lists is still a wrapper and goes, while a paragraph after a list is not.
-     *
-     * This removes a wrapper and allows nothing new, so the whitelist is unchanged.
-     */
-    private static function unwrapLoneParagraph(DOMElement $parent): void
-    {
-        $blocks = [];
-        foreach ($parent->childNodes as $child) {
-            if ($child instanceof DOMElement) {
-                $blocks[] = $child;
-            } elseif ($child instanceof DOMText && trim($child->textContent) !== '') {
-                return; // text beside the paragraph: this is not just a wrapper
-            }
-        }
-        if ($blocks === [] || strtolower($blocks[0]->nodeName) !== 'p') {
-            return;
-        }
-
-        $allowed = self::AFTER_LONE_PARAGRAPH[strtolower($parent->nodeName)] ?? [];
-        foreach (array_slice($blocks, 1) as $sibling) {
-            if (!in_array(strtolower($sibling->nodeName), $allowed, true)) {
-                return;
-            }
-        }
-
-        $paragraph = $blocks[0];
-        while ($paragraph->firstChild !== null) {
-            $parent->insertBefore($paragraph->firstChild, $paragraph);
-        }
-        $parent->removeChild($paragraph);
-    }
-
-    /**
-     * Drops <br> at the very start and end of a block.
-     *
-     * An editor that marks block boundaries with breaks hands back <div><br>alpha<br><br>
-     * </div> for a paragraph it was given as <p>alpha</p>. Without this rule every
-     * open-and-save of a page added a break at each end of every rich text field on it —
-     * including fields nobody edited — and it compounded with each cycle, so text drifted
-     * further from what was written every time the page was opened. Measured in a browser,
-     * not inferred.
-     *
-     * The cost is a deliberate break at the very edge of a paragraph. A blank line is a
-     * new paragraph in any editor we would use, so nothing a person can type is lost.
-     */
-    private static function trimBreaks(DOMElement $node): void
-    {
-        foreach ([true, false] as $fromStart) {
-            while (true) {
-                $child = $fromStart ? $node->firstChild : $node->lastChild;
-                // Whitespace between the edge and the break is left where it is; only the
-                // break itself goes.
-                while ($child instanceof DOMText && trim($child->textContent) === '') {
-                    $child = $fromStart ? $child->nextSibling : $child->previousSibling;
-                }
-                if (!$child instanceof DOMElement || strtolower($child->nodeName) !== 'br') {
-                    break;
-                }
-                $node->removeChild($child);
-            }
-        }
-    }
-
-    /**
-     * Attachments are disabled in the editor itself; this is the backstop, so a later
-     * version of it cannot reintroduce them silently.
+     * Attachments are not offered by the editor; this is the backstop, so a later version
+     * of it cannot reintroduce them silently.
      */
     private static function isAttachment(DOMElement $node): bool
     {
@@ -263,39 +154,5 @@ final class RichText
         }
 
         return false;
-    }
-
-    /**
-     * True when this element holds something a paragraph may not contain, which is what
-     * decides whether a div is renamed to p or unwrapped. Renaming regardless would put a
-     * list inside a paragraph — invalid markup that we would have produced ourselves.
-     */
-    private static function hasBlockChild(DOMElement $node): bool
-    {
-        foreach ($node->childNodes as $child) {
-            if ($child instanceof DOMElement && in_array(strtolower($child->nodeName), self::BLOCK, true)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * The same element under another name, keeping its children and its place.
-     */
-    private static function rename(DOMNode $parent, DOMElement $node, string $name): DOMElement
-    {
-        $document = $node->ownerDocument;
-        if ($document === null) {
-            return $node;
-        }
-        $replacement = $document->createElement($name);
-        while ($node->firstChild !== null) {
-            $replacement->appendChild($node->firstChild);
-        }
-        $parent->replaceChild($replacement, $node);
-
-        return $replacement;
     }
 }

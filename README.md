@@ -119,6 +119,42 @@ max_input_vars = 3000
 
 On Apache with mod_php, `php_value max_input_vars 3000` in `.htaccess` also works.
 
+### Upload size
+
+Pictures arrive as one request, and PHP discards anything larger than its limits
+without reporting an error — the same silent failure as `max_input_vars`. A photograph
+from a modern phone is easily 8–12 MB, so the defaults on shared hosting (often 2M)
+drop ordinary files.
+
+Two settings, and both matter:
+
+- `upload_max_filesize` — the largest single file.
+- `post_max_size` — the largest request. It has to be **at least as large** as
+  `upload_max_filesize`, because the file arrives inside the request. Raising only
+  the first achieves nothing.
+
+The installer reports both, on the requirements step, as
+`Uploads: … per file, … per request` filled in with what your server is set to. It
+does not block on them. Set them in `php.ini`, `.user.ini` or your hosting panel:
+
+```ini
+upload_max_filesize = 16M
+post_max_size = 16M
+```
+
+On Apache with mod_php, `php_value upload_max_filesize 16M` in `.htaccess` also works.
+On PHP-FPM, `.user.ini` is read per directory; a pool configuration uses
+`php_admin_value[upload_max_filesize] = 16M`, which `.user.ini` cannot override.
+
+**Nginx has its own limit.** `client_max_body_size` defaults to 1M and rejects the
+request with a 413 before PHP ever sees it, so the browser shows nginx's error page
+rather than anything from Boxlet. Raise it alongside the PHP settings, in the `http`,
+`server` or `location` block (see Deployment):
+
+```nginx
+client_max_body_size 16M;
+```
+
 ## Tests
 
 Run `php tests/run.php`. It needs no web server; exits non-zero on failure.

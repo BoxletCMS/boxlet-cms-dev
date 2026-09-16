@@ -20,7 +20,9 @@ $idPrefix = 'block-' . $index . '-';
 // block, so a hand-tuned section announces itself and a composed one stays quiet.
 $composed = $known ? Composition::style($character, $block['type']) : [];
 ?>
-            <fieldset class="block-editor" data-block>
+            <?php /* The name as data, so the visual editor's panel heading does not have
+                     to scrape it out of the legend and pick up its drag handle with it. */ ?>
+            <fieldset class="block-editor" data-block data-block-label="<?= e($known ? t('block.' . $block['type']) : t('pages.block.unknown', ['type' => $block['type']])) ?>">
                 <legend class="block-editor-legend">
                     <span class="drag-handle js-only" data-drag-handle title="<?= e(t('pages.drag')) ?>" aria-hidden="true">&#8942;&#8942;</span>
                     <?= e($known ? t('block.' . $block['type']) : t('pages.block.unknown', ['type' => $block['type']])) ?>

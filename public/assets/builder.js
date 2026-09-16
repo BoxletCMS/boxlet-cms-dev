@@ -1,13 +1,12 @@
 /*
- * The visual editor shell, outside the canvas.
+ * The visual editor shell: selection, the panel's two modes, the device width and the
+ * unsaved-changes guard.
  *
- * It owns every change to the page, because it holds the form and the two have to stay
- * in step: a section in the canvas and its field group in the form are the same block
- * seen twice. Both documents are this origin, so it moves nodes directly rather than
- * describing them across a boundary.
+ * Changes to the page itself live in builder-blocks.js, which attaches to the object
+ * this file exposes. Both are deferred, so this one runs first.
  *
- * No block definition, no field markup and no validation lives here. A new block's HTML
- * is asked for from the server, which renders both halves of it.
+ * No block definition, no field markup and no validation lives in either: a block's HTML
+ * is always asked for from the server, which renders it from the definition it owns.
  */
 (function () {
   'use strict';
@@ -24,27 +23,50 @@
   var selectedPane = form.querySelector('[data-panel-selected]');
   var selectedName = form.querySelector('[data-selected-name]');
   var status = form.querySelector('[data-insert-status]');
-  var target = null;
-  var dirty = false;
-  var keyCounter = 0;
+  var selected = -1;
 
-  function groupNodes() {
+  var api = {
+    form: form,
+    frame: frame,
+    panel: panel,
+    groups: groups,
+    // Where a "+" on the page aimed; null means the end.
+    target: null,
+    dirty: false,
+  };
+
+  api.groupNodes = function () {
     return Array.prototype.slice.call(groups.querySelectorAll('[data-block-group]'));
-  }
+  };
 
-  function canvasDoc() {
-    return frame.contentDocument;
-  }
-
-  function sections() {
-    var doc = canvasDoc();
+  api.sections = function () {
+    var doc = frame.contentDocument;
     return doc ? Array.prototype.slice.call(doc.querySelectorAll('[data-bx-blocks] > section')) : [];
-  }
+  };
+
+  api.selected = function () {
+    return selected;
+  };
+
+  api.say = function (message) {
+    if (status) {
+      status.textContent = message || '';
+    }
+  };
+
+  api.tellCanvas = function (name, detail) {
+    if (frame.contentWindow) {
+      frame.contentWindow.postMessage(
+        Object.assign({ source: 'boxlet-builder', type: name }, detail || {}),
+        window.location.origin,
+      );
+    }
+  };
 
   // Names and ids follow position, so the server receives blocks[0..n] in the order they
-  // appear on the page. Same rule as the fallback editor.
-  function renumber() {
-    groupNodes().forEach(function (group, index) {
+  // appear on the page. The same rule the fallback editor follows.
+  api.renumber = function () {
+    api.groupNodes().forEach(function (group, index) {
       group.setAttribute('data-block-group', String(index));
       group.querySelectorAll('[name]').forEach(function (element) {
         element.name = element.name.replace(/^blocks\[[^\]]*\]/, 'blocks[' + index + ']');
@@ -56,11 +78,12 @@
         label.htmlFor = label.htmlFor.replace(/^block-[^-]+-/, 'block-' + index + '-');
       });
     });
-    dirty = true;
-  }
+    api.dirty = true;
+  };
 
-  function show(index) {
-    groupNodes().forEach(function (group) {
+  api.show = function (index) {
+    selected = index;
+    api.groupNodes().forEach(function (group) {
       group.hidden = Number(group.getAttribute('data-block-group')) !== index;
     });
     if (library) {
@@ -71,8 +94,8 @@
     }
     var group = index >= 0 ? groups.querySelector('[data-block-group="' + index + '"]') : null;
     if (group && selectedName) {
-      var legend = group.querySelector('.block-editor-legend');
-      selectedName.textContent = legend ? legend.textContent.trim() : '';
+      var labelled = group.querySelector('[data-block-label]');
+      selectedName.textContent = labelled ? labelled.getAttribute('data-block-label') : '';
     }
     if (group) {
       var field = group.querySelector('input:not([type="hidden"]), textarea, select');
@@ -80,33 +103,19 @@
         field.focus({ preventScroll: true });
       }
     }
-  }
+  };
 
-  function tellCanvas(name, detail) {
-    if (frame.contentWindow) {
-      frame.contentWindow.postMessage(
-        Object.assign({ source: 'boxlet-builder', type: name }, detail || {}),
-        window.location.origin,
-      );
-    }
-  }
-
-  function say(message) {
-    if (status) {
-      status.textContent = message || '';
-    }
-  }
-
-  // Keys pair a section with its field group, and survive reordering.
-  function pairKeys() {
-    var list = sections();
-    groupNodes().forEach(function (group, index) {
+  // Keys pair a section with its field group and survive reordering, so a drag in the
+  // canvas can be replayed on the form without either side guessing.
+  api.pairKeys = function () {
+    var list = api.sections();
+    api.groupNodes().forEach(function (group, index) {
       var section = list[index];
       if (section && !group.getAttribute('data-block-key')) {
         group.setAttribute('data-block-key', section.getAttribute('data-bx-key'));
       }
     });
-  }
+  };
 
   function reorderTo(keys) {
     keys.forEach(function (key) {
@@ -115,81 +124,17 @@
         groups.appendChild(group);
       }
     });
-    renumber();
-    show(-1);
-    tellCanvas('select', { index: -1 });
+    api.renumber();
+    api.show(-1);
+    api.tellCanvas('select', { index: -1 });
   }
 
-  function insertBlock(type, button) {
-    var doc = canvasDoc();
-    if (!doc) {
-      return;
-    }
-    var at = target === null ? sections().length : target;
-    button.setAttribute('aria-busy', 'true');
-    say(panel.getAttribute('data-text-inserting'));
-
-    var body = new URLSearchParams();
-    body.set('_csrf', form.querySelector('input[name="_csrf"]').value);
-    body.set('type', type);
-    body.set('index', String(at));
-
-    fetch(panel.getAttribute('data-insert-url'), {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-    })
-      .then(function (response) {
-        if (!response.ok) {
-          throw new Error(String(response.status));
-        }
-        return response.text();
-      })
-      .then(function (html) {
-        var holder = document.createElement('div');
-        holder.innerHTML = html;
-        var canvasPart = holder.querySelector('template[data-block-canvas]');
-        var fieldsPart = holder.querySelector('template[data-block-fields]');
-        if (!canvasPart || !fieldsPart) {
-          throw new Error('malformed');
-        }
-        var key = 'n' + keyCounter++;
-
-        var fragment = doc.importNode(canvasPart.content, true);
-        var section = fragment.querySelector('section');
-        section.setAttribute('data-bx-key', key);
-        var list = sections();
-        var main = doc.querySelector('[data-bx-blocks]');
-        if (at >= list.length) {
-          main.appendChild(fragment);
-        } else {
-          main.insertBefore(fragment, list[at]);
-        }
-
-        var group = fieldsPart.content.firstElementChild.cloneNode(true);
-        group.setAttribute('data-block-key', key);
-        group.hidden = true;
-        var existing = groupNodes();
-        if (at >= existing.length) {
-          groups.appendChild(group);
-        } else {
-          groups.insertBefore(group, existing[at]);
-        }
-
-        renumber();
-        say('');
-        target = null;
-        tellCanvas('refresh', {});
-        show(at);
-        tellCanvas('select', { index: at });
-      })
-      .catch(function () {
-        say(panel.getAttribute('data-text-failed'));
-      })
-      .then(function () {
-        button.removeAttribute('aria-busy');
-      });
+  // A group carrying a validation error opens itself, so a rejected save does not hide
+  // the reason behind a selection nobody has made yet.
+  function failedGroup() {
+    var failed = groups.querySelector('[data-block-group] .field-error');
+    var group = failed && failed.closest('[data-block-group]');
+    return group ? Number(group.getAttribute('data-block-group')) : -1;
   }
 
   window.addEventListener('message', function (event) {
@@ -197,15 +142,15 @@
       return;
     }
     if (event.data.type === 'ready') {
-      pairKeys();
-      show(openFailedGroup());
+      api.pairKeys();
+      api.show(failedGroup());
     } else if (event.data.type === 'select') {
-      target = null;
-      show(event.data.index);
+      api.target = null;
+      api.show(event.data.index);
     } else if (event.data.type === 'insert') {
-      target = event.data.index;
-      show(-1);
-      tellCanvas('select', { index: -1 });
+      api.target = event.data.index;
+      api.show(-1);
+      api.tellCanvas('select', { index: -1 });
       if (library) {
         library.scrollIntoView({ block: 'nearest' });
       }
@@ -214,25 +159,11 @@
     }
   });
 
-  // A group carrying a validation error opens itself, so a rejected save does not hide
-  // the reason behind a selection nobody has made yet.
-  function openFailedGroup() {
-    var failed = groups.querySelector('[data-block-group] .field-error');
-    var group = failed && failed.closest('[data-block-group]');
-    return group ? Number(group.getAttribute('data-block-group')) : -1;
-  }
-
   form.addEventListener('click', function (event) {
-    var add = event.target.closest && event.target.closest('[data-add-type]');
-    if (add) {
-      event.preventDefault();
-      insertBlock(add.getAttribute('data-add-type'), add);
-      return;
-    }
     if (event.target.closest && event.target.closest('[data-deselect]')) {
       event.preventDefault();
-      show(-1);
-      tellCanvas('select', { index: -1 });
+      api.show(-1);
+      api.tellCanvas('select', { index: -1 });
       return;
     }
     var device = event.target.closest && event.target.closest('[data-device]');
@@ -245,15 +176,16 @@
     }
   });
 
-  form.addEventListener('input', function () { dirty = true; });
-  form.addEventListener('change', function () { dirty = true; });
-  form.addEventListener('submit', function () { dirty = false; });
+  form.addEventListener('input', function () { api.dirty = true; });
+  form.addEventListener('change', function () { api.dirty = true; });
+  form.addEventListener('submit', function () { api.dirty = false; });
   window.addEventListener('beforeunload', function (event) {
-    if (dirty) {
+    if (api.dirty) {
       event.preventDefault();
       event.returnValue = '';
     }
   });
 
-  show(openFailedGroup());
+  window.boxletBuilder = api;
+  api.show(failedGroup());
 })();

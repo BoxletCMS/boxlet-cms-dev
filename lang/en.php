@@ -232,6 +232,7 @@ return [
     'pages.panel.nothing_selected' => 'Nothing selected',
     'pages.panel.nothing_selected_hint' => 'Choose a block on the page to edit what it says.',
     'pages.panel.done' => 'Done',
+    'pages.duplicate' => 'Duplicate',
     'pages.insert_unknown' => 'That block type is not installed.',
 
     'pages.library' => 'Add a block',

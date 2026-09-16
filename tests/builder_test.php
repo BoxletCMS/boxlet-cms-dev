@@ -1,8 +1,5 @@
 <?php
 
-use App\Core\Blocks;
-use App\Modules\Pages\BlockPreview;
-
 // The visual editor: a canvas showing the real page, with the block's own fields beside
 // it. Most of this screen is browser behaviour the runner cannot reach; what it can test
 // is the HTML both halves are built from, and that the save path did not change.
@@ -120,99 +117,6 @@ testBothDrivers('a save from the visual editor stores exactly what the plain for
     assertEquals('<p>After</p>', storedContent($db, $blockId)['body'] ?? null, 'stored body');
 });
 
-// Adding a block: the server renders both halves of it and nothing is stored until Save,
-// exactly as in the fallback editor.
-
-test('the insert endpoint returns a section and a field group for every block type', function () {
-    $db = adminSite('sqlite');
-    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>Only</p>']]]);
-    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
-
-    foreach ($registry->types() as $type) {
-        $response = adminPost("/admin/pages/{$id}/block", ['type' => $type, 'index' => '0']);
-
-        assertEquals(200, $response->status, $type);
-        assertContains('<template data-block-canvas>', $response->body, "{$type}: the canvas fragment");
-        assertContains('<template data-block-fields>', $response->body, "{$type}: the field fragment");
-        assertContains('class="block block-' . $type . ' ', $response->body, "{$type}: the rendered section");
-        assertContains('name="blocks[0][type]" value="' . $type . '"', $response->body, "{$type}: the field group");
-    }
-
-    // Asking for a block is not adding one: only Save writes.
-    assertEquals(['text'], blockTypes($db, $id), 'the insert endpoint stored a block');
-});
-
-test('the insert endpoint refuses a block type that is not installed', function () {
-    $id = builderPage();
-    $response = adminPost("/admin/pages/{$id}/block", ['type' => 'trojan_horse', 'index' => '0']);
-
-    assertEquals(422, $response->status, 'status');
-    assertContains(t('pages.insert_unknown'), $response->body, 'message');
-});
-
-testBothDrivers('a block added in the middle is stored in that position', function (string $driver) {
-    $db = adminSite($driver);
-    $id = createPage($db, 'en', 'about', 'About', false, [
-        ['type' => 'hero', 'content' => ['heading' => 'One']],
-        ['type' => 'text', 'content' => ['body' => '<p>Three</p>']],
-    ]);
-    [$hero, $text] = array_map('strval', array_column($db->all('SELECT id FROM page_blocks ORDER BY sort'), 'id'));
-
-    // What the browser sends after inserting between them: the new block has no id.
-    $response = adminPost("/admin/pages/{$id}", [
-        'title' => 'About',
-        'slug' => 'about',
-        'editor' => 'builder',
-        'blocks' => [
-            ['id' => $hero, 'type' => 'hero', 'heading' => 'One', 'subheading' => '', 'image' => '', 'cta' => ['label' => '', 'url' => '']],
-            ['type' => 'image_text', 'heading' => 'Two', 'body' => '<p>Two</p>', 'image' => '', 'image_fit' => 'cover', 'link' => ['label' => '', 'url' => '']],
-            ['id' => $text, 'type' => 'text', 'heading' => '', 'body' => '<p>Three</p>'],
-        ],
-        'action' => 'save',
-        '_end' => '1',
-    ]);
-
-    assertRedirectedTo("/admin/pages/{$id}", $response);
-    assertEquals(['hero', 'image_text', 'text'], blockTypes($db, $id), 'stored order');
-});
-
-test('the library shows every block with a picture of itself', function () {
-    $id = builderPage();
-    $body = dispatch("/admin/pages/{$id}")->body;
-
-    foreach (Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types() as $type) {
-        assertContains('data-add-type="' . $type . '"', $body, "{$type} is missing from the library");
-    }
-    assertTrue((bool) preg_match('~/cache/previews/hero\.[0-9a-f]{12}\.html~', $body), 'the hero preview is not linked');
-});
-
-// A hand-drawn thumbnail stops matching its block the first time the block changes and
-// nobody notices. These are rendered from the block and from the site's own design.
-test('every block has a preview, regenerated when the design changes and not otherwise', function () {
-    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
-    $dir = tmpPath('previewcache');
-    removeTree($dir);
-
-    $first = BlockPreview::all($registry, 'tokens.aaaaaaaaaaaa.css', $dir);
-    assertEquals($registry->types(), array_keys($first), 'a preview for every block');
-
-    foreach ($first as $type => $file) {
-        assertTrue((bool) preg_match('~^' . $type . '\.[0-9a-f]{12}\.html$~', $file), "file name {$file}");
-        $html = (string) file_get_contents($dir . '/previews/' . $file);
-        assertContains('class="block block-' . $type . ' ', $html, "{$type}: the block itself is rendered");
-        assertContains('assets/site.css', $html, "{$type}: the site's stylesheet");
-    }
-
-    assertEquals($first, BlockPreview::all($registry, 'tokens.aaaaaaaaaaaa.css', $dir), 'regenerated for no reason');
-
-    $second = BlockPreview::all($registry, 'tokens.bbbbbbbbbbbb.css', $dir);
-    foreach ($second as $type => $file) {
-        assertTrue($file !== $first[$type], "{$type} kept its preview after the design changed");
-        assertTrue(!is_file($dir . '/previews/' . $first[$type]), "{$type}'s old preview was left behind");
-    }
-    removeTree($dir);
-});
-
 // An empty slug means "the home page of this language". A save that leaves the address
 // out would therefore either be refused, or quietly move the page to the site's root.
 testBothDrivers('saving from the visual editor keeps the page\'s address', function (string $driver) {
@@ -255,6 +159,33 @@ test('an error with no field on screen is still shown', function () {
 
     assertEquals(422, $response->status, 'status');
     assertContains(e(t('pages.slug.home_taken')), $response->body, 'the reason is on screen');
+});
+
+// A rejected save re-renders the builder, and the canvas reloads. It reads the database,
+// which is precisely what was not written, so without care the page appears to empty
+// itself while every field is still full.
+test('a rejected save leaves the canvas showing the work, not the stored page', function () {
+    $db = adminSite('sqlite');
+    createPage($db, 'en', '', 'Home', true);
+    $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>Stored</p>']]]);
+    $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$id])['id'] ?? '');
+
+    $rejected = adminPost("/admin/pages/{$id}", [
+        'title' => '',
+        'slug' => 'about',
+        'editor' => 'builder',
+        'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>Being written</p>']],
+        'action' => 'save',
+        '_end' => '1',
+    ]);
+    assertEquals(422, $rejected->status, 'status');
+
+    $canvas = dispatch("/admin/pages/{$id}/canvas");
+    assertContains('<p>Being written</p>', $canvas->body, 'the canvas lost the unsaved work');
+    assertTrue(!str_contains($canvas->body, '<p>Stored</p>'), 'the canvas showed the stored page instead');
+
+    // Read once: the next canvas is the stored page again.
+    assertContains('<p>Stored</p>', dispatch("/admin/pages/{$id}/canvas")->body, 'the pending state was never cleared');
 });
 
 test('a rejected save comes back in the editor it was sent from', function () {

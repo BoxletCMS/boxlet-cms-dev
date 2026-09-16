@@ -11,7 +11,11 @@ use App\Core\View;
 use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
+use App\Modules\Design\SectionStyle;
 use App\Support\Url;
+
+// BlockForm cleans a block's submitted values; the canvas re-draws from the cleaned
+// ones so it shows what a save would store.
 
 /**
  * The visual page editor: a canvas showing the real page, with the block's own fields
@@ -66,10 +70,14 @@ final class PageBuilderController
 
         $registry = $this->registry();
         $html = '';
-        foreach (Page::blocks($this->db(), (int) $page['id']) as $block) {
-            if ($registry->has($block['type'])) {
-                $html .= $registry->render($block['type'], $block['content'], $block['style'], $block['layout']);
+        foreach ($this->canvasBlocks((int) $page['id']) as $block) {
+            $content = $block['content'];
+            // A block whose type this installation no longer has keeps its stored content
+            // and simply does not draw.
+            if ($content === null || !$registry->has($block['type'])) {
+                continue;
             }
+            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout']);
         }
 
         $body = (new View(__DIR__ . '/views'))->render('admin/canvas', $locale, [
@@ -119,6 +127,27 @@ final class PageBuilderController
             'layout' => Composition::layout($registry, $character, $type),
         ];
 
+        // With values posted, this is a block being re-drawn as it is edited rather than
+        // a new one. The same parser the save runs cleans them, so the canvas shows what
+        // would actually be stored — including rich text reduced to the whitelist.
+        $submitted = $request->body['block'] ?? null;
+        if (is_array($submitted)) {
+            $parsed = BlockForm::parse($registry, [['type' => $type] + $submitted], []);
+            $first = $parsed['blocks'][0] ?? null;
+            // A parsed block keeps a null content when its type is not installed, which
+            // this method has already ruled out; building the block explicitly says so
+            // rather than carrying the null through.
+            if ($first !== null && is_array($first['content'])) {
+                $block = [
+                    'id' => null,
+                    'type' => $first['type'],
+                    'content' => $first['content'],
+                    'style' => $first['style'],
+                    'layout' => $first['layout'],
+                ];
+            }
+        }
+
         $body = (new View(__DIR__ . '/views'))->render('admin/insert', $locale, [
             // The browser renumbers every group after inserting, so this index only has
             // to be unique in the returned markup.
@@ -144,7 +173,51 @@ final class PageBuilderController
      */
     public function rejected(array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
     {
+        // The canvas reloads when this renders, and it reads the database — which is
+        // exactly what was NOT written. Without this, a rejected save appears to empty
+        // the page while the fields are still full. Read once, by the next canvas.
+        $this->container->get('session')->set('pending_canvas', [
+            'page' => (int) $page['id'],
+            'blocks' => $blocks,
+        ]);
+
         return $this->shell($page, $title, $slug, $blocks, $errors, $notice, 422);
+    }
+
+    /**
+     * What the canvas should draw: normally the stored page, but after a save that did
+     * not validate, the blocks as they were submitted.
+     *
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
+     */
+    private function canvasBlocks(int $pageId): array
+    {
+        $session = $this->container->get('session');
+        $pending = $session->get('pending_canvas');
+        $session->remove('pending_canvas');
+
+        if (!is_array($pending) || ($pending['page'] ?? null) !== $pageId || !is_array($pending['blocks'] ?? null)) {
+            return Page::editable($this->db(), $this->registry(), $pageId);
+        }
+
+        // Session data is rebuilt rather than trusted: it survives across requests, and
+        // what it holds has to satisfy the same shape a stored block does.
+        $blocks = [];
+        foreach ($pending['blocks'] as $block) {
+            if (!is_array($block) || !is_string($block['type'] ?? null)) {
+                continue;
+            }
+            $content = $block['content'] ?? null;
+            $blocks[] = [
+                'id' => null,
+                'type' => $block['type'],
+                'content' => is_array($content) ? $content : null,
+                'style' => SectionStyle::normalize($block['style'] ?? null),
+                'layout' => is_string($block['layout'] ?? null) ? $block['layout'] : '',
+            ];
+        }
+
+        return $blocks;
     }
 
     /**

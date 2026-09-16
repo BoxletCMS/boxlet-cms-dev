@@ -118,6 +118,16 @@ foreach ($errors as $key => $message) {
                             <h2 data-selected-name></h2>
                             <button type="button" class="button button-ghost" data-deselect><?= e(t('pages.panel.done')) ?></button>
                         </div>
+                        <?php /* These act on the page in front of you. The identical
+                                 controls inside each field group submit the form instead,
+                                 which belongs to the plain editor; builder.css hides
+                                 them here. */ ?>
+                        <div class="panel-actions">
+                            <button type="button" class="button button-secondary" data-block-action="up"><?= e(t('pages.move_up')) ?></button>
+                            <button type="button" class="button button-secondary" data-block-action="down"><?= e(t('pages.move_down')) ?></button>
+                            <button type="button" class="button button-secondary" data-block-action="duplicate"><?= e(t('pages.duplicate')) ?></button>
+                            <button type="button" class="button button-ghost button-danger" data-block-action="remove"><?= e(t('pages.remove')) ?></button>
+                        </div>
                     </div>
 
                     <div class="panel-blocks" data-block-groups>
@@ -133,4 +143,6 @@ foreach ($errors as $key => $message) {
             <?php /* _end must stay the last field: PHP drops everything past max_input_vars. */ ?>
             <input type="hidden" name="_end" value="1">
         </form>
+        <?php /* Deferred, so they run in this order: the shell, then the changes. */ ?>
         <script src="<?= e(Url::versioned('assets/builder.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-blocks.js')) ?>" defer></script>

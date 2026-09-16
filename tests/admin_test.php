@@ -10,17 +10,27 @@ use App\Support\Url;
  */
 function adminStylesheets(): array
 {
-    return ['admin.css', 'admin-ui.css', 'admin-forms.css', 'admin-pages.css', 'admin-design.css'];
+    return [
+        'admin.css', 'admin-ui.css', 'admin-forms.css', 'admin-pages.css', 'admin-design.css',
+        // The editor's chrome. canvas.css matters most: it is the one admin stylesheet
+        // loaded into a document full of the site's tokens, so a selection outline that
+        // borrowed one would be unreadable on the designs that need it most.
+        'builder.css', 'canvas.css',
+    ];
 }
 
 test('no admin stylesheet reads a token from the site\'s design', function () {
-    // Every group tokens.css defines. The admin declares its own values as --ui-*.
+    // Every group tokens.css defines. The admin declares its own values, --ui-* for the
+    // chrome around the canvas and --bx-* for the chrome inside it.
     $siteTokens = '~var\(\s*--(color|space|text|font|heading|body|leading|radius|shadow|border|container|section|divider)-~';
 
     foreach (adminStylesheets() as $css) {
         $source = (string) file_get_contents(dirname(__DIR__) . '/public/assets/' . $css);
         assertTrue(!preg_match($siteTokens, $source, $match), "{$css} reads the site token " . ($match[0] ?? ''));
-        assertTrue(str_contains($source, '--ui-'), "{$css} defines or uses no admin token");
+        assertTrue(
+            str_contains($source, '--ui-') || str_contains($source, '--bx-'),
+            "{$css} defines or uses no admin token of its own",
+        );
     }
 });
 

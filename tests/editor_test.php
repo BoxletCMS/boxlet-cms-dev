@@ -43,7 +43,7 @@ test('without JavaScript, Add shows a new block and saves nothing', function () 
     $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $blocks, 'add_type' => 'hero', 'action' => 'add', '_end' => '1']);
     assertEquals(200, $response->status, 'status');
     $form = editorForm($response);
-    assertEquals(2, substr_count($form, 'data-block>'), 'blocks in the form');
+    assertEquals(2, substr_count($form, 'class="block-editor"'), 'blocks in the form');
     assertContains('name="blocks[1][type]" value="hero"', $form, 'the new hero block');
     assertContains('value="Typed, not saved"', $form, 'the typed value is kept in the form');
     assertEquals(['text'], blockTypes($db, $id), 'stored blocks');

@@ -210,14 +210,30 @@
   background: transparent;
 }
 
+/* The panel header already names the selected block; the group's own legend would say
+   it a second time, two lines below. */
 .panel-block .block-editor-legend {
-  border-radius: var(--ui-radius-m);
+  display: none;
 }
 
-/* The fallback editor reorders blocks by dragging their headers. Here reordering
-   happens on the canvas, so the handle would be a control that does nothing. */
-.panel-block .drag-handle {
+/* The fallback editor reorders blocks by dragging their headers, and moves and removes
+   them by submitting the form. Here the canvas does both without a round trip, so those
+   controls would either do nothing or throw the user back into the plain editor. The
+   panel header carries the visual editor's own. */
+.panel-block .drag-handle,
+.panel-block .block-editor-controls {
   display: none;
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-1);
+  padding-block: var(--ui-3);
+}
+
+.panel-actions .button {
+  font-size: var(--ui-text-sm);
 }
 
 .panel-block .block-body {

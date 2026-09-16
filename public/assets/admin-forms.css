@@ -63,6 +63,13 @@
   display: grid;
   gap: var(--ui-2);
   min-width: 0;
+  /* Rows keep their own height. A row of fields stretches them to match the tallest —
+     .editor-meta is auto-fit columns with no align-items, so the default is stretch — and
+     a grid hands that surplus to its implicit rows. The field with LESS content then gets
+     the taller input: Title measured taller than Address beside it, because Address has a
+     hint line and Title does not. Nothing set a height, so nothing but this could undo
+     it. */
+  align-content: start;
 }
 
 .field > label,

@@ -147,3 +147,62 @@ test('link URLs: only site-relative, http(s), mailto and tel', function () {
         assertEquals($allowed, SafeUrl::isAllowed((string) $url), (string) json_encode((string) $url));
     }
 });
+
+// Guards against regression by deletion. Not behaviour coverage.
+//
+// The defect these stand over is a rich text editor writing into another block's field
+// after a move, a drag or a duplicate. That is browser behaviour and this runner has no
+// browser, so nothing below proves the editors are bound correctly — only that the fix
+// has not been removed or written back the old way. The browser check is the real one.
+
+test('guard (source, not behaviour): Trix binds to ids that renumbering cannot reach', function () {
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext.js');
+
+    // The hidden input and the toolbar are named from a counter that belongs to the
+    // editor, so moving the block cannot change what the editor is bound to.
+    assertContains("'richtext-' + seq++", $js, 'the per-editor id counter is gone');
+    assertContains("hidden.id = uid + '-value'", $js, 'the input id is not built from the counter');
+    assertContains("toolbar.id = uid + '-toolbar'", $js, 'the toolbar id is not built from the counter');
+
+    // Never from the textarea's id, which carries the block's position.
+    assertTrue(!str_contains($js, "textarea.id + '-value'"), 'the input id encodes the block position again');
+    assertTrue(!str_contains($js, "textarea.id + '-toolbar'"), 'the toolbar id encodes the block position again');
+});
+
+test('guard (source, not behaviour): neither editor needs to know about Trix to renumber', function () {
+    foreach (['builder.js', 'admin.js'] as $file) {
+        $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/' . $file);
+
+        assertContains("'block-' + index + '-'", $js, "{$file}: the id renumbering is gone");
+        // If an id Trix binds to encodes the position again, this file has to learn about
+        // Trix to keep the binding intact — which is the shape of the bug, not of the fix.
+        assertTrue(stripos($js, 'trix') === false, "{$file} reaches for Trix");
+    }
+});
+
+test('guard (source, not behaviour): a duplicate is reset to a plain textarea before it is placed', function () {
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js');
+
+    $reset = strpos($js, 'unsetRichText(groupCopy)');
+    $placed = strpos($js, 'place(index + 1');
+    assertTrue($reset !== false, 'the duplicate no longer resets its rich text');
+    assertTrue($placed !== false && $reset < $placed, 'the copy is placed before its rich text is reset');
+
+    // In rich mode what is on screen lives in the hidden input, while the textarea still
+    // holds what the server rendered. A reset that ignored that would copy the old text
+    // and quietly discard the author's edits.
+    assertContains('textarea.value = hidden.value', $js, 'the duplicate takes the rendered value, not the edited one');
+    assertContains('textarea.name = hidden.name', $js, 'the duplicate does not carry the field name back');
+});
+
+test('guard (source, not behaviour): the editor still renders the shapes richtext.js binds to', function () {
+    $body = dispatch('/admin/pages/' . builderPage())->body;
+
+    assertContains('data-richtext', $body, 'the wrapper richtext.js looks for');
+    assertContains('<trix-toolbar', $body, 'the toolbar it now finds by structure');
+    assertContains('data-richtext-source', $body, 'the textarea it upgrades');
+    // The textarea keeps its position-shaped id: label[for] follows it, and renumbering
+    // it is correct. Only the ids Trix binds to had to stop encoding position.
+    assertTrue((bool) preg_match('~<label for="block-\d+-body">~', $body), 'the label no longer points at the field');
+    assertTrue((bool) preg_match('~<textarea id="block-\d+-body"~', $body), 'the textarea id changed shape');
+});

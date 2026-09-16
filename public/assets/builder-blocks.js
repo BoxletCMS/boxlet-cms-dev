@@ -167,6 +167,37 @@
       });
   }
 
+  /**
+   * Turn a cloned field group's rich text back into the plain textarea the server sent,
+   * so place() can set it up as a new editor.
+   *
+   * A clone of a live editor is not an editor: it carries data-richtext-ready, so setup
+   * skips it, and a <trix-editor> still bound to the block it was copied from. What is on
+   * screen matters too — in rich mode the text lives in the hidden input, while the
+   * textarea still holds what the server rendered, so a copy that ignored it would show
+   * the old text and quietly discard the author's edits.
+   */
+  function unsetRichText(group) {
+    group.querySelectorAll('textarea[data-richtext-source]').forEach(function (textarea) {
+      var field = textarea.closest('[data-richtext]');
+      if (!field) {
+        return;
+      }
+      var hidden = field.querySelector('input[type="hidden"][name]');
+      if (hidden) {
+        textarea.value = hidden.value;
+        textarea.name = hidden.name;
+        hidden.remove();
+      }
+      var editor = field.querySelector('trix-editor');
+      if (editor) {
+        editor.remove();
+      }
+      field.classList.remove('richtext-rich', 'richtext-plain');
+      textarea.removeAttribute('data-richtext-ready');
+    });
+  }
+
   function act(action) {
     var index = api.selected();
     var group = api.groups.querySelector('[data-block-group="' + index + '"]');
@@ -193,6 +224,7 @@
       var groupCopy = group.cloneNode(true);
       groupCopy.setAttribute('data-block-key', key);
       groupCopy.hidden = true;
+      unsetRichText(groupCopy);
       // A duplicate is a new block. Keeping the id would make the save overwrite the
       // block it was copied from instead of adding one.
       var id = groupCopy.querySelector('[name$="[id]"]');

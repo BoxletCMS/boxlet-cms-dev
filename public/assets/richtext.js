@@ -18,6 +18,19 @@
     event.preventDefault();
   });
 
+  /*
+   * An id Trix binds to must never encode the block's position.
+   *
+   * Trix resolves its input by id on every access, and a trix-toolbar finds its editors
+   * with querySelectorAll('trix-editor[toolbar="<my id>"]'). Both editors renumber ids
+   * matching block-<n>- when a block is added, moved or dragged, so an id in that shape
+   * is silently re-pointed at whichever block now sits in that position — and the editor
+   * then writes into another block's field. This counter belongs to the editor itself,
+   * so moving a block cannot change what it is bound to. The textarea keeps its
+   * block-<n>-field id, which is what label[for] follows.
+   */
+  var seq = 0;
+
   function setup(textarea) {
     if (textarea.hasAttribute('data-richtext-ready') || !window.Trix) {
       return;
@@ -25,17 +38,24 @@
     textarea.setAttribute('data-richtext-ready', '');
 
     var field = textarea.closest('[data-richtext]');
+    var uid = 'richtext-' + seq++;
     var hidden = document.createElement('input');
     hidden.type = 'hidden';
     hidden.name = textarea.name;
     hidden.value = textarea.value;
-    hidden.id = textarea.id + '-value';
+    hidden.id = uid + '-value';
     textarea.removeAttribute('name');
     textarea.insertAdjacentElement('afterend', hidden);
 
     var editor = document.createElement('trix-editor');
     editor.setAttribute('input', hidden.id);
-    editor.setAttribute('toolbar', textarea.id + '-toolbar');
+    // The toolbar is found by structure, not by a name built from the textarea's id, so
+    // this holds however the group is renumbered. Without one Trix makes its own.
+    var toolbar = field.querySelector('trix-toolbar');
+    if (toolbar) {
+      toolbar.id = uid + '-toolbar';
+      editor.setAttribute('toolbar', toolbar.id);
+    }
     editor.className = 'richtext-editor';
     hidden.insertAdjacentElement('afterend', editor);
     field.classList.add('richtext-rich');

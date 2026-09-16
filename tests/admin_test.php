@@ -12,6 +12,9 @@ function adminStylesheets(): array
 {
     return [
         'admin.css', 'admin-ui.css', 'admin-forms.css', 'admin-pages.css', 'admin-design.css',
+        // The rich text field's own chrome. It was missing from this list, which is how a
+        // toolbar icon reached 1.12:1 without any test noticing (PLAN.md D-012).
+        'admin-richtext.css',
         // The editor's chrome. canvas.css matters most: it is the one admin stylesheet
         // loaded into a document full of the site's tokens, so a selection outline that
         // borrowed one would be unreadable on the designs that need it most.

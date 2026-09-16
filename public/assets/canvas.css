@@ -9,6 +9,9 @@
   --bx-select: #2f5fd0;
   --bx-select-soft: rgb(47 95 208 / 0.08);
   --bx-hover: rgb(47 95 208 / 0.28);
+  /* The insertion control's disc. Dark enough to read as a shape on any pale design;
+     the white ring around it carries the dark ones. */
+  --bx-ink: #101a33;
 
   margin: 0;
   /* The overlay is positioned against the body, in document coordinates. */
@@ -37,29 +40,31 @@
   block-size: 2rem;
   padding: 0;
   transform: translate(-50%, -50%);
-  background: #ffffff;
-  color: var(--bx-select);
-  border: 2px solid var(--bx-select);
+  /* Two tones, so one edge always contrasts: the white ring shows on a dark page, the
+     dark disc on a light one. This control floats over the SITE's design, which can be
+     any colour, so it cannot be legible by picking one side of a known surface — and it
+     cannot fade, because a control at 0.35 measured 1.69:1 against white (PLAN.md D-012).
+     Full opacity at rest. Hover and focus raise it; they never reveal it. */
+  background: var(--bx-ink);
+  color: #ffffff;
+  border: 2px solid #ffffff;
   border-radius: 999rem;
   font: inherit;
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
   pointer-events: auto;
-  /* Always on screen, quietly. A control that only exists on hover is a control most
-     people never find. */
-  opacity: 0.35;
-}
-
-.bx-canvas:hover .bx-insert {
-  opacity: 0.65;
 }
 
 .bx-insert:hover,
 .bx-insert:focus-visible {
-  opacity: 1;
-  color: #ffffff;
   background: var(--bx-select);
+  /* The dark edge the disc stopped providing. Filling with the accent leaves only the
+     white ring, and a sweep over every possible page luminance put the worst case at
+     2.39:1 — hover made the control HARDER to see than at rest, which is the rule this
+     control exists to obey, inverted. The outer ink ring restores the resting guarantee:
+     whatever is behind it, one of white and --bx-ink clears 4.16:1. */
+  box-shadow: 0 0 0 2px var(--bx-ink);
 }
 
 /* A library preview: one block on its own, shown small and never scrolled. */

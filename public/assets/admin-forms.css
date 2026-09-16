@@ -79,7 +79,7 @@
   max-inline-size: 34rem;
   padding: var(--ui-2) var(--ui-3);
   background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line-strong);
+  border: var(--ui-border) solid var(--ui-control-line);
   border-radius: var(--ui-radius-m);
   color: var(--ui-ink);
   font: inherit;
@@ -167,7 +167,7 @@
   flex: none;
   padding: 0;
   background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line-strong);
+  border: var(--ui-border) solid var(--ui-control-line);
   border-radius: var(--ui-radius-m);
   cursor: pointer;
   overflow: hidden;

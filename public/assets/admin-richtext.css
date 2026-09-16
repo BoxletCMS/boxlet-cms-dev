@@ -110,7 +110,7 @@
   min-inline-size: 0;
   padding: var(--ui-2) var(--ui-3);
   background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line-strong);
+  border: var(--ui-border) solid var(--ui-control-line);
   border-radius: var(--ui-radius-m);
   color: var(--ui-ink);
   font: inherit;
@@ -127,7 +127,7 @@
 .richtext-editor {
   box-sizing: border-box;
   background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line-strong);
+  border: var(--ui-border) solid var(--ui-control-line);
   border-radius: var(--ui-radius-m);
   color: var(--ui-ink);
   font: inherit;

@@ -28,9 +28,17 @@
   --ui-panel-sunken: #fafbfc;
   --ui-ink: #1b1f27;
   --ui-ink-muted: #545d6b;
-  --ui-ink-faint: #6b7482;
+  /* 4.70:1 against the worst surface in this palette. It was #6b7482, which measured
+     4.40:1 on --ui-bg and 4.13:1 on the soft tints — under the 4.5:1 text rule, and
+     .page-subtitle sits on --ui-bg (PLAN.md D-012). */
+  --ui-ink-faint: #636b79;
   --ui-line: #e4e8ee;
   --ui-line-strong: #c9d0da;
+  /* The edge of a control that is empty at rest — a text field, the colour swatch, the
+     editor box. It has no text of its own to be found by, so its border is the only thing
+     saying it is there, and --ui-line-strong measured 1.55:1 against the panel it sits on
+     (PLAN.md D-012). Containers and badges keep --ui-line-strong: they are not controls. */
+  --ui-control-line: #7b8697;
 
   /* One accent, used for focus, links and the primary action only. */
   --ui-accent: #2f5fd0;

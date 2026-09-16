@@ -81,9 +81,10 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                                 <button type="button" class="rt-button" data-rt="redo" title="<?= e(t('richtext.redo')) ?>"><span aria-hidden="true">&#8631;</span><span class="visually-hidden"><?= e(t('richtext.redo')) ?></span></button>
                             </div>
                         </div>
-                        <?php /* In the flow, not over the text: the same rule the Trix link
-                                 dialog had to be taught. Hidden with the hidden attribute
-                                 rather than a class, so it costs nothing when closed. */ ?>
+                        <?php /* In the flow, not over the text, so it never covers what is
+                                 being linked. Hidden with the hidden attribute rather than
+                                 a class; admin.css makes that attribute win over anything
+                                 that would lay the panel out. */ ?>
                         <div class="richtext-link" data-richtext-link hidden>
                             <input type="url" class="rt-link-input" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>">
                             <button type="button" class="button button-secondary" data-rt-link="apply"><?= e(t('richtext.link')) ?></button>

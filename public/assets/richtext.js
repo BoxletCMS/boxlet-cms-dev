@@ -1,7 +1,7 @@
 /*
- * Rich text fields, on TipTap (PLAN.md D-017 — spike).
+ * Rich text fields, on TipTap (PLAN.md D-017).
  *
- * The contract is the one Trix had, because it is ours and not the editor's:
+ * The contract belongs to the project, not to the editor, and survived replacing one:
  *
  *   - The textarea in the HTML is the real field. It carries the name, and without
  *     JavaScript it is a perfectly good way to edit HTML. This takes the name off it, puts
@@ -156,7 +156,8 @@
      * text input does not disturb it: ProseMirror simply stops rendering the cursor. When
      * the address is applied, extendMarkRange('link') widens the stored selection to the
      * whole link so editing one applies to all of it, and .focus() hands the caret back.
-     * Nothing has to be saved and restored by hand, which is what went wrong under Trix.
+     * Nothing has to be saved and restored by hand, which is what an editor that manages
+     * the browser's own selection forces on you.
      */
     function openLink() {
       if (!link) {
@@ -164,6 +165,10 @@
       }
       var input = link.querySelector('input');
       link.hidden = false;
+      // The address of the link the cursor is in, so editing one starts from what it is.
+      // extendMarkRange first: with only part of a link selected, getAttributes returns
+      // nothing and the field came back empty when reopening on an existing link.
+      editor.chain().extendMarkRange('link').run();
       input.value = editor.getAttributes('link').href || '';
       input.focus();
       input.select();
@@ -206,6 +211,20 @@
         }
       });
     }
+
+    // Ctrl+K opens it from the keyboard, and clicking back into the text puts it away:
+    // the panel belongs to the selection, so returning to the writing ends it.
+    host.addEventListener('keydown', function (event) {
+      if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === 'k') {
+        event.preventDefault();
+        openLink();
+      }
+    });
+    host.addEventListener('mousedown', function () {
+      if (link && !link.hidden) {
+        closeLink(false);
+      }
+    });
 
     var toggle = field.querySelector('[data-richtext-toggle]');
     if (toggle) {

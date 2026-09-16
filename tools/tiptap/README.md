@@ -25,16 +25,15 @@ and the lockfile, not typed by hand.
 
 Built and verified on Node 18.19.1 with esbuild 0.24.2.
 
-## Switching the live checkout between Trix and the spike
+## What the bundle exposes
 
-One command each way, from anywhere:
+`window.BoxletTipTap` — `Editor`, `StarterKit` and `Link`, and nothing else.
+`public/assets/richtext.js` configures the schema there, not here: the nodes and marks it
+enables are exactly the storage whitelist (SPEC §5.3), so the editor cannot offer markup
+the server would discard. Two settings in it were decided by measuring the editor's output
+rather than by reading about it, and both have comments saying why:
 
-```sh
-git -C /home/svejedobro-boxlet/htdocs/boxlet.svejedobro.hr switch main          # Trix
-git -C /home/svejedobro-boxlet/htdocs/boxlet.svejedobro.hr switch spike/tiptap  # TipTap
-```
-
-Nothing else to do. Both editors' assets are committed, there is no build step at runtime,
-and the branches differ in no migration, so the database is untouched by the switch. A
-hard refresh in the browser is worth it: asset URLs are versioned by file, so a changed
-file gets a new URL, but a page already open keeps the scripts it loaded.
+- `trailingNode: false`, or any content not ending in a paragraph gains an empty one, and
+  a field changes on its first save.
+- the link's `HTMLAttributes: { target: null, rel: null }`, or every link is stored with
+  attributes the whitelist does not allow.

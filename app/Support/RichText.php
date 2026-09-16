@@ -44,14 +44,14 @@ final class RichText
     /**
      * Elements renamed to their nearest allowed equivalent instead of being unwrapped.
      *
-     * Trix wraps every block in a div and offers a single heading level, which it emits
-     * as h1 (SPEC §5.3). Unwrapping those would throw away the structure the author made:
+     * An editor or a pasted document may wrap blocks in divs, or use heading levels we do
+     * not store. Unwrapping those would throw away the structure the author made:
      * paragraphs would run together and every heading would become bare text. Renaming
      * keeps the meaning and lands it inside the whitelist.
      *
      * h1 becomes h2 because the page's own title is the h1; a heading inside body copy
      * sits below it. h5 and deeper collapse to h4, the deepest we store (PLAN.md D-016),
-     * which matters for pasted documents rather than for Trix.
+     * which matters mostly for pasted documents.
      */
     private const RENAME = [
         'div' => 'p',
@@ -70,13 +70,16 @@ final class RichText
     private const UNWRAP_LONE_PARAGRAPH = ['li', 'blockquote'];
 
     /**
-     * What may follow that paragraph and still leave it a wrapper. A list item may hold a
-     * sublist after its text, which is structure the author made; a quote may hold nothing
-     * else, so anything beside its paragraph means the paragraph is not the only block.
+     * What may follow that paragraph and still leave it a wrapper. Both may hold a list
+     * after their text, which is structure the author made rather than packaging.
      */
-    private const AFTER_LONE_PARAGRAPH = ['li' => ['ul', 'ol'], 'blockquote' => []];
+    private const AFTER_LONE_PARAGRAPH = ['li' => ['ul', 'ol'], 'blockquote' => ['ul', 'ol']];
 
-    /** Trix's attachments carry JSON in these; they are its one proprietary format. */
+    /**
+     * Attachment markup carries JSON in these. No editor in this project may store its own
+     * container format, so they are stripped whatever puts them there; the names are the
+     * literal strings to defend against, not a reference to any one editor.
+     */
     private const ATTACHMENT_ATTRIBUTES = [
         'data-trix-attachment', 'data-trix-attributes', 'data-trix-content-type',
     ];
@@ -183,9 +186,8 @@ final class RichText
      * keeps one shape whichever editor produced it.
      *
      * What survives is what the author made. Two paragraphs in one item or quote are kept,
-     * both of them. A list item may hold a sublist after its text, so a paragraph followed
-     * only by lists is still a wrapper and goes; a quote may hold nothing beside its
-     * paragraph, so anything else there means the paragraph stays.
+     * both of them. Either may hold a list after its text, so a paragraph followed only by
+     * lists is still a wrapper and goes, while a paragraph after a list is not.
      *
      * This removes a wrapper and allows nothing new, so the whitelist is unchanged.
      */
@@ -220,14 +222,15 @@ final class RichText
     /**
      * Drops <br> at the very start and end of a block.
      *
-     * Given <p>alpha</p>, Trix hands back <div><br>alpha<br><br></div>. Without this rule
-     * every open-and-save of a page added a break at each end of every rich text field on
-     * it — including fields nobody edited — and it compounded with each cycle, so text
-     * drifted further from what was written every time the page was opened. Measured in a
-     * browser, not inferred.
+     * An editor that marks block boundaries with breaks hands back <div><br>alpha<br><br>
+     * </div> for a paragraph it was given as <p>alpha</p>. Without this rule every
+     * open-and-save of a page added a break at each end of every rich text field on it —
+     * including fields nobody edited — and it compounded with each cycle, so text drifted
+     * further from what was written every time the page was opened. Measured in a browser,
+     * not inferred.
      *
-     * The cost is a deliberate break at the very edge of a paragraph. In Trix a blank line
-     * is a new paragraph, so nothing a person can type is lost with it.
+     * The cost is a deliberate break at the very edge of a paragraph. A blank line is a
+     * new paragraph in any editor we would use, so nothing a person can type is lost.
      */
     private static function trimBreaks(DOMElement $node): void
     {

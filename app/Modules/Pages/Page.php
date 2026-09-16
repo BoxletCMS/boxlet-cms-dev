@@ -135,18 +135,38 @@ final class Page
     }
 
     /**
-     * Saves the whole page: title, slug and the block list in order. Blocks with an id of
-     * this page are updated (never their type), blocks without one are inserted, and this
-     * page's blocks missing from the list are deleted. A null content keeps everything
-     * stored, for blocks whose type is no longer installed.
+     * Saves the whole page: its settings, and the block list in order. Blocks with an id
+     * of this page are updated (never their type), blocks without one are inserted, and
+     * this page's blocks missing from the list are deleted. A null content keeps
+     * everything stored, for blocks whose type is no longer installed.
      *
+     * The settings travel as one array rather than as a growing list of parameters,
+     * because every caller has to pass all of them: a save that left one out would write
+     * a default over whatever the page already had.
+     *
+     * @param array{title: string, slug: string, parent_id: int|null, status: string} $page
      * @param list<BlockRow> $blocks
      */
-    public static function update(Db $db, int $id, string $title, string $slug, array $blocks): void
+    public static function update(Db $db, int $id, array $page, array $blocks): void
     {
-        self::transaction($db, static function () use ($db, $id, $title, $slug, $blocks): void {
+        self::transaction($db, static function () use ($db, $id, $page, $blocks): void {
             $now = gmdate('Y-m-d H:i:s');
-            $db->query('UPDATE pages SET title = ?, slug = ?, updated_at = ? WHERE id = ?', [$title, $slug, $now, $id]);
+            // published_at is stamped the first time a page is published and kept after
+            // that, the same rule setStatus() follows.
+            $db->query(
+                'UPDATE pages SET title = ?, slug = ?, parent_id = ?, status = ?,
+                        published_at = COALESCE(published_at, ?), updated_at = ?
+                 WHERE id = ?',
+                [
+                    $page['title'],
+                    $page['slug'],
+                    $page['parent_id'],
+                    $page['status'],
+                    $page['status'] === 'published' ? $now : null,
+                    $now,
+                    $id,
+                ],
+            );
 
             $existing = [];
             foreach ($db->all('SELECT id FROM page_blocks WHERE page_id = ?', [$id]) as $row) {

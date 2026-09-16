@@ -161,6 +161,72 @@ test('an error with no field on screen is still shown', function () {
     assertContains(e(t('pages.slug.home_taken')), $response->body, 'the reason is on screen');
 });
 
+// The page panel: title, address, parent and visibility travel with the save.
+
+testBothDrivers('the page panel saves the parent and the visibility', function (string $driver) {
+    $db = adminSite($driver);
+    $parent = createPage($db, 'en', 'about', 'About', true);
+    $id = createPage($db, 'en', 'team', 'Team', false, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
+    $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$id])['id'] ?? '');
+
+    $response = adminPost("/admin/pages/{$id}", [
+        'title' => 'Team',
+        'slug' => 'team',
+        'editor' => 'builder',
+        'parent_id' => (string) $parent,
+        'status' => 'published',
+        'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>x</p>']],
+        'action' => 'save',
+        '_end' => '1',
+    ]);
+
+    assertRedirectedTo("/admin/pages/{$id}", $response);
+    $row = $db->one('SELECT parent_id, status, published_at FROM pages WHERE id = ?', [$id]) ?? [];
+    assertEquals($parent, (int) ($row['parent_id'] ?? 0), 'stored parent');
+    assertEquals('published', $row['status'] ?? null, 'stored visibility');
+    assertTrue(($row['published_at'] ?? null) !== null, 'published_at was not stamped');
+});
+
+// The select never offers a parent that would make a cycle. This is the request that
+// does not come from the select.
+test('a parent that would make a cycle is refused however the request arrives', function () {
+    $db = adminSite('sqlite');
+    $about = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
+    $team = createPage($db, 'en', 'team', 'Team', true);
+    $db->query('UPDATE pages SET parent_id = ? WHERE id = ?', [$about, $team]);
+    $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$about])['id'] ?? '');
+
+    $response = adminPost("/admin/pages/{$about}", [
+        'title' => 'About',
+        'slug' => 'about',
+        'editor' => 'builder',
+        'parent_id' => (string) $team,
+        'status' => 'published',
+        'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>x</p>']],
+        'action' => 'save',
+        '_end' => '1',
+    ]);
+
+    assertEquals(422, $response->status, 'status');
+    assertContains(e(t('pages.parent_invalid')), $response->body, 'the reason is on screen');
+    assertEquals(null, $db->one('SELECT parent_id FROM pages WHERE id = ?', [$about])['parent_id'] ?? null, 'stored parent');
+});
+
+test('the page panel carries the address as a real field, not a hidden one', function () {
+    $db = adminSite('sqlite');
+    createPage($db, 'en', '', 'Home', true);
+    $id = createPage($db, 'en', 'about', 'About', true);
+    $body = dispatch("/admin/pages/{$id}")->body;
+
+    assertContains('name="slug" value="about"', $body, 'the address');
+    assertContains('data-slug-field', $body, 'the generator hook');
+    assertContains('name="parent_id"', $body, 'the parent select');
+    assertContains('name="status"', $body, 'the visibility select');
+    // Home is a valid parent for About; About must not be offered itself.
+    assertContains('>Home</option>', $body, 'another page as a parent');
+    assertTrue(!str_contains($body, '>About</option>'), 'the page was offered itself as its parent');
+});
+
 // A rejected save re-renders the builder, and the canvas reloads. It reads the database,
 // which is precisely what was not written, so without care the page appears to empty
 // itself while every field is still full.

@@ -46,11 +46,13 @@
   line-height: 1;
   cursor: pointer;
   pointer-events: auto;
-  opacity: 0;
+  /* Always on screen, quietly. A control that only exists on hover is a control most
+     people never find. */
+  opacity: 0.35;
 }
 
 .bx-canvas:hover .bx-insert {
-  opacity: 0.5;
+  opacity: 0.65;
 }
 
 .bx-insert:hover,

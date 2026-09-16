@@ -163,7 +163,7 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
                 'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
             ];
         }
-        Page::update($db, $id, $title, $slug, $rows);
+        Page::update($db, $id, ['title' => $title, 'slug' => $slug, 'parent_id' => null, 'status' => 'draft'], $rows);
     }
     if ($published) {
         Page::setStatus($db, $id, true);

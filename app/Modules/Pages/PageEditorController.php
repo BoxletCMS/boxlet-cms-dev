@@ -85,7 +85,14 @@ final class PageEditorController
             return $this->form($page, $title, $slug, BlockForm::move($blocks, (int) $move[2], $move[1]));
         }
 
+        // The plain editor sends no settings fields, so each falls back to what the page
+        // already has. Only the visual editor's page panel submits them.
+        $settings = self::settings($request, $db, $page, $id);
         $errors = $parsed['errors'];
+        if ($settings['parent_id'] === false) {
+            $errors['parent'] = t('pages.parent_invalid');
+            $settings['parent_id'] = $page['parent_id'] === null ? null : (int) $page['parent_id'];
+        }
         if ($title === '') {
             $errors['title'] = t('pages.title_required');
         }
@@ -94,10 +101,12 @@ final class PageEditorController
             $errors['slug'] = $slugProblem;
         }
         if ($errors !== []) {
-            return $this->reject($request, $page, $title, $slug, $blocks, $errors, t('pages.editor.errors'));
+            // What was submitted, so a rejected save shows the settings the user chose
+            // rather than the ones still stored.
+            return $this->reject($request, $settings + $page, $title, $slug, $blocks, $errors, t('pages.editor.errors'));
         }
 
-        Page::update($db, $id, $title, $slug, $blocks);
+        Page::update($db, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks);
         $this->container->get('session')->set('flash', t('pages.saved'));
 
         return Response::redirect(Url::admin('pages', $id));
@@ -128,6 +137,42 @@ final class PageEditorController
         }
 
         return $count;
+    }
+
+    /**
+     * The page's settings as submitted, falling back to what is stored for any the form
+     * did not send.
+     *
+     * parent_id comes back as false when a parent was named that this page may not have.
+     * The list of allowed parents already excludes the page and its descendants, so this
+     * is what stops a crafted request creating a cycle the interface would not offer.
+     *
+     * @param array<string, mixed> $page
+     * @return array{parent_id: int|null|false, status: string}
+     */
+    private static function settings(Request $request, Db $db, array $page, int $id): array
+    {
+        $stored = $page['parent_id'] === null ? null : (int) $page['parent_id'];
+        $status = $request->input('status');
+        $settings = [
+            'parent_id' => $stored,
+            'status' => in_array($status, ['draft', 'published'], true) ? $status : (string) $page['status'],
+        ];
+
+        if (!array_key_exists('parent_id', $request->body)) {
+            return $settings;
+        }
+        $submitted = $request->input('parent_id');
+        if ($submitted === '') {
+            $settings['parent_id'] = null;
+
+            return $settings;
+        }
+
+        $allowed = array_column(PageTree::parentOptions($db, (string) $page['locale'], $id), 'id');
+        $settings['parent_id'] = in_array((int) $submitted, $allowed, true) ? (int) $submitted : false;
+
+        return $settings;
     }
 
     /**

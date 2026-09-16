@@ -14,6 +14,9 @@ use App\Modules\Design\Design;
 use App\Modules\Design\SectionStyle;
 use App\Support\Url;
 
+// PageTree supplies the parents a page may have; it excludes the page and its own
+// descendants, which is what keeps a cycle out of the hierarchy.
+
 // BlockForm cleans a block's submitted values; the canvas re-draws from the cleaned
 // ones so it shows what a save would store.
 
@@ -246,6 +249,10 @@ final class PageBuilderController
             'canvasUrl' => Url::admin('pages', $id, 'canvas'),
             'insertUrl' => Url::admin('pages', $id, 'block'),
             'library' => $this->library(),
+            // Page settings live in the panel beside the canvas. Offering a parent is the
+            // only place a cycle could be created, so the list already excludes this page
+            // and everything under it (PageTree).
+            'parents' => PageTree::parentOptions($this->db(), (string) $page['locale'], $id),
         ], $status);
     }
 

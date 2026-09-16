@@ -176,6 +176,50 @@
     }
   });
 
+  // The toolbar shows the page's name; the panel owns the field.
+  var titleField = form.querySelector('#page-title');
+  var titleEcho = form.querySelector('[data-title-echo]');
+  var slugField = form.querySelector('[data-slug-field]');
+  var statusField = form.querySelector('[data-status-field]');
+  var slugEdited = false;
+
+  if (slugField) {
+    slugField.addEventListener('input', function () { slugEdited = true; });
+  }
+
+  /**
+   * The address follows the title, but only while the page is a draft and only until the
+   * address is touched. Two deliberate refusals: a published page's address never changes
+   * behind its author, and an empty address is never generated over — empty means "the
+   * home page of this language", so filling it in would move the site's root.
+   *
+   * The server's Slug is authoritative; this is a convenience that it validates.
+   */
+  function followTitle() {
+    if (!slugField || !titleField || slugEdited) {
+      return;
+    }
+    if (slugField.value === '' || (statusField && statusField.value !== 'draft')) {
+      return;
+    }
+    slugField.value = titleField.value
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 90);
+  }
+
+  if (titleField) {
+    titleField.addEventListener('input', function () {
+      if (titleEcho) {
+        titleEcho.textContent = titleField.value;
+      }
+      followTitle();
+    });
+  }
+
   form.addEventListener('input', function () { api.dirty = true; });
   form.addEventListener('change', function () { api.dirty = true; });
   form.addEventListener('submit', function () { api.dirty = false; });

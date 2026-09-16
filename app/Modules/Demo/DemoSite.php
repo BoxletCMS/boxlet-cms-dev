@@ -47,7 +47,12 @@ final class DemoSite
                     'layout' => $registry->layout($type, $layout),
                 ];
             }
-            Page::update($db, $id, $page['title'], $page['slug'], $blocks);
+            Page::update($db, $id, [
+                'title' => $page['title'],
+                'slug' => $page['slug'],
+                'parent_id' => null,
+                'status' => 'draft',
+            ], $blocks);
             Page::setStatus($db, $id, true);
         }
 

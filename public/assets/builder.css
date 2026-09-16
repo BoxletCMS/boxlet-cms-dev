@@ -34,28 +34,31 @@
 .builder-title {
   flex: 1;
   min-width: 12rem;
-}
-
-.builder-title input {
-  box-sizing: border-box;
-  inline-size: 100%;
-  max-inline-size: 28rem;
-  padding: var(--ui-2) var(--ui-3);
-  background: var(--ui-panel);
-  border: var(--ui-border) solid transparent;
-  border-radius: var(--ui-radius-m);
+  margin: 0;
+  padding: var(--ui-2) 0;
   color: var(--ui-ink);
-  font: inherit;
   font-size: var(--ui-text-lg);
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.builder-title input:hover {
-  border-color: var(--ui-line);
+/* Page settings: a short fixed form above the library. */
+
+.panel-page {
+  display: grid;
+  gap: var(--ui-4);
+  padding-bottom: var(--ui-4);
+  border-bottom: var(--ui-border) solid var(--ui-line);
 }
 
-.builder-title input:focus {
-  border-color: var(--ui-accent);
+.panel-page h2 {
+  margin: 0;
+  font-size: var(--ui-text-base);
+}
+
+.panel-page .field input,
+.panel-page .field select {
+  max-inline-size: none;
 }
 
 .builder-devices {
@@ -92,7 +95,8 @@
 
 .builder-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 22rem;
+  /* Wide enough for a rich-text box to be worth typing in. The canvas keeps the rest. */
+  grid-template-columns: minmax(0, 1fr) 28rem;
   flex: 1;
   min-height: 0;
 }
@@ -236,8 +240,31 @@
   font-size: var(--ui-text-sm);
 }
 
+/* One field group should read as one thing. Without real space between groups, a help
+   text and the next group's label sit together and the panel becomes a single wall. */
 .panel-block .block-body {
   padding-inline: 0;
+  gap: var(--ui-6);
+}
+
+.panel-block .field > label,
+.panel-block .field > .field-label {
+  font-size: var(--ui-text-sm);
+  letter-spacing: 0.01em;
+}
+
+.panel-block .field .hint {
+  font-size: var(--ui-text-xs);
+  line-height: 1.45;
+}
+
+/* Rich text needs more room than anything else on this panel. */
+.panel-block .field textarea {
+  min-block-size: 9rem;
+}
+
+.panel-block .field textarea[rows="8"] {
+  min-block-size: 17rem;
 }
 
 /* The panel is narrow: two-column field rows do not fit in it. */

@@ -233,6 +233,13 @@ return [
     'pages.panel.nothing_selected_hint' => 'Choose a block on the page to edit what it says.',
     'pages.panel.done' => 'Done',
     'pages.duplicate' => 'Duplicate',
+    'pages.panel.page' => 'Page',
+    'pages.field.parent' => 'Parent page',
+    'pages.parent.none' => 'Top level',
+    'pages.parent_invalid' => 'Choose a parent page from the list.',
+    'pages.field.status' => 'Visibility',
+    'pages.slug.auto' => 'The address follows the title while the page is a draft, until you change it yourself.',
+    'pages.slug.home' => 'Empty: this is the home page of its language.',
     'pages.insert_unknown' => 'That block type is not installed.',
 
     'pages.library' => 'Add a block',

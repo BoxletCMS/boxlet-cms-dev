@@ -77,11 +77,19 @@
     overlay.appendChild(insertButton(list.length, last ? last.offsetTop + last.offsetHeight : 0, parts[1]));
   }
 
-  function select(index) {
+  /**
+   * @param announce false when the parent asked for this selection. Echoing it back
+   *                 would make the parent treat it as a fresh click from the page, which
+   *                 clears the position a "+" had just aimed at — so every insert landed
+   *                 at the end of the page instead of at the boundary that was clicked.
+   */
+  function select(index, announce) {
     blocks().forEach(function (section, i) {
       section.classList.toggle('bx-selected', i === index);
     });
-    tell('select', { index: index });
+    if (announce !== false) {
+      tell('select', { index: index });
+    }
   }
 
   function refresh() {
@@ -121,7 +129,7 @@
       return;
     }
     if (event.data.type === 'select') {
-      select(event.data.index);
+      select(event.data.index, false);
     } else if (event.data.type === 'refresh') {
       refresh();
     }

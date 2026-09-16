@@ -3,6 +3,7 @@
 use App\Core\Db;
 use App\Core\Response;
 use App\Core\Session;
+use App\Modules\Pages\Page;
 
 // Pages CRUD through the admin, against both drivers.
 
@@ -130,6 +131,34 @@ testBothDrivers('publishing and unpublishing control what visitors see', functio
 
     adminPost("/admin/pages/{$id}/status", ['status' => 'draft']);
     assertEquals(404, dispatch('/news')->status, 'unpublished page');
+});
+
+// Saving a page writes its settings, so it also owns published_at. Stamped the first
+// time a page is published and kept from then on, including through an unpublish, so the
+// date a page first went live is not rewritten by an edit.
+testBothDrivers('publishing stamps published_at once and later saves keep it', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'news', 'News', false, [['type' => 'text', 'content' => ['body' => '<p>Hi</p>']]]);
+    $publishedAt = static fn (): ?string => $db->one('SELECT published_at FROM pages WHERE id = ?', [$id])['published_at'] ?? null;
+    $save = static fn (string $status) => Page::update($db, $id, [
+        'title' => 'News',
+        'slug' => 'news',
+        'parent_id' => null,
+        'status' => $status,
+    ], []);
+
+    assertEquals(null, $publishedAt(), 'a draft has no published_at');
+
+    $save('published');
+    $first = $publishedAt();
+    assertTrue($first !== null, 'publishing did not stamp published_at');
+
+    $save('published');
+    assertEquals($first, $publishedAt(), 'a later save rewrote published_at');
+
+    $save('draft');
+    assertEquals($first, $publishedAt(), 'unpublishing cleared published_at');
+    assertEquals('draft', $db->one('SELECT status FROM pages WHERE id = ?', [$id])['status'] ?? null, 'status');
 });
 
 testBothDrivers('deleting a page deletes its blocks', function (string $driver) {

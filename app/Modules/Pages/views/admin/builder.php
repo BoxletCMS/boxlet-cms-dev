@@ -20,6 +20,7 @@ use App\Support\Url;
  * @var string $canvasUrl
  * @var string $insertUrl
  * @var list<array{type: string, label: string, preview: string}> $library
+ * @var list<array{id: int, title: string, depth: int}> $parents
  * @var string $csrf
  */
 $pageId = (int) $page['id'];
@@ -56,16 +57,9 @@ foreach ($errors as $key => $message) {
             <input type="hidden" name="editor" value="builder">
 
             <div class="builder-bar">
-                <div class="builder-title">
-                    <label class="visually-hidden" for="page-title"><?= e(t('pages.field.title')) ?></label>
-                    <input type="text" id="page-title" name="title" value="<?= e($titleValue) ?>" maxlength="255" required aria-describedby="page-title-error">
-                    <span id="page-title-error"><?= $error('title') ?></span>
-                </div>
-                <?php /* The address travels with the save. Without it every save would
-                         send an empty slug, which means "the home page of this language",
-                         and would either be refused or quietly move the page. It is
-                         edited in the plain editor. */ ?>
-                <input type="hidden" name="slug" value="<?= e($slugValue) ?>">
+                <?php /* The name, not a second place to edit it: the page panel owns the
+                         title, so only one field named "title" is ever submitted. */ ?>
+                <p class="builder-title" data-title-echo><?= e($titleValue !== '' ? $titleValue : t('pages.new')) ?></p>
 
                 <div class="builder-devices" role="group" aria-label="<?= e(t('pages.device.label')) ?>">
 <?php foreach (['phone' => '24rem', 'tablet' => '48rem', 'desktop' => '100%'] as $device => $width): ?>
@@ -95,6 +89,47 @@ foreach ($errors as $key => $message) {
 
                 <?php /* The scripts cannot call t(), so the strings they show come with them. */ ?>
                 <aside class="builder-panel" data-insert-url="<?= e($insertUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>">
+                    <?php /* Page settings sit above the library because they are short and
+                             fixed, while the library is long and scrolls: a scrolling grid
+                             above a four-field form would bury the form. Both belong to
+                             the "nothing selected" state. */ ?>
+                    <div class="panel-page" data-page-settings>
+                        <h2><?= e(t('pages.panel.page')) ?></h2>
+
+                        <div class="field">
+                            <label for="page-title"><?= e(t('pages.field.title')) ?></label>
+                            <input type="text" id="page-title" name="title" value="<?= e($titleValue) ?>" maxlength="255" required aria-describedby="page-title-error">
+                            <span id="page-title-error"><?= $error('title') ?></span>
+                        </div>
+
+                        <div class="field">
+                            <label for="page-slug"><?= e(t('pages.field.slug')) ?></label>
+                            <input type="text" id="page-slug" name="slug" value="<?= e($slugValue) ?>" maxlength="100" autocapitalize="off" spellcheck="false" data-slug-field>
+                            <span class="hint"><?= e($slugValue === '' ? t('pages.slug.home') : t('pages.slug.auto')) ?></span>
+                            <?= $error('slug') ?>
+                        </div>
+
+                        <div class="field">
+                            <label for="page-parent"><?= e(t('pages.field.parent')) ?></label>
+                            <select id="page-parent" name="parent_id">
+                                <option value=""><?= e(t('pages.parent.none')) ?></option>
+<?php foreach ($parents as $option): ?>
+                                <option value="<?= e($option['id']) ?>"<?= (int) ($page['parent_id'] ?? 0) === $option['id'] ? ' selected' : '' ?>><?= e(str_repeat('— ', $option['depth']) . $option['title']) ?></option>
+<?php endforeach; ?>
+                            </select>
+                            <?= $error('parent') ?>
+                        </div>
+
+                        <div class="field">
+                            <label for="page-status"><?= e(t('pages.field.status')) ?></label>
+                            <select id="page-status" name="status" data-status-field>
+<?php foreach (['draft', 'published'] as $state): ?>
+                                <option value="<?= e($state) ?>"<?= (string) $page['status'] === $state ? ' selected' : '' ?>><?= e(t('pages.status.' . $state)) ?></option>
+<?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
                     <?php /* Shown while nothing is selected. Each picture is the block
                              itself, rendered by the server (BlockPreview). */ ?>
                     <div class="panel-library" data-library>

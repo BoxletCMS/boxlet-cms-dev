@@ -87,13 +87,9 @@ Boxlet has no build step, so the few front-end libraries it uses are committed t
 repository and loaded with a plain script tag. Each must be permissively licensed,
 dependency-free and a single file.
 
-| Asset | Version | Licence | Used for |
-| --- | --- | --- | --- |
-| [SortableJS](https://github.com/SortableJS/Sortable) | 1.15.6 | MIT | Reordering blocks in the page editor |
-| [Trix](https://github.com/basecamp/trix) | 2.1.19 | MIT | The rich text editor, with attachments disabled |
-
-The file lives in `public/assets/vendor/` and records its version and source URL in its
-own header. To update one, download the new pinned release over it and change both.
+They live in `public/assets/vendor/`, and each file records its version and source URL in
+its own header. What is vendored, and the rule for adding to it, is in `docs/SPEC.md` §3.
+To update one, download the new pinned release over it and change both.
 
 ### Demo site
 

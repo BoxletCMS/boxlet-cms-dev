@@ -10,7 +10,7 @@ use App\Core\Db;
  *
  * It sits beside Page rather than inside it because Page is already close to the file
  * size limit, and because the same tree is what breadcrumbs, the page_list block and
- * nested addresses (SPEC §9) will each need.
+ * nested addresses (PLAN.md §5, O-10) will each need.
  */
 final class PageTree
 {

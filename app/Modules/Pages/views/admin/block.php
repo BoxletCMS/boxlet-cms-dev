@@ -59,11 +59,12 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                             <div class="rt-group">
                                 <button type="button" class="rt-button" data-rt="bold" aria-pressed="false" title="<?= e(t('richtext.bold')) ?>"><span aria-hidden="true">B</span><span class="visually-hidden"><?= e(t('richtext.bold')) ?></span></button>
                                 <button type="button" class="rt-button rt-italic" data-rt="italic" aria-pressed="false" title="<?= e(t('richtext.italic')) ?>"><span aria-hidden="true">I</span><span class="visually-hidden"><?= e(t('richtext.italic')) ?></span></button>
-                                <?php /* A chain emoji renders as an empty box wherever that font is missing — measured
-         in the headless browser, where it drew as tofu. Every other label here is a
-         letter or a punctuation mark for the same reason: a control nobody can read is
-         the thing D-012 exists to prevent. */ ?>
-<button type="button" class="rt-button" data-rt="link" aria-pressed="false" title="<?= e(t('richtext.link')) ?>"><span aria-hidden="true">&amp;</span><span class="visually-hidden"><?= e(t('richtext.link')) ?></span></button>
+                                <?php /* Drawn, not written: an emoji renders as an empty box wherever that font is
+         missing — measured in the headless browser, where it drew as tofu — and an
+         ampersand does not say "link" to anyone. currentColor means the icon inherits
+         --ui-ink like every text label beside it, so it carries the same 16.51:1 and
+         D-012 needs no separate decision. */ ?>
+<button type="button" class="rt-button" data-rt="link" aria-pressed="false" title="<?= e(t('richtext.link')) ?>"><svg class="rt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.5 13.5a4.5 4.5 0 0 0 6.36 0l2.83-2.83a4.5 4.5 0 0 0-6.36-6.36l-1.06 1.06"/><path d="M13.5 10.5a4.5 4.5 0 0 0-6.36 0l-2.83 2.83a4.5 4.5 0 0 0 6.36 6.36l1.06-1.06"/></svg><span class="visually-hidden"><?= e(t('richtext.link')) ?></span></button>
                             </div>
                             <div class="rt-group">
                                 <button type="button" class="rt-button" data-rt="h2" aria-pressed="false" title="<?= e(t('richtext.heading_2')) ?>"><span aria-hidden="true">H2</span><span class="visually-hidden"><?= e(t('richtext.heading_2')) ?></span></button>

@@ -100,13 +100,33 @@ $listItems = [
         => ['<ul><li><p>one</p></li><li><p>two</p></li></ul>', '<ul><li>one</li><li>two</li></ul>'],
     'two paragraphs in one item are the author\'s, and both stay'
         => ['<ul><li><p>one</p><p>two</p></li></ul>', '<ul><li><p>one</p><p>two</p></li></ul>'],
-    // The paragraph is not the only block here, so it stays — and the inner item, where it
-    // is, loses its wrapper. This shape is the one that still differs from what was stored
-    // before the editor changed.
-    'a paragraph beside a nested list keeps its wrapper'
+    // Changed deliberately: this case used to expect the wrapper to survive beside a
+    // sublist, which left an item stored in two different shapes depending on whether it
+    // had one. A sublist after the text is the author's structure; the paragraph around
+    // the text is still the editor's packaging.
+    'a paragraph followed only by a sublist is still a wrapper'
         => [
             '<ul><li><p>Second</p><ul><li><p>Nested</p></li></ul></li></ul>',
-            '<ul><li><p>Second</p><ul><li>Nested</li></ul></li></ul>',
+            '<ul><li>Second<ul><li>Nested</li></ul></li></ul>',
+        ],
+    'a paragraph after a sublist is not a wrapper and stays'
+        => [
+            '<ul><li><p>Lead</p><ul><li>Nested</li></ul><p>Trailing</p></li></ul>',
+            '<ul><li><p>Lead</p><ul><li>Nested</li></ul><p>Trailing</p></li></ul>',
+        ],
+    'a lone paragraph in a quote is unwrapped'
+        => ['<blockquote><p>Quote</p></blockquote>', '<blockquote>Quote</blockquote>'],
+    'two paragraphs in a quote are the author\'s, and both stay'
+        => [
+            '<blockquote><p>Quote</p><p>Attribution</p></blockquote>',
+            '<blockquote><p>Quote</p><p>Attribution</p></blockquote>',
+        ],
+    // A quote may hold nothing beside its paragraph, so unlike a list item the wrapper
+    // stays when anything else is there.
+    'a paragraph beside a list in a quote keeps its wrapper'
+        => [
+            '<blockquote><p>Quote</p><ul><li>point</li></ul></blockquote>',
+            '<blockquote><p>Quote</p><ul><li>point</li></ul></blockquote>',
         ],
     'marks inside an unwrapped paragraph survive'
         => ['<ol><li><p><strong>bold</strong> item</p></li></ol>', '<ol><li><strong>bold</strong> item</li></ol>'],

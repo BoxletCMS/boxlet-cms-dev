@@ -84,6 +84,14 @@
   font-style: italic;
 }
 
+/* Drawn at the size of the letters beside it, and in the same ink: the icon takes
+   currentColor, so it carries the button's own colour and contrast rather than a value of
+   its own. */
+.rt-icon {
+  inline-size: 1em;
+  block-size: 1em;
+}
+
 /* The link row, in the flow between the toolbar and the editor so it never covers the
    text being linked. Hidden with the hidden attribute, so it costs nothing when closed. */
 

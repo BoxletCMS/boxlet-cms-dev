@@ -66,6 +66,16 @@ final class RichText
     /** Blocks whose leading and trailing <br> are dropped on save (PLAN.md D-014). */
     private const TRIM_BREAKS = ['p', 'h2', 'h3', 'h4', 'li', 'blockquote'];
 
+    /** Blocks whose lone paragraph wrapper is the editor's packaging (PLAN.md D-017). */
+    private const UNWRAP_LONE_PARAGRAPH = ['li', 'blockquote'];
+
+    /**
+     * What may follow that paragraph and still leave it a wrapper. A list item may hold a
+     * sublist after its text, which is structure the author made; a quote may hold nothing
+     * else, so anything beside its paragraph means the paragraph is not the only block.
+     */
+    private const AFTER_LONE_PARAGRAPH = ['li' => ['ul', 'ol'], 'blockquote' => []];
+
     /** Trix's attachments carry JSON in these; they are its one proprietary format. */
     private const ATTACHMENT_ATTRIBUTES = [
         'data-trix-attachment', 'data-trix-attributes', 'data-trix-content-type',
@@ -156,48 +166,55 @@ final class RichText
                 self::trimBreaks($node);
             }
 
-            if ($tag === 'li') {
+            if (in_array($tag, self::UNWRAP_LONE_PARAGRAPH, true)) {
                 self::unwrapLoneParagraph($node);
             }
         }
     }
 
     /**
-     * A paragraph that is the only block in a list item is the editor's packaging, not the
-     * author's structure, so it is unwrapped.
+     * A paragraph wrapping the text of a list item or a quote is the editor's packaging,
+     * not the author's structure, so it is unwrapped.
      *
-     * TipTap's schema puts a paragraph inside every list item, so <li>one</li> came back as
-     * <li><p>one</p></li> the first time a field was edited. Measured on the front end:
-     * that list grew from 51px to 67px, because a paragraph inside a list item takes the
-     * normal paragraph margin and gains 16px above and below every item. Storage keeps one
-     * shape whichever editor produced it.
+     * TipTap's schema puts a paragraph inside every list item and quote, so <li>one</li>
+     * came back as <li><p>one</p></li> the first time a field was edited. Measured on the
+     * front end: that list grew from 51px to 67px, because a paragraph inside a list item
+     * takes the normal paragraph margin and gains 16px above and below every item. Storage
+     * keeps one shape whichever editor produced it.
      *
-     * Only a lone wrapper goes. An item holding two paragraphs keeps both, because that is
-     * something the author made rather than something the editor added. An item holding a
-     * paragraph beside a nested list keeps it too: the paragraph is then not the only block
-     * in the item.
+     * What survives is what the author made. Two paragraphs in one item or quote are kept,
+     * both of them. A list item may hold a sublist after its text, so a paragraph followed
+     * only by lists is still a wrapper and goes; a quote may hold nothing beside its
+     * paragraph, so anything else there means the paragraph stays.
      *
      * This removes a wrapper and allows nothing new, so the whitelist is unchanged.
      */
-    private static function unwrapLoneParagraph(DOMElement $item): void
+    private static function unwrapLoneParagraph(DOMElement $parent): void
     {
         $blocks = [];
-        foreach ($item->childNodes as $child) {
+        foreach ($parent->childNodes as $child) {
             if ($child instanceof DOMElement) {
                 $blocks[] = $child;
             } elseif ($child instanceof DOMText && trim($child->textContent) !== '') {
-                return; // text beside the paragraph: the item is not just a wrapper
+                return; // text beside the paragraph: this is not just a wrapper
             }
         }
-        if (count($blocks) !== 1 || strtolower($blocks[0]->nodeName) !== 'p') {
+        if ($blocks === [] || strtolower($blocks[0]->nodeName) !== 'p') {
             return;
+        }
+
+        $allowed = self::AFTER_LONE_PARAGRAPH[strtolower($parent->nodeName)] ?? [];
+        foreach (array_slice($blocks, 1) as $sibling) {
+            if (!in_array(strtolower($sibling->nodeName), $allowed, true)) {
+                return;
+            }
         }
 
         $paragraph = $blocks[0];
         while ($paragraph->firstChild !== null) {
-            $item->insertBefore($paragraph->firstChild, $paragraph);
+            $parent->insertBefore($paragraph->firstChild, $paragraph);
         }
-        $item->removeChild($paragraph);
+        $parent->removeChild($paragraph);
     }
 
     /**

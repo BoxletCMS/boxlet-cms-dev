@@ -145,8 +145,13 @@
 }
 
 /* One field group should read as one thing. Without real space between groups, a help
-   text and the next group's label sit together and the panel becomes a single wall. */
+   text and the next group's label sit together and the panel becomes a single wall.
+   The layout is declared here because gap needs a grid to apply to, and the rule that
+   provides one (.block-body { display: grid }) lives in admin-pages.css, which belongs
+   to the plain editor and which the builder does not load. Measured before this line
+   existed: display block, the fields 0px apart with a 32px gap doing nothing. */
 .panel-block .block-body {
+  display: grid;
   padding-inline: 0;
   gap: var(--ui-6);
 }

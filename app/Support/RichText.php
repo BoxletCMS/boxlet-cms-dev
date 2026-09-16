@@ -25,6 +25,7 @@ final class RichText
         'i' => [],
         'h2' => [],
         'h3' => [],
+        'h4' => [],
         'ul' => [],
         'ol' => [],
         'li' => [],
@@ -49,22 +50,21 @@ final class RichText
      * keeps the meaning and lands it inside the whitelist.
      *
      * h1 becomes h2 because the page's own title is the h1; a heading inside body copy
-     * sits below it. h4 and deeper collapse to h3, the deepest we allow, which matters for
-     * pasted documents rather than for Trix.
+     * sits below it. h5 and deeper collapse to h4, the deepest we store (PLAN.md D-016),
+     * which matters for pasted documents rather than for Trix.
      */
     private const RENAME = [
         'div' => 'p',
         'h1' => 'h2',
-        'h4' => 'h3',
-        'h5' => 'h3',
-        'h6' => 'h3',
+        'h5' => 'h4',
+        'h6' => 'h4',
     ];
 
     /** A p may not contain these, so a div holding one is unwrapped rather than renamed. */
-    private const BLOCK = ['p', 'div', 'ul', 'ol', 'li', 'blockquote', 'h2', 'h3', 'table'];
+    private const BLOCK = ['p', 'div', 'ul', 'ol', 'li', 'blockquote', 'h2', 'h3', 'h4', 'table'];
 
     /** Blocks whose leading and trailing <br> are dropped on save (PLAN.md D-014). */
-    private const TRIM_BREAKS = ['p', 'h2', 'h3', 'li', 'blockquote'];
+    private const TRIM_BREAKS = ['p', 'h2', 'h3', 'h4', 'li', 'blockquote'];
 
     /** Trix's attachments carry JSON in these; they are its one proprietary format. */
     private const ATTACHMENT_ATTRIBUTES = [

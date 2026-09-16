@@ -29,13 +29,17 @@
    *
    * Set before any editor is created below, because Trix builds its parser from this.
    */
-  if (window.Trix && !window.Trix.config.blockAttributes.heading2) {
-    window.Trix.config.blockAttributes.heading2 = {
-      tagName: 'h3',
-      terminal: true,
-      breakOnReturn: true,
-      group: false,
-    };
+  if (window.Trix) {
+    [['heading2', 'h3'], ['heading3', 'h4']].forEach(function (level) {
+      if (!window.Trix.config.blockAttributes[level[0]]) {
+        window.Trix.config.blockAttributes[level[0]] = {
+          tagName: level[1],
+          terminal: true,
+          breakOnReturn: true,
+          group: false,
+        };
+      }
+    });
   }
 
   /*
@@ -131,6 +135,37 @@
         editor.editor.insertString(text);
       }
     }, true);
+
+    /*
+     * Close the heading menu on a choice and on Escape.
+     *
+     * Trix opens the dialog for us and marks the active level, but it closes a dialog only
+     * for its own dialog methods; an attribute button inside one leaves it open. Closing is
+     * what Trix's hideDialog does — drop the active attribute and class — and focus goes
+     * back to the button that opened it, so the keyboard does not end up nowhere.
+     */
+    var menu = field.querySelector('[data-trix-dialog="heading"]');
+    var menuButton = field.querySelector('[data-trix-action="heading"]');
+    if (menu && menuButton) {
+      var closeMenu = function (refocus) {
+        menu.removeAttribute('data-trix-active');
+        menu.classList.remove('trix-active');
+        if (refocus) {
+          menuButton.focus();
+        }
+      };
+      menu.addEventListener('click', function (event) {
+        if (event.target.closest('[data-trix-attribute]')) {
+          closeMenu(true);
+        }
+      });
+      field.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && menu.hasAttribute('data-trix-active')) {
+          event.preventDefault();
+          closeMenu(true);
+        }
+      });
+    }
 
     var toggle = field.querySelector('[data-richtext-toggle]');
     if (toggle) {

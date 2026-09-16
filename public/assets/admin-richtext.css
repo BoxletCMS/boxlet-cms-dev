@@ -52,8 +52,8 @@
 
 .richtext-toolbar .trix-button {
   position: relative;
-  inline-size: 2rem;
-  block-size: 2rem;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
   padding: 0;
   background: var(--ui-panel);
   border: 0;
@@ -74,32 +74,64 @@
   background: var(--ui-accent-soft);
 }
 
+/* The icon at about the size of the field text beside it. Trix's background-size: contain
+   drew each 24px glyph across the whole button, which read as heavy next to the inputs. */
+.richtext .richtext-toolbar .trix-button--icon::before {
+  background-size: 1rem;
+}
+
 /* Disabled is muted, never invisible (D-012: every control, disabled included, at least
-   3:1 against its surface). Opacity on the button used to multiply Trix's own 0.125 on
-   the icon, putting undo and indent at 1.12:1 on white — a control nobody can see, which
-   reads as a missing feature rather than a disabled one. The icons are data-URI SVGs with
-   a black stroke, so opacity over --ui-panel #ffffff is the only lever: measured with
-   Color::contrast, 0.85 is 15.13:1 enabled and 0.55 is 4.74:1 disabled. Different at a
-   glance, both legible. */
+   3:1 against its surface). Opacity on the button used to multiply Trix's own 0.125 on the
+   icon, putting undo and indent at 1.12:1 — a control nobody can see, which reads as a
+   missing feature rather than a disabled one. The icons are data-URI SVGs with a black
+   stroke, so opacity over the surface is the only lever. Measured with Color::contrast:
+   enabled 0.6 is 5.74:1 on --ui-panel #ffffff, disabled 0.45 is 3.25:1 on the
+   --ui-panel-sunken #fafbfc a disabled button sits on. The surface matters: 0.42 passes on
+   white at 3.03:1 and fails on the sunken panel at 2.93:1. */
 .richtext-toolbar .trix-button:disabled {
   background: var(--ui-panel-sunken);
   cursor: default;
 }
 
 .richtext-toolbar .trix-button--icon::before {
-  opacity: 0.85;
+  opacity: 0.6;
 }
 
 .richtext .richtext-toolbar .trix-button--icon:disabled::before {
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
-/* The subheading button borrows Trix's heading glyph — it carries that class too — and
-   draws it smaller, because a subheading is a smaller heading and Trix ships no icon for
-   a second level. Drawn rather than left blank: .trix-button--icon hides the button's own
-   text, and a control nobody can see is a control nobody uses. */
-.richtext .richtext-toolbar .trix-button--icon-heading-2::before {
-  background-size: 62%;
+/* The heading menu: levels as words, in the flow beneath the toolbar like the link dialog,
+   so it never covers the text whose level is being changed. */
+/* No border of its own: the dialog around it already draws one, and two made the menu a
+   box inside a box — heavier than anything else in a panel that was made lighter. The
+   dividers between the levels come from each button's own left edge.
+
+   Set to 0 rather than left out. The general .trix-button-group rule above draws the
+   border, so omitting it here changes nothing: measured as 1px on both the dialog and the
+   group until this said border: 0. */
+.richtext-heading-menu .trix-button-group {
+  display: flex;
+  border: 0;
+  border-radius: 0;
+}
+
+.richtext-toolbar .richtext-heading-menu .trix-button--dialog {
+  flex: 1;
+  border: 0;
+  border-left: var(--ui-border) solid var(--ui-line);
+  border-radius: 0;
+}
+
+.richtext-toolbar .richtext-heading-menu .trix-button--dialog:first-child {
+  border-left: 0;
+}
+
+/* Trix marks the level the cursor is in through refreshAttributeButtons, so the menu says
+   where you are as well as offering where to go. */
+.richtext-toolbar .richtext-heading-menu .trix-button--dialog.trix-active {
+  background: var(--ui-accent-soft);
+  font-weight: 600;
 }
 
 .richtext-toolbar .trix-button-group-spacer {

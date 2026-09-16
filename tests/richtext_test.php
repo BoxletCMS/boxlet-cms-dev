@@ -81,7 +81,10 @@ $structure = [
     'a div holding a list is unwrapped, not renamed' => ['<div><ul><li>Item</li></ul></div>', '<ul><li>Item</li></ul>'],
     'a div holding text and a list is unwrapped too' => ['<div>Lead<ul><li>Item</li></ul></div>', 'Lead<ul><li>Item</li></ul>'],
     'nested divs collapse to one paragraph' => ['<div><div>Inner</div></div>', '<p>Inner</p>'],
-    'headings below h3 collapse to the deepest we allow' => ['<h4>Sub</h4><h6>Deeper</h6>', '<h3>Sub</h3><h3>Deeper</h3>'],
+    // Changed with D-016: h4 is stored now, so only h5 and h6 collapse, and they collapse
+    // to h4 rather than h3. This case previously read h4-h6 all became h3.
+    'h4 is stored; h5 and h6 collapse to it' => ['<h4>Sub</h4><h6>Deeper</h6>', '<h4>Sub</h4><h4>Deeper</h4>'],
+    'h5 collapses to h4 as well' => ['<h5>Five</h5>', '<h4>Five</h4>'],
 ];
 foreach ($structure as $name => [$input, $expected]) {
     test("richtext structure: {$name}", function () use ($input, $expected) {
@@ -173,6 +176,12 @@ $roundTrip = [
         => ['<h1><br>Heading<br></h1>', '<h2>Heading</h2>'],
     'breaks at the edges of a quote'
         => ['<blockquote><br>Quote<br><br></blockquote>', '<blockquote>Quote</blockquote>'],
+    // The third level, added with D-016. Trix emits it directly, so it arrives as h4
+    // rather than needing a rename on the way in.
+    'breaks at the edges of a third-level heading'
+        => ['<h4><br>Sub<br><br></h4>', '<h4>Sub</h4>'],
+    'a third-level heading passes through untouched'
+        => ['<h4>Sub</h4>', '<h4>Sub</h4>'],
     'breaks at the edges of a list item'
         => ['<ul><li><br>one<br></li><li>two<br></li></ul>', '<ul><li>one</li><li>two</li></ul>'],
     // The rule takes the edges and nothing else: a break between two lines is the author's.

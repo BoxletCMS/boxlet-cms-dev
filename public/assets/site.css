@@ -20,7 +20,8 @@ body {
 
 h1,
 h2,
-h3 {
+h3,
+h4 {
   font-family: var(--font-heading);
   font-weight: var(--heading-weight);
   letter-spacing: var(--heading-tracking);
@@ -103,6 +104,13 @@ code {
 
 .richtext h3 {
   font-size: var(--text-lg);
+}
+
+/* The third level a rich text field can hold (PLAN.md D-016). It sits at body size and is
+   told apart by the heading family, weight and tracking the rule above gives it, so the
+   character decides how far it stands out rather than a size chosen here. */
+.richtext h4 {
+  font-size: var(--text-base);
 }
 
 .richtext blockquote {

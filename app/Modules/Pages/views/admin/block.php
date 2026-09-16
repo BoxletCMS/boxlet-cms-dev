@@ -62,16 +62,15 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                                          save is worse than no button. No attach either —
                                          attachments are Trix's one proprietary format. */ ?>
                                 <span class="trix-button-group trix-button-group--block-tools" data-trix-button-group="block-tools">
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-heading-1" data-trix-attribute="heading1" title="<?= e(t('richtext.heading')) ?>" tabindex="-1"><?= e(t('richtext.heading')) ?></button>
-                                    <?php /* heading2 is registered in richtext.js and emits
-                                             h3, which the whitelist already allows. Trix
-                                             ships no icon for a second heading level, and
-                                             .trix-button--icon hides a button's own text,
-                                             so this borrows Trix's heading class for the
-                                             glyph and admin-richtext.css draws it smaller.
-                                             Nothing is copied out of the vendored file, so
-                                             an upgrade moves both buttons together. */ ?>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-heading-1 trix-button--icon-heading-2" data-trix-attribute="heading2" title="<?= e(t('richtext.subheading')) ?>" tabindex="-1"><?= e(t('richtext.subheading')) ?></button>
+                                    <?php /* One button opening a menu of levels (D-016).
+                                             data-trix-action opens the dialog below rather
+                                             than invoking anything: Trix's own toolbar does
+                                             getDialog(name) first and toggles it when one
+                                             exists. Tabbable on purpose — the icon buttons
+                                             around it are reached through the editor's
+                                             shortcuts, but a menu has to be openable
+                                             without a mouse. */ ?>
+                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-heading-1" data-trix-action="heading" aria-haspopup="true" title="<?= e(t('richtext.heading')) ?>"><?= e(t('richtext.heading')) ?></button>
                                     <button type="button" class="trix-button trix-button--icon trix-button--icon-quote" data-trix-attribute="quote" title="<?= e(t('richtext.quote')) ?>" tabindex="-1"><?= e(t('richtext.quote')) ?></button>
                                     <button type="button" class="trix-button trix-button--icon trix-button--icon-bullet-list" data-trix-attribute="bullet" title="<?= e(t('richtext.bullets')) ?>" tabindex="-1"><?= e(t('richtext.bullets')) ?></button>
                                     <button type="button" class="trix-button trix-button--icon trix-button--icon-number-list" data-trix-attribute="number" title="<?= e(t('richtext.numbers')) ?>" tabindex="-1"><?= e(t('richtext.numbers')) ?></button>
@@ -87,6 +86,21 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                             <?php /* Copied from Trix's own toolbar: the dialog's structure is
                                      what makes the link button work. */ ?>
                             <div class="trix-dialogs" data-trix-dialogs>
+                                <?php /* The level names are ours, not Trix's. Trix's
+                                         heading1 emits an h1, which the sanitiser stores as
+                                         h2 (the page's own title is the h1), so the button
+                                         offering "Heading 2" carries heading1. heading2 and
+                                         heading3 are registered in richtext.js and emit h3
+                                         and h4. Text buttons, not icons: a level is a word,
+                                         and Trix marks the active one itself through
+                                         refreshAttributeButtons. */ ?>
+                                <div class="trix-dialog richtext-heading-menu" data-trix-dialog="heading" role="group" aria-label="<?= e(t('richtext.heading_levels')) ?>">
+                                    <div class="trix-button-group">
+                                        <button type="button" class="trix-button trix-button--dialog" data-trix-attribute="heading1"><?= e(t('richtext.heading_2')) ?></button>
+                                        <button type="button" class="trix-button trix-button--dialog" data-trix-attribute="heading2"><?= e(t('richtext.heading_3')) ?></button>
+                                        <button type="button" class="trix-button trix-button--dialog" data-trix-attribute="heading3"><?= e(t('richtext.heading_4')) ?></button>
+                                    </div>
+                                </div>
                                 <div class="trix-dialog trix-dialog--link" data-trix-dialog="href" data-trix-dialog-attribute="href">
                                     <div class="trix-dialog__link-fields">
                                         <input type="url" name="href" class="trix-input trix-input--dialog" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>" data-trix-validate-href required data-trix-input>

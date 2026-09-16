@@ -13,6 +13,12 @@
   --section-button-text: var(--color-on-accent);
   --section-card: var(--color-surface);
   --section-border: var(--color-border);
+
+  /* Derived from the section's own text colour, which every surface guarantees is
+     readable against it, so a placeholder is visible on any surface — including one
+     nobody has tested. A fixed colour cannot promise that. */
+  --section-placeholder: color-mix(in srgb, var(--section-text) 10%, transparent);
+  --section-placeholder-edge: color-mix(in srgb, var(--section-text) 40%, transparent);
   --section-rhythm: var(--space-xl);
   --section-width: var(--container-width);
   --divider-depth: var(--space-xl);
@@ -136,6 +142,14 @@
   border-top-right-radius: 50% var(--divider-depth);
 }
 
+/* A divider marks a transition between two sections. The first section has nothing to
+   transition from, and a shaped edge there is simply clipped by the top of the page, so
+   the first section never draws one whatever its stored style says. */
 main > .block:first-child {
   margin-top: 0;
+  padding-top: var(--section-rhythm);
+  border-top: 0;
+  clip-path: none;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
 }

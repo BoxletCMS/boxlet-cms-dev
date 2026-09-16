@@ -77,13 +77,14 @@ code {
   text-decoration: none;
 }
 
-/* Always outlined: on a low-contrast surface the fill alone is invisible, and an
-   invisible placeholder reads as a hole in the page rather than as a picture. */
+/* Tinted and outlined from the section's own text colour (see --section-placeholder in
+   sections.css), so it stays visible on a pale surface and on a dark one alike. A fill
+   picked to suit one surface reads as a hole on another. */
 .media-placeholder {
   width: 100%;
   aspect-ratio: 4 / 3;
-  background: var(--section-card);
-  border: var(--border-width) solid var(--section-border);
+  background: var(--section-placeholder);
+  border: var(--border-width) solid var(--section-placeholder-edge);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-m);
 }
@@ -119,10 +120,13 @@ code {
   align-items: center;
 }
 
+/* Column placement and text alignment are two different things. The section's column is
+   centred on the page by .container; a left-ranged hero then fills that column, so its
+   first line sits on the same spine as every other section. Only a centred hero takes a
+   narrower measure of its own, centred within the column (see .layout-center below). */
 .hero-text {
   display: grid;
   gap: var(--space-m);
-  max-width: var(--container-narrow);
 }
 
 .hero-heading {
@@ -146,9 +150,12 @@ code {
   text-align: center;
 }
 
+/* A centred hero reads better on a shorter line than the full column gives it. */
 .layout-center .hero-text {
+  max-width: var(--container-narrow);
   margin-inline: auto;
 }
+
 
 .layout-split .hero {
   grid-template-columns: 1fr 1fr;

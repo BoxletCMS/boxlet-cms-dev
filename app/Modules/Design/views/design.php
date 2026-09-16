@@ -71,7 +71,7 @@ foreach (Typography::PAIRINGS as $name => $pairing) {
         t('style.width.' . $shape['width']),
         t('style.rhythm.' . $shape['rhythm']),
         t('style.align.' . $shape['align']),
-        t('style.divider.' . $shape['divider']),
+        t('style.divider.' . Presets::dividerAccent($preset)),
     ]);
 ?>
                 <form method="post" action="<?= e(Url::admin('design')) ?>" class="character-card<?= $preset === $activeCharacter ? ' character-current' : '' ?>">

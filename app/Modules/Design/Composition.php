@@ -57,6 +57,12 @@ final class Composition
         if (is_string($surface)) {
             $style['surface'] = $surface;
         }
+        // A divider is an accent on the transitions a character chooses, not a default
+        // for every boundary, so only the named block types carry one.
+        $divider = $composition['dividers'][$blockType] ?? null;
+        if (is_string($divider)) {
+            $style['divider'] = $divider;
+        }
 
         return SectionStyle::normalize($style);
     }

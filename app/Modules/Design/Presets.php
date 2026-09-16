@@ -60,32 +60,38 @@ final class Presets
      * how it is painted.
      */
     public const COMPOSITION = [
-        // A reading column: narrow measure, plenty of air, everything ranged left,
-        // no rules between sections. The page is one quiet text.
+        // A reading column: a measure set by the character's own narrow container token,
+        // plenty of air, everything ranged left, no rules. The page is one quiet text.
         'editorial' => [
-            'section' => ['surface' => 'plain', 'rhythm' => 'airy', 'width' => 'narrow', 'align' => 'left', 'divider' => 'none'],
+            'section' => ['surface' => 'plain', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'none'],
             'surfaces' => ['image_text' => 'tinted'],
+            'dividers' => [],
             'layouts' => ['hero' => 'left', 'image_text' => 'image-left', 'text' => 'single'],
         ],
-        // Even and quiet: normal measure and rhythm, centred, every section separated by
-        // a hairline rule. Nothing shouts, nothing is full-bleed.
+        // Quiet on purpose, which is not the same as unstyled: a lot of air, everything
+        // centred on one axis, one tinted panel for tone, and a hairline marking two
+        // transitions rather than all of them.
         'minimal' => [
-            'section' => ['surface' => 'plain', 'rhythm' => 'normal', 'width' => 'normal', 'align' => 'center', 'divider' => 'line'],
-            'surfaces' => [],
+            'section' => ['surface' => 'plain', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'center', 'divider' => 'none'],
+            'surfaces' => ['text' => 'tinted'],
+            'dividers' => ['hero' => 'line', 'text' => 'line'],
             'layouts' => ['hero' => 'center', 'image_text' => 'image-left', 'text' => 'single'],
         ],
-        // Big and confident: a wide measure, ranged left so headlines run long, slanted
-        // section edges, and the surfaces used hard — gradient hero, contrast panels.
+        // Big and confident: a wide measure, ranged left so headlines run long, the
+        // surfaces used hard, and a slant where the tone changes.
         'bold' => [
-            'section' => ['surface' => 'plain', 'rhythm' => 'normal', 'width' => 'wide', 'align' => 'left', 'divider' => 'slant'],
+            'section' => ['surface' => 'plain', 'rhythm' => 'normal', 'width' => 'wide', 'align' => 'left', 'divider' => 'none'],
             'surfaces' => ['hero' => 'gradient', 'image_text' => 'contrast', 'text' => 'tinted'],
+            'dividers' => ['hero' => 'slant', 'text' => 'slant'],
             'layouts' => ['hero' => 'center', 'image_text' => 'image-left', 'text' => 'single'],
         ],
-        // Relaxed and open: airy rhythm, curved section edges, and heroes split so the
-        // text sits beside its image rather than under it.
+        // Relaxed and open: airy rhythm, split heroes, and a curve used as an accent on
+        // a couple of transitions. A curve on every boundary reads as a stack of
+        // lozenges rather than as a style.
         'soft' => [
-            'section' => ['surface' => 'plain', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'curve'],
+            'section' => ['surface' => 'plain', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'none'],
             'surfaces' => ['hero' => 'tinted', 'text' => 'tinted'],
+            'dividers' => ['hero' => 'curve', 'text' => 'curve'],
             'layouts' => ['hero' => 'split', 'image_text' => 'image-right', 'text' => 'single'],
         ],
         // Dense and flush: full-bleed sections, tight rhythm, no dividers at all, split
@@ -93,6 +99,7 @@ final class Presets
         'brutalist' => [
             'section' => ['surface' => 'plain', 'rhythm' => 'tight', 'width' => 'full', 'align' => 'left', 'divider' => 'none'],
             'surfaces' => ['hero' => 'contrast', 'text' => 'tinted'],
+            'dividers' => [],
             'layouts' => ['hero' => 'split', 'image_text' => 'image-left', 'text' => 'columns'],
         ],
     ];
@@ -110,6 +117,24 @@ final class Presets
     public static function exists(string $name): bool
     {
         return isset(self::ALL[$name]);
+    }
+
+    /**
+     * The section edge a character uses as its accent: the shape it draws where the tone
+     * changes, rather than on every boundary. 'none' when it draws no edges at all.
+     *
+     * A divider marks a transition, so using one everywhere is the same as using none:
+     * the eye stops reading it as a boundary.
+     */
+    public static function dividerAccent(string $name): string
+    {
+        $composition = self::COMPOSITION[$name] ?? self::COMPOSITION[self::DEFAULT];
+        // The map lists only the transitions a character actually draws, so its first
+        // entry is the accent. A character that draws none falls back to its section
+        // default, which is 'none' for all of them today.
+        $accents = array_values($composition['dividers']);
+
+        return $accents === [] ? $composition['section']['divider'] : $accents[0];
     }
 
     /**

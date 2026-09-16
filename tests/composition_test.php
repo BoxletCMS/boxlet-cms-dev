@@ -19,7 +19,7 @@ function shapeOf(string $preset): array
         'width' => $section['width'],
         'rhythm' => $section['rhythm'],
         'align' => $section['align'],
-        'divider' => $section['divider'],
+        'divider' => Presets::dividerAccent($preset),
         'hero' => Presets::COMPOSITION[$preset]['layouts']['hero'] ?? '',
     ];
 }
@@ -41,10 +41,43 @@ test('every character composes a different shape', function () {
     }
 });
 
+// A divider marks a transition. Drawn on every boundary it stops reading as one, and
+// the page becomes a stack of lozenges rather than a composition.
+test('a divider is an accent, never a default for every section', function () {
+    $types = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types();
+
+    foreach (Presets::names() as $preset) {
+        $drawn = 0;
+        foreach ($types as $type) {
+            if (Composition::style($preset, $type)['divider'] !== 'none') {
+                $drawn++;
+            }
+        }
+        assertTrue($drawn < count($types), "{$preset} draws a divider on every block type");
+    }
+
+    assertEquals('curve', Composition::style('soft', 'hero')['divider'], 'soft draws its accent');
+    assertEquals('none', Composition::style('soft', 'image_text')['divider'], 'soft elsewhere');
+    assertEquals('curve', Presets::dividerAccent('soft'), 'the shape soft uses');
+    assertEquals('none', Presets::dividerAccent('brutalist'), 'brutalist draws no edges at all');
+});
+
+test('the first section on a page never draws a divider', function () {
+    // Browser behaviour, so what is testable here is that the rule exists and covers
+    // both the rule and the shaped edges.
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections.css');
+    $rule = strstr($css, 'main > .block:first-child') ?: fail('sections.css has no first-section rule');
+    $rule = substr($rule, 0, (int) strpos($rule, '}'));
+
+    foreach (['border-top: 0', 'clip-path: none', 'border-start-start-radius: 0'] as $needed) {
+        assertContains($needed, $rule, 'the first-section rule');
+    }
+});
+
 test('a character composes every block type, including ones it never names', function () {
     $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
 
-    assertEquals('narrow', Composition::style('editorial', 'text')['width'], 'editorial measure');
+    assertEquals('normal', Composition::style('editorial', 'text')['width'], 'editorial measure');
     assertEquals('full', Composition::style('brutalist', 'text')['width'], 'brutalist measure');
     assertEquals('gradient', Composition::style('bold', 'hero')['surface'], 'bold hero surface');
     assertEquals('left', Composition::layout($registry, 'editorial', 'hero'), 'editorial hero');

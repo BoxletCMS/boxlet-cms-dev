@@ -1,0 +1,191 @@
+/* The inspector: the panel beside the canvas, the block library, and the selected
+ * block's own fields. Split out of builder.css, which keeps the editor shell — the
+ * toolbar, the canvas and the frame around them. Admin tokens only (--ui-*).
+ *
+ * The panel is about 26rem of usable width, which is why so much of this narrows or
+ * unstacks what the fallback editor lays out wide.
+ */
+
+/* Page settings: a short fixed form above the library. */
+
+.panel-page {
+  display: grid;
+  gap: var(--ui-4);
+  padding-bottom: var(--ui-4);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.panel-page h2 {
+  margin: 0;
+  font-size: var(--ui-text-base);
+}
+
+.panel-page .field input,
+.panel-page .field select {
+  max-inline-size: none;
+}
+
+.builder-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-4);
+  overflow-y: auto;
+  padding: var(--ui-4);
+  background: var(--ui-panel);
+  border-left: var(--ui-border) solid var(--ui-line);
+}
+
+.panel-library h2,
+.panel-header h2 {
+  margin: 0;
+  font-size: var(--ui-text-base);
+}
+
+.panel-library .hint {
+  margin-bottom: var(--ui-3);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  padding-bottom: var(--ui-3);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.panel-header h2 {
+  flex: 1;
+}
+
+/* The library: one column, so each preview is wide enough to read as a page rather
+   than as a thumbnail. */
+.library-grid {
+  display: grid;
+  gap: var(--ui-3);
+}
+
+.library-card {
+  display: grid;
+  gap: var(--ui-2);
+  padding: var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.library-card:hover {
+  border-color: var(--ui-accent);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.library-card[aria-busy="true"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* The preview renders at desktop width and is scaled down, so the card shows the block
+   as a visitor sees it rather than as a narrow phone layout. */
+.library-frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--ui-panel-sunken);
+  border-radius: var(--ui-radius-s);
+}
+
+.library-frame iframe {
+  position: absolute;
+  inset: 0 auto auto 0;
+  inline-size: 400%;
+  block-size: 400%;
+  border: 0;
+  transform: scale(0.25);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.library-name {
+  font-weight: 550;
+}
+
+.panel-block .block-editor {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* The panel header already names the selected block; the group's own legend would say
+   it a second time, two lines below. */
+.panel-block .block-editor-legend {
+  display: none;
+}
+
+/* The fallback editor reorders blocks by dragging their headers, and moves and removes
+   them by submitting the form. Here the canvas does both without a round trip, so those
+   controls would either do nothing or throw the user back into the plain editor. The
+   panel header carries the visual editor's own. */
+.panel-block .drag-handle,
+.panel-block .block-editor-controls {
+  display: none;
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-1);
+  padding-block: var(--ui-3);
+}
+
+.panel-actions .button {
+  font-size: var(--ui-text-sm);
+}
+
+/* One field group should read as one thing. Without real space between groups, a help
+   text and the next group's label sit together and the panel becomes a single wall. */
+.panel-block .block-body {
+  padding-inline: 0;
+  gap: var(--ui-6);
+}
+
+.panel-block .field > label,
+.panel-block .field > .field-label {
+  font-size: var(--ui-text-sm);
+  letter-spacing: 0.01em;
+}
+
+.panel-block .field .hint {
+  font-size: var(--ui-text-xs);
+  line-height: 1.45;
+}
+
+/* Rich text needs more room than anything else on this panel. */
+.panel-block .field textarea {
+  min-block-size: 9rem;
+}
+
+.panel-block .field textarea[rows="8"] {
+  min-block-size: 17rem;
+}
+
+/* The panel is narrow: two-column field rows do not fit in it. */
+.panel-block .field-row,
+.panel-block .block-style-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-block .field input,
+.panel-block .field select,
+.panel-block .field textarea {
+  max-inline-size: none;
+}
+
+@media (max-width: 64rem) {
+  .builder-panel {
+    border-left: 0;
+    border-top: var(--ui-border) solid var(--ui-line);
+  }
+}

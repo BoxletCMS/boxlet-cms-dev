@@ -21,9 +21,15 @@
   margin: 0;
 }
 
+/* One row, in an inspector about 26rem wide. Trix sizes its toolbar for a full-width
+   document editor, and two of its rules outrank a plain .richtext-toolbar descendant
+   selector, so these match its shape and add one level rather than reaching for
+   !important:
+     trix-toolbar .trix-button-group:not(:first-child) { margin-left: 1.5vw }   (0,2,1)
+     trix-toolbar .trix-button--icon { max-width: calc(0.8em + 4vw) }           (0,2,0) */
 .richtext-toolbar .trix-button-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--ui-1);
   align-items: center;
 }
@@ -34,6 +40,14 @@
   border: var(--ui-border) solid var(--ui-line);
   border-radius: var(--ui-radius-m);
   overflow: hidden;
+}
+
+.richtext .richtext-toolbar .trix-button-group:not(:first-child) {
+  margin-left: 0;
+}
+
+.richtext .richtext-toolbar .trix-button--icon {
+  max-inline-size: none;
 }
 
 .richtext-toolbar .trix-button {
@@ -60,13 +74,24 @@
   background: var(--ui-accent-soft);
 }
 
+/* Disabled is muted, never invisible (D-012: every control, disabled included, at least
+   3:1 against its surface). Opacity on the button used to multiply Trix's own 0.125 on
+   the icon, putting undo and indent at 1.12:1 on white — a control nobody can see, which
+   reads as a missing feature rather than a disabled one. The icons are data-URI SVGs with
+   a black stroke, so opacity over --ui-panel #ffffff is the only lever: measured with
+   Color::contrast, 0.85 is 15.13:1 enabled and 0.55 is 4.74:1 disabled. Different at a
+   glance, both legible. */
 .richtext-toolbar .trix-button:disabled {
-  opacity: 0.4;
+  background: var(--ui-panel-sunken);
   cursor: default;
 }
 
 .richtext-toolbar .trix-button--icon::before {
   opacity: 0.85;
+}
+
+.richtext .richtext-toolbar .trix-button--icon:disabled::before {
+  opacity: 0.55;
 }
 
 .richtext-toolbar .trix-button-group-spacer {
@@ -108,10 +133,15 @@
 
 /* The link dialog */
 
+/* The link dialog sits in the flow, between the buttons and the editor, so it can never
+   cover the text being linked — the one thing you need to see while linking it. Trix
+   places it position:absolute; top:0, which in this narrow panel lands it straight over
+   the first lines of the editor. A closed dialog costs nothing here: Trix hides it with
+   its own injected [data-trix-dialog] { display: none }. */
 .richtext-toolbar .trix-dialog {
-  position: absolute;
-  z-index: 5;
-  inline-size: min(24rem, 90%);
+  position: static;
+  inline-size: auto;
+  margin-block-start: var(--ui-2);
   padding: var(--ui-3);
   background: var(--ui-panel);
   border: var(--ui-border) solid var(--ui-line);

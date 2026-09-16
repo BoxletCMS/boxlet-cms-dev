@@ -15,7 +15,7 @@ function adminStylesheets(): array
         // The editor's chrome. canvas.css matters most: it is the one admin stylesheet
         // loaded into a document full of the site's tokens, so a selection outline that
         // borrowed one would be unreadable on the designs that need it most.
-        'builder.css', 'canvas.css',
+        'builder.css', 'builder-inspector.css', 'canvas.css',
     ];
 }
 

@@ -211,8 +211,8 @@ final class PageEditorController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/edit', [
             'title' => t('pages.edit'),
             'nav' => 'pages',
-            'styles' => ['vendor/trix.css', 'admin-richtext.css', 'admin-pages.css'],
-            'scripts' => ['vendor/trix.umd.min.js', 'richtext.js'],
+            'styles' => ['admin-richtext.css', 'admin-pages.css'],
+            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js'],
             'character' => Composition::active($this->db()),
             'page' => $page,
             'titleValue' => $title,

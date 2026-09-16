@@ -1,0 +1,17 @@
+{
+  "name": "boxlet-tiptap-bundle",
+  "private": true,
+  "description": "Maintainer-only recipe: bundles TipTap into one committed file (PLAN.md D-017). Never shipped, never installed by a user.",
+  "scripts": {
+    "build": "esbuild entry.js --bundle --minify --format=iife --global-name=BoxletTipTap --legal-comments=none --target=es2019 --outfile=tiptap.bundle.min.js"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "@tiptap/extension-link": "3.31.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2"
+  }
+}

@@ -1,171 +1,230 @@
 /*
- * Rich text fields.
+ * Rich text fields, on TipTap (PLAN.md D-017).
  *
- * The textarea in the HTML is the real field: it carries the name, and without JavaScript
- * it is a perfectly good way to edit HTML. This takes the name off it, puts it on a hidden
- * input, and puts Trix above. The plain toggle then shows the textarea again — it is what
- * was underneath all along, not a second editor kept in step with the first.
+ * The contract belongs to the project, not to the editor, and survived replacing one:
  *
- * Trix is a convenience. The server's whitelist decides what is stored, whatever arrives.
+ *   - The textarea in the HTML is the real field. It carries the name, and without
+ *     JavaScript it is a perfectly good way to edit HTML. This takes the name off it, puts
+ *     it on a hidden input, and puts the editor above.
+ *   - The plain toggle shows the textarea again. It is what was underneath all along, not
+ *     a second editor kept in step with the first.
+ *   - Nothing is bound by an id that encodes a block's position. Both editors renumber
+ *     block-<n>- ids when a block moves, and an editor bound to one would start writing
+ *     into another block's field (the 2a bug).
+ *
+ * The editor is a convenience. The server's whitelist decides what is stored, whatever
+ * arrives, and the schema below is that whitelist so the editor cannot even offer markup
+ * the server would throw away.
  */
 (function () {
   'use strict';
 
-  // Attachments are Trix's one proprietary format: a figure carrying JSON in an
-  // attribute. Refuse every file, by any route. The sanitiser strips the markup too, so a
-  // later version of Trix cannot reintroduce them silently.
-  document.addEventListener('trix-file-accept', function (event) {
-    event.preventDefault();
-  });
-
-  /*
-   * A second heading level, emitting the h3 we already store (PLAN.md D-015).
-   *
-   * Trix ships one heading, h1. The whitelist allows h2 and h3, and h3 had no way through:
-   * Trix did not recognise the element, loaded it as bold text, and the first save stored
-   * it as bold text — the author's subheading gone, permanently, without anyone touching
-   * it. Registering the block attribute gives Trix both a way to write one and a way to
-   * read one back.
-   *
-   * Set before any editor is created below, because Trix builds its parser from this.
-   */
-  if (window.Trix) {
-    [['heading2', 'h3'], ['heading3', 'h4']].forEach(function (level) {
-      if (!window.Trix.config.blockAttributes[level[0]]) {
-        window.Trix.config.blockAttributes[level[0]] = {
-          tagName: level[1],
-          terminal: true,
-          breakOnReturn: true,
-          group: false,
-        };
-      }
-    });
-  }
-
-  /*
-   * An id Trix binds to must never encode the block's position.
-   *
-   * Trix resolves its input by id on every access, and a trix-toolbar finds its editors
-   * with querySelectorAll('trix-editor[toolbar="<my id>"]'). Both editors renumber ids
-   * matching block-<n>- when a block is added, moved or dragged, so an id in that shape
-   * is silently re-pointed at whichever block now sits in that position — and the editor
-   * then writes into another block's field. This counter belongs to the editor itself,
-   * so moving a block cannot change what it is bound to. The textarea keeps its
-   * block-<n>-field id, which is what label[for] follows.
-   */
   var seq = 0;
 
   /*
-   * The stored HTML in the shapes Trix owns.
+   * The schema is exactly the storage whitelist (SPEC §5.3).
    *
-   * Trix's block element is <div>, and it offers one heading level, which it emits as
-   * <h1>. Handed a <p> or an <h2> it does not recognise the block: it keeps the words but
-   * marks the boundaries with <br>, and renders a heading as <strong>. Measured in a
-   * browser over three open-and-save cycles, <h2>Heading</h2> became
-   * <p><strong><br><br>Heading<br><br><br></strong></p> — the heading lost on the first
-   * cycle and a break added at each end on every one after, for ever, in every field on
-   * any page that was merely opened and saved.
-   *
-   * Sanitising on save maps div back to p and h1 back to h2, so this is that rule's exact
-   * inverse and nothing about what is stored changes.
-   *
-   * h3 needs no mapping: the heading2 block attribute registered above gives Trix an h3
-   * of its own, so it parses and re-emits one unchanged.
+   * Every option here was settled by measuring the editor's output, not by reading about
+   * it:
+   *   trailingNode: false — TipTap otherwise appends an empty paragraph to any content
+   *     that does not end in one, so <ul>…</ul> came back as <ul>…</ul><p></p> and a field
+   *     changed on its first save. The cost is that a list or quote at the very end has no
+   *     paragraph after it to click into; Enter twice still leaves the list.
+   *   HTMLAttributes on the link — TipTap adds target and rel by default, which the
+   *     whitelist does not allow. Nulling them there works; setting target/rel at the top
+   *     level does not.
    */
-  function forEditor(html) {
-    var holder = document.createElement('div');
-    holder.innerHTML = html;
-    holder.querySelectorAll('p, h2').forEach(function (block) {
-      var replacement = document.createElement(block.tagName === 'P' ? 'div' : 'h1');
-      while (block.firstChild) {
-        replacement.appendChild(block.firstChild);
-      }
-      block.replaceWith(replacement);
-    });
-
-    return holder.innerHTML;
+  function extensions(tiptap) {
+    return [
+      tiptap.StarterKit.configure({
+        code: false,
+        codeBlock: false,
+        strike: false,
+        underline: false,
+        horizontalRule: false,
+        link: false,
+        trailingNode: false,
+        heading: { levels: [2, 3, 4] },
+      }),
+      tiptap.Link.configure({
+        openOnClick: false,
+        autolink: false,
+        HTMLAttributes: { target: null, rel: null },
+      }),
+    ];
   }
 
+  /** What each toolbar button does, and when it shows as active. */
+  var COMMANDS = {
+    bold: { run: function (c) { return c.toggleBold(); }, active: 'bold' },
+    italic: { run: function (c) { return c.toggleItalic(); }, active: 'italic' },
+    h2: { run: function (c) { return c.toggleHeading({ level: 2 }); }, active: ['heading', { level: 2 }] },
+    h3: { run: function (c) { return c.toggleHeading({ level: 3 }); }, active: ['heading', { level: 3 }] },
+    h4: { run: function (c) { return c.toggleHeading({ level: 4 }); }, active: ['heading', { level: 4 }] },
+    quote: { run: function (c) { return c.toggleBlockquote(); }, active: 'blockquote' },
+    bullet: { run: function (c) { return c.toggleBulletList(); }, active: 'bulletList' },
+    ordered: { run: function (c) { return c.toggleOrderedList(); }, active: 'orderedList' },
+    undo: { run: function (c) { return c.undo(); } },
+    redo: { run: function (c) { return c.redo(); } },
+  };
+
   function setup(textarea) {
-    if (textarea.hasAttribute('data-richtext-ready') || !window.Trix) {
+    var tiptap = window.BoxletTipTap;
+    if (textarea.hasAttribute('data-richtext-ready') || !tiptap) {
       return;
     }
     textarea.setAttribute('data-richtext-ready', '');
 
     var field = textarea.closest('[data-richtext]');
     var uid = 'richtext-' + seq++;
+
     var hidden = document.createElement('input');
     hidden.type = 'hidden';
     hidden.name = textarea.name;
-    hidden.value = forEditor(textarea.value);
+    hidden.value = textarea.value;
     hidden.id = uid + '-value';
     textarea.removeAttribute('name');
     textarea.insertAdjacentElement('afterend', hidden);
 
-    var editor = document.createElement('trix-editor');
-    editor.setAttribute('input', hidden.id);
-    // The toolbar is found by structure, not by a name built from the textarea's id, so
-    // this holds however the group is renumbered. Without one Trix makes its own.
-    var toolbar = field.querySelector('trix-toolbar');
-    if (toolbar) {
-      toolbar.id = uid + '-toolbar';
-      editor.setAttribute('toolbar', toolbar.id);
-    }
-    editor.className = 'richtext-editor';
-    hidden.insertAdjacentElement('afterend', editor);
+    var host = document.createElement('div');
+    host.className = 'richtext-editor';
+    host.setAttribute('data-richtext-editor', '');
+    hidden.insertAdjacentElement('afterend', host);
+
+    var editor = new tiptap.Editor({
+      element: host,
+      extensions: extensions(tiptap),
+      injectCSS: false,
+      content: textarea.value,
+      onUpdate: function () {
+        hidden.value = editor.getHTML();
+      },
+    });
+
+    var toolbar = field.querySelector('[data-richtext-toolbar]');
+    var link = field.querySelector('[data-richtext-link]');
     field.classList.add('richtext-rich');
 
-    // Ctrl+Shift+V: paste with everything stripped to text. Pasting from a word processor
-    // is a mess in every editor, and someone who knows the escape hatch is not stuck.
-    var plainNext = false;
-    editor.addEventListener('keydown', function (event) {
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && String(event.key).toLowerCase() === 'v') {
-        plainNext = true;
-      }
-    });
-    editor.addEventListener('paste', function (event) {
-      if (!plainNext) {
+    /*
+     * Which buttons are lit. ProseMirror keeps the selection in the editor's own state, so
+     * this is asked of the document rather than of the browser's selection.
+     */
+    function refresh() {
+      if (!toolbar) {
         return;
       }
-      plainNext = false;
-      event.preventDefault();
-      event.stopPropagation();
-      var text = (event.clipboardData || window.clipboardData).getData('text/plain');
-      if (text && editor.editor) {
-        editor.editor.insertString(text);
-      }
-    }, true);
-
-    /*
-     * Close the heading menu on a choice and on Escape.
-     *
-     * Trix opens the dialog for us and marks the active level, but it closes a dialog only
-     * for its own dialog methods; an attribute button inside one leaves it open. Closing is
-     * what Trix's hideDialog does — drop the active attribute and class — and focus goes
-     * back to the button that opened it, so the keyboard does not end up nowhere.
-     */
-    var menu = field.querySelector('[data-trix-dialog="heading"]');
-    var menuButton = field.querySelector('[data-trix-action="heading"]');
-    if (menu && menuButton) {
-      var closeMenu = function (refocus) {
-        menu.removeAttribute('data-trix-active');
-        menu.classList.remove('trix-active');
-        if (refocus) {
-          menuButton.focus();
+      Object.keys(COMMANDS).forEach(function (name) {
+        var button = toolbar.querySelector('[data-rt="' + name + '"]');
+        var active = COMMANDS[name].active;
+        if (!button || !active) {
+          return;
         }
-      };
-      menu.addEventListener('click', function (event) {
-        if (event.target.closest('[data-trix-attribute]')) {
-          closeMenu(true);
-        }
+        var on = Array.isArray(active) ? editor.isActive(active[0], active[1]) : editor.isActive(active);
+        button.setAttribute('aria-pressed', String(on));
       });
-      field.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && menu.hasAttribute('data-trix-active')) {
-          event.preventDefault();
-          closeMenu(true);
+      var linkButton = toolbar.querySelector('[data-rt="link"]');
+      if (linkButton) {
+        linkButton.setAttribute('aria-pressed', String(editor.isActive('link')));
+      }
+    }
+    editor.on('selectionUpdate', refresh);
+    editor.on('transaction', refresh);
+
+    if (toolbar) {
+      toolbar.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-rt]');
+        if (!button) {
+          return;
+        }
+        event.preventDefault();
+        var name = button.getAttribute('data-rt');
+        if (name === 'link') {
+          openLink();
+          return;
+        }
+        if (COMMANDS[name]) {
+          COMMANDS[name].run(editor.chain().focus()).run();
+          refresh();
         }
       });
     }
+
+    /*
+     * Editing a link without stealing the selection.
+     *
+     * The selection lives in the editor's state, not in the browser, so moving focus to a
+     * text input does not disturb it: ProseMirror simply stops rendering the cursor. When
+     * the address is applied, extendMarkRange('link') widens the stored selection to the
+     * whole link so editing one applies to all of it, and .focus() hands the caret back.
+     * Nothing has to be saved and restored by hand, which is what an editor that manages
+     * the browser's own selection forces on you.
+     */
+    function openLink() {
+      if (!link) {
+        return;
+      }
+      var input = link.querySelector('input');
+      link.hidden = false;
+      // The address of the link the cursor is in, so editing one starts from what it is.
+      // extendMarkRange first: with only part of a link selected, getAttributes returns
+      // nothing and the field came back empty when reopening on an existing link.
+      editor.chain().extendMarkRange('link').run();
+      input.value = editor.getAttributes('link').href || '';
+      input.focus();
+      input.select();
+    }
+
+    function closeLink(refocus) {
+      if (!link) {
+        return;
+      }
+      link.hidden = true;
+      if (refocus) {
+        editor.chain().focus().run();
+      }
+    }
+
+    if (link) {
+      link.addEventListener('click', function (event) {
+        var action = event.target.closest('[data-rt-link]');
+        if (!action) {
+          return;
+        }
+        event.preventDefault();
+        var href = link.querySelector('input').value.trim();
+        var chain = editor.chain().focus().extendMarkRange('link');
+        if (action.getAttribute('data-rt-link') === 'apply' && href !== '') {
+          chain.setLink({ href: href }).run();
+        } else {
+          chain.unsetLink().run();
+        }
+        closeLink(true);
+        refresh();
+      });
+      link.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeLink(true);
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          link.querySelector('[data-rt-link="apply"]').click();
+        }
+      });
+    }
+
+    // Ctrl+K opens it from the keyboard, and clicking back into the text puts it away:
+    // the panel belongs to the selection, so returning to the writing ends it.
+    host.addEventListener('keydown', function (event) {
+      if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === 'k') {
+        event.preventDefault();
+        openLink();
+      }
+    });
+    host.addEventListener('mousedown', function () {
+      if (link && !link.hidden) {
+        closeLink(false);
+      }
+    });
 
     var toggle = field.querySelector('[data-richtext-toggle]');
     if (toggle) {
@@ -177,9 +236,8 @@
           textarea.focus();
           toggle.textContent = toggle.getAttribute('data-label-rich');
         } else {
-          if (editor.editor) {
-            editor.editor.loadHTML(forEditor(textarea.value));
-          }
+          editor.commands.setContent(textarea.value, { emitUpdate: false });
+          hidden.value = editor.getHTML();
           toggle.textContent = toggle.getAttribute('data-label-plain');
         }
       });
@@ -192,6 +250,8 @@
         hidden.value = textarea.value;
       }
     });
+
+    refresh();
   }
 
   function scan(root) {

@@ -45,73 +45,51 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                     <label for="<?= e($inputId) ?>"><?= e($label) ?></label>
 <?php if ($field['type'] === 'richtext'): ?>
                     <?php /* The textarea is the real field and carries the name. richtext.js
-                             moves the name onto a hidden input and puts Trix above it, so a
-                             browser without JavaScript still edits this page, and the plain
-                             toggle is simply what is underneath rather than a second input
-                             kept in step. */ ?>
+                             moves the name onto a hidden input and puts the editor above it,
+                             so a browser without JavaScript still edits this page, and the
+                             plain toggle is simply what is underneath rather than a second
+                             input kept in step. */ ?>
+                    <?php /* The toolbar is ours now, not the editor's (D-017). Short text
+                             labels rather than an invented icon set: legible at rest by
+                             construction, which is what D-012 asks for, and one less thing
+                             to draw twice. Each button says what it does through title and
+                             an accessible label; richtext.js binds them by data-rt. */ ?>
                     <div class="richtext" data-richtext>
-                        <trix-toolbar id="<?= e($inputId) ?>-toolbar" class="richtext-toolbar">
-                            <div class="trix-button-row">
-                                <span class="trix-button-group trix-button-group--text-tools" data-trix-button-group="text-tools">
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-bold" data-trix-attribute="bold" data-trix-key="b" title="<?= e(t('richtext.bold')) ?>" tabindex="-1"><?= e(t('richtext.bold')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-italic" data-trix-attribute="italic" data-trix-key="i" title="<?= e(t('richtext.italic')) ?>" tabindex="-1"><?= e(t('richtext.italic')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-link" data-trix-attribute="href" data-trix-action="link" data-trix-key="k" title="<?= e(t('richtext.link')) ?>" tabindex="-1"><?= e(t('richtext.link')) ?></button>
-                                </span>
-                                <?php /* No strike (del) and no code (pre): the whitelist has
-                                         neither, and a button whose output is discarded on
-                                         save is worse than no button. No attach either —
-                                         attachments are Trix's one proprietary format. */ ?>
-                                <span class="trix-button-group trix-button-group--block-tools" data-trix-button-group="block-tools">
-                                    <?php /* One button opening a menu of levels (D-016).
-                                             data-trix-action opens the dialog below rather
-                                             than invoking anything: Trix's own toolbar does
-                                             getDialog(name) first and toggles it when one
-                                             exists. Tabbable on purpose — the icon buttons
-                                             around it are reached through the editor's
-                                             shortcuts, but a menu has to be openable
-                                             without a mouse. */ ?>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-heading-1" data-trix-action="heading" aria-haspopup="true" title="<?= e(t('richtext.heading')) ?>"><?= e(t('richtext.heading')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-quote" data-trix-attribute="quote" title="<?= e(t('richtext.quote')) ?>" tabindex="-1"><?= e(t('richtext.quote')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-bullet-list" data-trix-attribute="bullet" title="<?= e(t('richtext.bullets')) ?>" tabindex="-1"><?= e(t('richtext.bullets')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-number-list" data-trix-attribute="number" title="<?= e(t('richtext.numbers')) ?>" tabindex="-1"><?= e(t('richtext.numbers')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-decrease-nesting-level" data-trix-action="decreaseNestingLevel" title="<?= e(t('richtext.outdent')) ?>" tabindex="-1"><?= e(t('richtext.outdent')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-increase-nesting-level" data-trix-action="increaseNestingLevel" title="<?= e(t('richtext.indent')) ?>" tabindex="-1"><?= e(t('richtext.indent')) ?></button>
-                                </span>
-                                <span class="trix-button-group-spacer"></span>
-                                <span class="trix-button-group trix-button-group--history-tools" data-trix-button-group="history-tools">
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-undo" data-trix-action="undo" data-trix-key="z" title="<?= e(t('richtext.undo')) ?>" tabindex="-1"><?= e(t('richtext.undo')) ?></button>
-                                    <button type="button" class="trix-button trix-button--icon trix-button--icon-redo" data-trix-action="redo" data-trix-key="shift+z" title="<?= e(t('richtext.redo')) ?>" tabindex="-1"><?= e(t('richtext.redo')) ?></button>
-                                </span>
+                        <div class="richtext-toolbar" data-richtext-toolbar role="toolbar" aria-label="<?= e(t('richtext.toolbar')) ?>">
+                            <div class="rt-group">
+                                <button type="button" class="rt-button" data-rt="bold" aria-pressed="false" title="<?= e(t('richtext.bold')) ?>"><span aria-hidden="true">B</span><span class="visually-hidden"><?= e(t('richtext.bold')) ?></span></button>
+                                <button type="button" class="rt-button rt-italic" data-rt="italic" aria-pressed="false" title="<?= e(t('richtext.italic')) ?>"><span aria-hidden="true">I</span><span class="visually-hidden"><?= e(t('richtext.italic')) ?></span></button>
+                                <?php /* Drawn, not written: an emoji renders as an empty box wherever that font is
+         missing — measured in the headless browser, where it drew as tofu — and an
+         ampersand does not say "link" to anyone. currentColor means the icon inherits
+         --ui-ink like every text label beside it, so it carries the same 16.51:1 and
+         D-012 needs no separate decision. */ ?>
+<button type="button" class="rt-button" data-rt="link" aria-pressed="false" title="<?= e(t('richtext.link')) ?>"><svg class="rt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.5 13.5a4.5 4.5 0 0 0 6.36 0l2.83-2.83a4.5 4.5 0 0 0-6.36-6.36l-1.06 1.06"/><path d="M13.5 10.5a4.5 4.5 0 0 0-6.36 0l-2.83 2.83a4.5 4.5 0 0 0 6.36 6.36l1.06-1.06"/></svg><span class="visually-hidden"><?= e(t('richtext.link')) ?></span></button>
                             </div>
-                            <?php /* Copied from Trix's own toolbar: the dialog's structure is
-                                     what makes the link button work. */ ?>
-                            <div class="trix-dialogs" data-trix-dialogs>
-                                <?php /* The level names are ours, not Trix's. Trix's
-                                         heading1 emits an h1, which the sanitiser stores as
-                                         h2 (the page's own title is the h1), so the button
-                                         offering "Heading 2" carries heading1. heading2 and
-                                         heading3 are registered in richtext.js and emit h3
-                                         and h4. Text buttons, not icons: a level is a word,
-                                         and Trix marks the active one itself through
-                                         refreshAttributeButtons. */ ?>
-                                <div class="trix-dialog richtext-heading-menu" data-trix-dialog="heading" role="group" aria-label="<?= e(t('richtext.heading_levels')) ?>">
-                                    <div class="trix-button-group">
-                                        <button type="button" class="trix-button trix-button--dialog" data-trix-attribute="heading1"><?= e(t('richtext.heading_2')) ?></button>
-                                        <button type="button" class="trix-button trix-button--dialog" data-trix-attribute="heading2"><?= e(t('richtext.heading_3')) ?></button>
-                                        <button type="button" class="trix-button trix-button--dialog" data-trix-attribute="heading3"><?= e(t('richtext.heading_4')) ?></button>
-                                    </div>
-                                </div>
-                                <div class="trix-dialog trix-dialog--link" data-trix-dialog="href" data-trix-dialog-attribute="href">
-                                    <div class="trix-dialog__link-fields">
-                                        <input type="url" name="href" class="trix-input trix-input--dialog" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>" data-trix-validate-href required data-trix-input>
-                                        <div class="trix-button-group">
-                                            <input type="button" class="trix-button trix-button--dialog" value="<?= e(t('richtext.link')) ?>" data-trix-method="setAttribute">
-                                            <input type="button" class="trix-button trix-button--dialog" value="<?= e(t('richtext.unlink')) ?>" data-trix-method="removeAttribute">
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="rt-group">
+                                <button type="button" class="rt-button" data-rt="h2" aria-pressed="false" title="<?= e(t('richtext.heading_2')) ?>"><span aria-hidden="true">H2</span><span class="visually-hidden"><?= e(t('richtext.heading_2')) ?></span></button>
+                                <button type="button" class="rt-button" data-rt="h3" aria-pressed="false" title="<?= e(t('richtext.heading_3')) ?>"><span aria-hidden="true">H3</span><span class="visually-hidden"><?= e(t('richtext.heading_3')) ?></span></button>
+                                <button type="button" class="rt-button" data-rt="h4" aria-pressed="false" title="<?= e(t('richtext.heading_4')) ?>"><span aria-hidden="true">H4</span><span class="visually-hidden"><?= e(t('richtext.heading_4')) ?></span></button>
+                                <button type="button" class="rt-button" data-rt="quote" aria-pressed="false" title="<?= e(t('richtext.quote')) ?>"><span aria-hidden="true">&#8220;</span><span class="visually-hidden"><?= e(t('richtext.quote')) ?></span></button>
                             </div>
-                        </trix-toolbar>
+                            <div class="rt-group">
+                                <button type="button" class="rt-button" data-rt="bullet" aria-pressed="false" title="<?= e(t('richtext.bullets')) ?>"><span aria-hidden="true">&#8226;</span><span class="visually-hidden"><?= e(t('richtext.bullets')) ?></span></button>
+                                <button type="button" class="rt-button" data-rt="ordered" aria-pressed="false" title="<?= e(t('richtext.numbers')) ?>"><span aria-hidden="true">1.</span><span class="visually-hidden"><?= e(t('richtext.numbers')) ?></span></button>
+                            </div>
+                            <div class="rt-group rt-history">
+                                <button type="button" class="rt-button" data-rt="undo" title="<?= e(t('richtext.undo')) ?>"><span aria-hidden="true">&#8630;</span><span class="visually-hidden"><?= e(t('richtext.undo')) ?></span></button>
+                                <button type="button" class="rt-button" data-rt="redo" title="<?= e(t('richtext.redo')) ?>"><span aria-hidden="true">&#8631;</span><span class="visually-hidden"><?= e(t('richtext.redo')) ?></span></button>
+                            </div>
+                        </div>
+                        <?php /* In the flow, not over the text, so it never covers what is
+                                 being linked. Hidden with the hidden attribute rather than
+                                 a class; admin.css makes that attribute win over anything
+                                 that would lay the panel out. */ ?>
+                        <div class="richtext-link" data-richtext-link hidden>
+                            <input type="url" class="rt-link-input" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>">
+                            <button type="button" class="button button-secondary" data-rt-link="apply"><?= e(t('richtext.link')) ?></button>
+                            <button type="button" class="button button-ghost" data-rt-link="remove"><?= e(t('richtext.unlink')) ?></button>
+                        </div>
                         <textarea id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" rows="8" data-richtext-source><?= e($value) ?></textarea>
                         <div class="richtext-actions">
                             <button type="button" class="button button-ghost js-only" data-richtext-toggle data-label-plain="<?= e(t('richtext.plain')) ?>" data-label-rich="<?= e(t('richtext.rich')) ?>"><?= e(t('richtext.plain')) ?></button>

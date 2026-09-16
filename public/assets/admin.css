@@ -9,6 +9,18 @@
  * Loaded with admin-ui.css and admin-forms.css by the admin, the login screen and the
  * installer. */
 
+/* The hidden attribute wins over anything that lays an element out.
+ *
+ * Measured: the link panel carried hidden and still reported display:flex at 59px on
+ * screen, because .richtext-link { display: flex } is an author rule and the browser's own
+ * [hidden] { display: none } is not. Every author rule that gives an element a display
+ * beats it, so this is a rule rather than a patch on one panel — the next thing hidden
+ * this way is protected too. Specificity, not !important: .admin [hidden] is (0,1,1) and
+ * outranks a single class. */
+.admin [hidden] {
+  display: none;
+}
+
 .admin {
   /* Neutrals: a cool grey paper, comfortable for a working day. */
   --ui-bg: #f5f7fa;

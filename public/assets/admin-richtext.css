@@ -1,6 +1,14 @@
-/* Trix, dressed in the admin's own tokens. Trix ships a complete look of its own; this
- * overrides what clashes rather than letting a second design system into the admin.
- * Admin tokens only (--ui-*), as everywhere else in here. */
+/* The rich text field: our toolbar, TipTap's editor (PLAN.md D-017 — spike).
+ *
+ * Admin tokens only (--ui-*), as everywhere else in here. TipTap is built with
+ * injectCSS: false, so it adds no stylesheet of its own — measured as zero <style>
+ * elements — and the admin's security policy needs no exception. Everything the editor
+ * looks like is in this file.
+ *
+ * The buttons carry short text rather than icons, so nothing here needs opacity to draw a
+ * glyph: --ui-ink on --ui-panel measures 16.51:1, and a disabled control is told apart by
+ * colour rather than by fading a picture towards its background (D-012).
+ */
 
 .richtext {
   display: grid;
@@ -10,140 +18,114 @@
 /* Which half is on screen. Without JavaScript neither class is set and the textarea —
    the element that carries the name — is simply visible, which is the fallback. */
 .richtext-rich > textarea,
-.richtext-plain > .richtext-editor,
-.richtext-plain > .richtext-toolbar {
+.richtext-plain > .richtext-toolbar,
+.richtext-plain > .richtext-link,
+.richtext-plain > .richtext-editor {
   display: none;
 }
 
 /* Toolbar */
 
 .richtext-toolbar {
-  margin: 0;
-}
-
-/* One row, in an inspector about 26rem wide. Trix sizes its toolbar for a full-width
-   document editor, and two of its rules outrank a plain .richtext-toolbar descendant
-   selector, so these match its shape and add one level rather than reaching for
-   !important:
-     trix-toolbar .trix-button-group:not(:first-child) { margin-left: 1.5vw }   (0,2,1)
-     trix-toolbar .trix-button--icon { max-width: calc(0.8em + 4vw) }           (0,2,0) */
-.richtext-toolbar .trix-button-row {
   display: flex;
   flex-wrap: nowrap;
-  gap: var(--ui-1);
+  gap: var(--ui-2);
   align-items: center;
 }
 
-.richtext-toolbar .trix-button-group {
+.rt-group {
   display: flex;
-  margin: 0;
   border: var(--ui-border) solid var(--ui-line);
   border-radius: var(--ui-radius-m);
   overflow: hidden;
 }
 
-.richtext .richtext-toolbar .trix-button-group:not(:first-child) {
-  margin-left: 0;
+/* Undo and redo sit apart from the writing tools, at the end of the row. */
+.rt-history {
+  margin-inline-start: auto;
 }
 
-.richtext .richtext-toolbar .trix-button--icon {
-  max-inline-size: none;
-}
-
-.richtext-toolbar .trix-button {
-  position: relative;
-  inline-size: 1.75rem;
+.rt-button {
+  display: grid;
+  place-items: center;
+  min-inline-size: 1.75rem;
   block-size: 1.75rem;
-  padding: 0;
+  padding-inline: var(--ui-1);
   background: var(--ui-panel);
   border: 0;
   border-left: var(--ui-border) solid var(--ui-line);
   color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  line-height: 1;
   cursor: pointer;
 }
 
-.richtext-toolbar .trix-button:first-child {
+.rt-group .rt-button:first-child {
   border-left: 0;
 }
 
-.richtext-toolbar .trix-button:hover {
+.rt-button:hover {
   background: var(--ui-panel-sunken);
 }
 
-.richtext-toolbar .trix-button.trix-active {
+.rt-button:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: -2px;
+}
+
+/* The state the cursor is in, not a hover: TipTap reports it from the document. */
+.rt-button[aria-pressed="true"] {
   background: var(--ui-accent-soft);
 }
 
-/* The icon at about the size of the field text beside it. Trix's background-size: contain
-   drew each 24px glyph across the whole button, which read as heavy next to the inputs. */
-.richtext .richtext-toolbar .trix-button--icon::before {
-  background-size: 1rem;
+.rt-italic {
+  font-style: italic;
 }
 
-/* Disabled is muted, never invisible (D-012: every control, disabled included, at least
-   3:1 against its surface). Opacity on the button used to multiply Trix's own 0.125 on the
-   icon, putting undo and indent at 1.12:1 — a control nobody can see, which reads as a
-   missing feature rather than a disabled one. The icons are data-URI SVGs with a black
-   stroke, so opacity over the surface is the only lever. Measured with Color::contrast:
-   enabled 0.6 is 5.74:1 on --ui-panel #ffffff, disabled 0.45 is 3.25:1 on the
-   --ui-panel-sunken #fafbfc a disabled button sits on. The surface matters: 0.42 passes on
-   white at 3.03:1 and fails on the sunken panel at 2.93:1. */
-.richtext-toolbar .trix-button:disabled {
-  background: var(--ui-panel-sunken);
-  cursor: default;
+/* Drawn at the size of the letters beside it, and in the same ink: the icon takes
+   currentColor, so it carries the button's own colour and contrast rather than a value of
+   its own. */
+.rt-icon {
+  inline-size: 1em;
+  block-size: 1em;
 }
 
-.richtext-toolbar .trix-button--icon::before {
-  opacity: 0.6;
-}
+/* The link row, in the flow between the toolbar and the editor so it never covers the
+   text being linked. Hidden with the hidden attribute, so it costs nothing when closed. */
 
-.richtext .richtext-toolbar .trix-button--icon:disabled::before {
-  opacity: 0.45;
-}
-
-/* The heading menu: levels as words, in the flow beneath the toolbar like the link dialog,
-   so it never covers the text whose level is being changed. */
-/* No border of its own: the dialog around it already draws one, and two made the menu a
-   box inside a box — heavier than anything else in a panel that was made lighter. The
-   dividers between the levels come from each button's own left edge.
-
-   Set to 0 rather than left out. The general .trix-button-group rule above draws the
-   border, so omitting it here changes nothing: measured as 1px on both the dialog and the
-   group until this said border: 0. */
-.richtext-heading-menu .trix-button-group {
+.richtext-link {
   display: flex;
-  border: 0;
-  border-radius: 0;
+  gap: var(--ui-2);
+  align-items: center;
+  padding: var(--ui-2);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
 }
 
-.richtext-toolbar .richtext-heading-menu .trix-button--dialog {
+.rt-link-input {
   flex: 1;
-  border: 0;
-  border-left: var(--ui-border) solid var(--ui-line);
-  border-radius: 0;
+  min-inline-size: 0;
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-sm);
 }
 
-.richtext-toolbar .richtext-heading-menu .trix-button--dialog:first-child {
-  border-left: 0;
+.richtext-link .button {
+  font-size: var(--ui-text-sm);
 }
 
-/* Trix marks the level the cursor is in through refreshAttributeButtons, so the menu says
-   where you are as well as offering where to go. */
-.richtext-toolbar .richtext-heading-menu .trix-button--dialog.trix-active {
-  background: var(--ui-accent-soft);
-  font-weight: 600;
-}
-
-.richtext-toolbar .trix-button-group-spacer {
-  flex: 1;
-}
-
-/* The editor itself, matching every other field on the panel. */
+/* The editor itself, matching every other field on the panel. TipTap renders into a child
+   with the ProseMirror class; the box belongs to us. */
 
 .richtext-editor {
   box-sizing: border-box;
-  min-block-size: 12rem;
-  padding: var(--ui-2) var(--ui-3);
   background: var(--ui-panel);
   border: var(--ui-border) solid var(--ui-line-strong);
   border-radius: var(--ui-radius-m);
@@ -152,16 +134,43 @@
   line-height: var(--ui-leading);
 }
 
-.richtext-editor:focus {
+.richtext-editor .ProseMirror {
+  min-block-size: 12rem;
+  padding: var(--ui-2) var(--ui-3);
+  outline: 0;
+}
+
+.richtext-editor:focus-within {
   border-color: var(--ui-accent);
   outline: 2px solid var(--ui-accent);
   outline-offset: -1px;
 }
 
-.richtext-editor h1 {
+.richtext-editor .ProseMirror > :first-child {
+  margin-top: 0;
+}
+
+.richtext-editor .ProseMirror > :last-child {
+  margin-bottom: 0;
+}
+
+.richtext-editor h2 {
   margin: 0 0 var(--ui-2);
   font-size: var(--ui-text-lg);
   font-weight: 650;
+}
+
+.richtext-editor h3 {
+  margin: 0 0 var(--ui-2);
+  font-size: var(--ui-text-base);
+  font-weight: 650;
+}
+
+.richtext-editor h4 {
+  margin: 0 0 var(--ui-2);
+  font-size: var(--ui-text-sm);
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }
 
 .richtext-editor blockquote {
@@ -171,63 +180,14 @@
   color: var(--ui-ink-muted);
 }
 
-/* The link dialog */
-
-/* Closed dialogs are hidden here, not by Trix.
-   Trix injects a stylesheet at runtime carrying [data-trix-dialog] { display: none }.
-   The admin sends default-src 'self' with no style-src, so the browser refuses to apply
-   it: the <style> element is in the document and its rules never take effect. Measured
-   in a browser — a closed dialog reported display:block. That is what "the link dialog
-   covers the text" really was: not an overlay while linking, but a panel always on
-   screen. This stylesheet is served, not inline, so it is not blocked. */
-.richtext-toolbar [data-trix-dialog] {
-  display: none;
+.richtext-editor ul,
+.richtext-editor ol {
+  margin: 0 0 var(--ui-2);
+  padding-inline-start: var(--ui-5);
 }
 
-.richtext-toolbar [data-trix-dialog][data-trix-active] {
-  display: block;
-}
-
-/* With that fixed, the dialog can sit in the flow between the buttons and the editor,
-   where it cannot cover the text being linked — the one thing you need to see while
-   linking it. Trix would place it position:absolute; top:0, straight over the first
-   lines of the editor in a panel this narrow. */
-.richtext-toolbar .trix-dialog {
-  position: static;
-  inline-size: auto;
-  margin-block-start: var(--ui-2);
-  padding: var(--ui-3);
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
-  box-shadow: var(--ui-shadow-m);
-  font-size: var(--ui-text-sm);
-}
-
-.richtext-toolbar .trix-dialog__link-fields {
-  display: flex;
-  gap: var(--ui-2);
-  align-items: center;
-}
-
-.richtext-toolbar .trix-input--dialog {
-  flex: 1;
-  min-inline-size: 0;
-  padding: var(--ui-2) var(--ui-3);
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line-strong);
-  border-radius: var(--ui-radius-m);
-  color: var(--ui-ink);
-  font: inherit;
-}
-
-.richtext-toolbar .trix-button--dialog {
-  inline-size: auto;
-  block-size: auto;
-  padding: var(--ui-2) var(--ui-3);
-  border: var(--ui-border) solid var(--ui-line-strong);
-  border-radius: var(--ui-radius-m);
-  font-size: var(--ui-text-sm);
+.richtext-editor li > p {
+  margin: 0;
 }
 
 .richtext-actions {
@@ -240,12 +200,4 @@
 .richtext-actions .button {
   padding-inline: 0;
   font-size: var(--ui-text-sm);
-}
-
-/* Attachments are refused before they can be created; this makes certain that nothing
-   of theirs can ever be shown, whatever a later version of Trix does. */
-.richtext-editor .attachment,
-.richtext-editor .attachment-gallery,
-.richtext-toolbar .trix-button-group--file-tools {
-  display: none !important;
 }

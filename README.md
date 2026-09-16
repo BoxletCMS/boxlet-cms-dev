@@ -91,6 +91,11 @@ They live in `public/assets/vendor/`, and each file records its version and sour
 its own header. What is vendored, and the rule for adding to it, is in `docs/SPEC.md` §3.
 To update one, download the new pinned release over it and change both.
 
+One of them, the TipTap editor bundle, is not published as a single file, so it is built
+once by a maintainer from the recipe in `tools/tiptap/` and committed like the rest. That
+build happens outside the project and never on your server: installing Boxlet still builds
+nothing, and needs no Node and no npm.
+
 ### Demo site
 
 The installer can add a demo site: four pages that use every block and section style.

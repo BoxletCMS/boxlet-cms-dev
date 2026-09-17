@@ -21,7 +21,7 @@ return [
     'admin.nav.label' => 'Admin navigation',
     'admin.nav.dashboard' => 'Dashboard',
     'admin.nav.pages' => 'Pages',
-    'admin.nav.media' => 'Pictures',
+    'admin.nav.media' => 'Media',
     'admin.nav.design' => 'Design',
     'admin.logout' => 'Log out',
 

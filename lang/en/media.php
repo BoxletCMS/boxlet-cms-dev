@@ -1,6 +1,8 @@
 <?php
 
-// Pictures: uploading, refusing, the library screen, and what one picture means
+// Media: uploading, refusing, the library screen, and what one picture means. The
+// library is "Media" because it will later hold documents to download (PLAN.md O-17);
+// wording about a single image still says "picture", because that is what it is.
 // (SPEC §5.5).
 //
 // Split from en.php, which had grown past the 300-line rule. t() loads every file in
@@ -25,8 +27,8 @@ return [
     'media.limits' => 'Up to :file per picture, and :request in one go.',
 
     // The library screen.
-    'media.title' => 'Pictures',
-    'media.empty' => 'No pictures yet. Upload one to start.',
+    'media.title' => 'Media',
+    'media.empty' => 'Nothing here yet. Upload a picture to start.',
     'media.upload' => 'Upload pictures',
     'media.upload_hint' => 'Choose files, or drop them here. JPEG, PNG, WebP, GIF or AVIF.',
     'media.upload_submit' => 'Upload',
@@ -51,7 +53,7 @@ return [
     'media.pick_close' => 'Close',
 
     // One picture.
-    'media.back' => 'All pictures',
+    'media.back' => 'All media',
     'media.details' => 'Details',
     'media.original_name' => 'Uploaded as',
     'media.dimensions_label' => 'Dimensions',

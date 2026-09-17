@@ -85,6 +85,71 @@ testBothDrivers('a format recorded as unavailable no longer holds the picture ba
         static fn (string $made): bool => str_ends_with($made, '.avif'))), 'it retried the unavailable format');
 });
 
+// ASSERTED ON JPEG, DELIBERATELY, even though the caller that needs the parameter passes
+// AVIF. The point here is that the number reaches the encoder at all — and AVIF cannot
+// show that on an Imagick host, which ignores quality for it (see smallerAvif). JPEG is
+// honoured by both drivers, so this fails if the parameter is dropped on the way and
+// passes on every machine that can write a JPEG at all.
+test('the quality a caller asks for reaches the encoder', function () {
+    $encoder = new MediaEncoder();
+    if (!$encoder->supports('jpg')) {
+        skip('this machine cannot write jpeg, so there is no quality to observe', 'images');
+    }
+    $writer = new MediaWriter($encoder);
+    $source = noiseFixture(tmpPath('quality.jpg'), 800, 600);
+    $crop = MediaPresets::crop('card', 800, 600);
+
+    $high = $writer->encode($source, tmpPath('quality-high.jpg'), $crop, 'jpg', 1, 90);
+    $low = $writer->encode($source, tmpPath('quality-low.jpg'), $crop, 'jpg', 1, 20);
+
+    assertTrue(
+        $low['bytes'] < $high['bytes'],
+        sprintf('quality 20 gave %d bytes and quality 90 gave %d: the parameter is being dropped', $low['bytes'], $high['bytes']),
+    );
+});
+
+// The retry (SPEC §8) through the only claims that hold on EVERY driver. It cannot be
+// asserted that the stored file got smaller: that depends on the delegate honouring
+// quality for AVIF, which ImageMagick 6.9.12 does not. What must hold regardless is that
+// a retry never makes things worse and never leaves its working file behind — the two
+// ways this could damage a library rather than merely fail to help it.
+testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves no working file', function (string $driver) {
+    [$storage, $public] = mediaPaths();
+    $db = installedSite(['en' => 'English'], $driver);
+    $encoder = new MediaEncoder();
+    if (!$encoder->supports('avif')) {
+        skip('this machine cannot write avif, so the rule never applies', 'images');
+    }
+    $upload = new MediaUpload($db, $storage, $encoder);
+    $variants = new MediaVariants($db, $encoder, new MediaWriter($encoder), $storage, $public);
+
+    // Noise, because the rule only engages over 250 KB and a flat fixture is a few KB.
+    $source = noiseFixture(tmpPath('retry.jpg'), 2000, 1200);
+    $direct = (new MediaWriter($encoder))->encode(
+        $source,
+        tmpPath('retry-direct.avif'),
+        MediaPresets::crop('hero', 2000, 1200),
+        'avif',
+        1,
+    );
+    if ($direct['bytes'] <= 250 * 1024) {
+        skip(sprintf('this encoder makes a %d byte hero of noise, under the rule, so it never engages', $direct['bytes']), 'images');
+    }
+
+    $id = $upload->store($source, 'retry.jpg')['id'];
+    $variants->generate($id, null);
+
+    $stored = glob($public . '/m/hero/*-retry.avif') ?: [];
+    if ($stored === []) {
+        fail('no hero avif was written at all');
+    }
+    assertTrue(
+        (int) filesize($stored[0]) <= $direct['bytes'],
+        sprintf('the stored hero is %d bytes, larger than the %d a single encode gives', (int) filesize($stored[0]), $direct['bytes']),
+    );
+    assertEquals([], glob($public . '/m/*/*.retry') ?: [], 'a retry left its working file in the public directory');
+});
+
 // The orientation case, tested by GEOMETRY. A 400×200 source with a white block in its
 // stored top-left, tagged orientation 6 (a quarter turn clockwise on display), presents
 // as 200×400 — and a crop taken after the turn is a crop of the upright picture.

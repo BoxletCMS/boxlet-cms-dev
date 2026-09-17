@@ -37,6 +37,11 @@ final class MediaVariants
      */
     public const UNAVAILABLE = '_unavailable';
 
+    /** Over this, a cropped AVIF is written once more at RETRY_QUALITY (SPEC §8). */
+    private const RETRY_OVER = 250 * 1024;
+
+    private const RETRY_QUALITY = 40;
+
     /** What one encode might take, when deciding whether to start another. */
     private const RESERVE_SECONDS = 2.0;
 
@@ -128,6 +133,8 @@ final class MediaVariants
                     continue;
                 }
 
+                $result = $this->smallerAvif($preset, $format, $source, $relative, $crop, $orientation, $result);
+
                 $existing[$preset]['formats'] = array_values(array_unique(
                     array_merge(is_array($have) ? $have : [], [$format]),
                 ));
@@ -142,6 +149,80 @@ final class MediaVariants
         $this->record($mediaId, $existing, $complete);
 
         return ['made' => $made, 'complete' => $complete];
+    }
+
+    /**
+     * One more attempt at an AVIF that came out too heavy, at a lower quality.
+     *
+     * The 200 KB in SPEC §8 is a budget for a typical photograph, not a contract: over the
+     * ten demo photographs at `hero`, nine landed between 18 KB and 83 KB and one — a flat
+     * wood-plank texture, which is the worst case for any codec — came out at 234 KB. A
+     * site should not ship that silently, so anything over 250 KB is written once more at
+     * quality 40 and the smaller file wins.
+     *
+     * WHERE THIS ACTUALLY DOES ANYTHING, measured rather than assumed. GD passes quality
+     * to libavif, so the retry works there. ImageMagick 6.9.12-98 — this machine, and CI —
+     * IGNORES quality for AVIF and WebP: the same 1920×1080 source came out at 418,673 B
+     * at q50, q40 and q10 alike, through setImageCompressionQuality before and after
+     * setImageFormat and through setOption('quality') and setOption('heic:quality'). The
+     * same build honours it for JPEG (1,397,189 B at q82 down to 268,531 B at q10), which
+     * is how we know the value reaches the encoder and the delegate drops it.
+     *
+     * So on Imagick this costs one extra encode that produces an identical file, which the
+     * smaller-wins test below discards. That is the bounded cost of a rule that works on
+     * the other driver; it is NOT a measured improvement everywhere, and saying so here
+     * would be a comment that explains a thing the code does not do.
+     *
+     * Giving AVIF real size control on such hosts is PLAN.md O-18, open and deliberately
+     * not decided from this one machine.
+     *
+     * ONCE, never a loop, and only where it applies: AVIF, because it is already the
+     * smallest of the three and the one the page serves, and cropped presets, because
+     * `full` is the largest public version by design (height 0 = keep the proportions).
+     *
+     * The retry is written beside the target and moved over it only when it wins. Writing
+     * straight over would mean a second pass that came out LARGER had destroyed the better
+     * file — and a lower quality setting does not guarantee a smaller file on every codec
+     * build. A retry that throws leaves the first result alone: AVIF is best-effort (§5.5)
+     * and must never block the set from completing.
+     *
+     * @param array{x: int, y: int, width: int, height: int, targetWidth: int, targetHeight: int} $crop
+     * @param array{width: int, height: int, bytes: int} $result
+     * @return array{width: int, height: int, bytes: int}
+     */
+    private function smallerAvif(
+        string $preset,
+        string $format,
+        string $source,
+        string $relative,
+        array $crop,
+        int $orientation,
+        array $result,
+    ): array {
+        if ($format !== 'avif' || $result['bytes'] <= self::RETRY_OVER) {
+            return $result;
+        }
+        if ((MediaPresets::ALL[$preset]['height'] ?? 0) === 0) {
+            return $result;
+        }
+
+        $target = $this->publicPath . '/' . $relative;
+        $candidate = $target . '.retry';
+
+        try {
+            $retry = $this->writer->encode($source, $candidate, $crop, $format, $orientation, self::RETRY_QUALITY);
+        } catch (Throwable) {
+            @unlink($candidate);
+
+            return $result;
+        }
+
+        if ($retry['bytes'] > 0 && $retry['bytes'] < $result['bytes'] && @rename($candidate, $target)) {
+            return $retry;
+        }
+        @unlink($candidate);
+
+        return $result;
     }
 
     /**

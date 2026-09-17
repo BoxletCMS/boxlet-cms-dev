@@ -28,10 +28,21 @@ final class MediaWriter
      * The crop rectangle comes from MediaPresets and is expressed in ORIENTED coordinates,
      * because that is the picture a person sees and the focal point they clicked on.
      *
+     * $quality is the encoder's own scale, or null for this codec's default — avif 50,
+     * webp and jpeg 82. It exists so a variant that came out too heavy can be written
+     * once more at a lower setting (MediaVariants), and it is passed rather than stored
+     * because the default is right for every picture but one in ten.
+     *
+     * WHETHER IT IS OBEYED DEPENDS ON THE DELEGATE, and the defaults above are not a
+     * promise. GD honours it for all three. ImageMagick 6.9.12 honours it for JPEG and
+     * silently ignores it for AVIF and WebP — so on such a host those two are written at
+     * whatever the delegate's own default is, and the 50 and 82 never apply. Measured in
+     * MediaVariants::smallerAvif().
+     *
      * @param array{x: int, y: int, width: int, height: int, targetWidth: int, targetHeight: int} $crop
      * @return array{width: int, height: int, bytes: int}
      */
-    public function encode(string $source, string $target, array $crop, string $format, int $orientation): array
+    public function encode(string $source, string $target, array $crop, string $format, int $orientation, ?int $quality = null): array
     {
         $directory = dirname($target);
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
@@ -42,8 +53,8 @@ final class MediaWriter
         }
 
         $this->encoder->driver() === 'imagick'
-            ? $this->encodeImagick($source, $target, $crop, $format, $orientation)
-            : $this->encodeGd($source, $target, $crop, $format, $orientation);
+            ? $this->encodeImagick($source, $target, $crop, $format, $orientation, $quality)
+            : $this->encodeGd($source, $target, $crop, $format, $orientation, $quality);
 
         $size = @getimagesize($target);
 
@@ -57,7 +68,7 @@ final class MediaWriter
     /**
      * @param array{x: int, y: int, width: int, height: int, targetWidth: int, targetHeight: int} $crop
      */
-    private function encodeImagick(string $source, string $target, array $crop, string $format, int $orientation): void
+    private function encodeImagick(string $source, string $target, array $crop, string $format, int $orientation, ?int $quality = null): void
     {
         $class = 'Imagick';
         /** @var Imagick $image */
@@ -78,7 +89,7 @@ final class MediaWriter
         // the right way up, so a tag would turn them a second time.
         $image->stripImage();
         $image->setImageFormat($format === 'jpg' ? 'jpeg' : $format);
-        $image->setImageCompressionQuality($format === 'avif' ? 50 : 82);
+        $image->setImageCompressionQuality($quality ?? ($format === 'avif' ? 50 : 82));
         $image->writeImage($target);
         $image->clear();
     }
@@ -86,7 +97,7 @@ final class MediaWriter
     /**
      * @param array{x: int, y: int, width: int, height: int, targetWidth: int, targetHeight: int} $crop
      */
-    private function encodeGd(string $source, string $target, array $crop, string $format, int $orientation): void
+    private function encodeGd(string $source, string $target, array $crop, string $format, int $orientation, ?int $quality = null): void
     {
         $size = @getimagesize($source);
         $image = match ((string) ($size['mime'] ?? '')) {
@@ -151,12 +162,14 @@ final class MediaWriter
         imagedestroy($image);
 
         // GD carries no EXIF into what it writes, so there is nothing to strip.
+        // PNG's last argument is a compression LEVEL, not a quality, and GIF takes none,
+        // so $quality reaches only the three codecs where it means what it says.
         $written = match ($format) {
-            'avif' => imageavif($out, $target, 50),
-            'webp' => imagewebp($out, $target, 82),
+            'avif' => imageavif($out, $target, $quality ?? 50),
+            'webp' => imagewebp($out, $target, $quality ?? 82),
             'png' => imagepng($out, $target, 6),
             'gif' => imagegif($out, $target),
-            default => imagejpeg($out, $target, 82),
+            default => imagejpeg($out, $target, $quality ?? 82),
         };
         imagedestroy($out);
 

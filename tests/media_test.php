@@ -61,6 +61,43 @@ function imageFixture(string $file, int $width = 400, int $height = 200, int $or
 }
 
 /**
+ * A JPEG of $width × $height filled with random pixels.
+ *
+ * Beside imageFixture() rather than a flag on it, because the two exist for opposite
+ * reasons and a caller should not have to read a boolean to know which it is getting.
+ * imageFixture() is a flat dark rectangle with a white corner: it tests where a region
+ * ENDS UP, and it compresses to a few kilobytes. Noise compresses to almost nothing
+ * else, which is the only way to make an encoder produce a variant big enough to reach
+ * the size rules in SPEC §8 — a test using the flat fixture for that would pass without
+ * the code under test ever running.
+ *
+ * Coarse blocks rather than per-pixel noise: 1920×1080 individual calls take seconds,
+ * and 8px cells are already far past what any codec can predict.
+ */
+function noiseFixture(string $file, int $width = 2000, int $height = 1200): string
+{
+    if (!function_exists('imagecreatetruecolor') || !function_exists('imagejpeg')) {
+        skip('GD is not installed, so no picture fixture can be made', 'images');
+    }
+
+    $image = imagecreatetruecolor(max(1, $width), max(1, $height));
+    mt_srand(20260917);
+    for ($y = 0; $y < $height; $y += 8) {
+        for ($x = 0; $x < $width; $x += 8) {
+            $colour = (int) imagecolorallocate($image, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
+            imagefilledrectangle($image, $x, $y, min($x + 7, $width - 1), min($y + 7, $height - 1), $colour);
+        }
+    }
+    ob_start();
+    imagejpeg($image, null, 95);
+    $jpeg = (string) ob_get_clean();
+    imagedestroy($image);
+    file_put_contents($file, $jpeg);
+
+    return $file;
+}
+
+/**
  * A storage directory and a public directory, both empty.
  *
  * @return array{string, string}

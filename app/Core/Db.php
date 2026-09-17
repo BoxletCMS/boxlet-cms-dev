@@ -2,9 +2,11 @@
 
 namespace App\Core;
 
+use Closure;
 use InvalidArgumentException;
 use PDO;
 use PDOStatement;
+use Throwable;
 
 /**
  * Thin PDO wrapper for MySQL and SQLite. Connects on first use. SQL passed in must be
@@ -98,5 +100,33 @@ final class Db
     public function lastInsertId(): string
     {
         return (string) $this->pdo()->lastInsertId();
+    }
+
+    /**
+     * Runs $work inside a transaction: commit on success, roll back on any throw, and
+     * the exception re-thrown. Silence is never the default — a caller that wants to
+     * swallow one has to say so.
+     *
+     * A transaction belongs to the database rather than to whatever is being saved, which
+     * is why it lives here rather than in the model that happened to need it first.
+     * Design, Installer and Migrator still open theirs by hand and could use this.
+     *
+     * @template T
+     * @param Closure(): T $work
+     * @return T
+     */
+    public function transaction(Closure $work): mixed
+    {
+        $pdo = $this->pdo();
+        $pdo->beginTransaction();
+        try {
+            $result = $work();
+            $pdo->commit();
+
+            return $result;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 }

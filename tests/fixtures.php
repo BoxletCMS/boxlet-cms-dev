@@ -144,13 +144,24 @@ function createAdmin(Db $db, string $email, string $password): void
 }
 
 /**
+ * The block registry, discovered once. Several tests and fixtures need one to save a
+ * page, because saving resolves media references against what the blocks declare.
+ */
+function blockRegistry(): Blocks
+{
+    static $registry = null;
+
+    return $registry ??= Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+}
+
+/**
  * A page created through the model, with the given blocks, published unless told not to.
  *
  * @param list<array{type: string, content: array<string, mixed>, style?: array<string, string|int|null>, layout?: string}> $blocks
  */
 function createPage(Db $db, string $locale, string $slug, string $title, bool $published = true, array $blocks = []): int
 {
-    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    $registry = blockRegistry();
     $id = Page::create($db, $registry, $locale, $title, $slug, null, []);
     if ($blocks !== []) {
         $rows = [];
@@ -163,7 +174,7 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
                 'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
             ];
         }
-        Page::update($db, $id, ['title' => $title, 'slug' => $slug, 'parent_id' => null, 'status' => 'draft'], $rows);
+        Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug, 'parent_id' => null, 'status' => 'draft'], $rows);
     }
     if ($published) {
         Page::setStatus($db, $id, true);

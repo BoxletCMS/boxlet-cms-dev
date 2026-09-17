@@ -4,6 +4,11 @@
 // every value of every section style (tests/demo_test.php checks this). The copy is
 // deliberately plain so that any character looks at home on it.
 // Each block: [type, content, section style, layout].
+//
+// NO MEDIA IDS HERE. A media field is left out, which normalises to null: an id for a
+// picture that was never uploaded is a dangling reference, and the first photograph
+// that happens to take that number is silently adopted by the page. Photographs arrive
+// with D-022 and are set explicitly then.
 
 return [
     [
@@ -18,7 +23,6 @@ return [
             ['image_text', [
                 'heading' => 'Design first, then everything else',
                 'body' => '<p>Every project starts with how the site should feel: calm and editorial, loud and confident, or somewhere in between.</p><p>The pages, the colours and the type all follow from those few decisions.</p>',
-                'image' => 1,
                 'link' => ['label' => 'How we work', 'url' => '/about'],
             ], ['surface' => 'tinted'], 'image-left'],
             ['text', [
@@ -28,7 +32,6 @@ return [
             ['image_text', [
                 'heading' => 'Built to be looked after',
                 'body' => '<p>You edit your own pages. Nothing breaks when you do, because every block already knows how to look good.</p>',
-                'image' => 2,
                 'image_fit' => 'contain',
             ], [], 'image-right'],
             ['hero', [
@@ -53,7 +56,6 @@ return [
             ['image_text', [
                 'heading' => 'A quiet workshop',
                 'body' => '<p>We keep the team small on purpose. You always talk to the people doing the work.</p>',
-                'image' => 3,
                 'link' => ['label' => 'Our services', 'url' => '/services'],
             ], ['surface' => 'contrast', 'divider' => 'line'], 'image-right'],
             ['text', [
@@ -69,18 +71,15 @@ return [
             ['hero', [
                 'heading' => 'What we do',
                 'subheading' => 'Design, build and care for small websites that are easy to run.',
-                'image' => 4,
                 'cta' => ['label' => 'Start a project', 'url' => 'mailto:hello@example.com'],
             ], ['surface' => 'tinted', 'rhythm' => 'airy'], 'split'],
             ['image_text', [
                 'heading' => 'New sites',
                 'body' => '<p>From a single page to a few dozen, in one or more languages. Designed around your content, not a theme.</p>',
-                'image' => 5,
             ], [], 'image-left'],
             ['image_text', [
                 'heading' => 'Redesigns',
                 'body' => '<p>We keep what works, move your content across, and give the whole site one consistent character.</p>',
-                'image' => 6,
             ], ['surface' => 'tinted', 'divider' => 'slant'], 'image-right'],
             ['text', [
                 'heading' => 'Care plans',
@@ -99,7 +98,7 @@ return [
             ['text', ['heading' => 'Plain surface', 'body' => '<p>Body text with <strong>bold</strong>, <em>italic</em> and <a href="/">a link</a>.</p>'], [], 'single'],
             ['text', ['heading' => 'Tinted surface', 'body' => '<p>Tinted sections separate content without shouting.</p>'], ['surface' => 'tinted', 'divider' => 'line'], 'single'],
             ['text', ['heading' => 'Contrast surface', 'body' => '<p>Text and <a href="/">links</a> switch colour on contrast surfaces.</p>'], ['surface' => 'contrast', 'divider' => 'slant'], 'single'],
-            ['text', ['heading' => 'Image surface', 'body' => '<p>Until media uploads arrive, the image surface uses the contrast colours.</p>'], ['surface' => 'image', 'divider' => 'curve'], 'single'],
+            ['text', ['heading' => 'Image surface', 'body' => '<p>Until a picture is chosen, the image surface uses the contrast colours.</p>'], ['surface' => 'image', 'divider' => 'curve'], 'single'],
             ['text', ['heading' => 'Gradient surface', 'body' => '<p>From the main colour to a neighbouring hue.</p>'], ['surface' => 'gradient'], 'single'],
             ['text', ['heading' => 'Tight rhythm, wide', 'body' => '<p>Less space above and below, more across.</p>'], ['rhythm' => 'tight', 'width' => 'wide'], 'columns'],
             ['text', ['heading' => 'Airy rhythm, full width', 'body' => '<p>Room to breathe, edge to edge.</p>'], ['surface' => 'tinted', 'rhythm' => 'airy', 'width' => 'full', 'divider' => 'curve'], 'single'],

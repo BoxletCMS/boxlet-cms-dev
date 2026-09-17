@@ -140,7 +140,7 @@ testBothDrivers('publishing stamps published_at once and later saves keep it', f
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'news', 'News', false, [['type' => 'text', 'content' => ['body' => '<p>Hi</p>']]]);
     $publishedAt = static fn (): ?string => $db->one('SELECT published_at FROM pages WHERE id = ?', [$id])['published_at'] ?? null;
-    $save = static fn (string $status) => Page::update($db, $id, [
+    $save = static fn (string $status) => Page::update($db, blockRegistry(), $id, [
         'title' => 'News',
         'slug' => 'news',
         'parent_id' => null,

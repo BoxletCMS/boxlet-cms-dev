@@ -106,7 +106,7 @@ final class PageEditorController
             return $this->reject($request, $settings + $page, $title, $slug, $blocks, $errors, t('pages.editor.errors'));
         }
 
-        Page::update($db, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks);
+        Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks);
         $this->container->get('session')->set('flash', t('pages.saved'));
 
         return Response::redirect(Url::admin('pages', $id));

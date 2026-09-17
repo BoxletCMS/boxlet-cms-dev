@@ -6,8 +6,7 @@ use App\Core\Blocks;
 use App\Core\Db;
 use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
-use Closure;
-use Throwable;
+use App\Modules\Media\MediaReference;
 
 /**
  * Pages and their blocks. All SQL is portable between MySQL and SQLite (SPEC §5.0).
@@ -103,7 +102,7 @@ final class Page
      */
     public static function create(Db $db, Blocks $registry, string $locale, string $title, string $slug, ?int $templateId, array $blockTypes, ?string $character = null): int
     {
-        return self::transaction($db, static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes, $character): int {
+        return $db->transaction(static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes, $character): int {
             $now = gmdate('Y-m-d H:i:s');
             // A new page goes last among its siblings. Without this every page keeps the
             // column's default of 0, they all tie, and the order a drag just set is
@@ -124,7 +123,7 @@ final class Page
                     'style' => Composition::style($character, $type),
                     'layout' => Composition::layout($registry, $character, $type),
                 ];
-                self::insertBlock($db, $id, $block, $sort, $now);
+                self::insertBlock($db, $registry, $id, $block, $sort, $now);
             }
 
             return $id;
@@ -141,12 +140,15 @@ final class Page
      * because every caller has to pass all of them: a save that left one out would write
      * a default over whatever the page already had.
      *
+     * The registry is here because saving resolves media references: which fields of a
+     * block can hold a picture is something only the registry knows.
+     *
      * @param array{title: string, slug: string, parent_id: int|null, status: string} $page
      * @param list<BlockRow> $blocks
      */
-    public static function update(Db $db, int $id, array $page, array $blocks): void
+    public static function update(Db $db, Blocks $registry, int $id, array $page, array $blocks): void
     {
-        self::transaction($db, static function () use ($db, $id, $page, $blocks): void {
+        $db->transaction(static function () use ($db, $registry, $id, $page, $blocks): void {
             $now = gmdate('Y-m-d H:i:s');
             // A page that changes parent joins a different set of siblings, where its old
             // position means nothing and collides with whoever already holds it. It goes
@@ -186,11 +188,19 @@ final class Page
                     } else {
                         $db->query(
                             'UPDATE page_blocks SET sort = ?, content_json = ?, style_json = ?, layout = ?, updated_at = ? WHERE id = ? AND page_id = ?',
-                            [$sort, self::json($block['content']), self::json(SectionStyle::resolve($db, $block['style'])), $block['layout'], $now, $block['id'], $id],
+                            [
+                                $sort,
+                                self::json(MediaReference::resolve($db, $registry, $block['type'], $block['content'])),
+                                self::json(SectionStyle::resolve($db, $block['style'])),
+                                $block['layout'],
+                                $now,
+                                $block['id'],
+                                $id,
+                            ],
                         );
                     }
                 } elseif ($block['content'] !== null) {
-                    self::insertBlock($db, $id, $block, $sort, $now);
+                    self::insertBlock($db, $registry, $id, $block, $sort, $now);
                 }
             }
             foreach (array_keys($existing) as $blockId) {
@@ -239,17 +249,19 @@ final class Page
     /**
      * @param BlockRow $block
      */
-    private static function insertBlock(Db $db, int $pageId, array $block, int $sort, string $now): void
+    private static function insertBlock(Db $db, Blocks $registry, int $pageId, array $block, int $sort, string $now): void
     {
-        // A section's picture is validated here rather than in normalize(), which is pure
-        // and called from places with no database (D-024). An id naming a picture that has
-        // since been deleted becomes null, and the section renders as it did before
-        // pictures existed.
+        // Pictures are validated here rather than in normalize(), which is pure and called
+        // from places with no database (D-024, extended to block content). An id naming a
+        // picture that does not exist becomes null: a section renders as it did before
+        // pictures existed, and a block shows its placeholder. Leaving a dangling id would
+        // let the next picture to take that number be adopted by the page silently.
         $block['style'] = SectionStyle::resolve($db, $block['style']);
+        $content = MediaReference::resolve($db, $registry, $block['type'], $block['content'] ?? []);
         $db->query(
             'INSERT INTO page_blocks (page_id, block_type, sort, content_json, style_json, layout, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [$pageId, $block['type'], $sort, self::json($block['content'] ?? []), self::json($block['style']), $block['layout'], $now, $now],
+            [$pageId, $block['type'], $sort, self::json($content), self::json($block['style']), $block['layout'], $now, $now],
         );
         $blockId = (int) $db->lastInsertId();
         $db->query('UPDATE page_blocks SET block_group_id = id WHERE id = ?', [$blockId]);
@@ -263,25 +275,5 @@ final class Page
     private static function json(array $value): string
     {
         return $value === [] ? '{}' : json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
-
-    /**
-     * @template T
-     * @param Closure(): T $work
-     * @return T
-     */
-    private static function transaction(Db $db, Closure $work): mixed
-    {
-        $pdo = $db->pdo();
-        $pdo->beginTransaction();
-        try {
-            $result = $work();
-            $pdo->commit();
-
-            return $result;
-        } catch (Throwable $e) {
-            $pdo->rollBack();
-            throw $e;
-        }
     }
 }

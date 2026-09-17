@@ -24,7 +24,7 @@ function orderedPages(Db $db, array $tree, string $locale = 'en'): array
     }
     foreach ($tree as $title => $parent) {
         if ($parent !== null) {
-            Page::update($db, $ids[$title], [
+            Page::update($db, blockRegistry(), $ids[$title], [
                 'title' => (string) $title,
                 'slug' => strtolower((string) $title),
                 'parent_id' => $ids[$parent],
@@ -127,7 +127,7 @@ testBothDrivers('a page given a new parent goes last among its new siblings', fu
     $db = installedSite(['en' => 'English'], $driver);
     $ids = orderedPages($db, ['About' => null, 'Team' => 'About', 'Ada' => 'About', 'Moved' => null]);
 
-    Page::update($db, $ids['Moved'], [
+    Page::update($db, blockRegistry(), $ids['Moved'], [
         'title' => 'Moved', 'slug' => 'moved', 'parent_id' => $ids['About'], 'status' => 'draft',
     ], []);
 

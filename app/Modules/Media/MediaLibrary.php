@@ -69,7 +69,7 @@ final class MediaLibrary
      */
     public function usedBy(int $mediaId): array
     {
-        $fields = $this->mediaFields();
+        $fields = MediaReference::fields($this->registry);
 
         $used = [];
         foreach ($this->candidates($mediaId) as $row) {
@@ -229,7 +229,7 @@ final class MediaLibrary
         // number of rows as the broken pattern did, so the reason to prefer it is that it
         // matches media references at all, not a measured saving.
         $names = [];
-        foreach ($this->mediaFields() as $fields) {
+        foreach (MediaReference::fields($this->registry) as $fields) {
             foreach ($fields as $field) {
                 $names[$field] = true;
             }
@@ -257,26 +257,6 @@ final class MediaLibrary
              WHERE ' . implode(' OR ', $conditions),
             $params,
         );
-    }
-
-    /**
-     * Block type => the names of its media fields, from the registry rather than a list
-     * kept here, so a block added later is covered without anyone remembering to.
-     *
-     * @return array<string, list<string>>
-     */
-    private function mediaFields(): array
-    {
-        $fields = [];
-        foreach ($this->registry->types() as $type) {
-            foreach ($this->registry->get($type)['fields'] as $name => $field) {
-                if (($field['type'] ?? '') === 'media') {
-                    $fields[$type][] = (string) $name;
-                }
-            }
-        }
-
-        return $fields;
     }
 
     /**

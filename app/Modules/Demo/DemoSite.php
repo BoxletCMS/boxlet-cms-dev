@@ -47,7 +47,7 @@ final class DemoSite
                     'layout' => $registry->layout($type, $layout),
                 ];
             }
-            Page::update($db, $id, [
+            Page::update($db, $registry, $id, [
                 'title' => $page['title'],
                 'slug' => $page['slug'],
                 'parent_id' => null,

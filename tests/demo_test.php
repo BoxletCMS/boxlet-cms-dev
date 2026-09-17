@@ -3,6 +3,7 @@
 use App\Core\Blocks;
 use App\Modules\Demo\DemoSite;
 use App\Modules\Design\SectionStyle;
+use App\Modules\Media\MediaReference;
 
 // The demo site is the visual regression fixture: it has to cover everything.
 
@@ -31,6 +32,22 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
             assertTrue(in_array($value, $used[$key], true), "the demo never uses {$key}: {$value}");
         }
     }
+
+    // The seed references no picture at all. An id for a picture nobody uploaded is a
+    // dangling reference, and the first photograph that happened to take that number was
+    // silently adopted by the page holding it — measured, and then not deletable, because
+    // a page "used" it. Photographs arrive with D-022 and are set explicitly.
+    $referenced = [];
+    foreach ($db->all('SELECT block_type, content_json FROM page_blocks') as $row) {
+        $content = json_decode((string) $row['content_json'], true);
+        foreach (MediaReference::fields($registry)[(string) $row['block_type']] ?? [] as $field) {
+            $value = is_array($content) ? ($content[$field] ?? null) : null;
+            if ($value !== null) {
+                $referenced[] = $row['block_type'] . '.' . $field . ' = ' . var_export($value, true);
+            }
+        }
+    }
+    assertEquals([], $referenced, 'the demo seed references media ids');
 
     foreach (['/', '/about', '/services', '/style-guide'] as $path) {
         assertEquals(200, dispatch($path)->status, $path);

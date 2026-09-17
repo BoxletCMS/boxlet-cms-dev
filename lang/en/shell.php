@@ -4,6 +4,10 @@
 // t('key'); :name placeholders are replaced by t()'s second argument.
 return [
     'csrf.invalid' => 'This form has expired. Go back, reload the page and try again.',
+    // Not a CSRF failure, though it arrives looking like one: PHP discards a post over
+    // post_max_size whole, token and all. Saying the form expired would send someone to
+    // reload and send the same oversized file again.
+    'post.too_large' => 'That was larger than this server accepts (:limit per request), so none of it arrived. Nothing was saved.',
 
     'auth.title' => 'Log in',
     'auth.email' => 'Email',
@@ -17,6 +21,7 @@ return [
     'admin.nav.label' => 'Admin navigation',
     'admin.nav.dashboard' => 'Dashboard',
     'admin.nav.pages' => 'Pages',
+    'admin.nav.media' => 'Pictures',
     'admin.nav.design' => 'Design',
     'admin.logout' => 'Log out',
 

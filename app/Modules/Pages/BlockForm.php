@@ -20,7 +20,7 @@ final class BlockForm
      * falls back to its default rather than being stored.
      *
      * @param array<int, string> $storedTypes block id => type, for this page's blocks
-     * @return array{blocks: list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>, errors: array<string, string>}
+     * @return array{blocks: list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>, errors: array<string, string>}
      */
     public static function parse(Blocks $registry, mixed $posted, array $storedTypes): array
     {
@@ -65,8 +65,8 @@ final class BlockForm
     }
 
     /**
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
     public static function move(array $blocks, int $position, string $direction): array
     {

@@ -39,7 +39,12 @@ testBothDrivers("a section's surface and rhythm are saved and change only that s
     assertRedirectedTo("/admin/pages/{$id}", $response);
 
     $stored = json_decode((string) ($db->one('SELECT style_json FROM page_blocks WHERE id = ?', [(int) $two])['style_json'] ?? ''), true);
-    assertEquals(['surface' => 'contrast', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'curve'], $stored, 'stored style, unknown width replaced');
+    // Derived from DEFAULTS rather than written out, so a change to the shape of a section
+    // style touches the constant and not this literal. The assertions are unchanged: an
+    // unknown width still falls back, and only the edited section moves. The sixth key
+    // arrives with it because D-024 added one (a media id, null when no picture is set).
+    $expected = array_merge(SectionStyle::DEFAULTS, ['surface' => 'contrast', 'rhythm' => 'airy', 'divider' => 'curve']);
+    assertEquals($expected, $stored, 'stored style, unknown width replaced');
 
     $body = dispatch('/about')->body;
     assertContains('<section class="block block-text layout-single surface-plain rhythm-normal width-normal align-left divider-none">', $body, 'first section');

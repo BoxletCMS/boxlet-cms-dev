@@ -1,0 +1,237 @@
+/* The picture library and one picture. Admin tokens only (--ui-*). */
+
+.media-upload,
+.media-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ui-3);
+  margin-bottom: var(--ui-5);
+  padding: var(--ui-4);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+}
+
+.media-upload {
+  border-style: dashed;
+  border-color: var(--ui-line-strong);
+}
+
+.media-upload .field,
+.media-search .field {
+  flex: 1;
+  min-width: 14rem;
+}
+
+/* While a file is dragged over the form. A change of ground, not only of border, so it
+   is unmistakable on a screen where the dashed border is already the resting state. */
+.media-upload.is-dropping {
+  background: var(--ui-accent-soft);
+  border-color: var(--ui-accent);
+}
+
+.media-upload .field-error {
+  flex-basis: 100%;
+}
+
+/* The grid. auto-fill rather than auto-fit: with two pictures in the library, auto-fit
+   would stretch each card across half the screen and a 200px thumbnail would sit in a
+   600px box. */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--ui-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.media-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-2);
+  padding: var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.media-card-link {
+  display: grid;
+  gap: var(--ui-2);
+  text-decoration: none;
+  color: inherit;
+}
+
+.media-card-link:hover .media-name {
+  text-decoration: underline;
+}
+
+/* A fixed square whatever the picture's proportions, so the grid does not jump as
+   pictures load and a portrait sits beside a landscape without either being cut. */
+.media-thumb {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+/* No thumbnail yet: says so in words rather than showing a broken image. */
+.media-thumb-none {
+  display: grid;
+  place-items: center;
+  padding: var(--ui-3);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  text-align: center;
+}
+
+.media-name {
+  overflow-wrap: anywhere;
+  font-weight: 550;
+  font-size: var(--ui-text-sm);
+}
+
+.media-facts {
+  margin: 0;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+}
+
+.media-pending {
+  display: grid;
+  gap: var(--ui-2);
+  margin-top: auto;
+  padding-top: var(--ui-2);
+  border-top: var(--ui-border) dashed var(--ui-line);
+}
+
+.media-pending .hint {
+  margin: 0;
+}
+
+/* One picture */
+
+.media-detail {
+  display: grid;
+  gap: var(--ui-5);
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  align-items: start;
+}
+
+.media-preview,
+.media-side {
+  padding: var(--ui-4);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+}
+
+.media-side h2 {
+  margin: 0 0 var(--ui-3);
+  font-size: var(--ui-text-lg);
+}
+
+.media-side h2 + * {
+  margin-bottom: var(--ui-5);
+}
+
+/* The focal point picker. The frame is positioned so the marker can sit on it; the
+   image fills the frame and the marker is placed in percentages, which is exactly the
+   unit the value is stored in. */
+.focal-frame {
+  position: relative;
+  display: block;
+  margin-bottom: var(--ui-3);
+  line-height: 0;
+  cursor: crosshair;
+}
+
+.focal-image {
+  inline-size: 100%;
+  block-size: auto;
+  border-radius: var(--ui-radius-m);
+}
+
+/* Two rings, light over dark, so the marker is visible on any photograph. A single
+   colour disappears against half the pictures anyone will upload. */
+.focal-marker {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin: -0.625rem 0 0 -0.625rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.75);
+  pointer-events: none;
+}
+
+.focal-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ui-3);
+}
+
+.focal-fields .field {
+  inline-size: 7rem;
+}
+
+.media-facts-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ui-1) var(--ui-3);
+  margin: 0;
+  font-size: var(--ui-text-sm);
+}
+
+.media-facts-list dt {
+  color: var(--ui-ink-muted);
+}
+
+.media-facts-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.media-used {
+  margin: 0;
+  padding-inline-start: var(--ui-5);
+  font-size: var(--ui-text-sm);
+}
+
+.media-delete {
+  margin-top: var(--ui-4);
+  padding-top: var(--ui-4);
+  border-top: var(--ui-border) solid var(--ui-line);
+}
+
+.media-meta {
+  display: grid;
+  gap: var(--ui-4);
+  justify-items: start;
+  margin-top: var(--ui-5);
+}
+
+.media-meta h2 {
+  margin: 0;
+  font-size: var(--ui-text-lg);
+}
+
+.media-meta .fieldset {
+  inline-size: 100%;
+}
+
+@media (max-width: 60rem) {
+  .media-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

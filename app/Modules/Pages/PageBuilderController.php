@@ -171,7 +171,7 @@ final class PageBuilderController
      * and storage it runs first are the same for both editors.
      *
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     public function rejected(array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
@@ -191,7 +191,7 @@ final class PageBuilderController
      * What the canvas should draw: normally the stored page, but after a save that did
      * not validate, the blocks as they were submitted.
      *
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
     private function canvasBlocks(int $pageId): array
     {
@@ -225,7 +225,7 @@ final class PageBuilderController
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     private function shell(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200): Response

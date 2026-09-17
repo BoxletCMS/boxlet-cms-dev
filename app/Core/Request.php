@@ -18,6 +18,13 @@ final class Request
         public readonly array $headers,
         public readonly string $ip = '',
         public readonly bool $https = false,
+        /**
+         * Uploaded files, as PHP hands them over. The admin's first multipart form is the
+         * picture library; before it, nothing here needed $_FILES.
+         *
+         * @var array<string, mixed>
+         */
+        public readonly array $files = [],
     ) {
     }
 
@@ -57,6 +64,7 @@ final class Request
             $headers,
             (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
             $https,
+            $_FILES,
         );
     }
 

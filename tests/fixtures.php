@@ -146,7 +146,7 @@ function createAdmin(Db $db, string $email, string $password): void
 /**
  * A page created through the model, with the given blocks, published unless told not to.
  *
- * @param list<array{type: string, content: array<string, mixed>, style?: array<string, string>, layout?: string}> $blocks
+ * @param list<array{type: string, content: array<string, mixed>, style?: array<string, string|int|null>, layout?: string}> $blocks
  */
 function createPage(Db $db, string $locale, string $slug, string $title, bool $published = true, array $blocks = []): int
 {

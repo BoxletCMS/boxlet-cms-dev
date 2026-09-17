@@ -15,7 +15,10 @@ use App\Modules\Design\DesignController;
 use App\Modules\Pages\PageBuilderController;
 use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageEditorController;
+use App\Modules\Media\MediaController;
 use App\Modules\Media\MediaEncoder;
+use App\Modules\Media\MediaItemController;
+use App\Modules\Media\MediaLibrary;
 use App\Modules\Media\MediaUpload;
 use App\Modules\Media\MediaVariants;
 use App\Modules\Media\MediaWriter;
@@ -76,6 +79,14 @@ $container->set('media_variants', fn (Container $c) => new MediaVariants(
     $storage,
     $root . '/public',
 ));
+// The library needs the block registry as well as the database: which fields can hold a
+// picture is declared by the blocks, so a block added later is covered without editing it.
+$container->set('media_library', fn (Container $c) => new MediaLibrary(
+    $c->get('db'),
+    $c->get('blocks'),
+    $storage,
+    $root . '/public',
+));
 $container->set('update', fn (Container $c) => new Update(
     $c->get('db'),
     $root . '/migrations',
@@ -125,6 +136,17 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/pages/order', [PagesController::class, 'reorder'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/status', [PagesController::class, 'status'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/delete', [PagesController::class, 'delete'], $requireAdmin);
+
+    // Pictures (SPEC §5.5). The generated variants live under /m/ and are served from
+    // disk by the web server; no route here ever answers for one.
+    $router->get('/admin/media', [MediaController::class, 'index'], $requireAdmin);
+    $router->post('/admin/media', [MediaController::class, 'store'], $requireAdmin);
+    $router->get('/admin/media/{id:\d+}', [MediaItemController::class, 'show'], $requireAdmin);
+    $router->post('/admin/media/{id:\d+}', [MediaItemController::class, 'save'], $requireAdmin);
+    $router->post('/admin/media/{id:\d+}/focal', [MediaItemController::class, 'focal'], $requireAdmin);
+    $router->post('/admin/media/{id:\d+}/replace', [MediaItemController::class, 'replace'], $requireAdmin);
+    $router->post('/admin/media/{id:\d+}/delete', [MediaItemController::class, 'delete'], $requireAdmin);
+    $router->post('/admin/media/{id:\d+}/finish', [MediaController::class, 'finish'], $requireAdmin);
 
     $router->get('/admin/design', [DesignController::class, 'show'], $requireAdmin);
     $router->post('/admin/design', [DesignController::class, 'save'], $requireAdmin);

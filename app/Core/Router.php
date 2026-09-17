@@ -3,6 +3,7 @@
 namespace App\Core;
 
 use App\Modules\Update\UpdateGate;
+use App\Support\Bytes;
 use App\Support\Url;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
@@ -130,6 +131,21 @@ final class Router
 
         if ($request->method !== 'GET' && $request->method !== 'HEAD'
             && !$this->container->get('session')->validCsrf($request->body['_csrf'] ?? null)) {
+            // A post over post_max_size arrives with $_POST and $_FILES both empty, so the
+            // token is missing for a reason that has nothing to do with the token. Saying
+            // "this form has expired" would send someone to reload the page and send the
+            // same oversized file again.
+            //
+            // Checked here rather than in a controller because the token check is what the
+            // request meets first: such a request never gets past this line.
+            if (Bytes::postWasDiscarded((int) ($request->header('content-length') ?? '0'), $request->files !== [], $request->body !== [])) {
+                return new Response(
+                    t('post.too_large', ['limit' => Bytes::limits()['requestLabel']]),
+                    413,
+                    ['Content-Type' => 'text/plain; charset=utf-8'],
+                );
+            }
+
             return new Response(t('csrf.invalid'), 403, ['Content-Type' => 'text/plain; charset=utf-8']);
         }
 

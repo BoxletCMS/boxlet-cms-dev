@@ -44,7 +44,7 @@ final class Composition
     /**
      * The section style a block of this type starts from under this character.
      *
-     * @return array<string, string>
+     * @return array<string, string|int|null>
      */
     public static function style(?string $character, string $blockType): array
     {

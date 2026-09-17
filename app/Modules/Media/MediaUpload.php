@@ -77,47 +77,16 @@ final class MediaUpload
     }
 
     /**
-     * What this server accepts, in bytes and as the server states it.
-     *
-     * The labels are what the installer's requirements screen showed, so a refusal names
-     * the same figure the owner was told to raise.
-     *
-     * @return array{file: int, request: int, fileLabel: string, requestLabel: string}
-     */
-    public static function limits(): array
-    {
-        return [
-            'file' => Bytes::parse((string) ini_get('upload_max_filesize')),
-            'request' => Bytes::parse((string) ini_get('post_max_size')),
-            'fileLabel' => (string) ini_get('upload_max_filesize'),
-            'requestLabel' => (string) ini_get('post_max_size'),
-        ];
-    }
-
-    /**
-     * Whether PHP threw the whole request away for being too large.
-     *
-     * An upload past post_max_size does not arrive truncated: PHP discards it entirely, so
-     * $_POST and $_FILES are both empty and the only evidence is that the browser said it
-     * was sending more than the limit. Without this the screen would say "choose a file",
-     * which is both wrong and impossible to act on.
-     */
-    public static function postWasDiscarded(int $contentLength, bool $hasFiles, bool $hasPost): bool
-    {
-        $limit = self::limits()['request'];
-
-        return $limit > 0 && $contentLength > $limit && !$hasFiles && !$hasPost;
-    }
-
-    /**
      * Why an upload failed, in words, or null when it did not.
      *
      * PHP's own UPLOAD_ERR_* codes are reported here rather than in the controller,
-     * because the two size errors have to name the same limits as everything else.
+     * because the two size errors have to name the same limits as everything else. The
+     * limits themselves live in Bytes: the router needs them before any of this runs, to
+     * tell a discarded post from an expired form.
      */
     public static function problem(int $errorCode): ?string
     {
-        $limits = self::limits();
+        $limits = Bytes::limits();
 
         return match ($errorCode) {
             UPLOAD_ERR_OK => null,
@@ -220,6 +189,77 @@ final class MediaUpload
         );
 
         return ['id' => (int) $this->db->lastInsertId(), 'duplicate' => false];
+    }
+
+    /**
+     * Puts different bytes behind an existing picture, keeping its id and its library name.
+     *
+     * The id is the whole point: every page showing this picture shows the new one, with
+     * no page edited and nothing to go and find. The library name is kept too — it is
+     * what the owner called this picture, not a property of the bytes.
+     *
+     * EVERYTHING THAT CAN REFUSE DOES SO BEFORE ANYTHING IS WRITTEN OR REMOVED, so a
+     * rejected replacement leaves the picture exactly as it was.
+     *
+     * @return array<string, mixed> the row as it stood, so the caller can remove what was
+     *                              generated from the old bytes
+     */
+    public function replace(int $mediaId, string $temporaryFile, string $originalName): array
+    {
+        $existing = $this->db->one('SELECT * FROM media WHERE id = ?', [$mediaId]);
+        if ($existing === null) {
+            throw new RuntimeException(t('media.not_found'));
+        }
+
+        $sniffed = self::sniff($temporaryFile);
+        $extension = self::extensionFor($originalName, $sniffed);
+        if ($extension === null) {
+            throw new RuntimeException(t('media.refused', ['type' => $sniffed === '' ? '?' : $sniffed]));
+        }
+        if ($extension === 'avif' && !$this->encoder->supports('avif')) {
+            throw new RuntimeException(t('media.refused_avif'));
+        }
+
+        $hash = (string) sha1_file($temporaryFile);
+        $duplicate = $this->existing($hash);
+        if ($duplicate !== null && (int) $duplicate['id'] !== $mediaId) {
+            // hash is unique, so this would fail at the database anyway. Naming the
+            // picture that already holds those bytes is more use than a constraint error.
+            throw new RuntimeException(t('media.replace_duplicate', ['name' => (string) $duplicate['filename']]));
+        }
+
+        $info = $this->encoder->inspect($temporaryFile);
+        $relative = 'uploads/' . $hash . '.' . $extension;
+        $target = $this->storagePath . '/' . $relative;
+        if (!self::place($temporaryFile, $target)) {
+            throw new RuntimeException(t('media.storage_unwritable'));
+        }
+
+        $this->db->query(
+            'UPDATE media SET original_name = ?, path = ?, mime = ?, size = ?, width = ?, height = ?,
+                    hash = ?, variants_json = NULL, status = ? WHERE id = ?',
+            [
+                substr($originalName, 0, 255),
+                $relative,
+                $info['mime'],
+                (int) filesize($target),
+                $info['width'],
+                $info['height'],
+                $hash,
+                'incomplete',
+                $mediaId,
+            ],
+        );
+
+        // The old original is nothing's source now. Removed after the row points at the
+        // new one, so a failure halfway leaves one file too many rather than a row whose
+        // original has gone.
+        $old = $this->storagePath . '/' . (string) $existing['path'];
+        if ($old !== $target && is_file($old)) {
+            @unlink($old);
+        }
+
+        return $existing;
     }
 
     /**

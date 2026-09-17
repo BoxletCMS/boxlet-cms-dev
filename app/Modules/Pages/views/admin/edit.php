@@ -12,7 +12,7 @@ use App\Support\Url;
  * @var string $titleValue
  * @var string $slugValue
  * @var list<array{id: int, title: string, depth: int}> $parents
- * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
+ * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
  * @var string $character the character new blocks are composed with

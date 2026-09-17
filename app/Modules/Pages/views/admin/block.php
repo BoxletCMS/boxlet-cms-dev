@@ -8,7 +8,7 @@ use App\Modules\Design\Composition;
  * has: it only rewrites blocks[n] and block-n- as groups are added, removed or moved.
  *
  * @var int|string $index
- * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string} $block
+ * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
  * @var array<string, string> $errors
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry

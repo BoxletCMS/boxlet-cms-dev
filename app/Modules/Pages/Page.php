@@ -12,7 +12,7 @@ use Throwable;
 /**
  * Pages and their blocks. All SQL is portable between MySQL and SQLite (SPEC §5.0).
  *
- * @phpstan-type BlockRow array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}
+ * @phpstan-type BlockRow array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}
  */
 final class Page
 {
@@ -73,7 +73,7 @@ final class Page
      * Both editors render from this, so the visual canvas and the fallback form always
      * agree about what is on the page.
      *
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
     public static function editable(Db $db, Blocks $registry, int $pageId): array
     {
@@ -186,7 +186,7 @@ final class Page
                     } else {
                         $db->query(
                             'UPDATE page_blocks SET sort = ?, content_json = ?, style_json = ?, layout = ?, updated_at = ? WHERE id = ? AND page_id = ?',
-                            [$sort, self::json($block['content']), self::json($block['style']), $block['layout'], $now, $block['id'], $id],
+                            [$sort, self::json($block['content']), self::json(SectionStyle::resolve($db, $block['style'])), $block['layout'], $now, $block['id'], $id],
                         );
                     }
                 } elseif ($block['content'] !== null) {
@@ -241,6 +241,11 @@ final class Page
      */
     private static function insertBlock(Db $db, int $pageId, array $block, int $sort, string $now): void
     {
+        // A section's picture is validated here rather than in normalize(), which is pure
+        // and called from places with no database (D-024). An id naming a picture that has
+        // since been deleted becomes null, and the section renders as it did before
+        // pictures existed.
+        $block['style'] = SectionStyle::resolve($db, $block['style']);
         $db->query(
             'INSERT INTO page_blocks (page_id, block_type, sort, content_json, style_json, layout, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)',

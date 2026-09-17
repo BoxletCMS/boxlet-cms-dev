@@ -181,7 +181,7 @@ final class PageEditorController
      * before this point — parsing, validation, storage — is the same for both.
      *
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     private function reject(Request $request, array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
@@ -194,7 +194,7 @@ final class PageEditorController
     }
 
     /**
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}>
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
     private function storedBlocks(int $pageId): array
     {
@@ -203,7 +203,7 @@ final class PageEditorController
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string>, layout: string}> $blocks
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     private function form(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200): Response

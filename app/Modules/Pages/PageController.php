@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Modules\Media\MediaPicture;
 use App\Support\Url;
 
 /**
@@ -30,12 +31,23 @@ final class PageController
         }
 
         $registry = $this->container->get('blocks');
+        $blocks = Page::blocks($db, (int) $page['id']);
+        // Every picture this page refers to, in one query rather than one per block, and
+        // before anything renders: a template is handed what it needs and never queries.
+        $media = MediaPicture::forBlocks($db, $registry, $locale, $blocks);
+
         $html = '';
-        foreach (Page::blocks($db, (int) $page['id']) as $block) {
+        $first = true;
+        foreach ($blocks as $block) {
             // A block whose type was removed from app/Blocks cannot render; skip it.
-            if ($registry->has($block['type'])) {
-                $html .= $registry->render($block['type'], $block['content'], $block['style'], $block['layout']);
+            if (!$registry->has($block['type'])) {
+                continue;
             }
+            // Only the first section that actually draws is eager. Everything below the
+            // fold is lazy, which is the whole point of loading="lazy" — and the first
+            // picture is usually the one a visitor is waiting to see.
+            $html .= $registry->render($block['type'], $block['content'], $block['style'], $block['layout'], $media, $first);
+            $first = false;
         }
 
         return $this->render('page', $locale, [

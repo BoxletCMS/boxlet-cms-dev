@@ -12,6 +12,7 @@ use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\SectionStyle;
+use App\Modules\Media\MediaPicture;
 use App\Modules\Media\MediaReference;
 use App\Support\Url;
 
@@ -73,15 +74,22 @@ final class PageBuilderController
         }
 
         $registry = $this->registry();
+        $blocks = $this->canvasBlocks((int) $page['id']);
+        // Every picture the page refers to, in one query, before any block draws: a
+        // template is handed what it needs and never touches a database.
+        $media = MediaPicture::forBlocks($this->db(), $registry, $locale, $blocks);
+
         $html = '';
-        foreach ($this->canvasBlocks((int) $page['id']) as $block) {
+        $first = true;
+        foreach ($blocks as $block) {
             $content = $block['content'];
             // A block whose type this installation no longer has keeps its stored content
             // and simply does not draw.
             if ($content === null || !$registry->has($block['type'])) {
                 continue;
             }
-            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout']);
+            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first);
+            $first = false;
         }
 
         $body = (new View(__DIR__ . '/views'))->render('admin/canvas', $locale, [

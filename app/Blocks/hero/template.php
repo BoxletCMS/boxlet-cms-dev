@@ -6,6 +6,11 @@
  * @var array<string, mixed> $content
  * @var array<string, mixed> $style
  * @var string $layout
+ * The picture shape is restated rather than imported: @phpstan-import-type resolves in a
+ * class docblock, and a template has no class.
+ *
+ * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string}> $media id => resolved picture
+ * @var bool $eager the first section on the page, which is never lazy-loaded
  */
 ?>
 <div class="hero">
@@ -28,10 +33,19 @@
    A list rather than "always", because a layout that reserves nothing should draw nothing:
    a centred hero has no picture area to fill. */
 $reservesPictureArea = in_array($layout, ['split'], true);
+
+// hero and full: a hero picture can be asked to fill the whole column, so the largest
+// preset it offers is the biggest one that exists (SPEC §5.5).
+$picture = is_int($content['image'] ?? null) ? ($media[$content['image']] ?? null) : null;
+$tag = \App\Modules\Media\MediaPicture::tag($picture, ['hero', 'full'], '(max-width: 40rem) 100vw, 50vw', $eager);
 ?>
 <?php if ($reservesPictureArea || $content['image'] !== null): ?>
     <div class="hero-media">
+<?php if ($tag !== ''): ?>
+        <?= $tag ?>
+<?php else: ?>
         <div class="media-placeholder"<?= $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?> aria-hidden="true"></div>
+<?php endif; ?>
     </div>
 <?php endif; ?>
 </div>

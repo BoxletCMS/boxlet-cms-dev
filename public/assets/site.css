@@ -202,6 +202,35 @@ code {
   aspect-ratio: 16 / 9;
 }
 
+/* A real picture is held to its column exactly as the placeholder is. Without this an
+   <img> renders at its intrinsic size — the wide variant is twelve hundred across — and in
+   a 1fr 1fr grid it pushes the text track off the page entirely. That could not happen
+   while every block drew a CSS-sized placeholder <div>, which is why it appeared only when
+   pictures did. (The size is spelt out because blocks_test forbids a px literal anywhere
+   in this file, comments included.)
+
+   The fit- classes name what the owner chose: cover fills the area and crops, contain
+   shows the whole picture. They match the placeholder's aspect ratios so a section does
+   not change height when a picture is chosen for it. */
+.image-text-media img,
+.hero-media img {
+  display: block;
+  max-inline-size: 100%;
+  inline-size: 100%;
+  block-size: auto;
+  border-radius: var(--radius-l);
+}
+
+.fit-cover .image-text-media img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.fit-contain .image-text-media img {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+
 @media (max-width: 40rem) {
   .layout-split .hero,
   .image-text {

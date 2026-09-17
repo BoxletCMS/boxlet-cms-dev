@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
 use App\Modules\Design\Composition;
+use App\Modules\Media\MediaPicture;
 use App\Modules\Media\MediaReference;
 
 /**
@@ -91,7 +92,15 @@ final class PageBlockController
             'character' => $character,
             'registry' => $registry,
             'pictures' => MediaReference::choices($this->db()),
-            'canvasHtml' => $registry->render($type, $block['content'], $block['style'], $block['layout']),
+            // The picture this block refers to, so a block re-drawn as it is edited shows
+            // the photograph rather than the placeholder it had a moment ago.
+            'canvasHtml' => $registry->render(
+                $type,
+                $block['content'],
+                $block['style'],
+                $block['layout'],
+                MediaPicture::forBlocks($this->db(), $registry, $locale, [$block]),
+            ),
         ], null);
 
         return Response::admin($body);

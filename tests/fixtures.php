@@ -183,6 +183,43 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
     return $id;
 }
 
+/**
+ * A picture in the library with exactly the variants named, and nothing else.
+ *
+ * No files are written: every test that uses this asserts on markup, and a variant is a
+ * row in variants_json before it is anything else. The original is always 2400×1600, so a
+ * test can tell a variant's recorded output size apart from the source's.
+ *
+ * @param array<string, array{width: int, height: int, formats: list<string>}> $variants preset => what was generated
+ */
+function storedPicture(Db $db, string $filename, array $variants, int $focalX = 50, int $focalY = 50): int
+{
+    static $unique = 0;
+    $unique++;
+
+    $db->query(
+        'INSERT INTO media (filename, original_name, path, mime, size, width, height, hash, created_at, status, focal_x, focal_y, variants_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+            $filename,
+            $filename . '.jpg',
+            'uploads/' . $filename . '.jpg',
+            'image/jpeg',
+            1000,
+            2400,
+            1600,
+            'hash-' . $filename . '-' . $unique,
+            '2026-01-01 00:00:00',
+            $variants === [] ? 'incomplete' : 'complete',
+            $focalX,
+            $focalY,
+            json_encode($variants, JSON_THROW_ON_ERROR),
+        ],
+    );
+
+    return (int) $db->lastInsertId();
+}
+
 function removeTree(string $path): void
 {
     if (is_file($path) || is_link($path)) {

@@ -19,6 +19,11 @@
      nobody has tested. A fixed colour cannot promise that. */
   --section-placeholder: color-mix(in srgb, var(--section-text) 10%, transparent);
   --section-placeholder-edge: color-mix(in srgb, var(--section-text) 40%, transparent);
+
+  /* How much of the surface's own colour is washed over a background picture, so the
+     words on top stay readable whatever the photograph is (D-024). A token rather than a
+     number in a rule: a character that needs more of it says so in one place. */
+  --section-picture-veil: 0.55;
   --section-rhythm: var(--space-xl);
   --section-width: var(--container-width);
   --divider-depth: var(--space-xl);
@@ -53,6 +58,18 @@
   --section-border: var(--color-muted-on-contrast);
 }
 
+/* Over a photograph, nothing is muted. A lowered-contrast secondary colour is right on a
+   flat surface and wrong on a picture: measured on the demo under `soft`, the subheading
+   fell across the busiest part of the photograph and was hard to read while the heading
+   and the button were fine. D-024 puts the legibility treatment in tokens only, so this is
+   a token and not a shadow or an outline behind the words.
+
+   surface-image alone, not surface-contrast: a contrast section is a flat colour, where a
+   muted tone is doing its job. */
+.surface-image {
+  --section-muted: var(--color-on-contrast);
+}
+
 .surface-gradient {
   --section-text: var(--color-on-gradient);
   --section-muted: var(--color-on-gradient);
@@ -64,6 +81,78 @@
 
   background-image: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end));
 }
+
+/* A section's background picture (D-024).
+
+   A real <picture>, laid under the content, not a CSS background-image: a URL is a
+   per-section value and nothing is inlined as a style attribute (SPEC §5.4). As an element
+   it also gets srcset, true width and height, and lazy loading for nothing extra, which a
+   background-image cannot have.
+
+   The contrast tokens above stay exactly as they are. They ARE the legibility treatment —
+   text, links and buttons already switch to colours guaranteed against the contrast
+   surface — and they keep working when no picture resolves, which is what makes
+   surface: image with nothing chosen render as contrast rather than as a hole. */
+
+.section-picture {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.section-picture img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* A wash between the picture and the words, in the surface's own background colour. The
+   amount is a token, so a character that needs more of it says so once. */
+.section-picture::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--section-bg);
+  opacity: var(--section-picture-veil, 0.55);
+}
+
+/* The content sits above the picture. .block is already position: relative, so this needs
+   nothing else. */
+.surface-image > .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Where a crop holds its subject. object-position travels as a CLASS because a focal point
+   is a per-picture value and a style attribute is not allowed (SPEC §5.4). Two axes at 10%
+   steps is 22 rules rather than the 121 a grid of pairs would need, and 10% is finer than
+   anyone can pick out of the thumbnail they set it on. MediaPicture::FOCAL_STEP rounds to
+   these; if that constant changes, these change with it. */
+
+.focal-x-0 { object-position: 0% var(--focal-y, 50%); }
+.focal-x-10 { object-position: 10% var(--focal-y, 50%); }
+.focal-x-20 { object-position: 20% var(--focal-y, 50%); }
+.focal-x-30 { object-position: 30% var(--focal-y, 50%); }
+.focal-x-40 { object-position: 40% var(--focal-y, 50%); }
+.focal-x-50 { object-position: 50% var(--focal-y, 50%); }
+.focal-x-60 { object-position: 60% var(--focal-y, 50%); }
+.focal-x-70 { object-position: 70% var(--focal-y, 50%); }
+.focal-x-80 { object-position: 80% var(--focal-y, 50%); }
+.focal-x-90 { object-position: 90% var(--focal-y, 50%); }
+.focal-x-100 { object-position: 100% var(--focal-y, 50%); }
+
+.focal-y-0 { --focal-y: 0%; }
+.focal-y-10 { --focal-y: 10%; }
+.focal-y-20 { --focal-y: 20%; }
+.focal-y-30 { --focal-y: 30%; }
+.focal-y-40 { --focal-y: 40%; }
+.focal-y-50 { --focal-y: 50%; }
+.focal-y-60 { --focal-y: 60%; }
+.focal-y-70 { --focal-y: 70%; }
+.focal-y-80 { --focal-y: 80%; }
+.focal-y-90 { --focal-y: 90%; }
+.focal-y-100 { --focal-y: 100%; }
 
 /* Rhythm */
 

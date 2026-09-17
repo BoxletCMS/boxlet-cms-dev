@@ -50,6 +50,37 @@ test('the locale switcher links each enabled locale to its home page', function 
     assertContains('<a href="/hr/" hreflang="hr"', $body, 'Croatian home');
 });
 
+// Lives here rather than with the other picture tests because it is a fact about a PAGE,
+// not about one picture: only a real render knows which section came first.
+testBothDrivers('the first section loads eagerly, the rest lazily', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    $top = storedPicture($db, 'abovefold', [
+        'hero' => ['width' => 1920, 'height' => 1080, 'formats' => ['avif', 'jpg']],
+    ]);
+    $below = storedPicture($db, 'belowfold', [
+        'card' => ['width' => 600, 'height' => 400, 'formats' => ['avif', 'jpg']],
+    ]);
+    createPage($db, 'en', 'gallery', 'Gallery', true, [
+        ['type' => 'hero', 'content' => ['heading' => 'Top', 'image' => $top], 'layout' => 'split'],
+        ['type' => 'image_text', 'content' => ['image' => $below, 'body' => '<p>Below</p>']],
+    ]);
+
+    $body = dispatch('/gallery')->body;
+
+    // Guarded rather than asserted: a pattern that matches nothing should say so here,
+    // not fail two lines later on a missing offset.
+    if (preg_match('~<img[^>]*abovefold[^>]*>~', $body, $first) !== 1) {
+        fail('the first section rendered no picture at all');
+    }
+    if (preg_match('~<img[^>]*belowfold[^>]*>~', $body, $rest) !== 1) {
+        fail('the second section rendered no picture at all');
+    }
+
+    // Deferring the largest picture above the fold is the one case lazy loading hurts.
+    assertTrue(!str_contains($first[0], 'loading="lazy"'), 'the picture above the fold was deferred');
+    assertTrue(str_contains($rest[0], 'loading="lazy"'), 'a picture below the fold loads eagerly');
+});
+
 test('a block whose type is no longer installed is skipped, not fatal', function () {
     $db = installedSite(['en' => 'English']);
     $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>Still here</p>']]]);

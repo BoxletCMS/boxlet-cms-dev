@@ -117,8 +117,13 @@ testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves
     [$storage, $public] = mediaPaths();
     $db = installedSite(['en' => 'English'], $driver);
     $encoder = new MediaEncoder();
+    // 'avif', NOT 'images'. This skip cost a red CI: GitHub's runners have image support
+    // and cannot write AVIF — the delegate declares it and fails, which is the defect
+    // canReallyWrite() stands over — so TEST_REQUIRE_IMAGES=1 turned an honest skip into
+    // four failing jobs. AVIF is best-effort by SPEC §5.5 and no build is required to
+    // have it, so it gets a capability of its own that nothing sets.
     if (!$encoder->supports('avif')) {
-        skip('this machine cannot write avif, so the rule never applies', 'images');
+        skip('this machine cannot write avif, so the rule never applies', 'avif');
     }
     $upload = new MediaUpload($db, $storage, $encoder);
     $variants = new MediaVariants($db, $encoder, new MediaWriter($encoder), $storage, $public);
@@ -132,9 +137,11 @@ testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves
         'avif',
         1,
     );
-    if ($direct['bytes'] <= 250 * 1024) {
-        skip(sprintf('this encoder makes a %d byte hero of noise, under the rule, so it never engages', $direct['bytes']), 'images');
-    }
+    // No skip when the noise comes out small. Whether the rule engages depends on the
+    // encoder, and both claims below hold either way — trivially when it does not run.
+    // The first version skipped here under the 'images' capability, which is not what
+    // this condition is about at all.
+    $engaged = $direct['bytes'] > 250 * 1024;
 
     $id = $upload->store($source, 'retry.jpg')['id'];
     $variants->generate($id, null);
@@ -145,7 +152,12 @@ testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves
     }
     assertTrue(
         (int) filesize($stored[0]) <= $direct['bytes'],
-        sprintf('the stored hero is %d bytes, larger than the %d a single encode gives', (int) filesize($stored[0]), $direct['bytes']),
+        sprintf(
+            'the stored hero is %d bytes, larger than the %d a single encode gives (the rule %s)',
+            (int) filesize($stored[0]),
+            $direct['bytes'],
+            $engaged ? 'engaged' : 'did not engage on this encoder',
+        ),
     );
     assertEquals([], glob($public . '/m/*/*.retry') ?: [], 'a retry left its working file in the public directory');
 });

@@ -94,8 +94,16 @@
   background: var(--ui-accent-soft);
 }
 
+/* A SELF-CONTAINED PAIR, not an ink borrowed onto whatever ground it lands on.
+   This set only a colour, so `.button.button-danger` put red on the filled accent: 1.15:1
+   against the 4.5:1 text rule. The matrix test never saw it, because that one pairs inks
+   with PALE surfaces and `accent` sits in its ink list rather than its surface list.
+   transparent lets the page through, where danger reads at 6.13:1 on --ui-bg and 6.57:1 on
+   --ui-panel. The buttons that already combined this with ghost look exactly as before,
+   ghost having been transparent too. */
 .button-danger,
 .admin a.button-danger {
+  background: transparent;
   color: var(--ui-danger);
 }
 

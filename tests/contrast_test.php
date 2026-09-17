@@ -108,6 +108,110 @@ test('the ink on a filled accent surface is readable', function () {
     }
 });
 
+/**
+ * Every button variant rule in the admin, as the colours it declares.
+ *
+ * Scanned from adminStylesheets(), which is derived from disk, so a variant added to a new
+ * stylesheet tomorrow is measured without anyone remembering to list it here — the failure
+ * mode that let a toolbar icon reach 1.12:1.
+ *
+ * Only `.button-*`. The base `.button` and its `.admin a.button` specificity repeat are not
+ * variants: the base defines the pair, and the repeat exists to outrank an anchor's colour.
+ *
+ * @return array<string, array{color: string|null, background: string|null, border: string|null}>
+ */
+function buttonVariants(): array
+{
+    $variants = [];
+    foreach (adminStylesheets() as $file) {
+        foreach (cssRules($file) as [$selector, $body]) {
+            if (preg_match('~\.button-[a-z-]+~', $selector) !== 1) {
+                continue;
+            }
+            $variants[$selector] = [
+                'color' => declaredColour($body, 'color'),
+                'background' => declaredColour($body, 'background') ?? declaredColour($body, 'background-color'),
+                'border' => declaredColour($body, 'border-color'),
+            ];
+        }
+    }
+
+    return $variants;
+}
+
+/**
+ * The --ui- token a declaration sets, the word 'transparent', or null when it sets neither.
+ *
+ * `background` and `background-color` are matched separately on purpose: the property name
+ * is followed by a colon in one and by a hyphen in the other, so one pattern cannot stand
+ * for both without also matching things it should not.
+ */
+function declaredColour(string $body, string $property): ?string
+{
+    if (preg_match('~(?:^|;)\s*' . preg_quote($property, '~') . '\s*:\s*([^;]+)~', $body, $found) !== 1) {
+        return null;
+    }
+    $value = trim($found[1]);
+    if ($value === 'transparent') {
+        return 'transparent';
+    }
+
+    return preg_match('~var\(--ui-([a-z-]+)\)~', $value, $token) === 1 ? $token[1] : null;
+}
+
+// The defect this stands over, measured at 1.15:1. `.button-danger` set a colour and no
+// background, so on the filled `.button` it was red ink on the blue accent — and the matrix
+// test above never saw it, because it pairs inks with PALE surfaces and `accent` lives in
+// its ink list rather than its surface list. A variant that changes the ink must bring its
+// own ground, or it inherits one nobody measured it against.
+test('a button variant that changes the ink brings its own background', function () {
+    foreach (buttonVariants() as $selector => $rule) {
+        if ($rule['color'] === null) {
+            // A state that only repaints the ground, such as :hover. It keeps the ink of the
+            // rule it is a state of, which that rule has already been measured for.
+            continue;
+        }
+
+        assertTrue($rule['background'] !== null, sprintf(
+            '%s sets a colour but no background, so it inherits a surface it was never measured against',
+            $selector,
+        ));
+    }
+});
+
+test('a button variant is readable on the ground it declares', function () {
+    $tokens = adminTokens();
+    // Where a button can sit when its own background lets the page through.
+    $grounds = ['bg', 'panel', 'panel-sunken'];
+
+    foreach (buttonVariants() as $selector => $rule) {
+        if ($rule['color'] === null || $rule['background'] === null) {
+            continue;
+        }
+
+        assertTrue(isset($tokens[$rule['color']]), "{$selector}: --ui-{$rule['color']} is not a token");
+        $ink = $tokens[$rule['color']];
+
+        // transparent is not a colour to measure against: the page shows through, so the
+        // ink has to read on every ground a button can be placed on.
+        $against = $rule['background'] === 'transparent' ? $grounds : [$rule['background']];
+
+        foreach ($against as $name) {
+            assertTrue(isset($tokens[$name]), "{$selector}: --ui-{$name} is not a token");
+            $ratio = Color::contrast($ink, $tokens[$name]);
+            assertTrue($ratio >= 4.5, sprintf(
+                '%s: --ui-%s (%s) on --ui-%s (%s) is %.2f:1, under the 4.5:1 text rule',
+                $selector,
+                $rule['color'],
+                $ink,
+                $name,
+                $tokens[$name],
+                $ratio,
+            ));
+        }
+    }
+});
+
 test('a control that is empty at rest has an edge you can see', function () {
     $tokens = adminTokens();
 

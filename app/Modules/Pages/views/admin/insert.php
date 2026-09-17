@@ -13,7 +13,7 @@
  * @var array<string, string> $errors
  * @var string $character
  * @var \App\Core\Blocks $registry
- * @var list<array{id: int, name: string}> $pictures
+ * @var list<array{id: int, name: string, thumb: string|null}> $pictures
  * @var string $canvasHtml
  */
 ?>

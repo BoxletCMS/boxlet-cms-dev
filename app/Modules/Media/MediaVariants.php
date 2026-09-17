@@ -3,6 +3,7 @@
 namespace App\Modules\Media;
 
 use App\Core\Db;
+use App\Support\Url;
 use Throwable;
 
 /**
@@ -109,6 +110,35 @@ final class MediaVariants
         $this->record($mediaId, $existing, $complete);
 
         return ['made' => $made, 'complete' => $complete];
+    }
+
+    /**
+     * The URL of one preset of a picture, or null when that preset has not been made.
+     *
+     * Media URLs use named presets only (SPEC §6), so this is the single place that turns
+     * a media row into a URL. It belongs here rather than on a controller because nothing
+     * that needs it is an HTTP concern: the library screen, one picture's screen, and the
+     * list of pictures a field may choose from. Having the list reach up into a controller
+     * for it put the module's layering the wrong way round.
+     *
+     * WebP first, because every browser that can run this admin reads it, then whatever
+     * the original format was — which is always written.
+     *
+     * @param array<string, mixed> $media a media row
+     */
+    public static function url(array $media, string $preset): ?string
+    {
+        $formats = self::of($media)[$preset]['formats'] ?? [];
+        if ($formats === []) {
+            return null;
+        }
+
+        return Url::asset(MediaPresets::file(
+            $preset,
+            (int) $media['id'],
+            (string) $media['filename'],
+            in_array('webp', $formats, true) ? 'webp' : $formats[0],
+        ));
     }
 
     /**

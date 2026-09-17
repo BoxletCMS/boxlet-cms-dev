@@ -12,7 +12,7 @@ use App\Modules\Design\Composition;
  * @var array<string, string> $errors
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
- * @var list<array{id: int, name: string}> $pictures every picture a media field may choose
+ * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
  */
 $known = $registry->has($block['type']);
 $prefix = 'blocks[' . $index . ']';
@@ -27,7 +27,9 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
 $pickerAttributes = static fn (): string => ' data-picker-url="' . e(\App\Support\Url::admin('media')) . '"'
     . ' data-text-none="' . e(t('pages.field.media_none')) . '"'
     . ' data-text-search="' . e(t('media.search')) . '"'
-    . ' data-text-failed="' . e(t('media.pick_failed')) . '"';
+    . ' data-text-failed="' . e(t('media.pick_failed')) . '"'
+    . ' data-text-choose="' . e(t('media.pick_choose')) . '"'
+    . ' data-text-change="' . e(t('media.pick_change')) . '"';
 ?>
             <?php /* The name as data, so the visual editor's panel heading does not have
                      to scrape it out of the legend and pick up its drag handle with it. */ ?>
@@ -117,7 +119,7 @@ $pickerAttributes = static fn (): string => ' data-picker-url="' . e(\App\Suppor
                     <select id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" data-media-field<?= $pickerAttributes() ?>>
                         <option value=""><?= e(t('pages.field.media_none')) ?></option>
 <?php foreach ($pictures as $picture): ?>
-                        <option value="<?= e($picture['id']) ?>"<?= (int) $value === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
+                        <option value="<?= e($picture['id']) ?>"<?= $picture['thumb'] === null ? '' : ' data-thumb="' . e($picture['thumb']) . '"' ?><?= (int) $value === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
 <?php endforeach; ?>
                     </select>
 <?php if ($pictures === []): ?>
@@ -174,13 +176,13 @@ $pickerAttributes = static fn (): string => ' data-picker-url="' . e(\App\Suppor
                                  rendered, not painted. Offered always rather than only when
                                  the surface is `image`: hiding it would take script, and
                                  this panel works without one. */ ?>
-                        <div class="field">
+                        <div class="field block-style-picture">
                             <label for="<?= e($idPrefix . 'style-image') ?>"><?= e(t('style.image')) ?></label>
                             <select id="<?= e($idPrefix . 'style-image') ?>" name="<?= e($prefix) ?>[style][<?= e(\App\Modules\Design\SectionStyle::IMAGE) ?>]" data-media-field<?= $pickerAttributes() ?>>
                                 <option value=""><?= e(t('pages.field.media_none')) ?></option>
 <?php $surfaceImage = (int) ($block['style'][\App\Modules\Design\SectionStyle::IMAGE] ?? 0); ?>
 <?php foreach ($pictures as $picture): ?>
-                                <option value="<?= e($picture['id']) ?>"<?= $surfaceImage === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
+                                <option value="<?= e($picture['id']) ?>"<?= $picture['thumb'] === null ? '' : ' data-thumb="' . e($picture['thumb']) . '"' ?><?= $surfaceImage === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
 <?php endforeach; ?>
                             </select>
                             <span class="hint"><?= e(t('style.image_hint')) ?></span>

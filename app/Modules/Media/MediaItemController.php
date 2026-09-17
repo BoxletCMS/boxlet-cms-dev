@@ -43,7 +43,7 @@ final class MediaItemController
             'scripts' => ['media.js'],
             'picture' => MediaController::card($media),
             // The uncropped variant, and only that one — see below.
-            'preview' => MediaController::variant($media, 'full'),
+            'preview' => MediaVariants::url($media, 'full'),
             'focal' => ['x' => (int) $media['focal_x'], 'y' => (int) $media['focal_y']],
             'meta' => $library->meta($id),
             'locales' => $this->container->get('locales'),

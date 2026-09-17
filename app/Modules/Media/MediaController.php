@@ -181,34 +181,11 @@ final class MediaController
             'width' => (int) $row['width'],
             'height' => (int) $row['height'],
             'complete' => (string) $row['status'] === 'complete',
-            'thumb' => self::variant($row, 'thumb'),
+            // The admin asks for a single file rather than a <picture> with sources: this
+            // is a 200px square in a list, the saving would be a few kilobytes, and format
+            // negotiation belongs to the front end where the bytes actually matter.
+            'thumb' => MediaVariants::url($row, 'thumb'),
         ];
-    }
-
-    /**
-     * The URL of one preset of a picture, or null when that preset has not been made.
-     *
-     * The admin asks for a single file rather than a <picture> with sources: this is a
-     * 200 px square in a list, the saving would be a few kilobytes, and format
-     * negotiation belongs to the front end where the bytes actually matter. WebP first
-     * because every browser that can run this admin reads it, then whatever the original
-     * format was, which is always written.
-     *
-     * @param array<string, mixed> $row
-     */
-    public static function variant(array $row, string $preset): ?string
-    {
-        $formats = MediaVariants::of($row)[$preset]['formats'] ?? [];
-        if ($formats === []) {
-            return null;
-        }
-
-        return Url::asset(MediaPresets::file(
-            $preset,
-            (int) $row['id'],
-            (string) $row['filename'],
-            in_array('webp', $formats, true) ? 'webp' : $formats[0],
-        ));
     }
 
     /**

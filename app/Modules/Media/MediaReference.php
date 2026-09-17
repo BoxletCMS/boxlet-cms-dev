@@ -46,20 +46,30 @@ final class MediaReference
     }
 
     /**
-     * The pictures a field may choose from, newest first: id and library name only.
+     * The pictures a field may choose from, newest first: id, library name, and the
+     * thumbnail to show for the one currently chosen.
      *
      * The page editors need this to offer a choice rather than ask for a number, and they
      * are the wrong place to know how pictures are stored — so it lives here, beside the
-     * rule about what a reference means. Deliberately not the whole row: a <select> needs
-     * a name, and anything richer belongs to the picker, which asks the library itself.
+     * rule about what a reference means.
      *
-     * @return list<array{id: int, name: string}>
+     * The thumbnail URL is built HERE and never in the browser. Media URLs use named
+     * presets only (SPEC §6); a picker that assembled one from an id and a filename would
+     * be a second implementation of that contract, in JavaScript, free to drift from it.
+     * A picture whose thumbnail has not been generated yet returns null and the picker
+     * shows its name alone.
+     *
+     * @return list<array{id: int, name: string, thumb: string|null}>
      */
     public static function choices(Db $db, int $limit = 200): array
     {
         $choices = [];
-        foreach ($db->all('SELECT id, filename FROM media ORDER BY id DESC LIMIT ' . $limit) as $row) {
-            $choices[] = ['id' => (int) $row['id'], 'name' => (string) $row['filename']];
+        foreach ($db->all('SELECT id, filename, variants_json FROM media ORDER BY id DESC LIMIT ' . $limit) as $row) {
+            $choices[] = [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['filename'],
+                'thumb' => MediaVariants::url($row, 'thumb'),
+            ];
         }
 
         return $choices;

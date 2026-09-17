@@ -14,13 +14,66 @@
   position: relative;
 }
 
-/* A legible resting state, not an outline that appears on hover: it names the picture that
-   is currently chosen, so it has to be readable before anyone touches it. */
+/* A legible resting state that reads as a CHOOSER, not as a text field somebody has typed
+   into. It carries the chosen picture's thumbnail, its name, and the verb for what pressing
+   it does — with "No picture" as a state of its own rather than a word sitting in a box.
+   The first version showed the bare filename and was mistaken for an input.
+
+   --ui-control-line, not --ui-line-strong: with no picture this control is empty at rest,
+   its border is the only thing saying it is there, and line-strong measured 1.55:1 against
+   the panel (PLAN.md D-012, which asks 3:1 for exactly this case). */
 .media-picker-current {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-3);
   inline-size: 100%;
-  justify-content: space-between;
+  padding: var(--ui-2) var(--ui-3);
+  border-color: var(--ui-control-line);
   text-align: start;
-  overflow-wrap: anywhere;
+}
+
+/* The thumbnail, or the square that stands where one would be. Fixed size either way, so
+   choosing and clearing a picture never moves the fields below it. */
+.media-picker-thumb {
+  flex: none;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  object-fit: cover;
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-s);
+}
+
+/* Truncated, never broken. With overflow-wrap: anywhere — which the old text-only button
+   could afford — a long name in a narrow column wrapped to ONE CHARACTER PER LINE and the
+   control became a tall thin ladder of letters. Measured in the section style panel. */
+.media-picker-name {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The section style panel is a row of narrow columns sized for a <select>. A control that
+   carries a thumbnail, a name AND a verb does not fit one, so the background picture takes
+   the whole width of the grid rather than being squeezed into a twelfth of it. */
+.block-style-grid .block-style-picture {
+  grid-column: 1 / -1;
+}
+
+/* "No picture" is a state, not a filename: said in the muted ink so a real name reads as
+   the stronger of the two. */
+.media-picker-empty .media-picker-name {
+  color: var(--ui-ink-muted);
+}
+
+/* The verb. Kept to the end of the control so the eye finds the picture first and what it
+   can do second. */
+.media-picker-verb {
+  flex: none;
+  color: var(--ui-accent);
+  font-weight: 550;
 }
 
 .media-picker-panel {

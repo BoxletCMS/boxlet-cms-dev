@@ -96,23 +96,58 @@
       button.setAttribute('aria-label', label.textContent.trim());
     }
 
-    function currentName() {
-      var chosen = select.options[select.selectedIndex];
-      return chosen && chosen.value ? chosen.textContent : text(select, 'none');
-    }
-
+    // The resting state has to say three things: which picture is chosen, that it IS a
+    // picture, and what pressing this does. The first version set textContent to the bare
+    // filename, which read as a text field somebody had typed into.
     function paint() {
-      button.textContent = currentName();
+      var chosen = select.options[select.selectedIndex];
+      var has = !!(chosen && chosen.value);
+      var thumb = has ? chosen.getAttribute('data-thumb') : null;
+
+      button.textContent = '';
+      button.classList.toggle('media-picker-empty', !has);
+
+      // A square either way, so choosing and clearing never move the fields below. An
+      // <img> when there is one to show, an empty box when the picture exists but its
+      // thumbnail has not been generated yet.
+      var picture;
+      if (thumb) {
+        picture = document.createElement('img');
+        picture.src = thumb;
+        picture.alt = '';
+        picture.width = 40;
+        picture.height = 40;
+      } else {
+        picture = document.createElement('span');
+      }
+      picture.className = 'media-picker-thumb';
+
+      var name = document.createElement('span');
+      name.className = 'media-picker-name';
+      name.textContent = has ? chosen.textContent : text(select, 'none');
+
+      var verb = document.createElement('span');
+      verb.className = 'media-picker-verb';
+      verb.textContent = has ? text(select, 'change') : text(select, 'choose');
+
+      button.appendChild(picture);
+      button.appendChild(name);
+      button.appendChild(verb);
     }
 
-    function choose(value, name) {
+    function choose(value, name, thumb) {
       select.value = value;
       // If the picture is not among the select's options — uploaded in another tab since
-      // this form was rendered — add it, so the field can post what was chosen.
+      // this form was rendered — add it, so the field can post what was chosen. It carries
+      // its thumbnail too, or the button would show a blank square for a picture that has
+      // one.
       if (value !== '' && select.value !== value) {
         var option = document.createElement('option');
         option.value = value;
         option.textContent = name;
+        if (thumb) {
+          option.setAttribute('data-thumb', thumb);
+        }
         select.appendChild(option);
         select.value = value;
       }
@@ -162,7 +197,12 @@
     results.addEventListener('click', function (event) {
       var card = event.target.closest && event.target.closest('[data-pick]');
       if (card) {
-        choose(card.getAttribute('data-pick'), card.getAttribute('data-pick-name') || '');
+        var picture = card.querySelector('img');
+        choose(
+          card.getAttribute('data-pick'),
+          card.getAttribute('data-pick-name') || '',
+          picture ? picture.getAttribute('src') : null,
+        );
       }
     });
 

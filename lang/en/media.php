@@ -44,6 +44,11 @@ return [
     // The picker says why rather than showing an empty panel, which would read as
     // "there are no pictures" when the truth is that the list could not be fetched.
     'media.pick_failed' => 'The pictures could not be loaded. Close this and try again.',
+    // The picker's resting state has to say what pressing it does. "office" alone read as
+    // a text field somebody had typed into.
+    'media.pick_choose' => 'Choose picture',
+    'media.pick_change' => 'Change',
+    'media.pick_close' => 'Close',
 
     // One picture.
     'media.back' => 'All pictures',

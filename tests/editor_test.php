@@ -97,6 +97,32 @@ test('without JavaScript, a media field is a list of pictures and never an id', 
     assertTrue(!str_contains($form, 'type="number"'), 'a media id is still typed as a number');
 });
 
+// guard (source, not behaviour): this runner has no browser, so it stands over what the
+// picker is BUILT from. The resting state has to carry a thumbnail, a name and a verb —
+// the first version set the button's text to the bare filename and was mistaken for a text
+// field, which is the regression this would catch if someone simplified it back.
+test('guard (source, not behaviour): the picker\'s resting state is more than a filename', function () {
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/media-picker.js');
+
+    foreach (['media-picker-thumb', 'media-picker-name', 'media-picker-verb', 'media-picker-empty'] as $part) {
+        assertContains($part, $js, "the resting state no longer builds {$part}");
+    }
+    // The verb changes with the state; one label for both would say "Choose picture" over a
+    // picture that is already chosen.
+    assertContains("text(select, 'change')", $js, 'the verb no longer changes when a picture is chosen');
+    assertContains("text(select, 'choose')", $js, 'the verb for an empty field is gone');
+
+    // Both labels have to reach the browser, and the admin's CSP allows no inline script,
+    // so they travel as data attributes on the field itself.
+    $block = (string) file_get_contents(dirname(__DIR__) . '/app/Modules/Pages/views/admin/block.php');
+    assertContains('data-text-choose', $block, 'the choose label never reaches the picker');
+    assertContains('data-text-change', $block, 'the change label never reaches the picker');
+
+    // And the thumbnail comes from the server, never assembled in JavaScript: media URLs
+    // use named presets only (SPEC §6).
+    assertTrue(!str_contains($js, '/m/'), 'the picker builds a media URL itself');
+});
+
 test('choosing no picture stores null; a dangling id is nulled, a malformed one refused', function () {
     $db = adminSite('sqlite');
     $mediaId = referenceMedia($db, 'hash-editor-clear');

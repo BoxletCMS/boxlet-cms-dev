@@ -95,8 +95,21 @@ $picker = static function (string $key, int $chosen) use ($pictures): string {
                 </div>
             </div>
 
+            <?php /* The message lives in this form because it is a setting; the switch below
+                     does not, because it is a file (D-021). They sit as close together as two
+                     forms can, which is what moving them off the dashboard was for.
+
+                     Its own panel, and not for decoration: taking the panel away while
+                     rearranging left this field standing on the page background with a
+                     closing tag after it that matched nothing, which the browser swallowed
+                     and every verdict in the browser scenario passed straight over. No
+                     heading, though — the label says what it is, and "Maintenance mode"
+                     twice on one screen is noise.
+
+                     The tag is described rather than written out: spelling it here made a
+                     tag counter read this sentence as the fault it describes, and sent me
+                     looking for an imbalance that was only ever in the prose. */ ?>
             <div class="panel stack">
-                <h2><?= e(t('settings.maintenance')) ?></h2>
                 <div class="field">
                     <label for="maintenance_message"><?= e(t('settings.maintenance_message')) ?></label>
                     <textarea id="maintenance_message" name="maintenance_message" rows="3"
@@ -108,11 +121,18 @@ $picker = static function (string $key, int $chosen) use ($pictures): string {
             <button type="submit" class="button"><?= e(t('settings.save')) ?></button>
         </form>
 
-        <?php /* The switch, in its own form. The state is said in words before the button,
-                 because "Turn on maintenance mode" alone does not tell the owner which way
-                 round the site currently is — the reason it read that way on the dashboard,
-                 kept when it moved here. */ ?>
+        <?php /* THE SWITCH SITS AFTER Save settings AND UNDER ITS OWN HEADING, because the
+                 first arrangement put an unlabelled panel directly below that button and it
+                 read as part of it — someone typing a message and pressing Save would
+                 reasonably have thought the switch went with it. It cannot be inside that
+                 form: HTML has no nested forms, and this posts to /admin/maintenance, which
+                 owns the flag file (D-021). So the medium forces two forms; what it does not
+                 force is leaving the second one unexplained.
+
+                 The state is said in words before the button: "Turn on maintenance mode"
+                 alone does not tell the owner which way round the site currently is. */ ?>
         <div class="panel stack">
+            <h2><?= e(t('maintenance.title')) ?></h2>
             <p class="<?= $maintenanceOn ? 'notice notice-warning' : 'hint' ?>"<?= $maintenanceOn ? ' role="status"' : '' ?>>
                 <?= e($maintenanceOn ? t('maintenance.on_now') : t('maintenance.off_now')) ?>
             </p>

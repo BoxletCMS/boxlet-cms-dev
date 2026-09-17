@@ -22,7 +22,9 @@ return [
     'settings.share_image' => 'Default sharing image',
     'settings.share_image_hint' => 'Used when a page has none of its own.',
 
-    'settings.maintenance' => 'Maintenance mode',
+    // No settings.maintenance heading: it said exactly what maintenance.title in update.php
+    // already says, and that one lost its last caller when the switch left the dashboard.
+    // Two keys with one wording is how they drift into two different words.
     'settings.maintenance_message' => 'What visitors are told',
     'settings.maintenance_message_hint' => 'Empty: the standard wording.',
 

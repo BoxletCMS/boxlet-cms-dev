@@ -2,6 +2,7 @@
 
 use App\Core\Blocks;
 use App\Modules\Media\MediaLibrary;
+use App\Modules\Media\MediaMeta;
 use App\Modules\Media\MediaUpload;
 use App\Modules\Media\MediaEncoder;
 use App\Modules\Media\MediaVariants;
@@ -113,8 +114,10 @@ testBothDrivers('deleting a picture removes its variants and its original', func
 });
 
 testBothDrivers('alt text and caption are kept per locale, and an empty alt is a choice', function (string $driver) {
+    // No library here any more: what a picture MEANS moved to MediaMeta, which takes a Db
+    // and nothing else. This test asserts rows, not files, so losing libraryFor()'s
+    // incidental clearing of the media directories changes nothing it relies on.
     $db = installedSite(['en' => 'English', 'hr' => 'Hrvatski'], $driver);
-    $library = libraryFor($db);
 
     $db->query(
         'INSERT INTO media (filename, original_name, path, mime, size, width, height, hash, created_at, status)
@@ -123,18 +126,18 @@ testBothDrivers('alt text and caption are kept per locale, and an empty alt is a
     );
     $id = (int) $db->lastInsertId();
 
-    $library->saveMeta($id, 'en', 'A studio at dusk', 'Our workshop');
-    $library->saveMeta($id, 'hr', 'Studio u sumrak', '');
+    MediaMeta::save($db, $id, 'en', 'A studio at dusk', 'Our workshop');
+    MediaMeta::save($db, $id, 'hr', 'Studio u sumrak', '');
 
-    $meta = $library->meta($id);
+    $meta = MediaMeta::forPicture($db, $id);
     assertEquals('A studio at dusk', $meta['en']['alt'], 'English alt');
     assertEquals('Studio u sumrak', $meta['hr']['alt'], 'Croatian alt');
     assertEquals('Our workshop', $meta['en']['caption'], 'English caption');
 
     // Saving again updates rather than inserting a second row: the table is unique on
     // (media_id, locale), so a second insert would be an error rather than an edit.
-    $library->saveMeta($id, 'en', '', 'Still our workshop');
-    $meta = $library->meta($id);
+    MediaMeta::save($db, $id, 'en', '', 'Still our workshop');
+    $meta = MediaMeta::forPicture($db, $id);
     assertEquals('', $meta['en']['alt'], 'an empty alt is stored, because decoration is a choice');
     assertEquals('Still our workshop', $meta['en']['caption'], 'the caption after an update');
     assertEquals(2, count($db->all('SELECT id FROM media_meta WHERE media_id = ' . $id)), 'rows in media_meta');

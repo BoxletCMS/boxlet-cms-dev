@@ -116,6 +116,22 @@
   margin: 0;
 }
 
+/* A suggestion, marked as one until the owner confirms it (D-025).
+   --ui-warning on --ui-warning-soft is the admin's existing "look at this" pair, already
+   measured against every surface by tests/contrast_test.php. A new colour here would mean
+   a new token to prove, for a badge that wants exactly what warning already says. */
+.media-suggested {
+  display: inline-block;
+  margin: 0 0 var(--ui-2);
+  padding: var(--ui-1) var(--ui-2);
+  border: var(--ui-border) solid var(--ui-warning);
+  border-radius: var(--ui-radius-m);
+  background: var(--ui-warning-soft);
+  color: var(--ui-warning);
+  font-size: var(--ui-text-xs);
+  font-weight: 550;
+}
+
 /* One picture */
 
 .media-detail {

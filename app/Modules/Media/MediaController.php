@@ -52,6 +52,14 @@ final class MediaController
             $pictures[] = self::card($row);
         }
 
+        // Stamped here rather than inside card(), which is handed one row and has no
+        // database: asking per card would be one query per picture in a listing of two
+        // hundred. Before the picker branch below, so both views carry it (D-025).
+        $suggested = MediaAlt::suggestedIds($this->container->get('db'), array_column($pictures, 'id'));
+        foreach ($pictures as $index => $picture) {
+            $pictures[$index]['suggested'] = isset($suggested[$picture['id']]);
+        }
+
         // The picker asks for the same listing with no screen around it: one query, one
         // card, one set of markup, so the library and the picker cannot drift apart. HTML
         // rather than JSON, because the server answers with markup everywhere in this

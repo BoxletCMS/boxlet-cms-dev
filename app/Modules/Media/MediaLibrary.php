@@ -170,49 +170,7 @@ final class MediaLibrary
         }
     }
 
-    /**
-     * Alt text and caption for one picture, keyed by locale.
-     *
-     * @return array<string, array{alt: string, caption: string}>
-     */
-    public function meta(int $mediaId): array
-    {
-        $meta = [];
-        foreach ($this->rows('SELECT locale, alt, caption FROM media_meta WHERE media_id = ?', [$mediaId]) as $row) {
-            $meta[(string) $row['locale']] = [
-                'alt' => (string) $row['alt'],
-                'caption' => (string) ($row['caption'] ?? ''),
-            ];
-        }
-
-        return $meta;
-    }
-
-    /**
-     * Saves what a picture means in one locale. An empty alt is meaningful — it says the
-     * picture is decorative — so it is stored rather than treated as "not filled in".
-     */
-    public function saveMeta(int $mediaId, string $locale, string $alt, string $caption): void
-    {
-        $existing = $this->db->one(
-            'SELECT id FROM media_meta WHERE media_id = ? AND locale = ?',
-            [$mediaId, $locale],
-        );
-
-        if ($existing === null) {
-            $this->db->query(
-                'INSERT INTO media_meta (media_id, locale, alt, caption) VALUES (?, ?, ?, ?)',
-                [$mediaId, $locale, substr($alt, 0, 255), $caption],
-            );
-
-            return;
-        }
-
-        $this->db->query(
-            'UPDATE media_meta SET alt = ?, caption = ? WHERE media_id = ? AND locale = ?',
-            [substr($alt, 0, 255), $caption, $mediaId, $locale],
-        );
-    }
+    /* What a picture MEANS — its alt text and caption, per language — is MediaMeta. */
 
     /**
      * Where the focal point sits, as percentages. Cropped presets keep it in frame, so

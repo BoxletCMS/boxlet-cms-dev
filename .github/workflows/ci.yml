@@ -44,6 +44,9 @@ jobs:
       TEST_REQUIRE_MYSQL: 1
       # The same for pictures: this leg has GD, so nothing may skip for want of it.
       TEST_REQUIRE_IMAGES: 1
+      # And for EXIF, which suggested alt text reads (D-025). Listed in extensions below,
+      # so a test skipping for want of it here means the coverage quietly went away.
+      TEST_REQUIRE_EXIF: 1
 
     steps:
       - uses: actions/checkout@v4

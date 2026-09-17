@@ -86,6 +86,11 @@ return [
     'media.focal_saved' => 'The focal point was moved, and the cropped sizes were made again.',
     'media.alt' => 'Alt text',
     'media.alt_hint' => 'What the picture shows, for someone who cannot see it. Leave it empty if the picture is decoration.',
+    // A guess is marked as one until the owner looks at it. Saying "check it" rather than
+    // "suggested" alone gives them the action: the badge goes away by pressing Save, even
+    // if they change nothing (D-025).
+    'media.alt_suggested' => 'Suggested — check it',
+    'media.alt_suggested_hint' => 'Boxlet filled this in from the picture or its file name. Saving keeps it and stops the reminder, whether you change it or not.',
     'media.caption' => 'Caption',
     'media.meta_saved' => 'Saved.',
 ];

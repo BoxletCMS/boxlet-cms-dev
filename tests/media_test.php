@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Media\MediaEncoder;
+use App\Modules\Media\MediaFileType;
 use App\Modules\Media\MediaUpload;
 
 // Uploading pictures: what is ACCEPTED and what is refused (SPEC §5.5, §6). Turning
@@ -145,26 +146,26 @@ test('a server that cannot process pictures refuses a replacement too, leaving t
 
 test('what a file claims and what it is must agree', function () {
     $jpeg = imageFixture(tmpPath('claim.jpg'));
-    $sniffed = MediaUpload::sniff($jpeg);
+    $sniffed = MediaFileType::sniff($jpeg);
     assertEquals('image/jpeg', $sniffed, 'finfo on a real jpeg');
 
     // The extension decides what it is stored as, but only when the bytes agree.
-    assertEquals('jpg', MediaUpload::extensionFor('holiday.jpg', 'image/jpeg'), 'a jpg that is one');
-    assertEquals('jpg', MediaUpload::extensionFor('holiday.JPEG', 'image/jpeg'), 'jpeg normalises to jpg');
-    assertEquals('png', MediaUpload::extensionFor('logo.png', 'image/png'), 'a png that is one');
+    assertEquals('jpg', MediaFileType::extensionFor('holiday.jpg', 'image/jpeg'), 'a jpg that is one');
+    assertEquals('jpg', MediaFileType::extensionFor('holiday.JPEG', 'image/jpeg'), 'jpeg normalises to jpg');
+    assertEquals('png', MediaFileType::extensionFor('logo.png', 'image/png'), 'a png that is one');
 
     // A picture renamed to something else, and something else renamed to a picture.
-    assertEquals(null, MediaUpload::extensionFor('holiday.png', 'image/jpeg'), 'a jpeg called .png');
-    assertEquals(null, MediaUpload::extensionFor('shell.jpg', 'text/x-php'), 'a script called .jpg');
-    assertEquals(null, MediaUpload::extensionFor('note.txt', 'text/plain'), 'a text file');
+    assertEquals(null, MediaFileType::extensionFor('holiday.png', 'image/jpeg'), 'a jpeg called .png');
+    assertEquals(null, MediaFileType::extensionFor('shell.jpg', 'text/x-php'), 'a script called .jpg');
+    assertEquals(null, MediaFileType::extensionFor('note.txt', 'text/plain'), 'a text file');
 });
 
 test('anything PHP-adjacent is refused by name as well as by bytes', function () {
     foreach (['shell.php', 'shell.phtml', 'shell.php5', 'shell.phps', 'x.cgi', 'x.pl', 'x.py', 'x.sh', 'x.svg', 'page.html'] as $name) {
-        assertEquals(null, MediaUpload::extensionFor($name, 'image/jpeg'), "{$name} was allowed");
+        assertEquals(null, MediaFileType::extensionFor($name, 'image/jpeg'), "{$name} was allowed");
     }
     // Including the double extension a web server would run.
-    assertEquals(null, MediaUpload::extensionFor('photo.jpg.php', 'image/jpeg'), 'photo.jpg.php was allowed');
+    assertEquals(null, MediaFileType::extensionFor('photo.jpg.php', 'image/jpeg'), 'photo.jpg.php was allowed');
 });
 
 test('the stored name is generated, never taken from the client', function () {

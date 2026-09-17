@@ -8,7 +8,7 @@ use App\Support\Url;
  * @var array{id: int, filename: string, original: string, size: string, width: int, height: int, complete: bool, thumb: string|null} $picture
  * @var string|null $preview the uncropped variant, or null while it is still being made
  * @var array{x: int, y: int} $focal
- * @var array<string, array{alt: string, caption: string}> $meta
+ * @var array<string, array{alt: string, caption: string, suggested: bool}> $meta
  * @var list<array<string, mixed>> $locales
  * @var array<int, string> $usedBy page id => title
  * @var string $added
@@ -119,7 +119,15 @@ use App\Support\Url;
                     <label for="alt-<?= e($code) ?>"><?= e(t('media.alt')) ?></label>
                     <input type="text" id="alt-<?= e($code) ?>" name="alt_<?= e($code) ?>" maxlength="255"
                            value="<?= e($meta[$code]['alt'] ?? '') ?>">
+<?php /* A guess says so until the owner confirms it, and the badge REPLACES the ordinary
+         hint rather than sitting beside it: two pieces of advice under one field is how a
+         screen stops being read (D-025). */ ?>
+<?php if ($meta[$code]['suggested'] ?? false): ?>
+                    <p class="media-suggested"><?= e(t('media.alt_suggested')) ?></p>
+                    <p class="hint"><?= e(t('media.alt_suggested_hint')) ?></p>
+<?php else: ?>
                     <p class="hint"><?= e(t('media.alt_hint')) ?></p>
+<?php endif; ?>
                 </div>
                 <div class="field">
                     <label for="caption-<?= e($code) ?>"><?= e(t('media.caption')) ?></label>

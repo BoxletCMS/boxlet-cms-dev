@@ -45,7 +45,7 @@ final class MediaItemController
             // The uncropped variant, and only that one — see below.
             'preview' => MediaVariants::url($media, 'full'),
             'focal' => ['x' => (int) $media['focal_x'], 'y' => (int) $media['focal_y']],
-            'meta' => $library->meta($id),
+            'meta' => MediaMeta::forPicture($this->container->get('db'), $id),
             'locales' => $this->container->get('locales'),
             'usedBy' => $library->usedBy($id),
             'added' => (string) $media['created_at'],
@@ -69,7 +69,13 @@ final class MediaItemController
 
         foreach ($this->container->get('locales') as $enabled) {
             $code = (string) $enabled['code'];
-            $library->saveMeta($id, $code, trim($request->input('alt_' . $code)), trim($request->input('caption_' . $code)));
+            MediaMeta::save(
+                $this->container->get('db'),
+                $id,
+                $code,
+                trim($request->input('alt_' . $code)),
+                trim($request->input('caption_' . $code)),
+            );
         }
         $this->container->get('session')->set('flash', t('media.meta_saved'));
 

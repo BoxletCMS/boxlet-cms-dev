@@ -11,7 +11,7 @@ use App\Support\Url;
  * picker it is a button that chooses it, because a picker that navigated away would lose
  * everything typed since the last save.
  *
- * @var list<array{id: int, filename: string, original: string, size: string, width: int, height: int, complete: bool, thumb: string|null}> $pictures
+ * @var list<array{id: int, filename: string, original: string, size: string, width: int, height: int, complete: bool, thumb: string|null, suggested: bool}> $pictures
  * @var string $search
  * @var bool $picking
  * @var string $csrf
@@ -47,6 +47,12 @@ use App\Support\Url;
                     <?= e(t('media.dimensions', ['width' => (string) $picture['width'], 'height' => (string) $picture['height']])) ?>
                     · <?= e($picture['size']) ?>
                 </p>
+<?php /* Hidden while picking, for the same reason .media-pending is: the picker is open to
+         choose a picture, not to tidy its metadata, and a badge there is one more thing to
+         read past (D-025). */ ?>
+<?php if ($picture['suggested'] && !$picking): ?>
+                <p class="media-suggested"><?= e(t('media.alt_suggested')) ?></p>
+<?php endif; ?>
 <?php if (!$picture['complete'] && !$picking): ?>
                 <div class="media-pending">
                     <p class="hint"><?= e(t('media.incomplete')) ?></p>

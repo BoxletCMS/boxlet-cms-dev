@@ -8,72 +8,23 @@ use App\Support\Bytes;
 use RuntimeException;
 
 /**
- * Accepting an uploaded picture (SPEC §6).
+ * Storing an uploaded picture, and putting different bytes behind an existing one (SPEC §6).
  *
- * Three things decide whether a file is allowed, and all three must agree:
- *
- *   what it CLAIMS     the browser's filename extension — never trusted, only used to
- *                      reject early and to pick the stored extension once the sniff agrees
- *   what it IS         finfo reading the bytes, which is the only opinion that counts
- *   what we ALLOW      a closed list of formats, so a new one is a decision rather than
- *                      an accident
+ * WHETHER a file may be uploaded at all is MediaFileType: the agreement between what it
+ * claims, what finfo says it is, and the closed list of formats. This half takes a file
+ * that has passed and gives it somewhere to live.
  *
  * The stored filename is generated here, never taken from the client: a name arriving as
  * "photo.php.jpg", "../../evil" or 300 bytes of Unicode is a name this never has to
  * reason about, because it is discarded.
- *
- * HEIC is refused deliberately, even where the server could read it. Most shared hosts
- * cannot, and an upload that works for the developer and fails for the customer is worse
- * than one that always says "convert it first".
  */
 final class MediaUpload
 {
-    /** Extension => the MIME finfo must agree on. */
-    private const ALLOWED = [
-        'jpg' => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'png' => 'image/png',
-        'webp' => 'image/webp',
-        'gif' => 'image/gif',
-        'avif' => 'image/avif',
-    ];
-
-    /**
-     * Refused by name whatever the bytes say. finfo would catch a real script anyway, but
-     * a file called .php that reached a servable directory through some future path is a
-     * class of accident worth refusing twice.
-     */
-    private const NEVER = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps',
-        'cgi', 'pl', 'py', 'jsp', 'asp', 'aspx', 'sh', 'bash', 'htaccess', 'htm', 'html', 'svg'];
-
     public function __construct(
         private readonly Db $db,
         private readonly string $storagePath,
         private readonly MediaEncoder $encoder,
     ) {
-    }
-
-    /**
-     * The extension a file may be stored under, or null when it is not allowed.
-     *
-     * $claimed is the client's filename; $sniffed is what finfo says about the bytes.
-     */
-    public static function extensionFor(string $claimed, string $sniffed): ?string
-    {
-        $extension = strtolower(pathinfo($claimed, PATHINFO_EXTENSION));
-        if ($extension === '' || in_array($extension, self::NEVER, true)) {
-            return null;
-        }
-        // A double extension is judged on its last part, which is what a web server would
-        // do — and the sniff below has to agree anyway.
-        if (!isset(self::ALLOWED[$extension])) {
-            return null;
-        }
-        if (self::ALLOWED[$extension] !== $sniffed) {
-            return null;
-        }
-
-        return $extension === 'jpeg' ? 'jpg' : $extension;
     }
 
     /**
@@ -96,17 +47,6 @@ final class MediaUpload
             UPLOAD_ERR_NO_FILE => t('media.no_file'),
             default => t('media.storage_unwritable'),
         };
-    }
-
-    /**
-     * What finfo makes of a file's bytes.
-     */
-    public static function sniff(string $file): string
-    {
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($file);
-
-        return is_string($mime) ? $mime : '';
     }
 
     /**
@@ -143,8 +83,8 @@ final class MediaUpload
      */
     public function store(string $temporaryFile, string $originalName): array
     {
-        $sniffed = self::sniff($temporaryFile);
-        $extension = self::extensionFor($originalName, $sniffed);
+        $sniffed = MediaFileType::sniff($temporaryFile);
+        $extension = MediaFileType::extensionFor($originalName, $sniffed);
         if ($extension === null) {
             throw new RuntimeException(t('media.refused', ['type' => $sniffed === '' ? '?' : $sniffed]));
         }
@@ -195,7 +135,12 @@ final class MediaUpload
             ],
         );
 
-        return ['id' => (int) $this->db->lastInsertId(), 'duplicate' => false];
+        $id = (int) $this->db->lastInsertId();
+        // A library full of pictures with nothing to say is worse than a guess the owner
+        // can correct, and every guess is marked as one (D-025).
+        MediaAlt::fill($this->db, $id, $target, $originalName);
+
+        return ['id' => $id, 'duplicate' => false];
     }
 
     /**
@@ -218,8 +163,8 @@ final class MediaUpload
             throw new RuntimeException(t('media.not_found'));
         }
 
-        $sniffed = self::sniff($temporaryFile);
-        $extension = self::extensionFor($originalName, $sniffed);
+        $sniffed = MediaFileType::sniff($temporaryFile);
+        $extension = MediaFileType::extensionFor($originalName, $sniffed);
         if ($extension === null) {
             throw new RuntimeException(t('media.refused', ['type' => $sniffed === '' ? '?' : $sniffed]));
         }
@@ -264,6 +209,10 @@ final class MediaUpload
                 $mediaId,
             ],
         );
+
+        // New bytes may refresh a suggestion nobody has confirmed, and never touch an alt
+        // the owner wrote or confirmed (D-025).
+        MediaAlt::fill($this->db, $mediaId, $target, $originalName);
 
         // The old original is nothing's source now. Removed after the row points at the
         // new one, so a failure halfway leaves one file too many rather than a row whose

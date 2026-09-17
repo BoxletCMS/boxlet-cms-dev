@@ -18,7 +18,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { BASE, SITE_DIR, ADMIN, SITE_NAME } from '../config.mjs';
-import { submitVia, alerts, heading, SLOW } from '../harness.mjs';
+import { submitVia, alerts, heading, resetForInstall, SLOW } from '../harness.mjs';
 
 export default {
   name: 'install',
@@ -31,18 +31,19 @@ export default {
     // token file. Neither named the real reason, and both looked like the installer being
     // broken. A scenario must never fail because an earlier run left state behind — it sets
     // up what it needs, or it says plainly that it cannot (PLAN.md D-029).
-    const installed = existsSync(`${SITE_DIR}/storage/install.lock`);
-    const installerPresent = existsSync(`${SITE_DIR}/public/install.php`);
-    if (installed || !installerPresent) {
-      report.fail('install: its precondition',
-        `${SITE_DIR} has already been installed — install.lock ${installed ? 'present' : 'absent'}, `
-        + `public/install.php ${installerPresent ? 'present' : 'gone, it deletes itself after installing'}. `
-        + 'This scenario installs from nothing and cannot run against a finished site. '
-        + 'Point BOXLET_SUITE_SITE_DIR at an untouched copy, or reset this one: remove '
-        + 'storage/install.lock, .env and storage/database.sqlite, and put public/install.php '
-        + 'back from the checkout.');
+    // It MAKES its precondition rather than complaining about it. Saying "this copy is
+    // already installed" was honest but useless: the check could only ever fail, and a
+    // colour that never changes stops being read. resetForInstall() refuses loudly if the
+    // directory is the checkout, is under htdocs, or does not look like a Boxlet copy — it
+    // deletes a database and a .env, so it asks those questions before acting, not after.
+    let reset;
+    try {
+      reset = resetForInstall();
+    } catch (error) {
+      report.fail('install: a copy it can install into', error.message);
       return;
     }
+    report.pass('install: a copy it can install into', reset);
 
     // ---- the installer, step by step -------------------------------------------------
     await page.goto(`${BASE}/install.php`, { waitUntil: 'networkidle2' });

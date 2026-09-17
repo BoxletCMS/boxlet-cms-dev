@@ -38,15 +38,15 @@ export default {
       // six media scenarios when the photographs were renamed.
       await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
       const before = await text(page);
-      await report.shot(page, '01-dashboard-off');
+      await report.shot(page, '01-settings-off');
       report.verdict('the settings screen says the site is visible and offers to hide it',
         /visible to everyone/i.test(before) && /Turn on maintenance mode/i.test(before),
-        `the dashboard says "${before.slice(before.indexOf('Maintenance'), before.indexOf('Maintenance') + 120)}"`);
+        `the settings screen says "${before.slice(before.indexOf('Maintenance'), before.indexOf('Maintenance') + 120)}"`);
 
       // ---- switch it on ----------------------------------------------------------------
       await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');
       const afterOn = await text(page);
-      await report.shot(page, '02-dashboard-on');
+      await report.shot(page, '02-settings-on');
       report.verdict('switching it on is confirmed on the settings screen',
         /Maintenance mode is on/i.test(afterOn) && /Turn off maintenance mode/i.test(afterOn),
         `the screen now says "${afterOn.slice(0, 120)}"`);

@@ -47,13 +47,13 @@ use App\Support\Url;
     <main>
 <?= $content ?>
     </main>
+<?php /* ONE footer for the site (D-028, 5c). The switcher lives in its own partial so the
+         owner's footer can include it instead of carrying a second copy; until that footer
+         exists this is still the only <footer> on the page, and it draws nothing at all
+         when a single locale is enabled. */ ?>
 <?php if (count($locales) > 1): ?>
     <footer class="container">
-        <nav class="locale-switcher">
-<?php foreach ($locales as $option): ?>
-            <a href="<?= e(Url::page((string) $option['code'])) ?>" hreflang="<?= e($option['code']) ?>" lang="<?= e($option['code']) ?>"<?= $option['code'] === $locale ? ' aria-current="true"' : '' ?>><?= e($option['label']) ?></a>
-<?php endforeach; ?>
-        </nav>
+<?php require __DIR__ . '/partials/locale-switcher.php'; ?>
     </footer>
 <?php endif; ?>
 </body>

@@ -20,8 +20,9 @@
  */
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { readdirSync, existsSync, mkdirSync } from 'node:fs';
-import { BASE, SHOTS as SHOTS_DIR, CHROME, MODULES } from './config.mjs';
+import { readdirSync, existsSync, mkdirSync, rmSync, copyFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { BASE, SHOTS as SHOTS_DIR, CHROME, MODULES, SITE_DIR, CHECKOUT } from './config.mjs';
 
 /*
  * Puppeteer, found where node_modules actually is rather than where this file sits.
@@ -209,6 +210,54 @@ export async function retype(page, selector, value) {
   await page.keyboard.up('Control');
   await page.keyboard.press('Backspace');
   await page.type(selector, value, { delay: SLOW });
+}
+
+/**
+ * Puts a site copy back to "never installed", so 01-install can actually run (D-029).
+ *
+ * That scenario installs from nothing, and the installer deletes itself once it has
+ * finished — correctly, since a second run must be impossible. The consequence was a check
+ * that could only ever pass once and was red for ever after, and a check that can only fail
+ * stops being read at all.
+ *
+ * IT DELETES A DATABASE AND A .env, so it refuses before it acts rather than after:
+ * never the checkout itself, never anything under a served htdocs, and only a directory
+ * that actually looks like a Boxlet copy. The copy is complete already — vendor and all —
+ * so only STATE is removed; nothing is rebuilt.
+ *
+ * @returns {string} what it did, for the scenario to put in its verdict
+ */
+export function resetForInstall() {
+  const site = resolve(SITE_DIR);
+  const checkout = resolve(CHECKOUT);
+
+  if (site === checkout) {
+    throw new Error(`Refusing to reset ${site}: that is the checkout itself, not a copy.`);
+  }
+  if (site.includes('/htdocs/')) {
+    throw new Error(`Refusing to reset ${site}: it is under htdocs, where a served site lives.`);
+  }
+  if (!existsSync(`${site}/public/index.php`) || !existsSync(`${site}/app`)) {
+    throw new Error(`Refusing to reset ${site}: it does not look like a Boxlet copy.`);
+  }
+
+  const installer = `${checkout}/public/install.php`;
+  if (!existsSync(installer)) {
+    throw new Error(`No installer to restore: ${installer} does not exist.`);
+  }
+
+  const removed = [];
+  for (const relative of ['storage/install.lock', '.env', 'storage/database.sqlite', 'storage/database.sqlite-journal']) {
+    if (existsSync(`${site}/${relative}`)) {
+      rmSync(`${site}/${relative}`);
+      removed.push(relative);
+    }
+  }
+
+  copyFileSync(installer, `${site}/public/install.php`);
+
+  return `removed ${removed.length > 0 ? removed.join(', ') : 'nothing — it was already clean'}; `
+    + `restored public/install.php from ${checkout}`;
 }
 
 export function reporter(area) {

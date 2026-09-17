@@ -13,6 +13,9 @@
  * default this machine has always used, so a checkout elsewhere sets what it needs and
  * edits no code.
  */
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
 const outside = process.env.BOXLET_SUITE_HOME ?? `${process.env.HOME}/boxlet-browser`;
 
 export const BASE = process.env.BOXLET_SUITE_BASE ?? 'http://127.0.0.1:8100';
@@ -38,6 +41,17 @@ export const MODULES = process.env.BOXLET_SUITE_MODULES ?? `${outside}/node_modu
 /** Where puppeteer put chrome-headless-shell. */
 export const CHROME = process.env.BOXLET_SUITE_CHROME
   ?? `${process.env.HOME}/.cache/puppeteer/chrome-headless-shell`;
+
+/**
+ * The checkout this suite belongs to — the one place that is NOT outside configuration,
+ * because the suite now lives inside it: two levels up from tools/browser-suite/.
+ *
+ * 01-install restores public/install.php from here. The installer deletes itself after a
+ * successful install, which is correct and is also why that scenario could only ever run
+ * once against a copy.
+ */
+export const CHECKOUT = process.env.BOXLET_SUITE_CHECKOUT
+  ?? resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export const ADMIN = {
   email: 'owner@example.test',

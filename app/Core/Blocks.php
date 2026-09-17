@@ -147,9 +147,20 @@ final class Blocks
      * @param string       $layout  stored layout; one the block no longer declares renders as its default
      * @param array<int, Picture> $media id => resolved picture
      * @param bool         $eager   the first section on the page, which is never lazy-loaded
+     * @param string       $wrapper the element to wrap it in: a page block is a section, but
+     *                              site chrome is a header or a footer (PLAN.md D-030)
      */
-    public function render(string $type, array $content, array $style = [], string $layout = '', array $media = [], bool $eager = false): string
+    public function render(string $type, array $content, array $style = [], string $layout = '', array $media = [], bool $eager = false, string $wrapper = 'section'): string
     {
+        // An allowlist, not the caller's word for it: this string is written straight into
+        // the markup, and "whatever you pass" is how a tag name becomes an injection point.
+        // Three elements are all the design has a meaning for, and one <header> and one
+        // <footer> per page is the rule (D-028) — enforced by the callers, since a registry
+        // cannot know how many times it will be asked.
+        if (!in_array($wrapper, ['section', 'header', 'footer'], true)) {
+            throw new RuntimeException("Unknown wrapper element: {$wrapper}");
+        }
+
         $layout = $this->layout($type, $layout);
         $template = $this->directory . '/' . $type . '/template.php';
         $include = static function (string $__template, array $content, array $style, string $layout, array $media, bool $eager): void {
@@ -167,9 +178,9 @@ final class Blocks
         $inner = (string) ob_get_clean();
         $classes = implode(' ', array_merge(['block', 'block-' . $type, 'layout-' . $layout], SectionStyle::classes($style)));
 
-        return '<section class="' . e($classes) . "\">\n"
+        return '<' . $wrapper . ' class="' . e($classes) . "\">\n"
             . self::sectionPicture($style, $media, $eager)
-            . "<div class=\"container\">\n" . $inner . "</div>\n</section>\n";
+            . "<div class=\"container\">\n" . $inner . "</div>\n</" . $wrapper . ">\n";
     }
 
     /**

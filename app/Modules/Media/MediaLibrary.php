@@ -144,11 +144,27 @@ final class MediaLibrary
     public function forgetVariants(array $media): void
     {
         $mediaId = (int) $media['id'];
+        $filename = (string) $media['filename'];
+
         foreach (MediaVariants::of($media) as $preset => $variant) {
             foreach ($variant['formats'] as $format) {
-                $file = $this->publicPath . '/' . MediaPresets::file($preset, $mediaId, (string) $media['filename'], $format);
+                $file = $this->publicPath . '/' . MediaPresets::file($preset, $mediaId, $filename, $format);
                 if (is_file($file)) {
                     @unlink($file);
+                }
+            }
+        }
+
+        // Then everything else wearing this picture's name. variants_json lists what was
+        // SUCCESSFULLY written, so an encode that failed part-way leaves a file no record
+        // mentions, and deleting the picture left it behind for ever with nothing to say
+        // whose it was. The id makes the pattern unambiguous: 12-photo.* cannot match
+        // 123-photo.*.
+        foreach (MediaPresets::names() as $preset) {
+            $pattern = $this->publicPath . '/m/' . $preset . '/' . $mediaId . '-' . $filename . '.*';
+            foreach (glob($pattern, GLOB_NOSORT) ?: [] as $orphan) {
+                if (is_file($orphan)) {
+                    @unlink($orphan);
                 }
             }
         }

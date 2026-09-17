@@ -1,15 +1,19 @@
 <?php
 
 use App\Modules\Media\MediaEncoder;
-use App\Modules\Media\MediaPresets;
 use App\Modules\Media\MediaUpload;
-use App\Modules\Media\MediaVariants;
-use App\Modules\Media\MediaWriter;
 
-// Uploading and encoding pictures (SPEC §5.5, §6).
+// Uploading pictures: what is ACCEPTED and what is refused (SPEC §5.5, §6). Turning
+// accepted bytes into files on disk is media_encoding_test.php, split out when this file
+// passed the 300-line rule.
 //
 // Fixtures are generated, never committed: a repository with binaries in it invites
 // someone to commit a photograph, and D-022 keeps photographs out entirely.
+//
+// imageFixture() and mediaPaths() live here and are used by every media test file. They
+// stayed rather than moving to fixtures.php, which would take that file past 300 lines of
+// its own. run.php requires every test file before running any test, so both are defined
+// by the time the others run.
 //
 // ASSERTIONS ARE ON GEOMETRY, NEVER ON COLOUR VALUES. This machine's ImageMagick 6.9.12
 // misreads the channel order of GD's synthetic flat-colour JPEGs — a plain GD jpeg with
@@ -198,107 +202,3 @@ testBothDrivers('a file whose bytes are not a picture is refused with a message 
     assertEquals(0, count($db->all('SELECT id FROM media')), 'it recorded the refused file');
 });
 
-// The orientation case, tested by GEOMETRY. A 400×200 source with a white block in its
-// stored top-left, tagged orientation 6 (a quarter turn clockwise on display), presents
-// as 200×400 — and a crop taken after the turn is a crop of the upright picture.
-test('EXIF orientation is applied before the crop, not after', function () {
-    $encoder = new MediaEncoder();
-    $source = imageFixture(tmpPath('orient.jpg'), 400, 200, 6);
-
-    assertEquals(6, MediaEncoder::orientationOf($source), 'the orientation was not read back');
-
-    // inspect() reports the size a person sees, which is the turned one.
-    $info = $encoder->inspect($source);
-    assertEquals(200, $info['width'], 'upright width');
-    assertEquals(400, $info['height'], 'upright height');
-
-    // Cropping BEFORE turning would use 400×200 and give a landscape crop; the
-    // measurements below are only possible if the turn happened first.
-    $crop = MediaPresets::crop('full', $info['width'], $info['height'], 50, 50);
-    $written = (new MediaWriter($encoder))->encode(
-        $source,
-        $target = tmpPath('media-public') . '/orient-out.png',
-        $crop,
-        'png',
-        MediaEncoder::orientationOf($source),
-    );
-
-    assertEquals(200, $written['width'], 'the written variant is not upright');
-    assertEquals(400, $written['height'], 'the written variant is not upright');
-    assertTrue(is_file($target), 'nothing was written');
-});
-
-test('an untagged picture is left alone', function () {
-    $encoder = new MediaEncoder();
-    $source = imageFixture(tmpPath('upright.jpg'), 400, 200);
-
-    assertEquals(1, MediaEncoder::orientationOf($source), 'a file with no tag');
-    $info = $encoder->inspect($source);
-    assertEquals(400, $info['width'], 'width');
-    assertEquals(200, $info['height'], 'height');
-});
-
-testBothDrivers('a budget stops the set part-way, and continuing finishes it', function (string $driver) {
-    $db = installedSite(['en' => 'English'], $driver);
-    [$storage, $public] = mediaPaths();
-    $encoder = new MediaEncoder();
-    $upload = new MediaUpload($db, $storage, $encoder);
-    $variants = new MediaVariants($db, $encoder, new MediaWriter($encoder), $storage, $public);
-
-    $id = $upload->store(imageFixture(tmpPath('budget.jpg'), 1200, 800), 'budget.jpg')['id'];
-
-    // A budget smaller than the reserve stops before the first encode: nothing is made,
-    // and the row says so rather than claiming to be finished.
-    $none = $variants->generate($id, 0.1);
-    assertEquals([], $none['made'], 'it encoded something inside an impossible budget');
-    assertTrue(!$none['complete'], 'it called an empty set complete');
-    assertEquals(['incomplete'], array_column($db->all('SELECT status FROM media WHERE id = ' . $id), 'status'), 'status');
-    assertTrue(in_array($id, $variants->incomplete(), true), 'it is not offered for finishing');
-
-    // No budget: the rest is made, and the row becomes complete.
-    $rest = $variants->generate($id, null);
-    assertTrue($rest['complete'], 'the unbounded run did not complete the set');
-    assertEquals([], $variants->incomplete(), 'something is still waiting');
-
-    // Priority order: the cheapest and most needed exist first.
-    assertEquals(MediaVariants::ORDER, array_slice(array_map(
-        static fn (string $made): string => explode('.', $made)[0],
-        array_values(array_unique(array_map(
-            static fn (string $made): string => explode('.', $made)[0],
-            $rest['made'],
-        ))),
-    ), 0, 5), 'the order variants were made in');
-});
-
-testBothDrivers('variants land where their URL says they do', function (string $driver) {
-    $db = installedSite(['en' => 'English'], $driver);
-    [$storage, $public] = mediaPaths();
-    $encoder = new MediaEncoder();
-    $upload = new MediaUpload($db, $storage, $encoder);
-    $variants = new MediaVariants($db, $encoder, new MediaWriter($encoder), $storage, $public);
-
-    $id = $upload->store(imageFixture(tmpPath('paths.jpg'), 1200, 800), 'A Nice Photo.jpg')['id'];
-    $variants->generate($id, null);
-
-    $media = $db->one('SELECT * FROM media WHERE id = ?', [$id]);
-    if ($media === null) {
-        fail('the uploaded picture has no row');
-    }
-    assertEquals('a-nice-photo', $media['filename'], 'the generated filename');
-
-    $described = MediaVariants::of($media);
-    foreach (MediaVariants::ORDER as $preset) {
-        assertTrue(isset($described[$preset]), "{$preset} is missing from variants_json");
-        foreach ($described[$preset]['formats'] as $format) {
-            $path = MediaPresets::file($preset, $id, 'a-nice-photo', $format);
-            assertEquals("m/{$preset}/{$id}-a-nice-photo.{$format}", $path, 'the path shape');
-            assertTrue(is_file($public . '/' . $path), "{$path} was recorded but not written");
-        }
-        // The recorded size is the true output size, which <picture> needs.
-        assertTrue($described[$preset]['width'] > 0 && $described[$preset]['height'] > 0, "{$preset} recorded no size");
-    }
-
-    // The original is outside the web root, untouched, and not among the variants.
-    assertTrue(is_file($storage . '/' . $media['path']), 'the original was not kept');
-    assertTrue(!str_contains((string) $media['path'], 'public'), 'the original is inside the web root');
-});

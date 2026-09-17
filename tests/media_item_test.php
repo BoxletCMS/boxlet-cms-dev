@@ -35,6 +35,31 @@ testBothDrivers('a picture nothing uses is deleted, with its files', function (s
     assertEquals([], glob(tmpPath('admin-media-public') . '/m/thumb/*') ?: [], 'the generated files stayed behind');
 });
 
+// A failed encode can leave bytes on disk that variants_json never mentions, because a
+// format is only recorded once it has been written. Deleting the picture removed exactly
+// what the record listed, so a half-written file stayed for ever with nothing left to say
+// whose it was — seen on CI as a stray .avif surviving the delete.
+testBothDrivers('deleting a picture removes files it never finished writing', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    adminUpload('/admin/media', [['name' => 'orphan.jpg', 'tmp_name' => imageFixture(tmpPath('orphan.jpg'), 320, 240)]]);
+    $row = $db->one('SELECT id, filename FROM media');
+    $id = (int) ($row['id'] ?? 0);
+    $filename = (string) ($row['filename'] ?? '');
+
+    // What a half-finished encode leaves: a file wearing the picture's name that no record
+    // mentions. Written by hand because an encoder that fails on demand cannot be built —
+    // MediaEncoder and MediaWriter are both final.
+    $stray = tmpPath('admin-media-public') . '/m/thumb/' . $id . '-' . $filename . '.avif';
+    file_put_contents($stray, 'not a real avif, but it is on disk');
+    assertTrue(is_file($stray), 'the stray file was not created, so this would prove nothing');
+
+    adminUpload('/admin/media/' . $id . '/delete', []);
+
+    assertEquals([], $db->all('SELECT id FROM media'), 'the row is still there');
+    assertTrue(!is_file($stray), 'a file the record never listed survived the delete');
+    assertEquals([], glob(tmpPath('admin-media-public') . '/m/thumb/*') ?: [], 'the generated files stayed behind');
+});
+
 testBothDrivers('alt text is kept per locale, and an empty alt is stored as a choice', function (string $driver) {
     $db = mediaAdminSite($driver);
     adminUpload('/admin/media', [['name' => 'meaning.jpg', 'tmp_name' => imageFixture(tmpPath('meaning.jpg'), 320, 240)]]);

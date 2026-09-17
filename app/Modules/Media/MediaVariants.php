@@ -29,6 +29,14 @@ final class MediaVariants
     /** Cheapest and most needed first. */
     public const ORDER = ['thumb', 'card', 'wide', 'hero', 'full'];
 
+    /**
+     * Where variants_json records the best-effort formats this picture cannot have.
+     *
+     * Not a preset name, so of() skips it: the key rides alongside the presets and never
+     * reaches a <picture>.
+     */
+    public const UNAVAILABLE = '_unavailable';
+
     /** What one encode might take, when deciding whether to start another. */
     private const RESERVE_SECONDS = 2.0;
 
@@ -58,11 +66,18 @@ final class MediaVariants
         $orientation = MediaEncoder::orientationOf($source);
         $formats = $this->encoder->formatsFor(self::extensionOf((string) $media['path']));
         $existing = self::decode($media['variants_json'] ?? null);
+        // Formats this picture has already proved it cannot have. Not retried: the delegate
+        // that failed last time fails again, and retrying turns every attempt to finish the
+        // picture into another failure that leaves it unfinished.
+        $unavailable = array_values(array_filter(
+            is_array($existing[self::UNAVAILABLE] ?? null) ? $existing[self::UNAVAILABLE] : [],
+            'is_string',
+        ));
         $started = microtime(true);
         $made = [];
 
         foreach (self::ORDER as $preset) {
-            $want = $formats;
+            $want = array_values(array_diff($formats, $unavailable));
             $have = $existing[$preset]['formats'] ?? [];
             $missing = array_values(array_diff($want, is_array($have) ? $have : []));
             if ($missing === []) {
@@ -90,9 +105,26 @@ final class MediaVariants
                 try {
                     $result = $this->writer->encode($source, $this->publicPath . '/' . $relative, $crop, $format, $orientation);
                 } catch (Throwable) {
-                    // One format failing is not the set failing: a host without an AVIF
-                    // delegate still gets WebP and the original. The row stays incomplete,
-                    // so the attempt is not silently forgotten.
+                    // RULE CHANGED, DELIBERATELY. This used to leave the row incomplete so
+                    // the attempt was "not silently forgotten". But SPEC §5.5 says AVIF is
+                    // best-effort and must never block, and incomplete is not a resting
+                    // state: the library offers to finish the picture, finishing fails the
+                    // same way, and it never completes. On a host whose AVIF delegate is
+                    // declared but broken — GitHub's runners — every picture stayed
+                    // unfinished for ever.
+                    //
+                    // So a best-effort format that fails is recorded as unavailable FOR THIS
+                    // PICTURE and never attempted again, and the set completes on what is
+                    // left. A failing FALLBACK format still leaves the row incomplete,
+                    // because then there is genuinely nothing to serve.
+                    //
+                    // The partial file goes too: a failed encode can leave bytes on disk
+                    // that variants_json never mentions, and nothing would ever remove them.
+                    @unlink($this->publicPath . '/' . $relative);
+                    if (in_array($format, MediaEncoder::FORMATS, true)) {
+                        $unavailable[] = $format;
+                        $existing[self::UNAVAILABLE] = array_values(array_unique($unavailable));
+                    }
                     continue;
                 }
 
@@ -106,7 +138,7 @@ final class MediaVariants
             }
         }
 
-        $complete = self::isComplete($existing, $formats);
+        $complete = self::isComplete($existing, array_values(array_diff($formats, $unavailable)));
         $this->record($mediaId, $existing, $complete);
 
         return ['made' => $made, 'complete' => $complete];

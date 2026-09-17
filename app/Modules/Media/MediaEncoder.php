@@ -4,6 +4,7 @@ namespace App\Modules\Media;
 
 use Imagick;
 use RuntimeException;
+use Throwable;
 
 /**
  * Turning an uploaded picture into the named variants (SPEC §5.5).
@@ -22,8 +23,20 @@ use RuntimeException;
  */
 final class MediaEncoder
 {
-    /** What a variant is written as, best first. The original format is always last. */
-    private const FORMATS = ['avif', 'webp'];
+    /**
+     * What a variant is written as, best first. The original format is always last.
+     *
+     * Public because these are also the BEST-EFFORT formats: SPEC §5.5 says AVIF must never
+     * block, so MediaVariants needs to know which formats a picture is allowed to go without.
+     */
+    public const FORMATS = ['avif', 'webp'];
+
+    /**
+     * Proof, per driver and format, kept for the life of the process.
+     *
+     * @var array<string, bool>
+     */
+    private static array $proved = [];
 
     /**
      * A host that can process no images at all. Forced, because it cannot be asked for any
@@ -58,27 +71,89 @@ final class MediaEncoder
     }
 
     /**
-     * Whether this server can write $format. Probed, never assumed.
+     * Whether this server can write $format.
+     *
+     * PROVED BY ENCODING, not by asking. The old version took the extension's word for it —
+     * Imagick::queryFormats('AVIF') listing AVIF, or GD defining imageavif() — and both can
+     * be true on a host where the encode then fails or writes nothing. GitHub's runners are
+     * exactly that host, and the docblock here claimed "probed, never assumed" while doing
+     * the opposite: the whole test suite failed on it for a day.
+     *
+     * Only avif and webp are proved. A delegate that is declared and broken is a real thing
+     * for those two; jpg, png and gif are part of the extension itself, and a build where
+     * imagejpeg() exists but cannot write a JPEG is not a case worth paying for on every
+     * call.
+     *
+     * Cached per process: this runs on every upload and the answer cannot change under us.
      */
     public function supports(string $format): bool
     {
-        if ($this->driver() === 'imagick') {
-            $imagick = 'Imagick';
-
-            return class_exists($imagick) && $imagick::queryFormats(strtoupper($format)) !== [];
-        }
-        if ($this->driver() !== 'gd') {
+        $driver = $this->driver();
+        if ($driver === null) {
             return false;
         }
 
-        return match ($format) {
-            'avif' => function_exists('imageavif'),
-            'webp' => function_exists('imagewebp'),
-            'jpg', 'jpeg' => function_exists('imagejpeg'),
-            'png' => function_exists('imagepng'),
-            'gif' => function_exists('imagegif'),
-            default => false,
-        };
+        $declared = $driver === 'imagick'
+            ? class_exists('Imagick') && (new ('Imagick')())::queryFormats(strtoupper($format)) !== []
+            : match ($format) {
+                'avif' => function_exists('imageavif'),
+                'webp' => function_exists('imagewebp'),
+                'jpg', 'jpeg' => function_exists('imagejpeg'),
+                'png' => function_exists('imagepng'),
+                'gif' => function_exists('imagegif'),
+                default => false,
+            };
+
+        if (!$declared || !in_array($format, self::FORMATS, true)) {
+            return $declared;
+        }
+
+        $key = $driver . ':' . $format;
+        if (isset(self::$proved[$key])) {
+            return self::$proved[$key];
+        }
+
+        return self::$proved[$key] = $this->canReallyWrite($format);
+    }
+
+    /**
+     * Encodes a two-pixel image and insists on getting bytes back.
+     *
+     * In memory rather than through a file: a temporary file would need somewhere writable
+     * at the moment someone uploads, which is one more thing to go wrong in the middle of
+     * answering the question "can this server do AVIF".
+     */
+    private function canReallyWrite(string $format): bool
+    {
+        try {
+            if ($this->driver() === 'imagick') {
+                $class = 'Imagick';
+                $image = new $class();
+                $image->newImage(2, 2, new ('ImagickPixel')('red'));
+                $image->setImageFormat($format === 'jpg' ? 'jpeg' : $format);
+                $bytes = (string) $image->getImageBlob();
+                $image->clear();
+
+                return $bytes !== '';
+            }
+
+            $image = imagecreatetruecolor(2, 2);
+            ob_start();
+            $written = match ($format) {
+                'avif' => @imageavif($image),
+                'webp' => @imagewebp($image),
+                default => false,
+            };
+            $bytes = (string) ob_get_clean();
+            imagedestroy($image);
+
+            return $written && $bytes !== '';
+        } catch (Throwable) {
+            // A delegate that throws is a delegate that cannot write the format, which is
+            // the whole question. Anything louder would turn a capability check into a
+            // failed upload.
+            return false;
+        }
     }
 
     /**

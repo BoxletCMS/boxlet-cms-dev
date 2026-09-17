@@ -190,6 +190,51 @@ test('every block has a preview, regenerated when the design changes and not oth
     removeTree($dir);
 });
 
+// A preview is a picture of the BLOCK. Sampling a media field as id 1 made it a picture of
+// whichever photograph happened to hold that number — nothing on a fresh install, and on a
+// used one somebody's holiday snap appearing in the block library.
+test('no preview claims a picture, and the ones that reserve a place still show it', function () {
+    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    $dir = tmpPath('previewclaims');
+    removeTree($dir);
+
+    $claimed = [];
+    $placeholders = [];
+    foreach (BlockPreview::all($registry, 'tokens.cccccccccccc.css', $dir) as $type => $file) {
+        $html = (string) file_get_contents($dir . '/previews/' . $file);
+        if (str_contains($html, 'data-media-id')) {
+            $claimed[] = $type;
+        }
+        if (str_contains($html, 'media-placeholder')) {
+            $placeholders[] = $type;
+        }
+    }
+
+    assertEquals([], $claimed, 'a preview names a media id, so it depends on whatever holds that number');
+
+    // Not every block: image_text draws its placeholder unconditionally, while hero draws
+    // one only in a layout that reserves a picture area and its default layout is centred,
+    // which reserves none. So this asserts the one that must, rather than all of them.
+    assertTrue(in_array('image_text', $placeholders, true),
+        'image_text lost the placeholder that shows where its picture goes');
+
+    removeTree($dir);
+});
+
+// guard (source, not behaviour): the sample cannot be varied from a test, so this stands
+// over the mechanism instead. The file name is hashed from what the preview is RENDERED
+// from. It covered only the definition and the stylesheet, so changing how a field is
+// sampled left every already-generated file in place and the correction never reached an
+// install that already had previews.
+test('guard (source, not behaviour): a preview\'s name follows its sample', function () {
+    $source = (string) file_get_contents(dirname(__DIR__) . '/app/Modules/Pages/BlockPreview.php');
+
+    assertTrue(
+        (bool) preg_match('~hash\(\s*.sha256.,\s*json_encode\(\s*\[\s*\$definition,\s*self::sample\(~', $source),
+        'the preview file name no longer depends on the sample, so changing it leaves stale files',
+    );
+});
+
 // Editing a block re-draws it on the canvas. The same endpoint answers, so the drawing
 // goes through the same cleaning a save would.
 test('the endpoint re-draws a block from the values being edited', function () {

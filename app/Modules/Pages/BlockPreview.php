@@ -32,7 +32,15 @@ final class BlockPreview
     public static function file(Blocks $registry, string $type, string $stylesheet, string $cacheDirectory): string
     {
         $definition = $registry->get($type);
-        $hash = substr(hash('sha256', json_encode($definition, JSON_THROW_ON_ERROR) . '|' . $stylesheet), 0, 12);
+        // Hashed against what the preview is RENDERED FROM, which includes the sample. The
+        // hash covered only the definition and the stylesheet, so changing how a field is
+        // sampled left every already-generated file in place — a preview kept showing the
+        // old sample until the block or the design happened to change. That is how a
+        // corrected preview would have failed to reach the installs that already had one.
+        $hash = substr(hash('sha256', json_encode(
+            [$definition, self::sample($definition), $stylesheet],
+            JSON_THROW_ON_ERROR,
+        )), 0, 12);
         $file = $type . '.' . $hash . '.html';
         $directory = $cacheDirectory . '/' . self::DIRECTORY;
         $target = $directory . '/' . $file;
@@ -81,7 +89,11 @@ final class BlockPreview
         $content = [];
         foreach ($definition['fields'] as $name => $field) {
             $content[$name] = match ($field['type']) {
-                'media' => 1,
+                // Null, never an id. A preview is a picture of the BLOCK, and an id here
+                // makes it a picture of whichever photograph happens to hold that number —
+                // on a fresh install nothing, and on a used one somebody's holiday snap.
+                // Every layout that reserves a picture area draws its placeholder anyway.
+                'media' => null,
                 'link' => ['label' => t('preview.link'), 'url' => '#'],
                 'select' => $field['options'][0],
                 'richtext' => '<p>' . e(t('preview.body')) . '</p>',

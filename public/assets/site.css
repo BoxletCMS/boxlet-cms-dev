@@ -169,22 +169,10 @@ code {
   grid-template-columns: 1fr 1fr;
 }
 
-/* A split hero with no picture splits its own text instead of leaving half the section
-   empty: the heading takes one column, the subheading and button the other. */
-.layout-split .hero:not(:has(.hero-media)) {
-  grid-template-columns: 1fr;
-}
-
-.layout-split .hero:not(:has(.hero-media)) .hero-text {
-  grid-template-columns: 1fr 1fr;
-  column-gap: var(--space-xl);
-  align-items: start;
-  max-width: none;
-}
-
-.layout-split .hero:not(:has(.hero-media)) .hero-heading {
-  grid-row: span 2;
-}
+/* A split hero always has a media element now, whether or not a picture has been chosen,
+   so the rules that re-flowed one WITHOUT it have gone rather than staying as selectors
+   that can no longer match. What they did — heading in one column, subheading and button
+   in the other — avoided an empty half but still left the lower part of the section dead. */
 
 /* Text and image-text */
 
@@ -216,13 +204,8 @@ code {
 
 @media (max-width: 40rem) {
   .layout-split .hero,
-  .layout-split .hero:not(:has(.hero-media)) .hero-text,
   .image-text {
     grid-template-columns: 1fr;
-  }
-
-  .layout-split .hero:not(:has(.hero-media)) .hero-heading {
-    grid-row: auto;
   }
 
   .layout-image-right .image-text-media {

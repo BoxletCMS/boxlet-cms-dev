@@ -126,6 +126,32 @@ test('rendering escapes content and puts type and layout classes on the wrapper'
     assertContains('<a class="button" href="/go">Go</a>', $html, 'button');
 });
 
+// The architect's hero ruling, 2026-09-17. image_text has always drawn its placeholder
+// unconditionally — only data-media-id depends on a picture being chosen — while hero drew
+// no media element at all, so a layout that had reserved half the section for a picture
+// left it empty. Seen on the demo's /services once the seed stopped shipping media ids.
+test('a hero layout that reserves a picture area always draws the placeholder', function () {
+    $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+
+    $splitEmpty = $blocks->render('hero', ['heading' => 'x'], [], 'split');
+    assertContains('hero-media', $splitEmpty, 'split with no picture draws no media area');
+    assertContains('media-placeholder', $splitEmpty, 'split with no picture draws no placeholder');
+    assertTrue(!str_contains($splitEmpty, 'data-media-id'), 'a placeholder with no picture claims a media id');
+
+    assertContains('data-media-id="7"', $blocks->render('hero', ['heading' => 'x', 'image' => 7], [], 'split'), 'split with a picture');
+
+    // A layout that reserves nothing draws nothing: a centred hero has no picture area.
+    $centred = $blocks->render('hero', ['heading' => 'x'], [], 'center');
+    assertTrue(!str_contains($centred, 'hero-media'), 'a centred hero reserves no picture area but drew one');
+    assertContains('hero-media', $blocks->render('hero', ['heading' => 'x', 'image' => 7], [], 'center'), 'a centred hero with a picture no longer shows it');
+
+    // The rules that re-flowed a split hero WITHOUT a media element can never match again.
+    // Dead CSS explaining a case that cannot arise is worse than none: it reads as
+    // deliberate.
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/site.css');
+    assertTrue(!str_contains($css, ':not(:has(.hero-media))'), 'site.css still carries the unreachable no-media split rules');
+});
+
 test('stored content of the wrong shape renders as empty values, never an error', function () {
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
     $normalized = $blocks->normalize('image_text', ['heading' => ['nested'], 'image' => '7', 'image_fit' => 'stretch', 'link' => 'x']);

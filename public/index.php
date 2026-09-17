@@ -4,6 +4,7 @@ use App\Core\ErrorHandler;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\RewriteCheck;
+use App\Modules\Update\UpdateGate;
 use App\Support\Url;
 use Dotenv\Dotenv;
 
@@ -73,4 +74,20 @@ if (!$container->get('installed')) {
     exit;
 }
 
-$container->get('router')->dispatch($container->get('request'))->send();
+// Before the router is built, because building it reads the locales table — and a
+// pending migration is exactly the case where reading the database is what fails
+// (PLAN.md D-019). Router::dispatch() checks the same gate, so a request that gets
+// past here is refused there instead; this is the copy that runs first.
+$gate = UpdateGate::check($container, $container->get('request'));
+if ($gate !== null) {
+    $gate->send();
+    exit;
+}
+
+// bar() as well as check(): Router::dispatch() appends the maintenance bar too, and if
+// only one of the two call sites did it, the tests and the live site would disagree about
+// whether the owner can see that their site is hidden.
+UpdateGate::bar(
+    $container,
+    $container->get('router')->dispatch($container->get('request')),
+)->send();

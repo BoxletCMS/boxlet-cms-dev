@@ -116,6 +116,7 @@ function dispatch(
     string $method = 'GET',
     array $body = [],
     string $ip = '203.0.113.10',
+    ?Closure $configureContainer = null,
 ): Response {
     $saved = [$_SERVER, $_GET, $_POST, $_ENV];
     try {
@@ -133,6 +134,13 @@ function dispatch(
 
         $container = require dirname(__DIR__) . '/app/bootstrap.php';
         $container->set('session', static fn () => new Session());
+        // Replace a service before anything resolves it. The configurator above takes the
+        // Router, which is built from the container and so cannot reach it — a test that
+        // needs the request to see a different service (a pending update, say) has
+        // nowhere else to stand.
+        if ($configureContainer !== null) {
+            $configureContainer($container);
+        }
         /** @var Router $router */
         $router = $container->get('router');
         if ($configureRouter !== null) {

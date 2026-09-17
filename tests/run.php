@@ -37,6 +37,23 @@ $skipped = 0;
 foreach (TestSuite::$tests as [$name, $body]) {
     $_SESSION = [];
     TestSite::$env = [];
+    // The storage directory is one fixed path shared by every test, so state written into
+    // it outlives the test that wrote it. Each of these changes what a LATER test sees:
+    //
+    //   maintenance.flag   closes the site — eight render tests became 503s this way
+    //   migrations.state   makes pending() answer from the file without querying, so a
+    //                      test can be told "nothing pending" about a database it has
+    //                      never looked at, which passes rather than fails
+    //   update.lock        makes any later run() refuse as already running
+    //
+    // Cleared here rather than trusting every test to tidy up, because the failure from
+    // forgetting lands on a different test and reads as a bug in that one.
+    foreach (['maintenance.flag', 'migrations.state', 'update.lock'] as $leftover) {
+        $file = tmpPath('storage') . '/' . $leftover;
+        if (is_file($file)) {
+            unlink($file);
+        }
+    }
     try {
         $body();
         echo "  PASS  {$name}\n";

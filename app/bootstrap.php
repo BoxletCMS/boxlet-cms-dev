@@ -16,6 +16,10 @@ use App\Modules\Pages\PageBuilderController;
 use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageEditorController;
 use App\Modules\Pages\PagesController;
+use App\Modules\Update\Maintenance;
+use App\Modules\Update\MaintenanceController;
+use App\Modules\Update\Update;
+use App\Modules\Update\UpdateController;
 use App\Support\Url;
 
 /**
@@ -46,6 +50,22 @@ $container->set('session', fn () => Session::start($storage . '/sessions', $requ
 $container->set('locales', fn (Container $c) => $c->get('db')->all(
     'SELECT code, label, is_primary FROM locales WHERE enabled = 1 ORDER BY sort, code'
 ));
+// Updating an existing install (D-019). The SQLite path is passed in rather than read
+// back out of the connection: only MySQL sites have nothing to copy.
+// Fetched as ['path'] rather than by the dotted key 'database.path': a guard scrapes
+// this file for ->get('...') and ->post('...') and rejects any that ends in a file
+// extension, because managed nginx answers such a URL from disk and never passes the
+// miss to PHP. The dotted key is not a route, but it is indistinguishable from one here.
+$databasePath = (string) (($config->get('database', []))['path'] ?? '');
+// Maintenance mode (D-021): a file, not a settings row, so it still works when the
+// database is unavailable or mid-update.
+$container->set('maintenance', fn () => new Maintenance($storage));
+$container->set('update', fn (Container $c) => new Update(
+    $c->get('db'),
+    $root . '/migrations',
+    $storage,
+    $c->get('db')->driver === 'sqlite' ? $databasePath : null,
+));
 
 $container->set('router', function (Container $c) use ($request, $cache): Router {
     $locales = $c->get('locales');
@@ -68,6 +88,14 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/login', [AuthController::class, 'login']);
     $router->post('/admin/logout', [AuthController::class, 'logout'], $requireAdmin);
     $router->get('/admin', [DashboardController::class, 'index'], $requireAdmin);
+    // The only route that applies a migration, and the only admin screen the update gate
+    // lets through while one is pending (D-019).
+    $router->get('/admin/update', [UpdateController::class, 'show'], $requireAdmin);
+    $router->post('/admin/update', [UpdateController::class, 'run'], $requireAdmin);
+    // Maintenance mode (D-021). The GET is where the bar's link goes; it only brings the
+    // owner back to the dashboard, because switching off is a POST with a token.
+    $router->get('/admin/maintenance', [MaintenanceController::class, 'show'], $requireAdmin);
+    $router->post('/admin/maintenance', [MaintenanceController::class, 'toggle'], $requireAdmin);
     $router->get('/admin/pages', [PagesController::class, 'index'], $requireAdmin);
     $router->get('/admin/pages/new', [PagesController::class, 'create'], $requireAdmin);
     $router->post('/admin/pages', [PagesController::class, 'store'], $requireAdmin);

@@ -1,0 +1,44 @@
+/* The bar a logged-in admin sees on the real site while maintenance is on (PLAN.md D-021).
+ *
+ * Its own file, not site.css, for the same reason canvas.css is its own file: it carries
+ * literal values on purpose, and site.css may not. Every colour and size in site.css and
+ * sections.css must come from a custom property, so that the site's design controls how
+ * the site looks — a rule with its own test (tests/blocks_test.php). This bar is the
+ * opposite case. It is the admin's chrome that happens to render inside the site's
+ * document, and it has to look the same and stay legible over every design, including one
+ * whose own accent is this brown. A bar that took the site's tokens would be invisible on
+ * the design that needed it most.
+ *
+ * Linked by the bar fragment itself, so it is fetched only when the bar is shown. An
+ * ordinary visitor to a healthy site never requests it.
+ *
+ * Measured against D-012: #ffffff on #8a2b06 is 8.65:1, past the 4.5:1 asked of text, and
+ * the underlined link inherits it.
+ *
+ * Fixed rather than in the flow, so the page underneath is the page it would be without
+ * the bar: a browser check measuring spacing, or a screenshot judging a design, must not
+ * be reading a layout this pushed up. */
+
+.boxlet-maintenance-bar {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  /* Above anything a design can raise: this says the site is hidden, and a sticky header
+     or a cookie banner must not bury it. */
+  z-index: 2147483647;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem;
+  background: #8a2b06;
+  color: #ffffff;
+  font: 500 0.875rem/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  text-align: center;
+}
+
+.boxlet-maintenance-bar a {
+  color: #ffffff;
+  text-decoration: underline;
+}

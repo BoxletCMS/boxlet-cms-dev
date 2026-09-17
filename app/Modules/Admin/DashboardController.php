@@ -22,6 +22,9 @@ final class DashboardController
         return AdminView::render($this->container, __DIR__ . '/views', 'dashboard', [
             'title' => t('admin.dashboard.title'),
             'nav' => 'dashboard',
+            // The maintenance switch lives here (D-021): the one screen the owner lands
+            // on, and the one place that says which way round the site currently is.
+            'maintenanceOn' => $this->container->get('maintenance')->isOn(),
         ]);
     }
 }

@@ -49,6 +49,29 @@ final class Migrator
     }
 
     /**
+     * The migration files this database has not applied, in filename order.
+     *
+     * Reads and compiles nothing: the update gate asks this on requests that are about
+     * to be refused, so it must be a directory listing and one query, and it must never
+     * be the thing that runs a migration.
+     *
+     * @return list<string>
+     */
+    public function pending(): array
+    {
+        $applied = $this->appliedFilenames();
+        $pending = [];
+        foreach ($this->files() as $file) {
+            $name = basename($file);
+            if (!in_array($name, $applied, true)) {
+                $pending[] = $name;
+            }
+        }
+
+        return $pending;
+    }
+
+    /**
      * Turns one migration file into statements for $driver. Statements end with a
      * semicolon at the end of a line; whole-line "--" comments are ignored.
      *

@@ -2,6 +2,7 @@
 
 namespace App\Core;
 
+use App\Modules\Update\UpdateGate;
 use App\Support\Url;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
@@ -72,6 +73,15 @@ final class Router
 
     public function dispatch(Request $request): Response
     {
+        // Before anything else, including the locale redirect: while migrations are
+        // pending the answer is the update screen or 503, not a 301 to a page that
+        // cannot be rendered (PLAN.md D-019). public/index.php checks the same gate
+        // earlier, before this router is even built; this is the one the tests reach.
+        $gate = UpdateGate::check($this->container, $request);
+        if ($gate !== null) {
+            return $gate;
+        }
+
         $path = $request->path;
         $locale = $this->primaryLocale;
         $segments = explode('/', ltrim($path, '/'), 2);
@@ -89,11 +99,16 @@ final class Router
 
         $result = $this->dispatcher()->dispatch($request->method, $path);
 
-        return match ($result[0]) {
+        $response = match ($result[0]) {
             Dispatcher::FOUND => $this->run($result[1], $request, $locale, $result[2]),
             Dispatcher::METHOD_NOT_ALLOWED => $this->methodNotAllowed($request, $locale, $result[1]),
             default => $this->notFound($request, $locale),
         };
+
+        // While maintenance is on, a logged-in admin sees the real site with a bar saying
+        // so. Appended to the finished HTML rather than threaded through every template,
+        // so the page above it is exactly the page it would otherwise be.
+        return UpdateGate::bar($this->container, $response);
     }
 
     private function dispatcher(): Dispatcher

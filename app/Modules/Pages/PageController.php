@@ -50,8 +50,14 @@ final class PageController
             $first = false;
         }
 
+        // D-004. THE ONLY PLACE THE TITLE FALLS BACK. An empty <title> is worse than one
+        // repeating the page's own, so the page title stands in; an empty description is
+        // better than one repeating the title, so it stays empty and the tag is dropped.
+        $seo = Page::seo($page);
+
         return $this->render('page', $locale, [
-            'title' => (string) $page['title'],
+            'title' => $seo['title'] !== '' ? $seo['title'] : (string) $page['title'],
+            'description' => $seo['description'],
             'blocksHtml' => $html,
             // The one address this page is indexed under, whatever variant reached it.
             'canonical' => Url::canonical($locale, $slug),
@@ -76,7 +82,10 @@ final class PageController
      */
     private function render(string $template, string $locale, array $data, int $status = 200): Response
     {
-        $data += ['canonical' => null, 'locales' => $this->container->get('locales')];
+        // The error pages have no description of their own, and neither has anything
+        // else that renders through this layout: defaulting it here is what keeps the
+        // template free of a guard around a variable that is simply always present.
+        $data += ['canonical' => null, 'description' => '', 'locales' => $this->container->get('locales')];
 
         return Response::html((new View(__DIR__ . '/views'))->render($template, $locale, $data), $status);
     }

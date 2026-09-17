@@ -63,6 +63,8 @@ final class DemoSite
                 'slug' => $page['slug'],
                 'parent_id' => null,
                 'status' => 'draft',
+                // The demo pages give no meta of their own: each falls back to its title.
+                'seo_json' => '{}',
             ], $blocks);
             Page::setStatus($db, $id, true);
         }

@@ -137,6 +137,16 @@ return [
     'pages.slug.home' => 'Empty: this is the home page of its language.',
     'pages.insert_unknown' => 'That block type is not installed.',
 
+    // What the page says about itself in a search result (PLAN.md D-004). Two fields,
+    // and no more: no sharing image, no robots directive, no sitemap.
+    'pages.field.seo_title' => 'Title in search results',
+    'pages.field.seo_title_hint' => 'Empty: the page title is used.',
+    'pages.field.seo_description' => 'Description in search results',
+    // One piece of advice, not two. The first draft also explained what an empty field
+    // means, and the hint came out longer than the box it sat under — the same way of
+    // making a screen unreadable that D-025 names on the picture screen.
+    'pages.field.seo_description_hint' => 'A sentence or two; search results usually show about 160 characters.',
+
     'pages.library' => 'Add a block',
     'pages.library_hint' => 'Each picture is the block as this site renders it.',
     'pages.insert_here' => 'Add a block here',

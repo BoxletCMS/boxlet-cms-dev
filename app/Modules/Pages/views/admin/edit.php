@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Design\Composition;
+use App\Modules\Pages\Page;
 use App\Support\Url;
 
 /**
@@ -22,6 +23,9 @@ use App\Support\Url;
  */
 $pageId = (int) $page['id'];
 $published = $page['status'] === 'published';
+// What is stored, not what a visitor would see: on a rejected save $page already carries
+// the submitted seo_json, so this shows back what was typed rather than what was kept.
+$seo = Page::seo($page);
 $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>' : '';
 ?>
         <div class="page-header">
@@ -53,11 +57,12 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                     <span class="hint" id="page-slug-hint"><?= e(t('pages.field.slug_hint')) ?></span>
                     <?= $error('slug') ?>
                 </div>
-                <?php /* The same control the builder has. This form posts to the same
-                         route, which reads parent_id and treats a missing one as "no
-                         parent", so leaving it out here un-parented the page on every
-                         save. A page's parent is changed in page settings and never by
-                         dragging (PLAN.md D-011). */ ?>
+                <?php /* The same control the builder has. It is here so the parent can be
+                         changed without JavaScript — no longer to prevent damage: the
+                         route now tells an absent field from an empty one and leaves what
+                         is stored alone, which is what stopped this form un-parenting the
+                         page on every save. A page's parent is changed in page settings
+                         and never by dragging (PLAN.md D-011). */ ?>
                 <div class="field">
                     <label for="page-parent"><?= e(t('pages.field.parent')) ?></label>
                     <select id="page-parent" name="parent_id">
@@ -67,6 +72,27 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php endforeach; ?>
                     </select>
                     <?= $error('parent') ?>
+                </div>
+                <?php /* D-004. Left EMPTY when unset rather than pre-filled with the page
+                         title: a filled field cannot be told apart from an inherited one,
+                         and saving it back would freeze the title in place. The hint says
+                         what an empty one does, exactly as the slug field's does.
+
+                         Their own row, because dropped into the panel's grid they landed
+                         under Title and Address and left a hole under Parent page — and
+                         the description, the one field meant to hold a sentence, came out
+                         the narrowest thing on the screen with a hint longer than itself. */ ?>
+                <div class="editor-meta-seo">
+                    <div class="field">
+                        <label for="page-seo-title"><?= e(t('pages.field.seo_title')) ?></label>
+                        <input type="text" id="page-seo-title" name="seo_title" value="<?= e($seo['title']) ?>" maxlength="255" aria-describedby="page-seo-title-hint">
+                        <span class="hint" id="page-seo-title-hint"><?= e(t('pages.field.seo_title_hint')) ?></span>
+                    </div>
+                    <div class="field">
+                        <label for="page-seo-description"><?= e(t('pages.field.seo_description')) ?></label>
+                        <textarea id="page-seo-description" name="seo_description" rows="2" aria-describedby="page-seo-description-hint"><?= e($seo['description']) ?></textarea>
+                        <span class="hint" id="page-seo-description-hint"><?= e(t('pages.field.seo_description_hint')) ?></span>
+                    </div>
                 </div>
             </div>
 

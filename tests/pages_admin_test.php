@@ -145,6 +145,7 @@ testBothDrivers('publishing stamps published_at once and later saves keep it', f
         'slug' => 'news',
         'parent_id' => null,
         'status' => $status,
+        'seo_json' => '{}',
     ], []);
 
     assertEquals(null, $publishedAt(), 'a draft has no published_at');

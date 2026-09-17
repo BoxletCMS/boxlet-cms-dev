@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Pages\Page;
 use App\Support\Url;
 
 /**
@@ -26,6 +27,8 @@ use App\Support\Url;
  */
 $pageId = (int) $page['id'];
 $published = $page['status'] === 'published';
+// What is stored, not what a visitor would see — see the note in the fallback editor.
+$seo = Page::seo($page);
 $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>' : '';
 
 // Errors belonging to a field this screen does not show. Block errors are keyed
@@ -130,6 +133,21 @@ foreach ($errors as $key => $message) {
                                 <option value="<?= e($state) ?>"<?= (string) $page['status'] === $state ? ' selected' : '' ?>><?= e(t('pages.status.' . $state)) ?></option>
 <?php endforeach; ?>
                             </select>
+                        </div>
+
+                        <?php /* D-004. Empty when unset, never pre-filled with the page
+                                 title — the fallback editor carries the same two fields
+                                 and the same note explaining why. */ ?>
+                        <div class="field">
+                            <label for="page-seo-title"><?= e(t('pages.field.seo_title')) ?></label>
+                            <input type="text" id="page-seo-title" name="seo_title" value="<?= e($seo['title']) ?>" maxlength="255" aria-describedby="page-seo-title-hint">
+                            <span class="hint" id="page-seo-title-hint"><?= e(t('pages.field.seo_title_hint')) ?></span>
+                        </div>
+
+                        <div class="field">
+                            <label for="page-seo-description"><?= e(t('pages.field.seo_description')) ?></label>
+                            <textarea id="page-seo-description" name="seo_description" rows="2" aria-describedby="page-seo-description-hint"><?= e($seo['description']) ?></textarea>
+                            <span class="hint" id="page-seo-description-hint"><?= e(t('pages.field.seo_description_hint')) ?></span>
                         </div>
                     </div>
 

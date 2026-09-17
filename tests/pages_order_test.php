@@ -29,6 +29,7 @@ function orderedPages(Db $db, array $tree, string $locale = 'en'): array
                 'slug' => strtolower((string) $title),
                 'parent_id' => $ids[$parent],
                 'status' => 'draft',
+                'seo_json' => '{}',
             ], []);
         }
     }
@@ -128,7 +129,7 @@ testBothDrivers('a page given a new parent goes last among its new siblings', fu
     $ids = orderedPages($db, ['About' => null, 'Team' => 'About', 'Ada' => 'About', 'Moved' => null]);
 
     Page::update($db, blockRegistry(), $ids['Moved'], [
-        'title' => 'Moved', 'slug' => 'moved', 'parent_id' => $ids['About'], 'status' => 'draft',
+        'title' => 'Moved', 'slug' => 'moved', 'parent_id' => $ids['About'], 'status' => 'draft', 'seo_json' => '{}',
     ], []);
 
     // It kept sort 1 from the top level, where Team already sits. Without appending it

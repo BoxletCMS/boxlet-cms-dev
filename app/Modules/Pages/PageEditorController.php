@@ -149,7 +149,7 @@ final class PageEditorController
      * is what stops a crafted request creating a cycle the interface would not offer.
      *
      * @param array<string, mixed> $page
-     * @return array{parent_id: int|null|false, status: string}
+     * @return array{parent_id: int|null|false, status: string, seo_json: string}
      */
     private static function settings(Request $request, Db $db, array $page, int $id): array
     {
@@ -158,6 +158,7 @@ final class PageEditorController
         $settings = [
             'parent_id' => $stored,
             'status' => in_array($status, ['draft', 'published'], true) ? $status : (string) $page['status'],
+            'seo_json' => self::seo($request, $page),
         ];
 
         if (!array_key_exists('parent_id', $request->body)) {
@@ -174,6 +175,30 @@ final class PageEditorController
         $settings['parent_id'] = in_array((int) $submitted, $allowed, true) ? (int) $submitted : false;
 
         return $settings;
+    }
+
+    /**
+     * The page's meta title and description as submitted, already encoded for storage
+     * (D-004).
+     *
+     * Presence decides, the same rule parent_id follows: a field the form did not send
+     * keeps what is stored, a field sent empty was cleared on purpose. Without that
+     * distinction any save from a form lacking these two — which is every save made
+     * before this existed, and any made by a form added later — would quietly erase
+     * what the owner wrote.
+     *
+     * @param array<string, mixed> $page
+     */
+    private static function seo(Request $request, array $page): string
+    {
+        $seo = Page::seo($page);
+        foreach (['title', 'description'] as $field) {
+            if (array_key_exists('seo_' . $field, $request->body)) {
+                $seo[$field] = trim($request->input('seo_' . $field));
+            }
+        }
+
+        return Page::seoJson($seo);
     }
 
     /**

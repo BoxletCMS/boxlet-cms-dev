@@ -90,6 +90,7 @@ testBothDrivers('an id that was valid at save becomes null once the picture is g
         'slug' => 'about',
         'parent_id' => null,
         'status' => 'published',
+        'seo_json' => '{}',
     ], Page::editable($db, $registry, $pageId));
 
     $after = storedBlockContent($db, $pageId);

@@ -37,6 +37,20 @@
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
+/* The two search-result fields (D-004) get a row of their own.
+   Dropped straight into the panel's grid they took columns one and two and left a hole
+   under the third, and the description — the one field meant to hold a sentence — came out
+   the narrowest control on the screen, under a hint longer than itself. A row of its own,
+   with a wider minimum, gives both of them room and still collapses to one column when the
+   panel is narrow. `1 / -1` rather than a span: the columns here are auto-fit, so a span
+   would force an implicit column and cramp the whole panel at small widths. */
+.editor-meta-seo {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--ui-4);
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
 .editor-section-title {
   display: flex;
   align-items: baseline;

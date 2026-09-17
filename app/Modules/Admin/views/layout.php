@@ -14,7 +14,7 @@ use App\Support\Url;
  * @var string $title
  * @var string $content rendered HTML of the page template
  * @var string $siteName
- * @var string $nav current section: dashboard, pages, media or design
+ * @var string $nav current section: dashboard, pages, media, design or settings
  * @var list<string> $styles extra stylesheets under public/assets
  * @var list<string> $scripts extra scripts under public/assets, in load order
  * @var bool $wide whether this screen wants the wide column
@@ -52,6 +52,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
                 <a href="<?= e(Url::admin('pages')) ?>"<?= $current('pages') ?>><?= e(t('admin.nav.pages')) ?></a>
                 <a href="<?= e(Url::admin('media')) ?>"<?= $current('media') ?>><?= e(t('admin.nav.media')) ?></a>
                 <a href="<?= e(Url::admin('design')) ?>"<?= $current('design') ?>><?= e(t('admin.nav.design')) ?></a>
+                <a href="<?= e(Url::admin('settings')) ?>"<?= $current('settings') ?>><?= e(t('admin.nav.settings')) ?></a>
             </nav>
             <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

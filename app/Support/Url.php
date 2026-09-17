@@ -130,6 +130,18 @@ final class Url
     }
 
     /**
+     * A static file under public/ on this site's origin, e.g. for a sharing image.
+     *
+     * asset() is relative, which is right for a page linking its own stylesheet and wrong
+     * for anything a machine reads somewhere else: og:image is fetched by a crawler that
+     * has no page to resolve it against. Same shape as canonical(), for the same reason.
+     */
+    public static function absolute(string $path): string
+    {
+        return self::$origin . self::asset($path);
+    }
+
+    /**
      * A stylesheet or script under public/ with a hash of its content in the query
      * string, so an edited file is a new URL that no browser or proxy has cached.
      *

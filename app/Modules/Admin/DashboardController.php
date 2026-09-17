@@ -19,12 +19,12 @@ final class DashboardController
      */
     public function index(Request $request, string $locale, array $params): Response
     {
+        // The maintenance switch used to live here. It moved to site settings (D-028), next
+        // to the message it shows visitors, because the two were edited in two places and
+        // only ever make sense together.
         return AdminView::render($this->container, __DIR__ . '/views', 'dashboard', [
             'title' => t('admin.dashboard.title'),
             'nav' => 'dashboard',
-            // The maintenance switch lives here (D-021): the one screen the owner lands
-            // on, and the one place that says which way round the site currently is.
-            'maintenanceOn' => $this->container->get('maintenance')->isOn(),
         ]);
     }
 }

@@ -46,6 +46,29 @@ final class MediaReference
     }
 
     /**
+     * The data attributes media-picker.js reads off a <select data-media-field>.
+     *
+     * Extracted from the block editor's view when site settings became a second screen
+     * with pickers on it. Six attributes copied into a second template is how one of them
+     * quietly stops matching the script and that screen's picker loses its labels.
+     *
+     * Presentation in a data class, which is not where it belongs — but the alternatives
+     * were a one-method class in Support or a partial that returns a string, and the
+     * vocabulary already lives beside choices(), which is the picker's other server half.
+     * The keys stay under pages.field.* because that is where they were written; renaming
+     * them would touch two templates and change no behaviour.
+     */
+    public static function pickerAttributes(): string
+    {
+        return ' data-picker-url="' . e(\App\Support\Url::admin('media')) . '"'
+            . ' data-text-none="' . e(t('pages.field.media_none')) . '"'
+            . ' data-text-search="' . e(t('media.search')) . '"'
+            . ' data-text-failed="' . e(t('media.pick_failed')) . '"'
+            . ' data-text-choose="' . e(t('media.pick_choose')) . '"'
+            . ' data-text-change="' . e(t('media.pick_change')) . '"';
+    }
+
+    /**
      * The pictures a field may choose from, newest first: id, library name, and the
      * thumbnail to show for the one currently chosen.
      *

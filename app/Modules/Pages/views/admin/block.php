@@ -24,12 +24,9 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
 // What media-picker.js needs, on the field itself rather than in a script: the admin's CSP
 // allows no inline script, and these attributes survive being cloned out of a <template>,
 // which a page-level element would not reach.
-$pickerAttributes = static fn (): string => ' data-picker-url="' . e(\App\Support\Url::admin('media')) . '"'
-    . ' data-text-none="' . e(t('pages.field.media_none')) . '"'
-    . ' data-text-search="' . e(t('media.search')) . '"'
-    . ' data-text-failed="' . e(t('media.pick_failed')) . '"'
-    . ' data-text-choose="' . e(t('media.pick_choose')) . '"'
-    . ' data-text-change="' . e(t('media.pick_change')) . '"';
+// The same attributes the site settings screen's pickers carry: one definition, in
+// MediaReference, so the two cannot drift apart from each other or from media-picker.js.
+$pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::pickerAttributes();
 ?>
             <?php /* The name as data, so the visual editor's panel heading does not have
                      to scrape it out of the legend and pick up its drag handle with it. */ ?>

@@ -125,7 +125,19 @@ final class DesignController
         // The second renderer of the site layout, so it owes it the same complete set
         // PageController::render() assembles. A preview describes no page in particular,
         // so it gives no description and the layout emits no tag (D-004).
-        $body = $view->render('page', 'en', ['title' => t('design.preview'), 'blocksHtml' => $html, 'canonical' => null, 'description' => '', 'locales' => []]);
+        // The second renderer of the site layout, so it owes it the same complete set
+        // PageController::render() assembles — every variable the layout reads, not only
+        // the ones that existed when this line was last touched. It has now been caught
+        // out twice, by `description` and then by `icon`.
+        $body = $view->render('page', 'en', [
+            'title' => t('design.preview'),
+            'blocksHtml' => $html,
+            'canonical' => null,
+            'description' => '',
+            'icon' => null,
+            'shareImage' => null,
+            'locales' => [],
+        ]);
         $response = Response::admin($body);
         // The one admin page that may be framed, and only by the admin itself.
         $response->headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data:; form-action 'none'; frame-ancestors 'self'; base-uri 'none'";

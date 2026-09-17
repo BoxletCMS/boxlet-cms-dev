@@ -25,6 +25,7 @@ use App\Modules\Media\MediaUpload;
 use App\Modules\Media\MediaVariants;
 use App\Modules\Media\MediaWriter;
 use App\Modules\Pages\PagesController;
+use App\Modules\Settings\SettingsController;
 use App\Modules\Update\Maintenance;
 use App\Modules\Update\MaintenanceController;
 use App\Modules\Update\Update;
@@ -152,6 +153,11 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/media/{id:\d+}/replace', [MediaItemController::class, 'replace'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/delete', [MediaItemController::class, 'delete'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/finish', [MediaController::class, 'finish'], $requireAdmin);
+
+    // Site settings (D-028): the one screen that edits what the installer wrote, plus the
+    // maintenance message and its switch, which moved off the dashboard.
+    $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
+    $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
 
     $router->get('/admin/design', [DesignController::class, 'show'], $requireAdmin);
     $router->post('/admin/design', [DesignController::class, 'save'], $requireAdmin);

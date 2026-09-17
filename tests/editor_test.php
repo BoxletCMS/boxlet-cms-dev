@@ -113,10 +113,26 @@ test('guard (source, not behaviour): the picker\'s resting state is more than a 
     assertContains("text(select, 'choose')", $js, 'the verb for an empty field is gone');
 
     // Both labels have to reach the browser, and the admin's CSP allows no inline script,
-    // so they travel as data attributes on the field itself.
-    $block = (string) file_get_contents(dirname(__DIR__) . '/app/Modules/Pages/views/admin/block.php');
-    assertContains('data-text-choose', $block, 'the choose label never reaches the picker');
-    assertContains('data-text-change', $block, 'the change label never reaches the picker');
+    // so they travel as data attributes on the field itself. They moved out of the block
+    // template into MediaReference when site settings became a second screen with pickers.
+    //
+    // Deliberately stronger than the version that read the template: checking only where
+    // the strings live would still pass if a template stopped calling for them, so every
+    // template that renders a picker is named here too. A third one has to join this list.
+    $attributes = (string) file_get_contents(dirname(__DIR__) . '/app/Modules/Media/MediaReference.php');
+    assertContains('data-text-choose', $attributes, 'the choose label never reaches the picker');
+    assertContains('data-text-change', $attributes, 'the change label never reaches the picker');
+
+    foreach ([
+        'app/Modules/Pages/views/admin/block.php',
+        'app/Modules/Settings/views/settings.php',
+    ] as $template) {
+        assertContains(
+            'pickerAttributes()',
+            (string) file_get_contents(dirname(__DIR__) . '/' . $template),
+            "{$template} renders a picker without the labels",
+        );
+    }
 
     // And the thumbnail comes from the server, never assembled in JavaScript: media URLs
     // use named presets only (SPEC §6).

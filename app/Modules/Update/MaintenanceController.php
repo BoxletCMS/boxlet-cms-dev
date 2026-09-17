@@ -38,21 +38,23 @@ final class MaintenanceController
 
         $this->container->get('session')->set('flash', $on ? t('maintenance.turned_on') : t('maintenance.turned_off'));
 
-        // Back where they pressed it: the dashboard, or the site if they used the bar.
+        // Back where they pressed it: site settings, or the site if they used the bar.
+        // The switch moved off the dashboard with D-028.
         $from = $request->input('return');
 
-        return Response::redirect($from === 'site' ? Url::page('') : Url::admin());
+        return Response::redirect($from === 'site' ? Url::page('') : Url::admin('settings'));
     }
 
     /**
      * The bar's "turn it off" link is a GET, because it sits in the site's own document
      * where a form would inherit the page's styling and a POST needs a token the page
-     * does not carry. It confirms on the dashboard rather than acting.
+     * does not carry. It confirms on site settings rather than acting — that is where the
+     * switch is since D-028, so the link needs no change of its own.
      *
      * @param array<string, string> $params
      */
     public function show(Request $request, string $locale, array $params): Response
     {
-        return Response::redirect(Url::admin());
+        return Response::redirect(Url::admin('settings'));
     }
 }

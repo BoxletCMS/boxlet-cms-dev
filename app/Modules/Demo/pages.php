@@ -95,11 +95,18 @@ return [
                 'heading' => 'Style guide',
                 'subheading' => 'Every surface, rhythm, width and edge in one place. Switch the character and watch all of it change.',
             ], ['rhythm' => 'tight', 'align' => 'center'], 'center'],
-            ['text', ['heading' => 'Plain surface', 'body' => '<p>Body text with <strong>bold</strong>, <em>italic</em> and <a href="/">a link</a>.</p>'], [], 'single'],
+            // rhythm is stated rather than inherited. The seed fills unnamed keys from the
+            // character's composition now, and `minimal` composes `airy`, so without this
+            // the demo never shows `normal` at all — and this page exists to show every
+            // value of every choice.
+            ['text', ['heading' => 'Plain surface, normal rhythm', 'body' => '<p>Body text with <strong>bold</strong>, <em>italic</em> and <a href="/">a link</a>.</p>'], ['rhythm' => 'normal'], 'single'],
             ['text', ['heading' => 'Tinted surface', 'body' => '<p>Tinted sections separate content without shouting.</p>'], ['surface' => 'tinted', 'divider' => 'line'], 'single'],
             ['text', ['heading' => 'Contrast surface', 'body' => '<p>Text and <a href="/">links</a> switch colour on contrast surfaces.</p>'], ['surface' => 'contrast', 'divider' => 'slant'], 'single'],
             ['text', ['heading' => 'Image surface', 'body' => '<p>Until a picture is chosen, the image surface uses the contrast colours.</p>'], ['surface' => 'image', 'divider' => 'curve'], 'single'],
             ['text', ['heading' => 'Gradient surface', 'body' => '<p>From the main colour to a neighbouring hue.</p>'], ['surface' => 'gradient'], 'single'],
+            // The other alignment, said out loud for the same reason: `minimal` composes
+            // `center`, so `left` appears nowhere unless a block asks for it.
+            ['text', ['heading' => 'Left aligned', 'body' => '<p>Text ranged left, against the centred sections above it.</p>'], ['align' => 'left'], 'single'],
             ['text', ['heading' => 'Tight rhythm, wide', 'body' => '<p>Less space above and below, more across.</p>'], ['rhythm' => 'tight', 'width' => 'wide'], 'columns'],
             ['text', ['heading' => 'Airy rhythm, full width', 'body' => '<p>Room to breathe, edge to edge.</p>'], ['surface' => 'tinted', 'rhythm' => 'airy', 'width' => 'full', 'divider' => 'curve'], 'single'],
         ],

@@ -54,6 +54,46 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     }
 });
 
+// The seed stores what the editor would store. A block that names only its surface takes
+// the character's composition for everything else — otherwise the unnamed keys fall to the
+// closed-set defaults, which the character did not choose, and the editor rightly shows the
+// section as hand-tuned. That is how all 21 demo panels came to be open.
+testBothDrivers('a block that seeds only its surface matches the composition everywhere else', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    DemoSite::seed($db, $registry, 'en');
+
+    $character = App\Modules\Design\Composition::active($db);
+    $stored = [];
+    foreach ($db->all('SELECT block_type, style_json FROM page_blocks ORDER BY id') as $row) {
+        $stored[] = [
+            'type' => (string) $row['block_type'],
+            'style' => SectionStyle::normalize(json_decode((string) $row['style_json'], true)),
+        ];
+    }
+
+    // The seed definitions, in the same order the seeder writes them.
+    $seeded = [];
+    foreach (DemoSite::pages() as $page) {
+        foreach ($page['blocks'] as [$type, , $style]) {
+            $seeded[] = ['type' => $type, 'style' => $style];
+        }
+    }
+    assertEquals(count($seeded), count($stored), 'blocks seeded and blocks stored');
+
+    $checked = 0;
+    foreach ($seeded as $index => $block) {
+        if (array_keys($block['style']) !== ['surface']) {
+            continue;
+        }
+        $checked++;
+        $expected = App\Modules\Design\Composition::style($character, $block['type']);
+        $expected['surface'] = $block['style']['surface'];
+        assertEquals($expected, $stored[$index]['style'], "block {$index} ({$block['type']}) seeded with only a surface");
+    }
+    assertTrue($checked > 0, 'no demo block seeds only a surface, so this proves nothing');
+});
+
 test('the demo is never added to a site that already has pages', function () {
     $db = installedSite(['en' => 'English']);
     createPage($db, 'en', 'real', 'Real content');

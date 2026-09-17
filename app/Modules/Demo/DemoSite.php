@@ -4,6 +4,7 @@ namespace App\Modules\Demo;
 
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\Page;
 use App\Support\RichText;
@@ -29,6 +30,13 @@ final class DemoSite
             throw new RuntimeException('The site already has pages. The demo is only added to a site without any.');
         }
 
+        // What a person using the editor would get. A seed that stored only the keys it
+        // names left every other key at the CLOSED-SET DEFAULT — normal, left, none — which
+        // is not what the active character composes, so every demo section counted as
+        // hand-tuned and announced itself: measured at 21 of 21 panels open, with rhythm
+        // differing in 16 and align in 13 purely from defaults nobody chose.
+        $character = Composition::active($db);
+
         $pages = self::pages();
         foreach ($pages as $page) {
             $id = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, []);
@@ -43,7 +51,10 @@ final class DemoSite
                     'id' => null,
                     'type' => $type,
                     'content' => $registry->normalize($type, $content),
-                    'style' => SectionStyle::normalize($style),
+                    // The keys the seed names win; every other key comes from the character's
+                    // composition for this block type. `+` keeps the left-hand value, which
+                    // is exactly that rule.
+                    'style' => SectionStyle::normalize($style + Composition::style($character, $type)),
                     'layout' => $registry->layout($type, $layout),
                 ];
             }

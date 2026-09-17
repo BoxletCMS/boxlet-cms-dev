@@ -78,7 +78,22 @@ jobs:
         run: vendor/bin/phpstan analyse --no-progress
 
       - name: Run tests
-        run: php tests/run.php
+        run: |
+          set -o pipefail
+          php tests/run.php 2>&1 | tee /tmp/tests.txt
+
+      # Reading a job's log needs admin rights on the repository; the job summary does not.
+      # Without this a red run says only "Run tests failed", which is exactly why twelve
+      # consecutive failures went undiagnosed. run.php also emits ::error:: annotations.
+      - name: Name the failing tests where they can be read
+        if: failure()
+        run: |
+          {
+            echo "### PHP ${{ matrix.php }} — failing tests"
+            echo '```'
+            grep -E '^ *(FAIL|Fatal|PHP Fatal|Parse error)' -A 3 /tmp/tests.txt || tail -60 /tmp/tests.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # A host that can process no images at all is ordinary shared hosting, and the product has
   # to behave there: the installer reports it, an upload refuses with a message saying what
@@ -123,17 +138,34 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: pdo, pdo_sqlite, pdo_mysql, mbstring, fileinfo, json
+          # The `:` prefix DISABLES an extension. Not listing gd was not enough: setup-php's
+          # base build ships it anyway, and the proof step below caught the job pretending
+          # to be a host without image support while having it.
+          extensions: pdo, pdo_sqlite, pdo_mysql, mbstring, fileinfo, json, :gd, :imagick
           coverage: none
 
       - name: Install dependencies
         run: composer install --no-dev --prefer-dist --no-progress
 
-      # Asserted, not assumed. setup-php's base build may ship GD whether or not it is
-      # listed, and without this check the job could quietly become a duplicate of the one
-      # above — passing while testing nothing it was created to test.
+      # Asserted, not assumed, and it earned that: without this the job would have passed as
+      # a silent duplicate of the legs above, testing nothing it was created to test. php -m
+      # is printed so the log shows what was actually loaded rather than what was requested.
       - name: Prove there is no image support
-        run: php -r 'if (extension_loaded("gd") || class_exists("Imagick")) { fwrite(STDERR, "gd or imagick is present; this job tests nothing\n"); exit(1); } echo "no image support, as intended\n";'
+        run: |
+          php -m
+          php -r 'if (extension_loaded("gd") || class_exists("Imagick")) { fwrite(STDERR, "gd or imagick is present; this job tests nothing\n"); exit(1); } echo "no image support, as intended\n";'
 
       - name: Run tests
-        run: php tests/run.php
+        run: |
+          set -o pipefail
+          php tests/run.php 2>&1 | tee /tmp/tests.txt
+
+      - name: Name the failing tests where they can be read
+        if: failure()
+        run: |
+          {
+            echo "### No image extensions — failing tests"
+            echo '```'
+            grep -E '^ *(FAIL|Fatal|PHP Fatal|Parse error)' -A 3 /tmp/tests.txt || tail -60 /tmp/tests.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

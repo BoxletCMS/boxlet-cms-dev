@@ -38,6 +38,29 @@ foreach ($files as $file) {
  */
 $required = static fn (string $capability): bool
     => getenv('TEST_REQUIRE_' . strtoupper($capability)) === '1';
+
+/**
+ * A failing test, repeated as a GitHub workflow annotation.
+ *
+ * Reading a job's log needs admin rights on the repository, so a failure that exists only
+ * in the log is one nobody else can diagnose — twelve red runs went unexamined partly for
+ * that reason. ::error:: lines become check-run annotations, which the PUBLIC API exposes,
+ * so the name of the failing test can be read by anyone who can see the repository.
+ *
+ * Silent outside Actions: locally the ordinary output is already right there.
+ */
+$annotate = static function (string $name, string $detail): void {
+    if (getenv('GITHUB_ACTIONS') !== 'true') {
+        return;
+    }
+    // Annotations are one line, and % CR LF carry meaning in a workflow command.
+    $clean = static fn (string $text): string => str_replace(
+        ['%', "\r", "\n"],
+        ['%25', '%0D', '%0A'],
+        $text,
+    );
+    echo '::error title=' . $clean($name) . '::' . $clean($detail) . "\n";
+};
 $failed = 0;
 $skipped = 0;
 foreach (TestSuite::$tests as [$name, $body]) {
@@ -68,6 +91,7 @@ foreach (TestSuite::$tests as [$name, $body]) {
             $failed++;
             $flag = 'TEST_REQUIRE_' . strtoupper($e->capability);
             echo "  FAIL  {$name}\n        skipped, but {$flag}=1: {$e->getMessage()}\n";
+            $annotate($name, "skipped, but {$flag}=1: " . $e->getMessage());
             continue;
         }
         $skipped++;
@@ -76,6 +100,7 @@ foreach (TestSuite::$tests as [$name, $body]) {
         $failed++;
         echo "  FAIL  {$name}\n";
         echo '        ' . failureMessage($e) . "\n";
+        $annotate($name, failureMessage($e));
     }
 }
 

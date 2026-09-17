@@ -93,16 +93,11 @@ test('a layout the block does not declare falls back to its default', function (
 });
 
 test('every block, layout, field and select option has an admin label', function () {
-    // Merged the way t() merges, not read from one file: en.php was split by concern
-    // when it passed the 300-line rule, and block labels live in lang/pages.php now.
-    // A test naming a file has to be edited every time a string moves between them.
-    $strings = [];
-    foreach (glob(dirname(__DIR__) . '/lang/*.php') ?: [] as $file) {
-        $part = require $file;
-        if (is_array($part)) {
-            $strings += $part;
-        }
-    }
+    // Asked of t(), not of the files. Reading one file broke when the strings were split
+    // by concern; globbing the directory then broke again when they were nested by locale.
+    // t() is what the product uses, so a test that asks it is immune to how they are
+    // arranged — and t() returns the key itself when nothing is defined, which is exactly
+    // the failure this is looking for.
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
     foreach ($blocks->types() as $type) {
         $keys = ["block.{$type}"];
@@ -116,7 +111,7 @@ test('every block, layout, field and select option has an admin label', function
             }
         }
         foreach ($keys as $key) {
-            assertTrue(isset($strings[$key]), "no admin label anywhere in lang/ for {$key}");
+            assertTrue(t($key) !== $key, "no admin label anywhere in lang/ for {$key}");
         }
     }
 });

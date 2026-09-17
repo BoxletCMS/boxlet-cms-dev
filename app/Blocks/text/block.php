@@ -1,6 +1,6 @@
 <?php
 
-// Admin labels derive from the type in lang/pages.php: block.text, block.text.<field>,
+// Admin labels derive from the type, through t(): block.text, block.text.<field>,
 // block.text.layout.<layout>.
 return [
     'type' => 'text',

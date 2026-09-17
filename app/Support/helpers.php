@@ -19,8 +19,11 @@ function env(string $key, ?string $default = null): ?string
     return is_string($value) && $value !== '' ? $value : $default;
 }
 
+/** The admin's own language. Slice 6 adds locales for the SITE; the admin has one. */
+const ADMIN_LANG = 'en';
+
 /**
- * Admin UI string from lang/ with :name placeholders replaced. A missing key
+ * Admin UI string from lang/{locale}/ with :name placeholders replaced. A missing key
  * returns the key itself, so it shows up rather than rendering blank.
  *
  * @param array<string, string|int> $replace
@@ -29,12 +32,18 @@ function t(string $key, array $replace = []): string
 {
     static $strings = null;
     if ($strings === null) {
-        // Every file in lang/, not a list of names: en.php was split by concern when it
-        // passed the 300-line rule, and a loader that names its files means editing this
-        // function every time another concern earns one. A key defined in two files is a
-        // test failure (tests/lang_test.php), not a silent win for whichever loads first.
+        // Every file in the admin locale's directory, not a list of names: the strings
+        // were split by concern when one file passed the 300-line rule, and a loader that
+        // names its files means editing this function every time another concern earns
+        // one. A key defined in two files is a test failure (tests/lang_test.php), not a
+        // silent win for whichever loads first.
+        //
+        // Nested by locale, so that Slice 6 adding lang/hr/ cannot merge Croatian into
+        // English by sitting beside it. ADMIN_LANG is the one locale there is today; it
+        // is a constant rather than a setting, because switching it is a feature nobody
+        // has asked for yet.
         $strings = [];
-        foreach (glob(dirname(__DIR__, 2) . '/lang/*.php') ?: [] as $file) {
+        foreach (glob(dirname(__DIR__, 2) . '/lang/' . ADMIN_LANG . '/*.php') ?: [] as $file) {
             $part = require $file;
             if (is_array($part)) {
                 $strings += $part;

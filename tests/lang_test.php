@@ -2,9 +2,10 @@
 
 // Admin strings (CLAUDE.md: every admin string goes through t() and lands in lang/).
 //
-// en.php passed the 300-line rule, so it is split by concern the way design.php already
-// was. t() loads every file in lang/ rather than a list of names, which makes two things
-// worth proving: that a file cannot be forgotten, and that a key cannot be defined twice.
+// The strings passed the 300-line rule, so they are split by concern. t() loads every
+// file in lang/{locale}/ rather than a list of names, which makes three things worth
+// proving: that a file cannot be forgotten, that a key cannot be defined twice, and that
+// nothing sits directly under lang/ where it would be loaded for every locale.
 //
 // The second matters because the loader merges with +, which keeps the LEFT-hand value.
 // A key defined in two files would therefore resolve to whichever file glob() returned
@@ -24,7 +25,7 @@
 function langFiles(): array
 {
     $files = [];
-    foreach (glob(dirname(__DIR__) . '/lang/*.php') ?: [] as $file) {
+    foreach (glob(dirname(__DIR__) . '/lang/' . ADMIN_LANG . '/*.php') ?: [] as $file) {
         $contents = require $file;
         $files[basename($file)] = is_array($contents) ? $contents : [];
     }
@@ -74,4 +75,20 @@ test('a key with no string is returned as itself, not as an empty page', functio
     // The failure mode this protects: a screen rendering blank where a sentence should be.
     // Returning the key is ugly on purpose — it is visible, and it names what is missing.
     assertEquals('nothing.defined.here', t('nothing.defined.here'), 'a missing key');
+});
+
+// Nesting is what keeps Slice 6 from merging Croatian into English. A file directly under
+// lang/ would be loaded for whichever locale happened to be active — or for none, which is
+// worse, because the strings would simply vanish from the screen.
+test('no language file sits directly under lang/', function () {
+    $stray = glob(dirname(__DIR__) . '/lang/*.php') ?: [];
+
+    assertEquals([], array_map('basename', $stray), 'these belong in lang/' . ADMIN_LANG . '/');
+});
+
+test('the admin locale has a directory of its own', function () {
+    $directory = dirname(__DIR__) . '/lang/' . ADMIN_LANG;
+
+    assertTrue(is_dir($directory), 'lang/' . ADMIN_LANG . ' is missing');
+    assertTrue(count(glob($directory . '/*.php') ?: []) > 1, 'the strings are not split by concern');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Install;
 
+use App\Support\Bytes;
 use Closure;
 
 /**
@@ -38,8 +39,8 @@ final class Requirements
         // An upload arrives as one request, and PHP drops anything past these limits
         // without an error — the same class of silent failure as max_input_vars. Reported
         // rather than blocking: the uploader refuses what it cannot receive whole.
-        $perFile = self::bytes((string) ini_get('upload_max_filesize'));
-        $perRequest = self::bytes((string) ini_get('post_max_size'));
+        $perFile = Bytes::parse((string) ini_get('upload_max_filesize'));
+        $perRequest = Bytes::parse((string) ini_get('post_max_size'));
         $checks[] = self::item('upload_limits', t('install.opt.upload_limits', [
             'file' => (string) ini_get('upload_max_filesize'),
             'request' => (string) ini_get('post_max_size'),
@@ -48,6 +49,11 @@ final class Requirements
         $checks[] = self::item('intl', t('install.opt.intl'), extension_loaded('intl'), false);
         $checks[] = self::item('images', t('install.opt.images'), extension_loaded('gd') || extension_loaded('imagick'), false);
         $checks[] = self::item('avif', t('install.opt.avif'), self::avif(), false);
+        // WebP is what nearly every variant is actually served as (SPEC §5.5). Without it
+        // pictures still work — the original format is always written as a fallback — but
+        // every page carries several times the bytes, which is worth knowing at install
+        // time rather than discovering from a slow site.
+        $checks[] = self::item('webp', t('install.opt.webp'), self::webp(), false);
 
         return $checks;
     }
@@ -75,23 +81,21 @@ final class Requirements
     }
 
     /**
-     * A php.ini size such as "100M" or "8M" in bytes. Returns 0 for an unlimited or
-     * unreadable value, which reads as "cannot promise anything" rather than as "fine".
+     * Whether this server can write WebP, which is what nearly every variant is served
+     * as. Probed the same way as AVIF: Imagick is optional, so it is referenced by name
+     * rather than as a class.
      */
-    private static function bytes(string $size): int
+    private static function webp(): bool
     {
-        $size = trim($size);
-        if ($size === '' || $size === '-1') {
-            return 0;
+        if (function_exists('imagewebp')) {
+            return true;
         }
-        $number = (int) $size;
+        $imagick = 'Imagick';
+        if (class_exists($imagick)) {
+            return in_array('WEBP', $imagick::queryFormats('WEBP'), true);
+        }
 
-        return match (strtolower(substr($size, -1))) {
-            'g' => $number * 1024 * 1024 * 1024,
-            'm' => $number * 1024 * 1024,
-            'k' => $number * 1024,
-            default => $number,
-        };
+        return false;
     }
 
     private static function avif(): bool

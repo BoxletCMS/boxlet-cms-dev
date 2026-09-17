@@ -15,6 +15,10 @@ use App\Modules\Design\DesignController;
 use App\Modules\Pages\PageBuilderController;
 use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageEditorController;
+use App\Modules\Media\MediaEncoder;
+use App\Modules\Media\MediaUpload;
+use App\Modules\Media\MediaVariants;
+use App\Modules\Media\MediaWriter;
 use App\Modules\Pages\PagesController;
 use App\Modules\Update\Maintenance;
 use App\Modules\Update\MaintenanceController;
@@ -60,6 +64,18 @@ $databasePath = (string) (($config->get('database', []))['path'] ?? '');
 // Maintenance mode (D-021): a file, not a settings row, so it still works when the
 // database is unavailable or mid-update.
 $container->set('maintenance', fn () => new Maintenance($storage));
+// Media (SPEC §5.5). The encoder probes what this server can actually write, so a host
+// without a WebP delegate refuses clearly instead of writing files nobody can open.
+$container->set('media_encoder', fn () => new MediaEncoder());
+$container->set('media_writer', fn (Container $c) => new MediaWriter($c->get('media_encoder')));
+$container->set('media_upload', fn (Container $c) => new MediaUpload($c->get('db'), $storage, $c->get('media_encoder')));
+$container->set('media_variants', fn (Container $c) => new MediaVariants(
+    $c->get('db'),
+    $c->get('media_encoder'),
+    $c->get('media_writer'),
+    $storage,
+    $root . '/public',
+));
 $container->set('update', fn (Container $c) => new Update(
     $c->get('db'),
     $root . '/migrations',

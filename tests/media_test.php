@@ -28,6 +28,14 @@ use App\Modules\Media\MediaWriter;
  */
 function imageFixture(string $file, int $width = 400, int $height = 200, int $orientation = 1): string
 {
+    // GD specifically, not "an encoder": this manufactures its JPEG with imagecreatetruecolor
+    // and imagejpeg, so an Imagick-only host cannot run it either and saying "no encoder"
+    // there would be false. Every test that needs a picture to exist comes through here,
+    // which is why this one gate covers all of them.
+    if (!function_exists('imagecreatetruecolor') || !function_exists('imagejpeg')) {
+        skip('GD is not installed, so no picture fixture can be made', 'images');
+    }
+
     $image = imagecreatetruecolor(max(1, $width), max(1, $height));
     imagefilledrectangle($image, 0, 0, $width - 1, $height - 1, (int) imagecolorallocate($image, 20, 20, 20));
     imagefilledrectangle($image, 0, 0, max(1, intdiv($width, 4)) - 1, max(1, intdiv($height, 4)) - 1, (int) imagecolorallocate($image, 255, 255, 255));
@@ -63,6 +71,73 @@ function mediaPaths(): array
 
     return [$storage, $public];
 }
+
+/**
+ * A real 1×1 PNG, as bytes. Not imageFixture(): that needs GD, and these are exactly the
+ * tests that must run on a machine without it. finfo only has to agree it is a PNG, because
+ * an upload is refused for want of an encoder before anything inspects the pixels.
+ */
+function pngBytes(string $file): string
+{
+    file_put_contents($file, (string) base64_decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        true,
+    ));
+
+    return $file;
+}
+
+// A host with neither GD nor Imagick is ordinary shared hosting, and CI now runs the whole
+// suite on one. Before this, such a host took the upload: getimagesize is core rather than
+// GD, so inspect() succeeded, the original was stored and a row written — and then nothing
+// could be generated. The owner got a library card with no thumbnail and nothing saying why.
+test('a server that cannot process pictures refuses the upload, and says what to ask for', function () {
+    [$storage] = mediaPaths();
+    $db = installedSite();
+    $upload = new MediaUpload($db, $storage, new MediaEncoder(MediaEncoder::NONE));
+
+    assertThrows(
+        static fn () => $upload->store(pngBytes(tmpPath('no-encoder.png')), 'photo.png'),
+        'neither GD nor Imagick',
+    );
+
+    // Refused BEFORE anything was written: no row, and no original left behind.
+    assertEquals(0, count($db->all('SELECT id FROM media')), 'rows in media');
+    assertEquals([], glob($storage . '/uploads/*') ?: [], 'files in storage/uploads');
+});
+
+test('a server that cannot process pictures refuses a replacement too, leaving the original', function () {
+    [$storage] = mediaPaths();
+    $db = installedSite();
+    $db->query(
+        'INSERT INTO media (filename, original_name, path, mime, size, width, height, hash, created_at, status, variants_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ['kept', 'kept.jpg', 'uploads/kept.jpg', 'image/jpeg', 10, 400, 200, 'hash-kept', '2026-01-01 00:00:00', 'complete',
+            '{"thumb":{"formats":["webp"],"width":200,"height":200}}'],
+    );
+    $id = (int) $db->lastInsertId();
+    $upload = new MediaUpload($db, $storage, new MediaEncoder(MediaEncoder::NONE));
+
+    // replace() clears variants_json and deletes the old original, so accepting bytes this
+    // server cannot process would destroy a working picture to put an unusable one in its
+    // place. It has to refuse before touching anything.
+    assertThrows(
+        static fn () => $upload->replace($id, pngBytes(tmpPath('no-encoder-replace.png')), 'new.png'),
+        'neither GD nor Imagick',
+    );
+
+    $row = $db->one('SELECT * FROM media WHERE id = ?', [$id]);
+    // Guarded, not asserted: assertTrue() narrows nothing for the analyser, so indexing the
+    // row after one is an offset it cannot know exists. fail() returns never, which it can.
+    if ($row === null || !array_key_exists('variants_json', $row)) {
+        fail('the picture vanished, or its row has no variants_json');
+    }
+    assertEquals('uploads/kept.jpg', (string) ($row['path'] ?? ''), 'the original it still points at');
+    assertEquals('complete', (string) ($row['status'] ?? ''), 'status');
+    // Still there, untouched. variants_json is nullable, so a refused replacement that had
+    // cleared it would read identically to one that never touched it under `?? null`.
+    assertTrue(is_string($row['variants_json']), 'the variants it already had were cleared by a refused replacement');
+});
 
 test('what a file claims and what it is must agree', function () {
     $jpeg = imageFixture(tmpPath('claim.jpg'));

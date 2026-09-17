@@ -14,6 +14,11 @@ return [
     // someone back to try the same file again.
     'media.refused' => 'That file is not a picture Boxlet accepts (it looks like :type). Use a JPEG, PNG, WebP, GIF or AVIF.',
     'media.refused_avif' => 'This server cannot read AVIF pictures. Save it as a JPEG or PNG and upload that.',
+    // Refused rather than accepted-and-broken. Without GD or Imagick nothing can be
+    // generated, and the picture would sit in the library as a card with no thumbnail and
+    // no way to fix it — a silent failure the owner would have to diagnose from the shape
+    // of the damage. The installer reports this too (install.opt.images).
+    'media.refused_no_encoder' => 'This server cannot process pictures at all: neither GD nor Imagick is installed, so no sizes can be made. Nothing was uploaded. Ask your host to enable the GD extension.',
     'media.refused_heic' => 'HEIC pictures are not accepted, because most servers cannot read them. Export it as a JPEG first — on an iPhone, Settings → Camera → Formats → Most Compatible.',
     'media.storage_unwritable' => 'The picture could not be saved: storage/uploads is not writable. Nothing was changed.',
     'media.too_large' => 'That picture is larger than this server accepts (:limit per file). Nothing was uploaded.',

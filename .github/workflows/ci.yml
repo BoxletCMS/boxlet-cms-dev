@@ -13,6 +13,10 @@ jobs:
         php: ['8.1', '8.2', '8.3', '8.4']
     name: PHP ${{ matrix.php }}
 
+    # gd and imagick are what the product actually encodes with, so they are installed here
+    # and TEST_REQUIRE_IMAGES makes a picture test that skips on this leg a failure. The
+    # no-images job below runs the same suite with neither, which is real shared hosting.
+
     # A throwaway MySQL per job, so the suite runs against both drivers.
     services:
       mysql:
@@ -38,6 +42,8 @@ jobs:
       TEST_MYSQL_PASSWORD: boxlet
       # A MySQL test that skips is a failure here, not a silent pass.
       TEST_REQUIRE_MYSQL: 1
+      # The same for pictures: this leg has GD, so nothing may skip for want of it.
+      TEST_REQUIRE_IMAGES: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +51,11 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo, pdo_sqlite, pdo_mysql, mbstring, fileinfo, json
+          # exif goes beyond "add gd and imagick": orientationOf() guards on
+          # function_exists, so its absence is not fatal — but EXIF orientation is real
+          # behaviour with a fixture that writes the segment byte by byte, and CI has never
+          # once run that path. Stated as an extension of the instruction, not slipped in.
+          extensions: pdo, pdo_sqlite, pdo_mysql, mbstring, fileinfo, json, gd, imagick, exif
           coverage: none
 
       - name: Validate composer.json
@@ -66,6 +76,64 @@ jobs:
       - name: Static analysis
         if: matrix.php == '8.4'
         run: vendor/bin/phpstan analyse --no-progress
+
+      - name: Run tests
+        run: php tests/run.php
+
+  # A host that can process no images at all is ordinary shared hosting, and the product has
+  # to behave there: the installer reports it, an upload refuses with a message saying what
+  # to ask the host for, and every test needing a picture reports itself skipped rather than
+  # dying on an undefined function. Its own job, so that path is exercised on every push
+  # instead of being reasoned about.
+  #
+  # No TEST_REQUIRE_IMAGES here, deliberately: skipping for want of GD is the correct
+  # outcome on this leg. TEST_REQUIRE_MYSQL still applies, so a MySQL skip is still a
+  # failure.
+  no-images:
+    runs-on: ubuntu-latest
+    name: PHP 8.4, no image extensions
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: boxlet_test
+          MYSQL_USER: boxlet
+          MYSQL_PASSWORD: boxlet
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      TEST_MYSQL_HOST: 127.0.0.1
+      TEST_MYSQL_PORT: 3306
+      TEST_MYSQL_DATABASE: boxlet_test
+      TEST_MYSQL_USERNAME: boxlet
+      TEST_MYSQL_PASSWORD: boxlet
+      TEST_REQUIRE_MYSQL: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_sqlite, pdo_mysql, mbstring, fileinfo, json
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-dev --prefer-dist --no-progress
+
+      # Asserted, not assumed. setup-php's base build may ship GD whether or not it is
+      # listed, and without this check the job could quietly become a duplicate of the one
+      # above — passing while testing nothing it was created to test.
+      - name: Prove there is no image support
+        run: php -r 'if (extension_loaded("gd") || class_exists("Imagick")) { fwrite(STDERR, "gd or imagick is present; this job tests nothing\n"); exit(1); } echo "no image support, as intended\n";'
 
       - name: Run tests
         run: php tests/run.php

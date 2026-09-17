@@ -148,6 +148,13 @@ final class MediaUpload
         if ($extension === null) {
             throw new RuntimeException(t('media.refused', ['type' => $sniffed === '' ? '?' : $sniffed]));
         }
+        // A host with neither encoder is real shared hosting. inspect() would still succeed
+        // — getimagesize is core, not GD — so without this the upload APPEARS to work: the
+        // original is stored, a row is written, and generation then makes nothing at all.
+        // The library shows a card with no thumbnail and nothing says why.
+        if ($this->encoder->driver() === null) {
+            throw new RuntimeException(t('media.refused_no_encoder'));
+        }
         if ($extension === 'avif' && !$this->encoder->supports('avif')) {
             throw new RuntimeException(t('media.refused_avif'));
         }
@@ -215,6 +222,13 @@ final class MediaUpload
         $extension = self::extensionFor($originalName, $sniffed);
         if ($extension === null) {
             throw new RuntimeException(t('media.refused', ['type' => $sniffed === '' ? '?' : $sniffed]));
+        }
+        // Here too, and for a worse reason: replace() clears variants_json and deletes the
+        // old original, so accepting bytes this server cannot process would destroy a
+        // working picture and put an unusable one in its place. Refused before anything is
+        // written or removed, like every other refusal in this method.
+        if ($this->encoder->driver() === null) {
+            throw new RuntimeException(t('media.refused_no_encoder'));
         }
         if ($extension === 'avif' && !$this->encoder->supports('avif')) {
             throw new RuntimeException(t('media.refused_avif'));

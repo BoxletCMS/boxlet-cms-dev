@@ -10,6 +10,12 @@ final class AssertionFailed extends RuntimeException
 
 final class TestSkipped extends RuntimeException
 {
+    /**
+     * What the machine lacked: 'mysql', 'images', and so on. A CI leg that is supposed to
+     * have something sets TEST_REQUIRE_<CAPABILITY>=1, so a test skipping there is a
+     * failure — while a leg deliberately running without it stays green.
+     */
+    public string $capability = 'mysql';
 }
 
 final class TestSuite
@@ -42,9 +48,20 @@ function fail(string $message): never
     throw new AssertionFailed($message);
 }
 
-function skip(string $reason): never
+/**
+ * Reports this test as skipped, naming what was missing.
+ *
+ * $capability decides which TEST_REQUIRE_* flag turns this skip into a failure. It
+ * defaults to mysql because that was the only kind of skip for a long time — an assumption
+ * that was already wrong: the post_max_size skip in media_admin_test was being failed under
+ * TEST_REQUIRE_MYSQL, with a message blaming MySQL for something it had no part in.
+ */
+function skip(string $reason, string $capability = 'mysql'): never
 {
-    throw new TestSkipped($reason);
+    $skipped = new TestSkipped($reason);
+    $skipped->capability = $capability;
+
+    throw $skipped;
 }
 
 function assertEquals(mixed $expected, mixed $actual, string $what = 'value'): void

@@ -26,9 +26,17 @@ final class MediaEncoder
     private const FORMATS = ['avif', 'webp'];
 
     /**
-     * @param string|null $driver 'imagick' or 'gd' to force one, null to probe. Forcing is
-     *                            for tests and for measuring one against the other; a site
-     *                            always probes.
+     * A host that can process no images at all. Forced, because it cannot be asked for any
+     * other way: null already means "probe", so without this the no-encoder path could only
+     * be exercised on a machine that genuinely lacks both extensions — which is to say
+     * never, on the machines where this is written.
+     */
+    public const NONE = 'none';
+
+    /**
+     * @param string|null $driver 'imagick' or 'gd' to force one, self::NONE to force none,
+     *                            null to probe. Forcing is for tests and for measuring one
+     *                            against the other; a site always probes.
      */
     public function __construct(private readonly ?string $driver = null)
     {
@@ -40,7 +48,7 @@ final class MediaEncoder
     public function driver(): ?string
     {
         if ($this->driver !== null) {
-            return $this->driver;
+            return $this->driver === self::NONE ? null : $this->driver;
         }
         if (class_exists('Imagick')) {
             return 'imagick';

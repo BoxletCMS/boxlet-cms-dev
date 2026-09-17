@@ -31,7 +31,13 @@ foreach ($files as $file) {
     require $file;
 }
 
-$requireMysql = getenv('TEST_REQUIRE_MYSQL') === '1';
+/**
+ * Whether a skip for this capability is a failure here. A CI leg that installs MySQL, or
+ * GD and Imagick, sets the matching flag: a test that skips on such a leg is a test that
+ * silently stopped covering anything.
+ */
+$required = static fn (string $capability): bool
+    => getenv('TEST_REQUIRE_' . strtoupper($capability)) === '1';
 $failed = 0;
 $skipped = 0;
 foreach (TestSuite::$tests as [$name, $body]) {
@@ -58,9 +64,10 @@ foreach (TestSuite::$tests as [$name, $body]) {
         $body();
         echo "  PASS  {$name}\n";
     } catch (TestSkipped $e) {
-        if ($requireMysql) {
+        if ($required($e->capability)) {
             $failed++;
-            echo "  FAIL  {$name}\n        skipped, but TEST_REQUIRE_MYSQL=1: {$e->getMessage()}\n";
+            $flag = 'TEST_REQUIRE_' . strtoupper($e->capability);
+            echo "  FAIL  {$name}\n        skipped, but {$flag}=1: {$e->getMessage()}\n";
             continue;
         }
         $skipped++;

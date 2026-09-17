@@ -20,6 +20,7 @@ use App\Support\Url;
  * @var string $canvasUrl
  * @var string $insertUrl
  * @var list<array{type: string, label: string, preview: string}> $library
+ * @var list<array{id: int, name: string}> $pictures every picture a media field may choose
  * @var list<array{id: int, title: string, depth: int}> $parents
  * @var string $csrf
  */

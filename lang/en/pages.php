@@ -105,8 +105,13 @@ return [
     'pages.field.link_label' => 'Enter the text of the link.',
     'pages.field.link_label_input' => 'Text',
     'pages.field.link_url_input' => 'Address, such as /contact or https://example.com',
-    'pages.field.media' => 'Enter a media id, a whole number, or leave the field empty.',
-    'pages.field.media_hint' => 'Media uploads arrive in a later release. For now this stores a media id and the page shows a placeholder.',
+    // The id never appears on screen now, so the refusal cannot ask for one. Measured: this
+    // fires only for a value that is not a whole number — a well-formed id naming a picture
+    // that is gone is nulled on save instead (MediaReference), so it never reaches here.
+    'pages.field.media' => 'That is not one of the pictures offered. Choose one from the list, or choose no picture.',
+    'pages.field.media_none' => 'No picture',
+    'pages.field.media_empty' => 'There are no pictures yet.',
+    'pages.field.media_library' => 'Add pictures in the library',
     'pages.field.select' => 'Choose one of the options.',
     'pages.field.richtext_hint' => 'HTML allowed: p, br, strong, b, em, i, h2, h3, ul, ol, li, blockquote, and links (a href). Everything else is removed when you save.',
 

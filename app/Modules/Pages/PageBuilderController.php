@@ -12,6 +12,7 @@ use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\SectionStyle;
+use App\Modules\Media\MediaReference;
 use App\Support\Url;
 
 // PageTree supplies the parents a page may have; it excludes the page and its own
@@ -159,6 +160,7 @@ final class PageBuilderController
             'errors' => [],
             'character' => $character,
             'registry' => $registry,
+            'pictures' => MediaReference::choices($this->db()),
             'canvasHtml' => $registry->render($type, $block['content'], $block['style'], $block['layout']),
         ], null);
 
@@ -250,6 +252,8 @@ final class PageBuilderController
             'canvasUrl' => Url::admin('pages', $id, 'canvas'),
             'insertUrl' => Url::admin('pages', $id, 'block'),
             'library' => $this->library(),
+            // What a media field offers. The editor asks for a picture by name, never by id.
+            'pictures' => MediaReference::choices($this->db()),
             // Page settings live in the panel beside the canvas. Offering a parent is the
             // only place a cycle could be created, so the list already excludes this page
             // and everything under it (PageTree).

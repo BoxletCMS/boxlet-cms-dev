@@ -67,6 +67,76 @@ test('without JavaScript, Move down swaps blocks in the form and saves nothing',
     assertEquals(['text', 'hero'], blockTypes($db, $id), 'stored order');
 });
 
+// A media field offers a choice, never a number. Nobody can know that "7" is the harbour
+// photograph, and without JavaScript this select IS the control — the picker only replaces
+// it when scripts run. The server validates the same way either way (MediaReference).
+test('without JavaScript, a media field is a list of pictures and never an id', function () {
+    $db = adminSite('sqlite');
+    $first = referenceMedia($db, 'hash-editor-one');
+    $second = referenceMedia($db, 'hash-editor-two');
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'H', 'image' => $first]],
+    ]);
+
+    $form = editorForm(dispatch("/admin/pages/{$id}/form"));
+
+    assertContains('name="blocks[0][image]"', $form, 'the media field');
+    assertTrue(!preg_match('~<input[^>]*name="blocks\[0\]\[image\]"~', $form), 'the media field is still a bare input');
+    assertContains(e(t('pages.field.media_none')), $form, 'the option for no picture');
+    assertContains('<option value="' . $first . '" selected>', $form, 'the stored picture is not selected');
+    // Newest first, asserted as an ORDER. Checking only that both options are present
+    // would pass just as happily with the list reversed, which tests nothing about order.
+    // Anchored on <option, never on a bare value="N": the block's own hidden id input
+    // carries value="1" and sits BEFORE the select, so the bare search finds that instead
+    // and the assertion measures the wrong occurrence. Measured — the hidden input at
+    // offset 2034, the options at 2810 and 2867.
+    $newest = strpos($form, '<option value="' . $second . '"');
+    $oldest = strpos($form, '<option value="' . $first . '"');
+    assertTrue($newest !== false && $oldest !== false && $newest < $oldest, 'pictures are not offered newest first');
+    // The id itself never appears as something to type.
+    assertTrue(!str_contains($form, 'type="number"'), 'a media id is still typed as a number');
+});
+
+test('choosing no picture stores null; a dangling id is nulled, a malformed one refused', function () {
+    $db = adminSite('sqlite');
+    $mediaId = referenceMedia($db, 'hash-editor-clear');
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'H', 'image' => $mediaId]],
+    ]);
+    $blockId = (int) ($db->one('SELECT id FROM page_blocks')['id'] ?? 0);
+
+    // The empty option posts an empty string, which is what "no picture" means.
+    $cleared = [['id' => (string) $blockId, 'type' => 'hero', 'heading' => 'H', 'image' => '']];
+    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $cleared, 'action' => 'save', '_end' => '1']);
+    assertRedirectedTo("/admin/pages/{$id}", $response);
+    // array_key_exists, never ??. The null coalescing operator reports a key whose value
+    // IS null as missing, so `?? 'missing'` can never observe the null this asserts. That
+    // has now cost a cycle here and in media_reference_test; the two cases are asserted
+    // apart so a field that genuinely vanished fails with that as its reason.
+    $stored = storedContent($db, $blockId);
+    $stored = is_array($stored) ? $stored : [];
+    assertTrue(array_key_exists('image', $stored), 'the media field left the stored content entirely');
+    assertEquals(null, $stored['image'], 'clearing the picture');
+
+    // A WELL-FORMED id naming no picture is not refused: it is nulled on save, the same
+    // rule MediaReference applies everywhere. That is what makes a picture deleted between
+    // opening the form and saving it harmless rather than an error the author cannot fix.
+    $dangling = [['id' => (string) $blockId, 'type' => 'hero', 'heading' => 'H', 'image' => '4242']];
+    $saved = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $dangling, 'action' => 'save', '_end' => '1']);
+    assertRedirectedTo("/admin/pages/{$id}", $saved);
+    $after = storedContent($db, $blockId);
+    $after = is_array($after) ? $after : [];
+    assertTrue(array_key_exists('image', $after), 'the media field left the stored content entirely');
+    assertEquals(null, $after['image'], 'a dangling id was stored');
+
+    // A value that is not a number at all was never a choice the form offered, so it is
+    // refused rather than discarded: silently dropping it would hide a broken submission.
+    $malformed = [['id' => (string) $blockId, 'type' => 'hero', 'heading' => 'H', 'image' => 'not-a-number']];
+    $refused = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $malformed, 'action' => 'save', '_end' => '1']);
+    assertEquals(422, $refused->status, 'status');
+    assertContains(e(t('pages.field.media')), $refused->body, 'the refusal names what is wrong');
+});
+
 test('a save that lost its last field to max_input_vars is refused, not truncated', function () {
     $db = adminSite('sqlite');
     $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>Original</p>']]]);

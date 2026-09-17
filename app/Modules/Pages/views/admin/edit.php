@@ -17,6 +17,7 @@ use App\Support\Url;
  * @var string|null $notice
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
+ * @var list<array{id: int, name: string}> $pictures every picture a media field may choose
  * @var string $csrf
  */
 $pageId = (int) $page['id'];

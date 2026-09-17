@@ -12,6 +12,7 @@ use App\Modules\Design\Composition;
  * @var array<string, string> $errors
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
+ * @var list<array{id: int, name: string}> $pictures every picture a media field may choose
  */
 $known = $registry->has($block['type']);
 $prefix = 'blocks[' . $index . ']';
@@ -100,8 +101,23 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
 <?php elseif ($field['type'] === 'textarea'): ?>
                     <textarea id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" rows="3"><?= e($value) ?></textarea>
 <?php elseif ($field['type'] === 'media'): ?>
-                    <input type="number" id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" value="<?= e($value) ?>" min="1" step="1">
-                    <span class="hint"><?= e(t('pages.field.media_hint')) ?></span>
+                    <?php /* A choice, never a number. Without JavaScript this select IS the
+                             control: nobody can know that "7" is the harbour photograph, so
+                             the id never appears on screen. The picker replaces it when
+                             JavaScript runs, and both post the same field, so the server
+                             validates one thing (MediaReference, on save). */ ?>
+                    <select id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" data-media-field>
+                        <option value=""><?= e(t('pages.field.media_none')) ?></option>
+<?php foreach ($pictures as $picture): ?>
+                        <option value="<?= e($picture['id']) ?>"<?= (int) $value === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
+<?php endforeach; ?>
+                    </select>
+<?php if ($pictures === []): ?>
+                    <span class="hint"><?= e(t('pages.field.media_empty')) ?></span>
+<?php endif; ?>
+                    <?php /* A new tab, because leaving the editor to add a picture would
+                             lose everything typed since the last save. */ ?>
+                    <span class="hint"><a href="<?= e(\App\Support\Url::admin('media')) ?>" target="_blank" rel="noopener"><?= e(t('pages.field.media_library')) ?></a></span>
 <?php elseif ($field['type'] === 'link'): ?>
                     <div class="field-row">
                         <input type="text" id="<?= e($inputId) ?>" name="<?= e($inputName) ?>[label]" value="<?= e($value['label'] ?? '') ?>" placeholder="<?= e(t('pages.field.link_label_input')) ?>" aria-label="<?= e($label . ': ' . t('pages.field.link_label_input')) ?>">

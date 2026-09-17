@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
+use App\Modules\Media\MediaReference;
 use App\Support\Url;
 
 /**
@@ -225,6 +226,8 @@ final class PageEditorController
             'errors' => $errors,
             'notice' => $notice,
             'registry' => $this->registry(),
+            // What a media field offers. The editor asks for a picture by name, never by id.
+            'pictures' => MediaReference::choices($this->db()),
         ], $status);
     }
 

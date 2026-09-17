@@ -46,6 +46,26 @@ final class MediaReference
     }
 
     /**
+     * The pictures a field may choose from, newest first: id and library name only.
+     *
+     * The page editors need this to offer a choice rather than ask for a number, and they
+     * are the wrong place to know how pictures are stored — so it lives here, beside the
+     * rule about what a reference means. Deliberately not the whole row: a <select> needs
+     * a name, and anything richer belongs to the picker, which asks the library itself.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    public static function choices(Db $db, int $limit = 200): array
+    {
+        $choices = [];
+        foreach ($db->all('SELECT id, filename FROM media ORDER BY id DESC LIMIT ' . $limit) as $row) {
+            $choices[] = ['id' => (int) $row['id'], 'name' => (string) $row['filename']];
+        }
+
+        return $choices;
+    }
+
+    /**
      * The same content with every media id that names no picture set to null.
      *
      * @param array<string, mixed> $content normalized

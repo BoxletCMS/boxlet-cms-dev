@@ -25,6 +25,7 @@ use App\Modules\Media\MediaUpload;
 use App\Modules\Media\MediaVariants;
 use App\Modules\Media\MediaWriter;
 use App\Modules\Pages\PagesController;
+use App\Modules\Menus\MenusController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Update\Maintenance;
 use App\Modules\Update\MaintenanceController;
@@ -153,6 +154,17 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/media/{id:\d+}/replace', [MediaItemController::class, 'replace'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/delete', [MediaItemController::class, 'delete'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/finish', [MediaController::class, 'finish'], $requireAdmin);
+
+    // Menus (D-028, resolving O-7). One ordering route takes both paths, D-011: a drag
+    // posts a whole sibling order, a button posts one move.
+    $router->get('/admin/menus', [MenusController::class, 'index'], $requireAdmin);
+    $router->post('/admin/menus', [MenusController::class, 'store'], $requireAdmin);
+    $router->get('/admin/menus/{id:\d+}', [MenusController::class, 'edit'], $requireAdmin);
+    $router->post('/admin/menus/{id:\d+}/rename', [MenusController::class, 'rename'], $requireAdmin);
+    $router->post('/admin/menus/{id:\d+}/delete', [MenusController::class, 'delete'], $requireAdmin);
+    $router->post('/admin/menus/{id:\d+}/items', [MenusController::class, 'addItem'], $requireAdmin);
+    $router->post('/admin/menus/{id:\d+}/items/{item:\d+}/delete', [MenusController::class, 'deleteItem'], $requireAdmin);
+    $router->post('/admin/menus/{id:\d+}/order', [MenusController::class, 'order'], $requireAdmin);
 
     // Site settings (D-028): the one screen that edits what the installer wrote, plus the
     // maintenance message and its switch, which moved off the dashboard.

@@ -14,12 +14,13 @@ use App\Support\Url;
  * @var string $title
  * @var string $content rendered HTML of the page template
  * @var string $siteName
- * @var string $nav current section: dashboard, pages, media, design or settings
+ * @var string $nav current section: dashboard, pages, media, design, menus or settings
  * @var list<string> $styles extra stylesheets under public/assets
  * @var list<string> $scripts extra scripts under public/assets, in load order
  * @var bool $wide whether this screen wants the wide column
  * @var bool $bare whether this screen fills the window instead of the reading column
  * @var string|null $flash one-time message from the previous request
+ * @var string $flashKind 'success' or 'warning'; a refusal must not be coloured as a win
  * @var string $csrf
  */
 $current = static fn (string $section): string => $nav === $section ? ' aria-current="page"' : '';
@@ -52,6 +53,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
                 <a href="<?= e(Url::admin('pages')) ?>"<?= $current('pages') ?>><?= e(t('admin.nav.pages')) ?></a>
                 <a href="<?= e(Url::admin('media')) ?>"<?= $current('media') ?>><?= e(t('admin.nav.media')) ?></a>
                 <a href="<?= e(Url::admin('design')) ?>"<?= $current('design') ?>><?= e(t('admin.nav.design')) ?></a>
+                <a href="<?= e(Url::admin('menus')) ?>"<?= $current('menus') ?>><?= e(t('admin.nav.menus')) ?></a>
                 <a href="<?= e(Url::admin('settings')) ?>"<?= $current('settings') ?>><?= e(t('admin.nav.settings')) ?></a>
             </nav>
             <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
@@ -62,7 +64,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
     </header>
     <main class="admin-main<?= $wide ? ' admin-main-wide' : '' ?><?= $bare ? ' admin-main-bare' : '' ?>" id="admin-content">
 <?php if ($flash !== null): ?>
-        <p class="notice notice-success" role="status"><?= e($flash) ?></p>
+        <p class="notice notice-<?= e($flashKind) ?>" role="status"><?= e($flash) ?></p>
 <?php endif; ?>
 <?= $content ?>
     </main>

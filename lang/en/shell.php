@@ -23,6 +23,7 @@ return [
     'admin.nav.pages' => 'Pages',
     'admin.nav.media' => 'Media',
     'admin.nav.design' => 'Design',
+    'admin.nav.menus' => 'Menus',
     'admin.nav.settings' => 'Settings',
     'admin.logout' => 'Log out',
 

@@ -22,7 +22,12 @@ final class AdminView
         $session = $container->get('session');
         $siteName = Settings::text($container->get('db'), 'site_name');
         $flash = $session->get('flash');
+        // A refusal dressed as a confirmation is worse than no message: the owner reads the
+        // colour before the words. One slot, two kinds — 'success' unless a controller says
+        // otherwise, so every existing caller keeps the message it already sets.
+        $kind = $session->get('flash_kind');
         $session->remove('flash');
+        $session->remove('flash_kind');
 
         $data += [
             'title' => t('admin.brand'),
@@ -39,6 +44,7 @@ final class AdminView
             'bare' => false,
             'siteName' => $siteName,
             'flash' => is_string($flash) ? $flash : null,
+            'flashKind' => $kind === 'warning' ? 'warning' : 'success',
             'csrf' => $session->csrfToken(),
         ];
         $html = (new View($directory, __DIR__ . '/views'))->render($template, 'en', $data);

@@ -230,6 +230,9 @@
   inline-size: 100%;
 }
 
+/* The picker that appears inside the page editors is admin-picker.css: this file dresses
+   the library screen, that one dresses a control. */
+
 @media (max-width: 60rem) {
   .media-detail {
     grid-template-columns: minmax(0, 1fr);

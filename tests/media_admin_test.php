@@ -191,6 +191,35 @@ testBothDrivers('the library searches by name, and says so when nothing matches'
     assertContains('mountain', mediaAdminGet('/admin/media?q=mountain')->body, 'the search term is not repeated back');
 });
 
+// The picker loads this and nothing else. It is the library's own listing, so the two can
+// never show different cards — the alternative was a second endpoint rendering a second
+// idea of what a picture looks like.
+testBothDrivers('the picker asks the library for the same cards, with no screen around them', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    adminUpload('/admin/media', [['name' => 'picker.jpg', 'tmp_name' => imageFixture(tmpPath('picker.jpg'), 320, 240)]]);
+    $id = (int) ($db->one('SELECT id FROM media')['id'] ?? 0);
+
+    $fragment = mediaAdminGet('/admin/media?picker=1');
+    assertEquals(200, $fragment->status, 'status');
+
+    // A fragment, not a screen: nothing for the picker to strip out.
+    assertTrue(!str_contains($fragment->body, '<!doctype'), 'the picker fragment carries the whole admin shell');
+    assertTrue(!str_contains($fragment->body, 'admin-nav'), 'the picker fragment carries the navigation');
+
+    // Each card CHOOSES rather than navigates: following a link out of the editor would
+    // lose everything typed since the last save.
+    assertContains('data-pick="' . $id . '"', $fragment->body, 'a card that chooses the picture');
+    assertTrue(!str_contains($fragment->body, 'href="/admin/media/' . $id . '"'), 'the picker links away instead of choosing');
+    assertContains('media-thumb', $fragment->body, 'the thumbnail');
+
+    // Search is the library's, not a second implementation of it.
+    assertContains('data-pick="' . $id . '"', mediaAdminGet('/admin/media?picker=1&q=picker')->body, 'search by name');
+    assertTrue(
+        !str_contains(mediaAdminGet('/admin/media?picker=1&q=nothingmatches')->body, 'data-pick='),
+        'a search matching nothing still offers pictures',
+    );
+});
+
 test('the library is admin-only', function () {
     installedSite();
     // No admin_id in the session: this is a redirect to the login screen.

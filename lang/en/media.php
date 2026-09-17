@@ -41,6 +41,9 @@ return [
     'media.finished' => 'Finished :name.',
     'media.dimensions' => ':width × :height',
     'media.not_found' => 'That picture no longer exists.',
+    // The picker says why rather than showing an empty panel, which would read as
+    // "there are no pictures" when the truth is that the list could not be fetched.
+    'media.pick_failed' => 'The pictures could not be loaded. Close this and try again.',
 
     // One picture.
     'media.back' => 'All pictures',

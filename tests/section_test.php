@@ -53,8 +53,15 @@ testBothDrivers("a section's surface and rhythm are saved and change only that s
 
 test('every section style, design choice, colour and pair has an admin label', function () {
     $keys = [];
-    foreach (SectionStyle::OPTIONS as $key => $values) {
+    // Every key a section style HAS, taken from DEFAULTS rather than OPTIONS. OPTIONS is
+    // only the enumerated five, so a list built from it silently skipped `image` — the
+    // editor rendered the literal string "style.image" as a field label and this test
+    // stayed green, which is the failure it exists to catch.
+    foreach (array_keys(SectionStyle::DEFAULTS) as $key) {
         $keys[] = "style.{$key}";
+    }
+    // Per-value labels only where there are values to name: a media reference has none.
+    foreach (SectionStyle::OPTIONS as $key => $values) {
         foreach ($values as $value) {
             $keys[] = "style.{$key}.{$value}";
         }

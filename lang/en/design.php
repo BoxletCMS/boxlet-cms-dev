@@ -133,7 +133,9 @@ return [
     'style.surface.plain' => 'Plain',
     'style.surface.tinted' => 'Tinted',
     'style.surface.contrast' => 'Contrast',
-    'style.surface.image' => 'Image (shown as contrast until media arrive)',
+    // Media have arrived; the fallback is about this section now, not the release. A
+    // surface set to image with no picture chosen renders exactly as contrast does (D-024).
+    'style.surface.image' => 'Image (shown as contrast until a picture is chosen)',
     'style.surface.gradient' => 'Gradient',
     'style.rhythm' => 'Rhythm',
     'style.rhythm.tight' => 'Tight',
@@ -147,6 +149,11 @@ return [
     'style.align' => 'Alignment',
     'style.align.left' => 'Left',
     'style.align.center' => 'Centred',
+    // D-024's sixth key. Unlike the others it is not a value from a closed set but a
+    // reference to a picture already in the library, so it has a label and a hint and no
+    // per-option labels — there are no options to name.
+    'style.image' => 'Background picture',
+    'style.image_hint' => 'Used only when the surface is Image.',
     'style.divider' => 'Top edge',
     'style.divider.none' => 'None',
     'style.divider.line' => 'Line',

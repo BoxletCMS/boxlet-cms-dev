@@ -212,8 +212,10 @@ final class PageEditorController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/edit', [
             'title' => t('pages.edit'),
             'nav' => 'pages',
-            'styles' => ['admin-richtext.css', 'admin-pages.css'],
-            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js'],
+            // Both: the picker shows the library's own cards (admin-media.css) inside its
+            // own panel (admin-picker.css), and one definition of a card beats a short list.
+            'styles' => ['admin-richtext.css', 'admin-pages.css', 'admin-media.css', 'admin-picker.css'],
+            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'media-picker.js'],
             'character' => Composition::active($this->db()),
             'page' => $page,
             'titleValue' => $title,

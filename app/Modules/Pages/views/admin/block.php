@@ -20,6 +20,14 @@ $idPrefix = 'block-' . $index . '-';
 // Section style opens when it differs from what the active character would give this
 // block, so a hand-tuned section announces itself and a composed one stays quiet.
 $composed = $known ? Composition::style($character, $block['type']) : [];
+
+// What media-picker.js needs, on the field itself rather than in a script: the admin's CSP
+// allows no inline script, and these attributes survive being cloned out of a <template>,
+// which a page-level element would not reach.
+$pickerAttributes = static fn (): string => ' data-picker-url="' . e(\App\Support\Url::admin('media')) . '"'
+    . ' data-text-none="' . e(t('pages.field.media_none')) . '"'
+    . ' data-text-search="' . e(t('media.search')) . '"'
+    . ' data-text-failed="' . e(t('media.pick_failed')) . '"';
 ?>
             <?php /* The name as data, so the visual editor's panel heading does not have
                      to scrape it out of the legend and pick up its drag handle with it. */ ?>
@@ -106,7 +114,7 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                              the id never appears on screen. The picker replaces it when
                              JavaScript runs, and both post the same field, so the server
                              validates one thing (MediaReference, on save). */ ?>
-                    <select id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" data-media-field>
+                    <select id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" data-media-field<?= $pickerAttributes() ?>>
                         <option value=""><?= e(t('pages.field.media_none')) ?></option>
 <?php foreach ($pictures as $picture): ?>
                         <option value="<?= e($picture['id']) ?>"<?= (int) $value === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
@@ -161,6 +169,22 @@ $composed = $known ? Composition::style($character, $block['type']) : [];
                             </select>
                         </div>
 <?php endforeach; ?>
+                        <?php /* D-024's sixth key. Not part of OPTIONS, because OPTIONS is
+                                 what becomes class names on the wrapper and a picture is
+                                 rendered, not painted. Offered always rather than only when
+                                 the surface is `image`: hiding it would take script, and
+                                 this panel works without one. */ ?>
+                        <div class="field">
+                            <label for="<?= e($idPrefix . 'style-image') ?>"><?= e(t('style.image')) ?></label>
+                            <select id="<?= e($idPrefix . 'style-image') ?>" name="<?= e($prefix) ?>[style][<?= e(\App\Modules\Design\SectionStyle::IMAGE) ?>]" data-media-field<?= $pickerAttributes() ?>>
+                                <option value=""><?= e(t('pages.field.media_none')) ?></option>
+<?php $surfaceImage = (int) ($block['style'][\App\Modules\Design\SectionStyle::IMAGE] ?? 0); ?>
+<?php foreach ($pictures as $picture): ?>
+                                <option value="<?= e($picture['id']) ?>"<?= $surfaceImage === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
+<?php endforeach; ?>
+                            </select>
+                            <span class="hint"><?= e(t('style.image_hint')) ?></span>
+                        </div>
                     </div>
                 </details>
 <?php endif; ?>

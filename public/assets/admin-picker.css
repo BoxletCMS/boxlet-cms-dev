@@ -1,0 +1,92 @@
+/* The picture picker: the library's own cards, in a panel over the field.
+   Admin tokens only (--ui-*).
+
+   Split out of admin-media.css, which had grown past the 300-line rule. The seam is a real
+   one rather than a convenience: admin-media.css dresses the library SCREEN, while this is
+   a CONTROL that appears inside the page editors. Both editors load this and admin-media.css
+   — the card styles live there and one definition of a card is worth more than a shorter
+   include list.
+
+   media-picker.js builds every element below. Without JavaScript none of it exists and the
+   select underneath is the control (tests/editor_test.php). */
+
+.media-picker {
+  position: relative;
+}
+
+/* A legible resting state, not an outline that appears on hover: it names the picture that
+   is currently chosen, so it has to be readable before anyone touches it. */
+.media-picker-current {
+  inline-size: 100%;
+  justify-content: space-between;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.media-picker-panel {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(100% + var(--ui-1));
+  z-index: 20;
+  display: grid;
+  gap: var(--ui-2);
+  padding: var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-m);
+}
+
+.media-picker-search {
+  inline-size: 100%;
+}
+
+.media-picker-none {
+  justify-self: start;
+}
+
+/* Bounded, so a library of two hundred pictures cannot push the panel off the screen. */
+.media-picker-results {
+  max-block-size: 20rem;
+  overflow-y: auto;
+}
+
+.media-picker-results[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+/* Inside the panel the column is narrow, so the grid packs tighter than on the library
+   screen. auto-fill for the same reason it is used there: two pictures should not stretch
+   to fill a row. */
+.media-grid-picking {
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: var(--ui-2);
+}
+
+.media-grid-picking .media-card {
+  padding: var(--ui-2);
+}
+
+.media-grid-picking .media-facts {
+  display: none;
+}
+
+/* In the picker a card is a button, not a link. Without this reset it arrives wearing the
+   browser's default button chrome — grey, centred, its own font — inside a card that is
+   already a surface of its own. */
+.media-grid-picking .media-card-link {
+  appearance: none;
+  inline-size: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.media-grid-picking .media-card-link:focus-visible {
+  outline: var(--ui-border) solid var(--ui-accent);
+  outline-offset: 2px;
+}

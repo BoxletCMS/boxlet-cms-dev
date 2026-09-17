@@ -203,10 +203,20 @@ test('the insertion control keeps two tones in every state', function () {
 });
 
 test('opacity is never what makes a control quiet', function () {
-    // Three states are allowed to fade, and all three are transient: something is being
-    // dragged, or is busy. None of them is a control at rest, which is the case the rule
-    // is about — .bx-insert sat at 0.35 and measured 1.69:1 until D-012 (PLAN.md).
-    $transient = ['.bx-canvas .bx-dragging', '.is-dragging', '.library-card[aria-busy="true"]'];
+    // These states are allowed to fade, and every one is transient: something is being
+    // dragged, or is waiting for a fetch. None is a control at rest, which is the case the
+    // rule is about — .bx-insert sat at 0.35 and measured 1.69:1 until D-012 (PLAN.md).
+    //
+    // .media-picker-results joins for exactly the reason .library-card already had: it
+    // fades only while media-picker.js is fetching the listing, between setting aria-busy
+    // and clearing it. The attribute tells assistive technology; the fade tells everyone
+    // else that the wait is the program working rather than an empty panel.
+    $transient = [
+        '.bx-canvas .bx-dragging',
+        '.is-dragging',
+        '.library-card[aria-busy="true"]',
+        '.media-picker-results[aria-busy="true"]',
+    ];
 
     foreach (adminStylesheets() as $file) {
         foreach (cssRules($file) as [$selector, $body]) {

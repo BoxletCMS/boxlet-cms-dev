@@ -5,6 +5,7 @@ namespace App\Modules\Media;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\View;
 use App\Modules\Admin\AdminView;
 use App\Support\Bytes;
 use App\Support\Url;
@@ -49,6 +50,19 @@ final class MediaController
         $pictures = [];
         foreach ($this->library()->all($search) as $row) {
             $pictures[] = self::card($row);
+        }
+
+        // The picker asks for the same listing with no screen around it: one query, one
+        // card, one set of markup, so the library and the picker cannot drift apart. HTML
+        // rather than JSON, because the server answers with markup everywhere in this
+        // admin and a second representation would be a second thing to keep correct.
+        if (($request->query['picker'] ?? '') !== '') {
+            return Response::admin((new View(__DIR__ . '/views'))->render('admin/cards', $locale, [
+                'pictures' => $pictures,
+                'search' => $search,
+                'picking' => true,
+                'csrf' => $this->container->get('session')->csrfToken(),
+            ], null));
         }
 
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/index', [

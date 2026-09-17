@@ -10,17 +10,38 @@ use App\Support\Url;
  */
 function adminStylesheets(): array
 {
-    return [
-        'admin.css', 'admin-ui.css', 'admin-forms.css', 'admin-pages.css', 'admin-design.css',
-        // The rich text field's own chrome. It was missing from this list, which is how a
-        // toolbar icon reached 1.12:1 without any test noticing (PLAN.md D-012).
-        'admin-richtext.css',
-        // The editor's chrome. canvas.css matters most: it is the one admin stylesheet
-        // loaded into a document full of the site's tokens, so a selection outline that
-        // borrowed one would be unreadable on the designs that need it most.
-        'builder.css', 'builder-inspector.css', 'canvas.css',
-    ];
+    // DERIVED, not listed. Twice now a stylesheet has been added to the admin and not to
+    // this list: admin-richtext.css, which is how a toolbar icon reached 1.12:1 without any
+    // test noticing (PLAN.md D-012), and then admin-media.css and admin-picker.css. A
+    // hand-kept list of files fails the same way every time, so every admin-*.css is picked
+    // up by its name and only the three that do not carry the prefix stay written out.
+    $sheets = [];
+    foreach (glob(dirname(__DIR__) . '/public/assets/admin-*.css') ?: [] as $file) {
+        $sheets[] = basename($file);
+    }
+    sort($sheets);
+
+    // The editor's chrome. canvas.css matters most: it is the one admin stylesheet loaded
+    // into a document full of the site's tokens, so a selection outline that borrowed one
+    // would be unreadable on the designs that need it most.
+    return array_merge(['admin.css'], $sheets, ['builder.css', 'builder-inspector.css', 'canvas.css']);
 }
+
+test('every admin stylesheet on disk is one this file checks', function () {
+    // The guard on the guard. If a stylesheet is ever added without the admin- prefix and
+    // without being named above, it escapes the token check entirely — which is exactly how
+    // the three misses happened.
+    $linked = adminStylesheets();
+    foreach (glob(dirname(__DIR__) . '/public/assets/*.css') ?: [] as $file) {
+        $name = basename($file);
+        // Front-end stylesheets are the other side of the rule and are checked by
+        // tests/blocks_test.php instead.
+        if (in_array($name, ['site.css', 'sections.css', 'maintenance-bar.css'], true)) {
+            continue;
+        }
+        assertTrue(in_array($name, $linked, true), "{$name} is checked by no stylesheet test");
+    }
+});
 
 test('no admin stylesheet reads a token from the site\'s design', function () {
     // Every group tokens.css defines. The admin declares its own values, --ui-* for the

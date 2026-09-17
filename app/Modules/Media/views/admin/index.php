@@ -9,6 +9,8 @@ use App\Support\Url;
  * @var string $search
  * @var array{file: int, request: int, fileLabel: string, requestLabel: string} $limits
  * @var string $csrf
+ *
+ * The grid itself is admin/cards.php, shared with the picker's fragment.
  */
 ?>
         <div class="page-header">
@@ -52,38 +54,7 @@ use App\Support\Url;
         </form>
 <?php endif; ?>
 
-<?php if ($pictures === []): ?>
-        <div class="empty-state">
-            <p><?= e($search === '' ? t('media.empty') : t('media.search_none', ['term' => $search])) ?></p>
-        </div>
-<?php else: ?>
-        <ul class="media-grid">
-<?php foreach ($pictures as $picture): ?>
-            <li class="media-card">
-                <a class="media-card-link" href="<?= e(Url::admin('media', $picture['id'])) ?>">
-                    <?php /* An empty alt: the filename is the link text right below, so
-                             announcing it twice would be noise. */ ?>
-<?php if ($picture['thumb'] !== null): ?>
-                    <img class="media-thumb" src="<?= e($picture['thumb']) ?>" alt="" width="200" height="200" loading="lazy">
-<?php else: ?>
-                    <span class="media-thumb media-thumb-none"><?= e(t('media.no_thumb')) ?></span>
-<?php endif; ?>
-                    <span class="media-name"><?= e($picture['filename']) ?></span>
-                </a>
-                <p class="media-facts">
-                    <?= e(t('media.dimensions', ['width' => (string) $picture['width'], 'height' => (string) $picture['height']])) ?>
-                    · <?= e($picture['size']) ?>
-                </p>
-<?php if (!$picture['complete']): ?>
-                <div class="media-pending">
-                    <p class="hint"><?= e(t('media.incomplete')) ?></p>
-                    <form method="post" action="<?= e(Url::admin('media', $picture['id'], 'finish')) ?>">
-                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                        <button type="submit" class="button button-secondary"><?= e(t('media.finish')) ?></button>
-                    </form>
-                </div>
-<?php endif; ?>
-            </li>
-<?php endforeach; ?>
-        </ul>
-<?php endif; ?>
+<?php /* The grid is its own partial because the picker loads exactly this and nothing
+         else. Two copies of a card would drift the moment one gained a detail. */ ?>
+<?php $picking = false; ?>
+<?php require __DIR__ . '/cards.php'; ?>

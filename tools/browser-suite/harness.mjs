@@ -1,0 +1,323 @@
+/*
+ * The browser suite's shared harness (CLAUDE.md rule 12).
+ *
+ * Nineteen one-off probes each re-implemented the same four things: finding
+ * chrome-headless-shell, logging in, screenshotting, and reporting. That duplication is
+ * why the same three bugs kept coming back, so each has its fix here, once:
+ *
+ *   - submitVia() submits the form that OWNS a field. The first form in the admin
+ *     document is the header's Log out, so an unscoped button[type=submit] click signs
+ *     the session out and every later step then meets the login screen.
+ *   - requireServed() refuses to run against stale assets. The site copy is a real copy,
+ *     not a symlink, so a screenshot of yesterday's CSS reported as today's is one
+ *     forgotten rsync away.
+ *   - everything runs from this directory, so `import puppeteer` resolves. A probe run
+ *     from the scratchpad fails with ERR_MODULE_NOT_FOUND, which reads like a product
+ *     failure for exactly as long as it takes to look.
+ *
+ * A scenario file exports { name, base, run(ctx) } and records verdicts through ctx.
+ * Verdicts are PASS, FAIL (with what was seen) or NOT CHECKABLE (with why).
+ */
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import { readdirSync, existsSync, mkdirSync } from 'node:fs';
+import { BASE, SHOTS as SHOTS_DIR, CHROME, MODULES } from './config.mjs';
+
+/*
+ * Puppeteer, found where node_modules actually is rather than where this file sits.
+ *
+ * A plain `import puppeteer from 'puppeteer'` worked only while the suite lived beside
+ * them; moving into the repository broke all nineteen scenarios at once, because Node
+ * searches upward from the importing file and the repository root has no node_modules —
+ * and by D-013 it never will.
+ *
+ * createRequire only RESOLVES the path here. Loading through require() was my first
+ * attempt and it cannot work: puppeteer is an ES module, so require() of it throws
+ * ERR_REQUIRE_ESM. The resolution was right, the loading was wrong.
+ */
+const puppeteer = (await import(
+  pathToFileURL(createRequire(`${MODULES}/`).resolve('puppeteer')).href
+)).default;
+
+/** Outside the repository, so it comes from configuration (D-029). */
+export const SHOTS = SHOTS_DIR;
+
+/** Typing delay. The driver outruns the editor's re-render; three "bugs" were that. */
+export const SLOW = 30;
+
+function findShell() {
+  const root = CHROME;
+  for (const version of existsSync(root) ? readdirSync(root) : []) {
+    for (const dir of readdirSync(`${root}/${version}`)) {
+      const candidate = `${root}/${version}/${dir}/chrome-headless-shell`;
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+export async function openBrowser({ width = 1400, height = 1000, scale = 2 } = {}) {
+  const browser = await puppeteer.launch({
+    executablePath: findShell(),
+    headless: true,
+    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width, height, deviceScaleFactor: scale });
+
+  const errors = [];
+  const blocked = [];
+  const dialogs = [];
+  page.on('pageerror', (e) => errors.push(e.message.split('\n')[0].slice(0, 160)));
+
+  // Nothing handled dialogs anywhere in the suite. Headless Chrome suppresses
+  // beforeunload, so it has not bitten yet — but a confirm() would hang a scenario with
+  // no output at all, which is the worst kind of failure to diagnose. Accept and record.
+  page.on('dialog', async (dialog) => {
+    dialogs.push(`${dialog.type()}: ${dialog.message().slice(0, 120)}`);
+    try {
+      await dialog.accept();
+    } catch {
+      // Already handled or the page is gone; nothing useful to do.
+    }
+  });
+  page.on('console', (m) => {
+    const text = m.text();
+    if (/Content Security Policy|Refused to/i.test(text)) blocked.push(text.slice(0, 160));
+  });
+
+  return { browser, page, errors, blocked, dialogs };
+}
+
+/**
+ * Submits the form that owns `selector` — never the first form on the page.
+ */
+export async function submitVia(page, selector, timeout = 25000) {
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle2', timeout }),
+    page.$eval(selector, (el) => {
+      const form = el.closest('form');
+      const button = form.querySelector('button[type="submit"], button[name="action"]');
+      button.click();
+    }),
+  ]);
+}
+
+/**
+ * Clicks an exact control and waits for the navigation.
+ *
+ * Not submitVia: the page editor's first submit is a visually-hidden save button (so that
+ * Enter in a field saves), so "the form's submit button" is the wrong one for Add, Move up
+ * and Move down, which are all name="action" with different values.
+ */
+/**
+ * Refuses a selector that does not name exactly one control (PLAN.md D-029).
+ *
+ * `form button[type="submit"]` matches the admin shell's Log out button first, because the
+ * header's form is the first in the document. 08-update pressed it for weeks: nothing was
+ * applied, three verdicts failed, and the product was behaving perfectly. The warning was
+ * in this file's own header the whole time.
+ *
+ * So the harness refuses rather than explains. "The first of several" is never what a
+ * scenario means — it is what a scenario gets when nobody scoped the selector.
+ */
+async function only(page, selector) {
+  if (/^form\s+button\[type=["']submit["']\]$/.test(selector.trim())) {
+    throw new Error(`Refusing "${selector}": in the admin it matches Log out first. `
+      + 'Scope it to the form that owns the button, e.g. form[action$="/admin/update"] button[type="submit"].');
+  }
+
+  const found = await page.$$(selector);
+  if (found.length === 0) {
+    throw new Error(`Nothing matches "${selector}".`);
+  }
+  if (found.length > 1) {
+    throw new Error(`"${selector}" matches ${found.length} controls, and the first is not `
+      + 'necessarily the one meant. Scope it to the form, row or panel that owns it.');
+  }
+}
+
+export async function clickAndWait(page, selector, timeout = 25000) {
+  await only(page, selector);
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle2', timeout }),
+    page.click(selector),
+  ]);
+}
+
+export async function login(page, base, email, password) {
+  await page.goto(`${base}/admin/login`, { waitUntil: 'networkidle2' });
+  await page.type('input[name="email"]', email, { delay: 10 });
+  await page.type('input[name="password"]', password, { delay: 10 });
+  await submitVia(page, 'input[name="password"]');
+  return !page.url().includes('/login');
+}
+
+/**
+ * Aborts unless the served asset contains every expected fragment. A check that reads
+ * stale CSS reports the old design as the new one and looks like a pass.
+ */
+export async function requireServed(page, base, asset, fragments) {
+  const css = await page.evaluate(async (url) => {
+    const response = await fetch(url);
+    return response.ok ? response.text() : '';
+  }, `${base}/assets/${asset}`);
+
+  const missing = fragments.filter((fragment) => !css.includes(fragment));
+  if (missing.length > 0) {
+    throw new Error(`${asset} is stale — missing ${JSON.stringify(missing)}. Sync the site copy.`);
+  }
+}
+
+/**
+ * The fixtures a scenario needs, or a FAILURE (PLAN.md D-029).
+ *
+ * NOT CHECKABLE is for a limit of the environment: no browser, something this host cannot
+ * prove. Missing test data is not that — it is the check not running, and in a summary of a
+ * hundred PASS lines it reads like a pass. Six media scenarios reported NOT CHECKABLE for
+ * every run after the photographs were renamed, and nobody saw it.
+ *
+ * The decision lives here rather than in each scenario, because a rule every caller may
+ * reinterpret is not a rule.
+ *
+ * @returns {string[]|null} the files, or null once the failure has been recorded
+ */
+export function fixtures(report, area, files, what) {
+  const missing = files.filter((file) => !file || !existsSync(file));
+  if (files.length === 0 || missing.length > 0) {
+    report.fail(`${area}: its test data`,
+      `needs ${what}; missing ${JSON.stringify(missing.length > 0 ? missing : ['nothing was offered'])}. `
+      + 'A FAILURE, not something we cannot check: the scenario did not run.');
+    return null;
+  }
+  return files;
+}
+
+/**
+ * Replaces what is in a field, through real input. THE ONLY BLESSED WAY.
+ *
+ * Never click({ clickCount: 3 }): a triple click through this driver selects NOTHING, so
+ * the new text is appended and the read-back looks exactly like the product mangling a
+ * save. That cost time in 11-picture, was written down there, and was then made again in
+ * 04-builder and in 17-settings. A lesson recorded in one scenario plainly does not hold,
+ * so it lives here and run.mjs refuses to start when a scenario reaches for the old way.
+ */
+export async function retype(page, selector, value) {
+  await page.click(selector);
+  await page.keyboard.down('Control');
+  await page.keyboard.press('KeyA');
+  await page.keyboard.up('Control');
+  await page.keyboard.press('Backspace');
+  await page.type(selector, value, { delay: SLOW });
+}
+
+export function reporter(area) {
+  const results = [];
+  mkdirSync(`${SHOTS}/${area}`, { recursive: true });
+
+  return {
+    area,
+    results,
+    record(item, verdict, detail = '') {
+      results.push({ item, verdict, detail });
+      console.log(`  ${verdict.padEnd(14)} ${item}${detail ? ' — ' + detail : ''}`);
+    },
+    pass(item, detail) { this.record(item, 'PASS', detail); },
+    fail(item, detail) { this.record(item, 'FAIL', detail); },
+    skip(item, why) { this.record(item, 'NOT CHECKABLE', why); },
+    verdict(item, ok, detail) { this.record(item, ok ? 'PASS' : 'FAIL', detail); },
+    async shot(page, name, options = {}) {
+      await page.screenshot({ path: `${SHOTS}/${area}/${name}.png`, fullPage: true, ...options });
+    },
+  };
+}
+
+/** The admin's visible alerts — field errors and notices. */
+export const alerts = (page) => page.$$eval(
+  '[role="alert"], .notice-error, .field-error',
+  (els) => els.map((el) => el.textContent.trim()).filter(Boolean),
+).catch(() => []);
+
+export const heading = (page) => page.$eval('h1', (el) => el.textContent.trim()).catch(() => '(no h1)');
+
+/**
+ * No form control sits directly on the page's own background.
+ *
+ * The rule is about what a person sees, not about class names: a control must sit on
+ * something that paints. Measuring it by class was tried and was wrong — the admin has at
+ * least four legitimate containers (.panel, .card in the installer's own layout,
+ * .panel-block in the builder's aside, and form.media-meta with a fieldset in Media), so a
+ * grep for one name reports three false failures and misses a real one. Computed colour
+ * asks the question the eye asks.
+ *
+ * Only the main frame is queried, which puts the builder's canvas iframe out of scope by
+ * construction rather than by a skip that could rot: the canvas renders the SITE, where
+ * the background belongs to the design.
+ */
+export async function controlsOnPanels(page, report, where) {
+  const seen = await page.evaluate(() => {
+    const paints = (colour) => typeof colour === 'string' && colour !== 'transparent'
+      && !/^rgba\([^)]*,\s*0\s*\)$/.test(colour);
+
+    // The ground the page actually paints: body first, then html, the order a browser
+    // resolves it in. A transparent body over a coloured html is a real arrangement.
+    let ground = 'rgba(0, 0, 0, 0)';
+    for (const el of [document.body, document.documentElement]) {
+      const colour = getComputedStyle(el).backgroundColor;
+      if (paints(colour)) { ground = colour; break; }
+    }
+
+    const bare = [];
+    let unrendered = 0;
+    for (const control of document.querySelectorAll('input, select, textarea')) {
+      // A hidden input has no box, and the CSRF token is one on every single form.
+      if (control.type === 'hidden') { continue; }
+      // Nothing is painted behind something with no box; counted, not silently dropped.
+      //
+      // KNOWN LIMIT, and the count is here so it cannot be forgotten: a control that is
+      // hidden until something opens is judged in neither state. On Settings this skips
+      // the three selects media-picker.js replaces (the replacement is what a person sees,
+      // and the scenario judges that separately) — but also the picker dialog's own search
+      // fields, which DO have to sit on a panel once the dialog is open. A scenario that
+      // opens a dialog should call this again with it open; closed, the guard cannot see in.
+      if (control.getClientRects().length === 0) { unrendered += 1; continue; }
+
+      let panel = null;
+      for (let el = control.parentElement; el && el !== document.documentElement; el = el.parentElement) {
+        const colour = getComputedStyle(el).backgroundColor;
+        if (paints(colour)) { panel = { colour, on: el.tagName.toLowerCase() + '.' + el.className }; break; }
+      }
+
+      if (panel === null || panel.colour === ground) {
+        bare.push({
+          control: control.name || control.id || control.tagName.toLowerCase(),
+          sits_on: panel === null ? 'nothing that paints' : `${panel.on} — the page's own colour`,
+        });
+      }
+    }
+    return { ground, bare, unrendered };
+  });
+
+  report.verdict(`${where}: every control sits on something that paints`, seen.bare.length === 0,
+    seen.bare.length === 0
+      ? `page ground ${seen.ground}${seen.unrendered ? `; ${seen.unrendered} not rendered` : ''}`
+      : `${seen.bare.length} on the bare page: ${JSON.stringify(seen.bare).slice(0, 400)}`);
+}
+
+/**
+ * Applies a design character, in the two clicks the admin deliberately requires:
+ * `preset:<name>` only LOADS the preset into the form (DesignController: "Save is the
+ * confirmation"), and `action=save` writes it. `save_composition` is the second,
+ * destructive action that also rewrites every block's layer 2 and 3.
+ *
+ * Shared rather than copied: 03-design applies every character to judge the design, and
+ * 14-front applies every character to judge pictures under it.
+ *
+ * Returns the admin's visible alerts — empty when the character was accepted.
+ */
+export async function applyCharacter(page, preset, action = 'save') {
+  await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' });
+  await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
+  await clickAndWait(page, `form.design-form button[name="action"][value="${action}"]`);
+  return alerts(page);
+}

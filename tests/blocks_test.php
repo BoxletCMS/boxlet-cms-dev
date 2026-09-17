@@ -92,8 +92,17 @@ test('a layout the block does not declare falls back to its default', function (
     assertContains('class="block block-hero layout-center ', $blocks->render('hero', ['heading' => 'x'], [], 'gone'), 'render with a removed layout');
 });
 
-test('every block, layout, field and select option has an admin label in lang/en.php', function () {
-    $strings = require dirname(__DIR__) . '/lang/en.php';
+test('every block, layout, field and select option has an admin label', function () {
+    // Merged the way t() merges, not read from one file: en.php was split by concern
+    // when it passed the 300-line rule, and block labels live in lang/pages.php now.
+    // A test naming a file has to be edited every time a string moves between them.
+    $strings = [];
+    foreach (glob(dirname(__DIR__) . '/lang/*.php') ?: [] as $file) {
+        $part = require $file;
+        if (is_array($part)) {
+            $strings += $part;
+        }
+    }
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
     foreach ($blocks->types() as $type) {
         $keys = ["block.{$type}"];
@@ -107,7 +116,7 @@ test('every block, layout, field and select option has an admin label in lang/en
             }
         }
         foreach ($keys as $key) {
-            assertTrue(isset($strings[$key]), "lang/en.php is missing {$key}");
+            assertTrue(isset($strings[$key]), "no admin label anywhere in lang/ for {$key}");
         }
     }
 });

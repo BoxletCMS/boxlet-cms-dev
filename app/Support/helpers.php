@@ -20,7 +20,7 @@ function env(string $key, ?string $default = null): ?string
 }
 
 /**
- * Admin UI string from lang/en.php with :name placeholders replaced. A missing key
+ * Admin UI string from lang/ with :name placeholders replaced. A missing key
  * returns the key itself, so it shows up rather than rendering blank.
  *
  * @param array<string, string|int> $replace
@@ -29,8 +29,17 @@ function t(string $key, array $replace = []): string
 {
     static $strings = null;
     if ($strings === null) {
-        $lang = dirname(__DIR__, 2) . '/lang';
-        $strings = (require $lang . '/en.php') + (require $lang . '/design.php');
+        // Every file in lang/, not a list of names: en.php was split by concern when it
+        // passed the 300-line rule, and a loader that names its files means editing this
+        // function every time another concern earns one. A key defined in two files is a
+        // test failure (tests/lang_test.php), not a silent win for whichever loads first.
+        $strings = [];
+        foreach (glob(dirname(__DIR__, 2) . '/lang/*.php') ?: [] as $file) {
+            $part = require $file;
+            if (is_array($part)) {
+                $strings += $part;
+            }
+        }
     }
     $text = is_array($strings) && is_string($strings[$key] ?? null) ? $strings[$key] : $key;
     foreach ($replace as $name => $value) {

@@ -138,8 +138,11 @@ test('guard (source, not behaviour): nothing duplicates the browser\'s plain-tex
 
     // The field promises the chord works. If the promise and the behaviour ever part
     // company, it should be because someone changed this line on purpose.
-    $lang = require dirname(__DIR__) . '/lang/en.php';
-    assertContains('Ctrl+Shift+V', (string) ($lang['richtext.paste_plain'] ?? ''), 'the hint no longer names the chord');
+    // Asked of t(), not of a file: en.php was split by concern, and a test naming one
+    // file fails whenever a string moves between them, which says nothing about the
+    // editor. t() returns the key itself when nothing is defined, so a missing string
+    // fails this assertion rather than passing an empty one.
+    assertContains('Ctrl+Shift+V', t('richtext.paste_plain'), 'the hint no longer names the chord');
 });
 
 test('guard (source, not behaviour): the editor still renders the shapes richtext.js binds to', function () {

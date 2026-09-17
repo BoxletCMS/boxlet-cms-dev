@@ -210,6 +210,37 @@ Nginx ignores `.htaccess` files entirely, so the document root is the only
 protection for `app/`, `config/` and `storage/`. On a managed host without access to
 the server block, ask the provider to add the `try_files` line.
 
+**Pass PHP only for the two entry points.** A configuration that hands every `.php` path
+to PHP-FPM will execute any `.php` file that ever reaches a public directory. Boxlet has
+exactly two: `index.php` and `install.php`. Name them rather than matching `\.php$`:
+
+```nginx
+location = /index.php {
+    include fastcgi_params;
+    fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+}
+
+location = /install.php {
+    include fastcgi_params;
+    fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+}
+
+# Everything else that is not a real file goes to the front controller.
+location / {
+    try_files $uri $uri/ /index.php?$query_string;
+}
+```
+
+This is belt and braces rather than the main protection: original uploads are stored
+outside the web root in `storage/uploads/`, and only generated image variants are public,
+so there is nothing under `public/` for a stray handler to execute. The two rules together
+mean a file that should not run cannot run, whichever one you forget.
+
+Uploads also need `client_max_body_size` raised — see **Upload size** above, where the PHP
+settings that go with it are covered.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

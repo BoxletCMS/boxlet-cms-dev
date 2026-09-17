@@ -12,6 +12,10 @@ use App\Core\Db;
 final class Slug
 {
     /** Top-level paths the application itself answers. */
+    // "uploads" stays reserved although /uploads/ is no longer a public directory
+    // (D-020 moved originals to storage/uploads/). An install that predates that change
+    // may still have files there, and a page at /uploads would be shadowed by them on
+    // disk. Reserving a name costs nothing; un-reserving one breaks those sites quietly.
     public const SYSTEM = ['admin', 'assets', 'cache', 'uploads', 'm', 'install', '_boxlet'];
 
     public const MAX_LENGTH = 100;

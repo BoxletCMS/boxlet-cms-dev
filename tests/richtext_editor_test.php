@@ -41,6 +41,36 @@ test('guard (source, not behaviour): the editor is configured to the storage whi
     assertContains('HTMLAttributes: { target: null, rel: null }', $js, 'the link emits attributes the whitelist forbids');
 });
 
+// The canvas follows the text as it is typed by listening for `input` on the field groups
+// (builder-blocks.js debounces redraw). Assigning .value in script fires nothing, so the
+// editor has to say so itself — without this line a rich text edit was invisible both to
+// the canvas and to the unsaved-changes warning, while every other field type worked,
+// because a person typing into a real control fires its own event.
+//
+// A guard rather than behaviour coverage: this runner has no browser. It stands over a
+// deletion, which is how this would come back — the bug was the absence of an event, and
+// nothing on screen said so.
+test('guard (source, not behaviour): a rich text edit announces itself', function () {
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext.js');
+
+    assertTrue(
+        (bool) preg_match('~onUpdate[^}]*hidden\.value\s*=\s*editor\.getHTML\(\)~s', $js),
+        'the editor no longer writes what it will post into the hidden input',
+    );
+    assertTrue(
+        (bool) preg_match("~hidden\.dispatchEvent\(\s*new Event\(\s*'input',\s*\{\s*bubbles:\s*true~", $js),
+        'the editor stopped announcing its edits, so the canvas will not follow the text',
+    );
+
+    // The listener the event has to reach, and the delay it is debounced by.
+    $blocks = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js');
+    assertContains("api.groups.addEventListener('input'", $blocks, 'the field groups no longer listen for input');
+    assertTrue(
+        (bool) preg_match('~setTimeout\(redraw,\s*(\d{2,4})\)~', $blocks, $delay) && (int) $delay[1] <= 400,
+        'the redraw debounce is longer than 400ms, which reads as lag rather than as the page following you',
+    );
+});
+
 test('guard (source, not behaviour): renumbering knows nothing about the rich text editor', function () {
     foreach (['builder.js', 'admin.js'] as $file) {
         $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/' . $file);

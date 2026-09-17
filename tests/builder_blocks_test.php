@@ -30,6 +30,95 @@ test('the insert endpoint returns a section and a field group for every block ty
     assertEquals(['text'], blockTypes($db, $id), 'the insert endpoint stored a block');
 });
 
+// The canvas redraws by posting the block being edited to this endpoint and swapping the
+// section it returns (PLAN.md 2h). Three things have to hold for that to be safe: it
+// renders what the front end renders, it writes nothing, and it is not open to a request
+// from elsewhere.
+
+testBothDrivers('the endpoint renders exactly what the front end renders', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', true, [
+        ['type' => 'text', 'content' => ['body' => '<p>Stored</p>']],
+    ]);
+
+    // The same fields, through the endpoint the canvas uses...
+    $response = adminPost("/admin/pages/{$id}/block", [
+        'type' => 'text',
+        'index' => '0',
+        'block' => ['type' => 'text', 'body' => '<p>Stored</p>'],
+    ]);
+    if (!preg_match('~<template data-block-canvas>(.*?)</template>~s', $response->body, $drawn)) {
+        fail('the endpoint returned no section');
+    }
+
+    // ...and the same fields as the visitor sees them.
+    $front = dispatch('/about')->body;
+    if (!preg_match('~<section class="block block-text.*?</section>~s', $front, $rendered)) {
+        fail('the front end rendered no section');
+    }
+
+    $normalise = static fn (string $html): string => trim((string) preg_replace(
+        ['~\s+~', '~ (data-bx-[a-z]+|tabindex|role)="[^"]*"~'],
+        [' ', ''],
+        $html,
+    ));
+
+    assertEquals($normalise($rendered[0]), $normalise($drawn[1]), 'the canvas and the front end disagree');
+});
+
+testBothDrivers('the endpoint writes nothing, whatever it is sent', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'text', 'content' => ['body' => '<p>Only</p>']],
+    ]);
+    $before = $db->all('SELECT id, block_type, content_json, style_json, layout, sort FROM page_blocks ORDER BY id');
+    $pageBefore = $db->one('SELECT * FROM pages WHERE id = ?', [$id]);
+
+    // A redraw of the stored block, a redraw with different text, and an added type.
+    foreach ([
+        ['type' => 'text', 'index' => '0', 'block' => ['type' => 'text', 'body' => '<p>Only</p>']],
+        ['type' => 'text', 'index' => '0', 'block' => ['type' => 'text', 'body' => '<p>Changed while typing</p>']],
+        ['type' => 'hero', 'index' => '1', 'block' => ['type' => 'hero', 'heading' => 'Typed']],
+    ] as $body) {
+        assertEquals(200, adminPost("/admin/pages/{$id}/block", $body)->status, 'status');
+    }
+
+    assertEquals($before, $db->all('SELECT id, block_type, content_json, style_json, layout, sort FROM page_blocks ORDER BY id'), 'the blocks changed');
+    assertEquals($pageBefore, $db->one('SELECT * FROM pages WHERE id = ?', [$id]), 'the page row changed');
+});
+
+test('the endpoint refuses a request without a CSRF token', function () {
+    $id = builderPage();
+
+    // adminPost() adds the token; this is the same request without one.
+    $response = dispatch("/admin/pages/{$id}/block", null, 'POST', ['type' => 'text', 'index' => '0']);
+
+    assertEquals(403, $response->status, 'a request with no CSRF token was answered');
+    assertTrue(!str_contains($response->body, '<template data-block-canvas>'), 'it rendered a block anyway');
+});
+
+testBothDrivers('the endpoint cleans what it is sent, the same way a save does', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>Only</p>']]]);
+
+    $response = adminPost("/admin/pages/{$id}/block", [
+        'type' => 'text',
+        'index' => '0',
+        'block' => [
+            'type' => 'text',
+            'body' => '<p onclick="alert(1)">Kept<script>alert(2)</script></p>',
+            'style' => ['surface' => 'not-a-surface'],
+        ],
+    ]);
+
+    assertEquals(200, $response->status, 'status');
+    assertContains('Kept', $response->body, 'the text survived');
+    assertTrue(!str_contains($response->body, 'alert(1)'), 'an event attribute reached the canvas');
+    assertTrue(!str_contains($response->body, 'alert(2)'), 'a script reached the canvas');
+    // An invalid section style falls back to the default rather than being drawn.
+    assertTrue(!str_contains($response->body, 'surface-not-a-surface'), 'an invalid surface was drawn');
+});
+
 test('the insert endpoint refuses a block type that is not installed', function () {
     $id = builderPage();
     $response = adminPost("/admin/pages/{$id}/block", ['type' => 'trojan_horse', 'index' => '0']);

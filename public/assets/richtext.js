@@ -98,6 +98,12 @@
       content: textarea.value,
       onUpdate: function () {
         hidden.value = editor.getHTML();
+        // Say so out loud. The builder redraws the canvas from an `input` event on the
+        // field groups, and the unsaved-changes warning listens for the same thing —
+        // but assigning .value in script fires nothing, so an edit made here was
+        // invisible to both. Every other field type reaches them because a person typing
+        // into a real control fires its own event; the editor has to do it itself.
+        hidden.dispatchEvent(new Event('input', { bubbles: true }));
       },
     });
 

@@ -269,10 +269,11 @@
   });
 
   // On blur, and shortly after typing stops: often enough to feel live, rarely enough
-  // not to render on every keystroke.
+  // not to render on every keystroke. 300ms is the figure in the 2h brief — at 500 it
+  // read as lag rather than as the page following you.
   api.groups.addEventListener('change', redraw);
   api.groups.addEventListener('input', function () {
     window.clearTimeout(timer);
-    timer = window.setTimeout(redraw, 500);
+    timer = window.setTimeout(redraw, 300);
   });
 })();

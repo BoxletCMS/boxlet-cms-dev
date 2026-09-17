@@ -3,6 +3,7 @@
 namespace App\Modules\Design;
 
 use App\Core\Db;
+use App\Core\Settings;
 use Throwable;
 
 /**
@@ -68,8 +69,7 @@ final class Design
             $cacheDirectory,
             Typography::fontFaces($decisions['typography'], self::FONTS_FROM_CACHE),
         );
-        $db->query('DELETE FROM settings WHERE `key` = ?', ['tokens_css']);
-        $db->query('INSERT INTO settings (`key`, value_json) VALUES (?, ?)', ['tokens_css', json_encode($file, JSON_THROW_ON_ERROR)]);
+        Settings::set($db, 'tokens_css', $file);
 
         return $file;
     }
@@ -81,8 +81,7 @@ final class Design
      */
     public static function stylesheet(Db $db, string $cacheDirectory): string
     {
-        $row = $db->one('SELECT value_json FROM settings WHERE `key` = ?', ['tokens_css']);
-        $file = $row === null ? null : json_decode((string) $row['value_json'], true);
+        $file = Settings::get($db, 'tokens_css');
         if (is_string($file) && preg_match('~^tokens\.[0-9a-f]{12}\.css$~', $file) && is_file($cacheDirectory . '/' . $file)) {
             return $file;
         }

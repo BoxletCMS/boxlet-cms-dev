@@ -4,6 +4,7 @@ namespace App\Modules\Admin;
 
 use App\Core\Container;
 use App\Core\Response;
+use App\Core\Settings;
 use App\Core\View;
 
 /**
@@ -19,8 +20,7 @@ final class AdminView
     public static function render(Container $container, string $directory, string $template, array $data, int $status = 200): Response
     {
         $session = $container->get('session');
-        $row = $container->get('db')->one('SELECT value_json FROM settings WHERE `key` = ?', ['site_name']);
-        $siteName = $row === null ? '' : json_decode((string) $row['value_json']);
+        $siteName = Settings::text($container->get('db'), 'site_name');
         $flash = $session->get('flash');
         $session->remove('flash');
 
@@ -37,7 +37,7 @@ final class AdminView
             // A screen that fills the window itself rather than sitting in the reading
             // column: the visual editor, whose canvas is the screen.
             'bare' => false,
-            'siteName' => is_string($siteName) ? $siteName : '',
+            'siteName' => $siteName,
             'flash' => is_string($flash) ? $flash : null,
             'csrf' => $session->csrfToken(),
         ];

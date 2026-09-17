@@ -5,6 +5,7 @@ namespace App\Modules\Install;
 use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Migrator;
+use App\Core\Settings;
 use App\Modules\Demo\DemoSite;
 use App\Modules\Design\Design;
 use App\Modules\Design\Presets;
@@ -49,11 +50,12 @@ final class Installer
                 'INSERT INTO locales (code, label, is_primary, sort, enabled) VALUES (?, ?, 1, 0, 1)',
                 [$site['locale'], $languages[$site['locale']]],
             );
+            // Settings::set() deletes before inserting, which is a no-op on a table this
+            // install has not written yet, and stays inside the transaction either way.
+            // One difference in the bytes, none in behaviour: it does not escape slashes,
+            // so a time zone is stored as "Europe/Zagreb" rather than "Europe\/Zagreb".
             foreach (['site_name' => $site['name'], 'timezone' => $site['timezone']] as $key => $value) {
-                $db->query(
-                    'INSERT INTO settings (`key`, value_json) VALUES (?, ?)',
-                    [$key, json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)],
-                );
+                Settings::set($db, $key, $value);
             }
             $pdo->commit();
         } catch (Throwable $e) {

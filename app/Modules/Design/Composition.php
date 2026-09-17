@@ -4,6 +4,7 @@ namespace App\Modules\Design;
 
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Core\Settings;
 
 /**
  * Layer 0 reaching layers 2 and 3: the composition a character gives a site.
@@ -23,8 +24,7 @@ final class Composition
      */
     public static function active(Db $db): string
     {
-        $row = $db->one('SELECT value_json FROM settings WHERE `key` = ?', [self::SETTING]);
-        $name = $row === null ? null : json_decode((string) $row['value_json'], true);
+        $name = Settings::get($db, self::SETTING);
 
         return is_string($name) && Presets::exists($name) ? $name : Presets::DEFAULT;
     }
@@ -34,11 +34,7 @@ final class Composition
         if (!Presets::exists($character)) {
             return;
         }
-        $db->query('DELETE FROM settings WHERE `key` = ?', [self::SETTING]);
-        $db->query(
-            'INSERT INTO settings (`key`, value_json) VALUES (?, ?)',
-            [self::SETTING, json_encode($character, JSON_THROW_ON_ERROR)],
-        );
+        Settings::set($db, self::SETTING, $character);
     }
 
     /**

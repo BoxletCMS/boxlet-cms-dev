@@ -39,8 +39,10 @@ final class MediaItemController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/show', [
             'title' => (string) $media['filename'],
             'nav' => 'media',
-            'styles' => ['admin-media.css'],
-            'scripts' => ['media.js'],
+            // Cropper is loaded HERE and nowhere else: it is 38KB for one dialog on one
+            // screen, and the library listing has no use for it (D-026).
+            'styles' => ['admin-media.css', 'vendor/cropper.min.css', 'admin-crop.css'],
+            'scripts' => ['media.js', 'vendor/cropper.min.js', 'media-crop.js'],
             'picture' => MediaController::card($media),
             // The uncropped variant, and only that one — see below.
             'preview' => MediaVariants::url($media, 'full'),

@@ -72,4 +72,51 @@ final class MediaMeta
             [substr($alt, 0, 255), $caption, $mediaId, $locale],
         );
     }
+
+    /**
+     * Copies what one picture means onto another, mark and all (D-026).
+     *
+     * NOT save(). Saving is the owner confirming a suggestion, so it clears the mark — and
+     * that is right for the form, where a person looked at the words and pressed a button.
+     * Copying is nobody confirming anything: a crop shows the same subject, so its
+     * description comes across, and a guess that was still a guess stays one. Running this
+     * through save() would quietly promote every copied suggestion to the owner's own
+     * words, which is the opposite of what the badge is for.
+     *
+     * A row already on the target is overwritten ONLY while it is still a suggestion, which
+     * is the rule D-025 already uses for replacing a picture's bytes. That is not a detail:
+     * the target has just been created through the ordinary upload path, so it arrives
+     * carrying a suggestion invented from the crop's own generated file name — "Tim u uredu
+     * crop" — and leaving that in place would throw away the description the owner actually
+     * wrote for the picture it was cut from. An alt the owner has confirmed on the target is
+     * left alone, because then somebody has spoken and a copy must not argue.
+     */
+    public static function copy(Db $db, int $fromId, int $toId): void
+    {
+        foreach (self::forPicture($db, $fromId) as $locale => $meaning) {
+            $existing = $db->one(
+                'SELECT id, alt_suggested FROM media_meta WHERE media_id = ? AND locale = ?',
+                [$toId, $locale],
+            );
+            $mark = $meaning['suggested'] ? 1 : 0;
+
+            if ($existing === null) {
+                $db->query(
+                    'INSERT INTO media_meta (media_id, locale, alt, caption, alt_suggested) VALUES (?, ?, ?, ?, ?)',
+                    [$toId, $locale, substr($meaning['alt'], 0, 255), $meaning['caption'], $mark],
+                );
+
+                continue;
+            }
+
+            if ((int) ($existing['alt_suggested'] ?? 0) !== 1) {
+                continue;
+            }
+
+            $db->query(
+                'UPDATE media_meta SET alt = ?, caption = ?, alt_suggested = ? WHERE media_id = ? AND locale = ?',
+                [substr($meaning['alt'], 0, 255), $meaning['caption'], $mark, $toId, $locale],
+            );
+        }
+    }
 }

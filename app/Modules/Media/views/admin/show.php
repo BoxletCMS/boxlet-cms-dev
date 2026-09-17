@@ -83,6 +83,15 @@ use App\Support\Url;
                 </ul>
 <?php endif; ?>
 
+<?php if ($preview !== null): ?>
+                <?php /* Hidden until media-crop.js runs, and revealed by it. Without
+                         JavaScript there is no box to drag, so a visible Crop button would
+                         be a control that cannot do anything — worse than an absent one.
+                         And without a `full` variant there is nothing to show at all, which
+                         is why this sits inside the same guard the focal picture uses. */ ?>
+                <button type="button" class="button button-secondary" data-crop-open hidden><?= e(t('media.crop_open')) ?></button>
+<?php endif; ?>
+
                 <h2><?= e(t('media.replace')) ?></h2>
                 <?php /* Replacing keeps the id, so every page showing this picture shows
                          the new one with nothing to go and find. */ ?>
@@ -102,11 +111,68 @@ use App\Support\Url;
                          pages, which is more use than a control that has quietly gone. */ ?>
                 <form class="media-delete" method="post" action="<?= e(Url::admin('media', $picture['id'], 'delete')) ?>">
                     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                    <button type="submit" class="button button-danger"
+                    <?php /* button-ghost, like every other delete in this admin. Without it
+                             the danger ink lands on the filled accent background and
+                             measures 1.15:1 — red on blue, far under the 4.5:1 text rule
+                             (D-012). The contrast test never caught it because it pairs inks
+                             with pale surfaces only, and `accent` is in its ink list rather
+                             than its surface list. Ghost puts the same red on panel white,
+                             which is 6.57:1. */ ?>
+                    <button type="submit" class="button button-ghost button-danger"
                             data-confirm="<?= e(t('media.delete_confirm', ['name' => $picture['filename']])) ?>"><?= e(t('media.delete')) ?></button>
                 </form>
             </div>
         </div>
+
+<?php if ($preview !== null): ?>
+        <?php /* CROPPING (D-026). The dialog shows the `full` variant, which is the only
+                 uncropped one and the only one that is public — the original never is
+                 (D-020). What the form posts is a RECTANGLE in that variant's pixels,
+                 measured against the size it was measured on, so the server can scale it
+                 to the original and cut that at full quality.
+
+                 The two buttons are deliberately unalike. One adds a picture and leaves
+                 this one alone; the other destroys an original that cannot be brought
+                 back, so it wears the same danger colours as Delete and asks first. */ ?>
+        <section class="media-crop" data-crop hidden>
+            <h2><?= e(t('media.crop')) ?></h2>
+            <p class="hint"><?= e(t('media.crop_hint')) ?></p>
+
+            <div class="media-crop-stage">
+                <img src="<?= e($preview) ?>" alt="<?= e($picture['original']) ?>" data-crop-image>
+            </div>
+
+            <form method="post" action="<?= e(Url::admin('media', $picture['id'], 'crop')) ?>" data-crop-form>
+                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                <input type="hidden" name="ratio" value="free">
+<?php foreach (['x', 'y', 'w', 'h', 'full_w', 'full_h'] as $field): ?>
+                <input type="hidden" name="<?= e($field) ?>" value="0">
+<?php endforeach; ?>
+
+                <fieldset class="media-crop-shapes">
+                    <legend class="visually-hidden"><?= e(t('media.crop_ratio')) ?></legend>
+<?php foreach ([
+    'free' => 'media.crop_ratio_free',
+    'hero' => 'media.crop_ratio_hero',
+    'card' => 'media.crop_ratio_card',
+    'wide' => 'media.crop_ratio_wide',
+    'thumb' => 'media.crop_ratio_thumb',
+] as $name => $label): ?>
+                    <button type="button" class="media-crop-shape" data-crop-ratio="<?= e((string) \App\Modules\Media\MediaCrop::RATIOS[$name]) ?>"
+                            data-crop-name="<?= e($name) ?>" aria-pressed="<?= $name === 'free' ? 'true' : 'false' ?>"><?= e(t($label)) ?></button>
+<?php endforeach; ?>
+                </fieldset>
+
+                <div class="media-crop-actions">
+                    <button type="submit" name="action" value="new" class="button"><?= e(t('media.crop_new')) ?></button>
+                    <button type="submit" name="action" value="replace" class="button button-ghost button-danger"
+                            data-confirm="<?= e(t('media.crop_replace_confirm', ['name' => $picture['filename']])) ?>"><?= e(t('media.crop_replace')) ?></button>
+                    <button type="button" class="button button-secondary" data-crop-cancel><?= e(t('media.crop_cancel')) ?></button>
+                    <p class="hint"><?= e(t('media.crop_replace_hint')) ?></p>
+                </div>
+            </form>
+        </section>
+<?php endif; ?>
 
         <form class="media-meta" method="post" action="<?= e(Url::admin('media', $picture['id'])) ?>">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

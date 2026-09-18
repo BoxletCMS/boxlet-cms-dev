@@ -50,7 +50,6 @@ final class SettingsController
         $values = [
             'site_name' => trim($request->input('site_name')),
             'timezone' => trim($request->input('timezone')),
-            'maintenance_message' => trim($request->input('maintenance_message')),
         ];
 
         // The same list the installer checks against. Two screens writing one setting
@@ -77,11 +76,28 @@ final class SettingsController
         foreach ($values as $key => $value) {
             Settings::set($db, $key, $value);
         }
+        // The logo field shows the one the header draws, which may still be the header's
+        // older setting; once saved here, this is the only one (D-038).
+        SiteChrome::retireHeaderLogo($db);
 
         $this->container->get('session')->set(
             'flash',
             $cleared ? t('settings.saved') . ' ' . t('settings.picture_gone') : t('settings.saved'),
         );
+
+        return Response::redirect(Url::admin('settings'));
+    }
+
+    /**
+     * The message visitors see while the site is in maintenance, saved on its own beside
+     * the switch it belongs to (D-038). Empty means the standard wording.
+     *
+     * @param array<string, string> $params
+     */
+    public function saveMessage(Request $request, string $locale, array $params): Response
+    {
+        Settings::set($this->db(), 'maintenance_message', trim($request->input('maintenance_message')));
+        $this->container->get('session')->set('flash', t('settings.maintenance_message_saved'));
 
         return Response::redirect(Url::admin('settings'));
     }
@@ -113,6 +129,8 @@ final class SettingsController
         foreach (self::PICTURES as $key) {
             $pictures[$key] = Settings::mediaId($db, $key);
         }
+        // The logo the header actually draws, whichever setting it still comes from.
+        $pictures['site_logo'] = SiteChrome::logo($db);
 
         return $pictures;
     }

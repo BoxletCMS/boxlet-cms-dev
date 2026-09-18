@@ -5,8 +5,9 @@ use App\Support\Url;
 /**
  * Provided by AdminView::render().
  *
- * @var list<array{id: int, locale: string, slug: string, title: string, status: string, parent: int, depth: int, first: bool, last: bool}> $pages
+ * @var list<array{id: int, locale: string, slug: string, title: string, status: string, updated: string, parent: int, depth: int, first: bool, last: bool}> $pages
  * @var array<string, string> $localeLabels code => label
+ * @var string $zone the site's time zone, for the Last edited column
  * @var string $csrf
  */
 ?>
@@ -37,6 +38,7 @@ use App\Support\Url;
                         <th scope="col"><?= e(t('pages.col.locale')) ?></th>
                         <th scope="col"><?= e(t('pages.col.address')) ?></th>
                         <th scope="col"><?= e(t('pages.col.status')) ?></th>
+                        <th scope="col"><?= e(t('pages.col.updated')) ?></th>
                         <th scope="col"><span class="visually-hidden"><?= e(t('pages.col.actions')) ?></span></th>
                     </tr>
                 </thead>
@@ -54,12 +56,12 @@ use App\Support\Url;
 ?>
                     <tr data-page-id="<?= $id ?>" data-page-group="<?= e($group) ?>">
                         <td class="page-order">
-                            <span class="drag-handle" data-page-handle aria-hidden="true">⠿</span>
-                            <button type="submit" form="page-move-<?= $id ?>" name="move" value="up" class="button button-ghost move-button"<?= $page['first'] ? ' disabled' : '' ?>>
-                                <span class="visually-hidden"><?= e(t('pages.move_up')) ?></span><span aria-hidden="true">↑</span>
+                            <span class="drag-handle" data-page-handle aria-hidden="true"><?= icon('grip-vertical') ?></span>
+                            <button type="submit" form="page-move-<?= $id ?>" name="move" value="up" title="<?= e(t('pages.move_up')) ?>" class="button button-ghost move-button"<?= $page['first'] ? ' disabled' : '' ?>>
+                                <span class="visually-hidden"><?= e(t('pages.move_up')) ?></span><?= icon('arrow-up') ?>
                             </button>
-                            <button type="submit" form="page-move-<?= $id ?>" name="move" value="down" class="button button-ghost move-button"<?= $page['last'] ? ' disabled' : '' ?>>
-                                <span class="visually-hidden"><?= e(t('pages.move_down')) ?></span><span aria-hidden="true">↓</span>
+                            <button type="submit" form="page-move-<?= $id ?>" name="move" value="down" title="<?= e(t('pages.move_down')) ?>" class="button button-ghost move-button"<?= $page['last'] ? ' disabled' : '' ?>>
+                                <span class="visually-hidden"><?= e(t('pages.move_down')) ?></span><?= icon('arrow-down') ?>
                             </button>
                         </td>
                         <?php /* A class, not style="--depth: n": the admin sends
@@ -74,6 +76,7 @@ use App\Support\Url;
                         <td><?= e($localeLabels[$page['locale']] ?? $page['locale']) ?></td>
                         <td class="address"><?php if ($published): ?><a href="<?= e($address) ?>"><?= e($address) ?></a><?php else: ?><?= e($address) ?><?php endif; ?></td>
                         <td><span class="status status-<?= e($page['status']) ?>"><?= e(t('pages.status.' . $page['status'])) ?></span></td>
+                        <td class="date"><?= e(\App\Support\Dates::local($page['updated'], $zone)) ?></td>
                         <td class="row-actions">
                             <form method="post" action="<?= e(Url::admin('pages', $id, 'status')) ?>">
                                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

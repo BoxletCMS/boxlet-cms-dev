@@ -38,7 +38,7 @@ return [
 
     'design.colours' => 'Colour',
     'design.seed' => 'Main colour',
-    'design.seed_hint' => 'Used for buttons, links and gradients. It has to read as text on a light background.',
+    'design.seed_hint' => 'The site’s main colour: buttons, links and the start of gradients. The rest of the palette is worked out from it. It has to be dark enough to read as text on a light background — if it is not, saving says so.',
     'design.use_secondary' => 'Use a second colour for contrast sections',
     'design.secondary' => 'Second colour',
     'design.surface_contrast' => 'Surface contrast',
@@ -167,7 +167,7 @@ return [
     // reference to a picture already in the library, so it has a label and a hint and no
     // per-option labels — there are no options to name.
     'style.image' => 'Background picture',
-    'style.image_hint' => 'Used only when the surface is Image.',
+    'style.image_hint' => 'The picture behind this section when its surface is Image. Text is laid over it with a veil of the section’s colour, so it stays readable whatever the photograph.',
     'style.divider' => 'Top edge',
     'style.divider.none' => 'None',
     'style.divider.line' => 'Line',

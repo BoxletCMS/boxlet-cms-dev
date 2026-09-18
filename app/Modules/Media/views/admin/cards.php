@@ -47,12 +47,6 @@ use App\Support\Url;
                     <?= e(t('media.dimensions', ['width' => (string) $picture['width'], 'height' => (string) $picture['height']])) ?>
                     · <?= e($picture['size']) ?>
                 </p>
-<?php /* Hidden while picking, for the same reason .media-pending is: the picker is open to
-         choose a picture, not to tidy its metadata, and a badge there is one more thing to
-         read past (D-025). */ ?>
-<?php if ($picture['suggested'] && !$picking): ?>
-                <p class="media-suggested"><?= e(t('media.alt_suggested')) ?></p>
-<?php endif; ?>
 <?php if (!$picture['complete'] && !$picking): ?>
                 <div class="media-pending">
                     <p class="hint"><?= e(t('media.incomplete')) ?></p>

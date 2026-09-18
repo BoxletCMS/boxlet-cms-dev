@@ -19,6 +19,50 @@
     }
   });
 
+  /*
+   * CHOOSING A PAGE FILLS IN THE REST (PLAN.md D-038). Anywhere a link can point at one of
+   * the site's pages — a block's link field, the header's button, a menu item — choosing the
+   * page shows its address, read-only because the page decides it, and offers its title as
+   * the text. The text is only filled when it is empty or still holds the title this script
+   * put there, so nothing the owner typed is ever overwritten.
+   *
+   * Delegated from the document, so blocks inserted after load are covered too. Without a
+   * script the server ignores the address whenever a page is chosen.
+   */
+  document.addEventListener('change', function (event) {
+    var select = event.target;
+    if (!select.matches || !select.matches('select[data-link-page]')) {
+      return;
+    }
+    var scope = select.closest('[data-link]');
+    if (!scope) {
+      return;
+    }
+    var address = scope.querySelector('[data-link-address]');
+    var label = scope.querySelector('[data-link-label]');
+    var option = select.options[select.selectedIndex];
+    var url = option ? option.getAttribute('data-url') : null;
+    var title = option ? option.getAttribute('data-title') : null;
+
+    if (address) {
+      if (url !== null) {
+        address.value = url;
+        address.readOnly = true;
+      } else if (address.readOnly) {
+        address.readOnly = false;
+        address.value = '';
+      }
+    }
+    if (label && title !== null
+      && (label.value.trim() === '' || label.value === label.getAttribute('data-filled'))) {
+      label.value = title;
+      label.setAttribute('data-filled', title);
+      // A real control fires its own input event; this one did not, and the canvas and the
+      // unsaved-changes warning listen for it.
+      label.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+
   var form = document.querySelector('form[data-page-editor]');
   if (!form) {
     return;

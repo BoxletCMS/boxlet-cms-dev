@@ -9,7 +9,7 @@ use App\Support\Url;
  * @var list<array{id: int, parent_id: int|null, depth: int, label: string, target: string,
  *                 page_id: int|null, page_title: string|null, published: bool, broken: bool,
  *                 hidden: bool, first: bool, last: bool}> $items
- * @var list<array{id: int, title: string, status: string}> $pages
+ * @var list<array{id: int, title: string, status: string, url: string}> $pages
  * @var array<string, string> $errors
  * @var string $title
  * @var string $csrf
@@ -18,6 +18,21 @@ $menuId = (int) $menu['id'];
 $error = static fn (string $key): string => isset($errors[$key])
     ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>'
     : '';
+
+/**
+ * The page chooser, shared by the add form and every item's edit form: each option carries
+ * its address and title, which admin.js fills in when it is chosen (D-038).
+ */
+$pageOptions = static function (?int $chosen) use ($pages): string {
+    $html = '<option value="">' . e(t('menus.item.page_none')) . '</option>';
+    foreach ($pages as $page) {
+        $html .= '<option value="' . e($page['id']) . '" data-url="' . e($page['url']) . '" data-title="' . e($page['title']) . '"'
+            . ($chosen === $page['id'] ? ' selected' : '') . '>'
+            . e($page['title']) . ($page['status'] === 'published' ? '' : ' — ' . e(t('menus.item.draft'))) . '</option>';
+    }
+
+    return $html;
+};
 
 /** Top-level items only: one level of submenu, so only these may hold children (D-028). */
 $parents = array_values(array_filter($items, static fn (array $item): bool => $item['parent_id'] === null));
@@ -28,17 +43,21 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
             <a class="button button-secondary" href="<?= e(Url::admin('menus')) ?>"><?= e(t('menus.title')) ?></a>
         </div>
 
-        <div class="panel stack">
-            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'rename')) ?>" class="stack">
+        <div class="panel">
+            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'rename')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
                     <label for="menu-name"><?= e(t('menus.name')) ?></label>
-                    <input type="text" id="menu-name" name="name" maxlength="190" value="<?= e($menu['name']) ?>" required>
+                    <?php /* The name and its button on one line: one field, one action. */ ?>
+                    <div class="field-inline">
+                        <input type="text" id="menu-name" name="name" maxlength="190" value="<?= e($menu['name']) ?>" required aria-describedby="menu-name-hint">
+                        <?php /* A verb, not the field's own noun. "Name" on a button says what
+                                 the thing beside it is called, never what pressing it does. */ ?>
+                        <button type="submit" class="button button-secondary"><?= e(t('menus.rename')) ?></button>
+                    </div>
+                    <span class="hint" id="menu-name-hint"><?= e(t('menus.name_edit_hint')) ?></span>
                     <?= $error('name') ?>
                 </div>
-                <?php /* A verb, not the field's own noun. "Name" on a button says what the
-                         thing beside it is called, never what pressing it does. */ ?>
-                <button type="submit" class="button button-secondary"><?= e(t('menus.rename')) ?></button>
             </form>
         </div>
 
@@ -66,11 +85,11 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
 <?php $group = $item['parent_id'] === null ? 'top' : 'child-' . $item['parent_id']; ?>
                     <tr data-menu-item="<?= e($item['id']) ?>" data-menu-group="<?= e($group) ?>">
                         <td class="page-order">
-                            <span class="drag-handle" data-menu-handle aria-hidden="true">⋮⋮</span>
-                            <button type="submit" form="menu-move-<?= e($item['id']) ?>" name="move" value="up"
-                                    class="button button-ghost"<?= $item['first'] ? ' disabled' : '' ?>><?= e(t('menus.move_up')) ?></button>
-                            <button type="submit" form="menu-move-<?= e($item['id']) ?>" name="move" value="down"
-                                    class="button button-ghost"<?= $item['last'] ? ' disabled' : '' ?>><?= e(t('menus.move_down')) ?></button>
+                            <span class="drag-handle" data-menu-handle aria-hidden="true"><?= icon('grip-vertical') ?></span>
+                            <button type="submit" form="menu-move-<?= e($item['id']) ?>" name="move" value="up" title="<?= e(t('menus.move_up')) ?>"
+                                    class="button button-ghost move-button"<?= $item['first'] ? ' disabled' : '' ?>><?= icon('arrow-up') ?><span class="visually-hidden"><?= e(t('menus.move_up')) ?></span></button>
+                            <button type="submit" form="menu-move-<?= e($item['id']) ?>" name="move" value="down" title="<?= e(t('menus.move_down')) ?>"
+                                    class="button button-ghost move-button"<?= $item['last'] ? ' disabled' : '' ?>><?= icon('arrow-down') ?><span class="visually-hidden"><?= e(t('menus.move_down')) ?></span></button>
                         </td>
                         <td class="depth-<?= e($item['depth']) ?>"><?= e($item['label']) ?></td>
                         <td>
@@ -91,10 +110,34 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
 <?php endif; ?>
 <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="row-actions">
+                            <?php /* Editing opens in place, as a <details>: no script needed, and
+                                     the row stays where the owner was looking. */ ?>
+                            <details class="row-edit">
+                                <summary class="button button-ghost"><?= icon('pencil') ?> <?= e(t('menus.item.edit')) ?></summary>
+                                <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items', $item['id'])) ?>" class="stack row-edit-form" data-link>
+                                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                                    <div class="field">
+                                        <label for="item-<?= e($item['id']) ?>-page"><?= e(t('menus.item.page')) ?></label>
+                                        <select id="item-<?= e($item['id']) ?>-page" name="page_id" data-link-page><?= $pageOptions($item['page_id']) ?></select>
+                                    </div>
+                                    <div class="field">
+                                        <label for="item-<?= e($item['id']) ?>-url"><?= e(t('menus.item.url')) ?></label>
+                                        <input type="text" id="item-<?= e($item['id']) ?>-url" name="url" maxlength="2048" data-link-address
+                                               value="<?= e($item['target']) ?>"<?= $item['page_id'] !== null ? ' readonly' : '' ?>>
+                                    </div>
+                                    <div class="field">
+                                        <label for="item-<?= e($item['id']) ?>-label"><?= e(t('menus.item.label')) ?></label>
+                                        <input type="text" id="item-<?= e($item['id']) ?>-label" name="label" maxlength="255" data-link-label value="<?= e($item['label']) ?>">
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="submit" class="button"><?= e(t('menus.item.save')) ?></button>
+                                    </div>
+                                </form>
+                            </details>
                             <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items', $item['id'], 'delete')) ?>">
                                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                                <button type="submit" class="button button-ghost button-danger"><?= e(t('menus.delete')) ?></button>
+                                <button type="submit" class="button button-ghost button-danger"><?= icon('trash-2') ?> <?= e(t('menus.delete')) ?></button>
                             </form>
                         </td>
                     </tr>
@@ -114,25 +157,21 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
 
         <div class="panel stack">
             <h2><?= e(t('menus.item.add')) ?></h2>
-            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items')) ?>" class="stack">
+            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items')) ?>" class="stack" data-link>
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
                     <label for="item-page"><?= e(t('menus.item.page')) ?></label>
-                    <select id="item-page" name="page_id">
-                        <option value=""><?= e(t('menus.item.page_none')) ?></option>
-<?php foreach ($pages as $page): ?>
-                        <option value="<?= e($page['id']) ?>"><?= e($page['title']) ?><?= $page['status'] === 'published' ? '' : ' — ' . e(t('menus.item.draft')) ?></option>
-<?php endforeach; ?>
-                    </select>
+                    <select id="item-page" name="page_id" data-link-page aria-describedby="item-page-hint"><?= $pageOptions(null) ?></select>
+                    <span class="hint" id="item-page-hint"><?= e(t('menus.item.page_hint')) ?></span>
                 </div>
                 <div class="field">
                     <label for="item-url"><?= e(t('menus.item.url')) ?></label>
-                    <input type="text" id="item-url" name="url" maxlength="2048" aria-describedby="item-url-hint">
+                    <input type="text" id="item-url" name="url" maxlength="2048" data-link-address aria-describedby="item-url-hint">
                     <span class="hint" id="item-url-hint"><?= e(t('menus.item.url_hint')) ?></span>
                 </div>
                 <div class="field">
                     <label for="item-label"><?= e(t('menus.item.label')) ?></label>
-                    <input type="text" id="item-label" name="label" maxlength="255" aria-describedby="item-label-hint">
+                    <input type="text" id="item-label" name="label" maxlength="255" data-link-label aria-describedby="item-label-hint">
                     <span class="hint" id="item-label-hint"><?= e(t('menus.item.label_hint')) ?></span>
                 </div>
                 <div class="field">

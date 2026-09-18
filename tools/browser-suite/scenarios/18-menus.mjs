@@ -12,7 +12,7 @@
  * name, which is something a person can be halfway through typing.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait, submitVia, alerts, controlsOnPanels, SLOW } from '../harness.mjs';
+import { login, clickAndWait, submitVia, alerts, controlsOnPanels, retype, SLOW } from '../harness.mjs';
 
 const rowLabels = (page) => page.$$eval('tbody[data-menu-rows] tr[data-menu-item] td:nth-child(2)',
   (cells) => cells.map((c) => c.textContent.trim()));
@@ -47,15 +47,20 @@ export default {
 
     try {
       // ---- three items: a page, an address, and one that goes nowhere --------------------
+      // SCOPED TO THE ADD FORM. Every row now carries its own edit form (D-038) with the same
+      // field names, and an unscoped input[name="url"] is the first row's, hidden inside its
+      // closed <details>.
+      const add = 'form[action$="/items"]';
       const addItem = async (fields) => {
         await page.goto(`${BASE}/admin/menus/${menuId}`, { waitUntil: 'networkidle2' });
         if (fields.page) {
-          const value = await page.$eval('select[name="page_id"] option:nth-child(2)', (o) => o.value).catch(() => '');
-          if (value !== '') { await page.select('select[name="page_id"]', value); }
+          const value = await page.$eval(`${add} select[name="page_id"] option:nth-child(2)`, (o) => o.value).catch(() => '');
+          if (value !== '') { await page.select(`${add} select[name="page_id"]`, value); }
         }
-        if (fields.url) { await page.type('input[name="url"]', fields.url, { delay: SLOW }); }
-        if (fields.label) { await page.type('input[name="label"]', fields.label, { delay: SLOW }); }
-        await submitVia(page, 'input[name="url"]', 40000);
+        if (fields.url) { await page.type(`${add} input[name="url"]`, fields.url, { delay: SLOW }); }
+        // Replaced, not appended: choosing a page fills in its title (D-038).
+        if (fields.label) { await retype(page, `${add} input[name="label"]`, fields.label); }
+        await submitVia(page, `${add} input[name="label"]`, 40000);
       };
 
       await addItem({ page: true, label: 'First' });

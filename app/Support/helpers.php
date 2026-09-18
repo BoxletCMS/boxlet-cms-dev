@@ -71,3 +71,18 @@ function icon(string $name): string
 
     return '<svg class="icon" aria-hidden="true" focusable="false"><use href="' . e($href) . '"></use></svg>';
 }
+
+/**
+ * The description under a field, when there is one (PLAN.md D-038): the escaped hint, or ''
+ * for a key lang/ does not define. Descriptions live in lang/en/hints.php as hint.* keys, so
+ * a field without one simply shows none rather than its key.
+ */
+function field_hint(string $key, string $id = ''): string
+{
+    $text = t($key);
+    if ($text === $key) {
+        return '';
+    }
+
+    return '<span class="hint"' . ($id !== '' ? ' id="' . e($id) . '"' : '') . '>' . e($text) . '</span>';
+}

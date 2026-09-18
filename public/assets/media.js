@@ -1,6 +1,6 @@
 /*
- * The picture library's two optional conveniences. Without this file the screen works:
- * the upload form submits, and the focal point is set with two number fields.
+ * The picture library's optional conveniences. Without this file the screen works: the
+ * drop zone is the file input's label and an Upload button submits what was chosen.
  *
  * 1. REFUSING AN OVERSIZED FILE BEFORE IT IS SENT. This is the only place such a file can
  *    be refused readably. nginx answers a body over client_max_body_size with its own 413
@@ -11,9 +11,7 @@
  *    The limits checked here are PHP's, which are what this server reports. nginx's is
  *    invisible from PHP and may be lower; that case still reaches the 413, which is why
  *    the server-side message exists as well.
- *
- * 2. SETTING THE FOCAL POINT BY CLICKING THE PICTURE. The click only fills in the two
- *    number fields the form posts anyway, so there is one path to the server, not two.
+
  */
 (function () {
   'use strict';
@@ -21,11 +19,6 @@
   var form = document.querySelector('[data-media-upload]');
   if (form) {
     upload(form);
-  }
-
-  var focal = document.querySelector('[data-focal-form]');
-  if (focal) {
-    focalPoint(focal);
   }
 
   function upload(form) {
@@ -87,7 +80,21 @@
       return !message;
     }
 
-    input.addEventListener('change', check);
+    // Chosen or dropped, a picture goes up at once: there is no button to press (D-038).
+    // A refused file stays on screen with its reason instead.
+    function send() {
+      if (!check() || !input.files || !input.files.length) {
+        return;
+      }
+      form.classList.add('is-uploading');
+      var text = form.querySelector('.dropzone-text');
+      if (text) {
+        text.textContent = form.getAttribute('data-uploading');
+      }
+      form.submit();
+    }
+
+    input.addEventListener('change', send);
     form.addEventListener('submit', function (event) {
       if (!check()) {
         event.preventDefault();
@@ -119,48 +126,7 @@
       // DataTransfer is the only way to write to a file input; assigning .files a plain
       // array does nothing and the form would submit empty.
       input.files = event.dataTransfer.files;
-      check();
+      send();
     });
-  }
-
-  function focalPoint(form) {
-    var frame = form.querySelector('[data-focal-frame]');
-    var marker = form.querySelector('[data-focal-marker]');
-    var x = form.querySelector('[data-focal-input-x]');
-    var y = form.querySelector('[data-focal-input-y]');
-    if (!x || !y) {
-      return;
-    }
-
-    function place() {
-      if (!marker) {
-        return;
-      }
-      marker.style.insetInlineStart = clamp(x.value) + '%';
-      marker.style.insetBlockStart = clamp(y.value) + '%';
-    }
-
-    function clamp(value) {
-      var number = parseInt(value, 10);
-      if (isNaN(number)) {
-        return 50;
-      }
-      return Math.max(0, Math.min(100, number));
-    }
-
-    if (frame) {
-      frame.addEventListener('click', function (event) {
-        var box = frame.getBoundingClientRect();
-        if (!box.width || !box.height) {
-          return;
-        }
-        x.value = Math.round(((event.clientX - box.left) / box.width) * 100);
-        y.value = Math.round(((event.clientY - box.top) / box.height) * 100);
-        place();
-      });
-    }
-    x.addEventListener('input', place);
-    y.addEventListener('input', place);
-    place();
   }
 })();

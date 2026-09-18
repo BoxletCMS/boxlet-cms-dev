@@ -14,7 +14,7 @@ use App\Support\Url;
  * @var array<string, mixed> $values
  * @var array<string, string> $errors
  * @var string|null $notice
- * @var list<array{id: int, name: string, thumb: string|null}> $pictures
+ * @var list<array{id: int, name: string, thumb: string|null, whole: string|null}> $pictures
  * @var list<string> $timezones
  * @var bool $maintenanceOn
  * @var string $title
@@ -28,13 +28,17 @@ $text = static fn (string $key): string => is_string($values[$key] ?? null) ? $v
 $picked = static fn (string $key): int => is_int($values[$key] ?? null) ? $values[$key] : 0;
 
 /** A picture chooser. Without JavaScript this select IS the control, as in the block editor. */
-$picker = static function (string $key, int $chosen) use ($pictures): string {
+$picker = static function (string $key, int $chosen, bool $whole = false) use ($pictures): string {
+    // A logo keeps its shape (D-038): its preview is the uncropped picture, fitted rather
+    // than filled, where every other picker shows the square thumbnail.
     $html = '<select id="' . e($key) . '" name="' . e($key) . '" data-media-field'
+        . ($whole ? ' data-picker-whole' : '')
         . MediaReference::pickerAttributes() . '>';
     $html .= '<option value="">' . e(t('pages.field.media_none')) . '</option>';
     foreach ($pictures as $picture) {
+        $preview = $whole ? ($picture['whole'] ?? $picture['thumb']) : $picture['thumb'];
         $html .= '<option value="' . e($picture['id']) . '"'
-            . ($picture['thumb'] === null ? '' : ' data-thumb="' . e($picture['thumb']) . '"')
+            . ($preview === null ? '' : ' data-thumb="' . e($preview) . '"')
             . ($chosen === $picture['id'] ? ' selected' : '') . '>'
             . e($picture['name']) . '</option>';
     }
@@ -74,11 +78,12 @@ $picker = static function (string $key, int $chosen) use ($pictures): string {
             </div>
 
             <div class="panel stack">
-                <h2><?= e(t('settings.pictures')) ?></h2>
+                <h2><?= e(t('settings.branding')) ?></h2>
+                <p class="hint"><?= e(t('settings.branding_intro')) ?></p>
 
                 <div class="field">
                     <label for="site_logo"><?= e(t('settings.logo')) ?></label>
-                    <?= $picker('site_logo', $picked('site_logo')) ?>
+                    <?= $picker('site_logo', $picked('site_logo'), true) ?>
                     <span class="hint"><?= e(t('settings.logo_hint')) ?></span>
                 </div>
 
@@ -95,44 +100,17 @@ $picker = static function (string $key, int $chosen) use ($pictures): string {
                 </div>
             </div>
 
-            <?php /* The message lives in this form because it is a setting; the switch below
-                     does not, because it is a file (D-021). They sit as close together as two
-                     forms can, which is what moving them off the dashboard was for.
-
-                     Its own panel, and not for decoration: taking the panel away while
-                     rearranging left this field standing on the page background with a
-                     closing tag after it that matched nothing, which the browser swallowed
-                     and every verdict in the browser scenario passed straight over. No
-                     heading, though — the label says what it is, and "Maintenance mode"
-                     twice on one screen is noise.
-
-                     The tag is described rather than written out: spelling it here made a
-                     tag counter read this sentence as the fault it describes, and sent me
-                     looking for an imbalance that was only ever in the prose. */ ?>
-            <div class="panel stack">
-                <div class="field">
-                    <label for="maintenance_message"><?= e(t('settings.maintenance_message')) ?></label>
-                    <textarea id="maintenance_message" name="maintenance_message" rows="3"
-                              aria-describedby="maintenance_message-hint"><?= e($text('maintenance_message')) ?></textarea>
-                    <span class="hint" id="maintenance_message-hint"><?= e(t('settings.maintenance_message_hint')) ?></span>
-                </div>
-            </div>
-
             <button type="submit" class="button"><?= e(t('settings.save')) ?></button>
         </form>
 
-        <?php /* THE SWITCH SITS AFTER Save settings AND UNDER ITS OWN HEADING, because the
-                 first arrangement put an unlabelled panel directly below that button and it
-                 read as part of it — someone typing a message and pressing Save would
-                 reasonably have thought the switch went with it. It cannot be inside that
-                 form: HTML has no nested forms, and this posts to /admin/maintenance, which
-                 owns the flag file (D-021). So the medium forces two forms; what it does not
-                 force is leaving the second one unexplained.
-
-                 The state is said in words before the button: "Turn on maintenance mode"
-                 alone does not tell the owner which way round the site currently is. */ ?>
+        <?php /* MAINTENANCE IN ONE PLACE (D-038): the switch, and the message visitors see
+                 while it is on. Two forms, because HTML has none nested and the switch posts
+                 to /admin/maintenance, which owns the flag file (D-021); the message is a
+                 setting and saves with its own button. The state is said in words first:
+                 "Turn on maintenance mode" alone does not say which way round the site is. */ ?>
         <div class="panel stack">
             <h2><?= e(t('maintenance.title')) ?></h2>
+            <p class="hint"><?= e(t('settings.maintenance_intro')) ?></p>
             <p class="<?= $maintenanceOn ? 'notice notice-warning' : 'hint' ?>"<?= $maintenanceOn ? ' role="status"' : '' ?>>
                 <?= e($maintenanceOn ? t('maintenance.on_now') : t('maintenance.off_now')) ?>
             </p>
@@ -143,5 +121,19 @@ $picker = static function (string $key, int $chosen) use ($pictures): string {
                 <button type="submit" class="button<?= $maintenanceOn ? '' : ' button-secondary' ?>">
                     <?= e($maintenanceOn ? t('maintenance.turn_off') : t('maintenance.turn_on')) ?>
                 </button>
+            </form>
+
+            <form method="post" action="<?= e(Url::admin('settings', 'maintenance-message')) ?>" class="stack maintenance-message">
+                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                <div class="field">
+                    <label for="maintenance_message"><?= e(t('settings.maintenance_message')) ?></label>
+                    <textarea id="maintenance_message" name="maintenance_message" rows="3"
+                              placeholder="<?= e(t('maintenance.public.body')) ?>"
+                              aria-describedby="maintenance_message-hint"><?= e($text('maintenance_message')) ?></textarea>
+                    <span class="hint" id="maintenance_message-hint"><?= e(t('settings.maintenance_message_hint')) ?></span>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button button-secondary"><?= e(t('settings.maintenance_message_save')) ?></button>
+                </div>
             </form>
         </div>

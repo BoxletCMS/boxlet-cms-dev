@@ -44,6 +44,15 @@
   border-radius: var(--ui-radius-s);
 }
 
+/* A logo's preview: the whole picture fitted into a wider box, never cropped to a square
+   (D-038). A wide logo is read as the logo, not as its middle letters. */
+.media-picker-thumb-whole {
+  inline-size: 6rem;
+  object-fit: contain;
+  padding: var(--ui-1);
+  box-sizing: border-box;
+}
+
 /* Truncated, never broken. With overflow-wrap: anywhere — which the old text-only button
    could afford — a long name in a narrow column wrapped to ONE CHARACTER PER LINE and the
    control became a tall thin ladder of letters. Measured in the section style panel. */

@@ -54,12 +54,12 @@ final class PageTree
      * dragged into another parent's run of rows, which the server then refuses — a move
      * that looks like it worked and did not.
      *
-     * @return list<array{id: int, locale: string, slug: string, title: string, status: string, parent: int, depth: int, first: bool, last: bool}>
+     * @return list<array{id: int, locale: string, slug: string, title: string, status: string, updated: string, parent: int, depth: int, first: bool, last: bool}>
      */
     public static function listing(Db $db): array
     {
         $byLocale = [];
-        $rows = $db->all('SELECT id, locale, slug, title, status, parent_id FROM pages ORDER BY locale, sort, title, id');
+        $rows = $db->all('SELECT id, locale, slug, title, status, parent_id, updated_at FROM pages ORDER BY locale, sort, title, id');
         foreach ($rows as $row) {
             $parent = $row['parent_id'] === null ? 0 : (int) $row['parent_id'];
             $byLocale[(string) $row['locale']][$parent][] = [
@@ -68,6 +68,7 @@ final class PageTree
                 'slug' => (string) $row['slug'],
                 'title' => (string) $row['title'],
                 'status' => (string) $row['status'],
+                'updated' => (string) $row['updated_at'],
                 'parent' => $parent,
             ];
         }
@@ -185,8 +186,8 @@ final class PageTree
     }
 
     /**
-     * @param array<int, list<array{id: int, locale: string, slug: string, title: string, status: string, parent: int}>> $children
-     * @param list<array{id: int, locale: string, slug: string, title: string, status: string, parent: int, depth: int, first: bool, last: bool}> $listing
+     * @param array<int, list<array{id: int, locale: string, slug: string, title: string, status: string, updated: string, parent: int}>> $children
+     * @param list<array{id: int, locale: string, slug: string, title: string, status: string, updated: string, parent: int, depth: int, first: bool, last: bool}> $listing
      */
     private static function flatten(array $children, int $parent, int $depth, array &$listing): void
     {

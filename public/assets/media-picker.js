@@ -141,7 +141,8 @@
       } else {
         picture = document.createElement('span');
       }
-      picture.className = 'media-picker-thumb';
+      picture.className = 'media-picker-thumb'
+        + (select.hasAttribute('data-picker-whole') ? ' media-picker-thumb-whole' : '');
 
       var name = document.createElement('span');
       name.className = 'media-picker-name';

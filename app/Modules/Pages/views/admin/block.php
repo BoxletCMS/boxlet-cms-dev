@@ -75,6 +75,7 @@ $pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::p
                         <option value="<?= e($layoutOption) ?>"<?= $layoutOption === $block['layout'] ? ' selected' : '' ?>><?= e(t('block.' . $block['type'] . '.layout.' . $layoutOption)) ?></option>
 <?php endforeach; ?>
                     </select>
+                    <?= field_hint('hint.layout') ?>
                 </div>
 <?php endif; ?>
                 <details class="block-style"<?= $block['style'] !== $composed ? ' open' : '' ?>>
@@ -88,6 +89,7 @@ $pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::p
                                 <option value="<?= e($styleValue) ?>"<?= ($block['style'][$styleKey] ?? '') === $styleValue ? ' selected' : '' ?>><?= e(t('style.' . $styleKey . '.' . $styleValue)) ?></option>
 <?php endforeach; ?>
                             </select>
+                            <?= field_hint('hint.style.' . $styleKey) ?>
                         </div>
 <?php endforeach; ?>
                         <?php /* D-024's sixth key. Not part of OPTIONS, because OPTIONS is

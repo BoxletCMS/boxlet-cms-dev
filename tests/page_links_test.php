@@ -163,3 +163,16 @@ testBothDrivers('the editor offers pages of the page\'s own language, drafts mar
     assertEquals([$home, $draft], array_keys($choices), 'the pages offered');
     assertTrue($choices[$home]['published'] && !$choices[$draft]['published'], 'the draft is not marked');
 });
+
+testBothDrivers('the header screen saves a page as the button\'s target', function (string $driver) {
+    $db = adminSite($driver);
+    $contact = createPage($db, 'en', 'contact', 'Contact');
+
+    assertRedirectedTo('/admin/chrome', adminPost('/admin/chrome', [
+        'header_button_page_en' => (string) $contact,
+        // What the read-only address still holds is ignored while a page is chosen.
+        'header_button_url_en' => '/stale',
+        'header_button_label_en' => 'Write to us',
+    ]));
+    assertEquals(PageLinks::to($contact), SiteChrome::header($db, 'en')['button']['url'], 'the stored target');
+});

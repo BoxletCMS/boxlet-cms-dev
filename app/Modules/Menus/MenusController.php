@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
+use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
 
 /**
@@ -114,6 +115,10 @@ final class MenusController
         }
 
         Menu::rename($db, $id, $name);
+        // The header and footer choose their menu by name, so a rename they did not follow
+        // would take the menu off the site without a word (found in the owner's review,
+        // D-038). Followed here, where the rename happens.
+        SiteChrome::followRename($db, (string) $menu['name'], $name);
         $this->flash(t('menus.renamed'));
 
         return Response::redirect(Url::admin('menus', $id));
@@ -180,6 +185,36 @@ final class MenusController
         $this->flash($refused ? t('menus.item.url_refused') : t('menus.item.added'), $refused ? 'warning' : 'success');
 
         return Response::redirect(Url::admin('menus', $id));
+    }
+
+    /**
+     * Changes an item's destination and words (D-038). Its place in the menu is changed by
+     * dragging or the arrows, never here, so an edit cannot move it by accident.
+     *
+     * @param array<string, string> $params
+     */
+    public function updateItem(Request $request, string $locale, array $params): Response
+    {
+        $db = $this->db();
+        $item = Menu::findItem($db, (int) $params['item']);
+        if ($item === null || (int) $item['menu_id'] !== (int) $params['id']) {
+            return self::missing();
+        }
+
+        $pageId = (int) $request->input('page_id');
+        $url = trim($request->input('url'));
+        if ($pageId <= 0 && $url === '') {
+            $menu = Menu::find($db, (int) $item['menu_id']);
+
+            return $menu === null ? self::missing() : $this->form($menu, ['item' => t('menus.item.needs_target')], 422);
+        }
+
+        Menu::updateItem($db, (int) $item['id'], $pageId > 0 ? $pageId : null, $url === '' ? null : $url, $request->input('label'));
+        $stored = Menu::findItem($db, (int) $item['id']);
+        $refused = $url !== '' && $pageId <= 0 && ($stored['url'] ?? null) === null;
+        $this->flash($refused ? t('menus.item.url_refused') : t('menus.item.saved'), $refused ? 'warning' : 'success');
+
+        return Response::redirect(Url::admin('menus', (int) $item['menu_id']));
     }
 
     /**

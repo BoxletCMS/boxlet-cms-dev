@@ -102,16 +102,19 @@ final class Menu
      * publish first and come back — while the front end already leaves an unpublished
      * item out, so nothing broken can reach a visitor either way.
      *
-     * @return list<array{id: int, title: string, status: string}>
+     * Each carries its address too, so choosing one can show where it leads (D-038).
+     *
+     * @return list<array{id: int, title: string, status: string, url: string}>
      */
     public static function pageChoices(Db $db, string $locale): array
     {
         $pages = [];
-        foreach ($db->all('SELECT id, title, status FROM pages WHERE locale = ? ORDER BY sort, title, id', [$locale]) as $row) {
+        foreach ($db->all('SELECT id, title, status, slug FROM pages WHERE locale = ? ORDER BY sort, title, id', [$locale]) as $row) {
             $pages[] = [
                 'id' => (int) $row['id'],
                 'title' => (string) $row['title'],
                 'status' => (string) $row['status'],
+                'url' => \App\Support\Url::page($locale, (string) $row['slug']),
             ];
         }
 

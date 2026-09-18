@@ -67,8 +67,11 @@ export default {
         report.fail('the library offers a file input', 'no input[name="files[]"] on the screen');
         return;
       }
-      await input.uploadFile(PHOTO);
-      await submitVia(page, 'input[name="files[]"]', 60000);
+      // Choosing a file uploads it at once (D-038): the navigation is the upload.
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
+        input.uploadFile(PHOTO),
+      ]);
 
       const said = await notice(page);
       await report.shot(page, '02-after-upload');
@@ -82,30 +85,9 @@ export default {
         card === null ? 'no card for the uploaded photograph'
           : `"${card.name}" ${card.facts}, thumb ${card.src} decoded at ${card.naturalWidth}x${card.naturalHeight}`);
 
-      // D-025: a filename like "atelier.jpg" tidies into a description, so a NEW upload is given a
-      // suggested alt, and the card has to say it is a guess until the owner confirms it.
-      //
-      // ONLY FOR A NEW UPLOAD. Identical bytes are recognised by their sha1 and the row is
-      // returned as it stands, so nothing is suggested — and if an earlier run confirmed
-      // that row's alt, the badge is correctly absent. This suite runs against a site that
-      // persists between runs, so that is the ordinary case, not the exception: asserting
-      // regardless would fail on a second run and look like the product breaking. The
-      // picture screen proves the same feature through a different path (11-picture), so
-      // skipping here loses no coverage.
-      if (/already in the library/i.test(said)) {
-        report.skip('a suggested alt is marked as a guess on the card (D-025)',
-          'those bytes were already in the library, so this upload suggested nothing');
-      } else {
-        const badge = await page.$$eval('.media-card', (els, wanted) => {
-          const el = els.find((c) => new RegExp(wanted).test((c.querySelector('.media-name') || {}).textContent || ''));
-          const mark = el ? el.querySelector('.media-suggested') : null;
-          return mark === null ? null : mark.textContent.replace(/\s+/g, ' ').trim();
-        }, MARKER).catch(() => null);
-
-        report.verdict('a suggested alt is marked as a guess on the card (D-025)',
-          badge !== null && badge !== '',
-          badge === null ? 'NO badge on a picture Boxlet named itself' : `the card says "${badge}"`);
-      }
+      // No "suggested" badge on the card any more (D-038).
+      const badge = await page.$$eval('.media-card .media-suggested', (els) => els.length).catch(() => 0);
+      report.verdict('cards carry no "suggested" badge (D-038)', badge === 0, `${badge} badges`);
 
       mediaId = card && card.href ? Number((card.href.match(/\/admin\/media\/(\d+)/) || [])[1]) : null;
 

@@ -22,16 +22,31 @@ testBothDrivers('the settings screen shows what is stored', function (string $dr
 testBothDrivers('saving writes the settings the installer wrote, rather than keys beside them', function (string $driver) {
     $db = adminSite($driver);
 
+    Settings::set($db, 'maintenance_message', 'Back in an hour.');
+
     assertRedirectedTo('/admin/settings', adminPost('/admin/settings', [
         'site_name' => 'Renamed',
         'timezone' => 'Europe/London',
-        'maintenance_message' => 'Back in an hour.',
     ]));
 
     // The installer's own keys, edited — not site_title or tz or anything beside them.
     assertEquals('Renamed', Settings::get($db, 'site_name'), 'site_name');
     assertEquals('Europe/London', Settings::get($db, 'timezone'), 'timezone');
-    assertEquals('Back in an hour.', Settings::get($db, 'maintenance_message'), 'maintenance_message');
+    // The message has its own form beside the maintenance switch since D-038, so the main
+    // form must leave it alone: it no longer posts it, and posting nothing is not "empty".
+    assertEquals('Back in an hour.', Settings::get($db, 'maintenance_message'), 'the main form wiped the maintenance message');
+});
+
+// The split made by the owner's review (D-038): the maintenance message is edited where the
+// maintenance switch is, and saved on its own.
+testBothDrivers('the maintenance message saves from beside the switch', function (string $driver) {
+    $db = adminSite($driver);
+
+    assertRedirectedTo('/admin/settings', adminPost('/admin/settings/maintenance-message', [
+        'maintenance_message' => 'Back this afternoon.',
+    ]));
+    assertEquals('Back this afternoon.', Settings::get($db, 'maintenance_message'), 'the message');
+    assertContains('Back this afternoon.', dispatch('/admin/settings')->body, 'the screen shows it');
 });
 
 testBothDrivers('a time zone this server does not know is refused and nothing is written', function (string $driver) {

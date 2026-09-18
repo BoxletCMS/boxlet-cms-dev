@@ -76,7 +76,7 @@ final class SiteChrome
             self::key('chrome_button_url', $locale),
         ], '');
 
-        $logo = Settings::mediaId($db, self::key('chrome_logo'));
+        $logo = self::logo($db);
 
         return [
             'logo' => $logo,
@@ -120,16 +120,42 @@ final class SiteChrome
     }
 
     /**
+     * A menu was renamed: if the chrome showed it under its old name, it shows the new one.
+     */
+    public static function followRename(Db $db, string $old, string $new): void
+    {
+        if (self::menuName($db) === $old) {
+            Settings::set($db, self::key('chrome_menu'), $new);
+        }
+    }
+
+    /**
      * What the chrome screen writes: the choices that are the same in every language.
      *
      * The menu is stored by NAME. Menus are unique per (locale, name), so one name gives
      * each translation its own menu and nothing dangles when a menu is deleted and made
      * again. An id would have had to be re-chosen, per locale, every time.
      */
-    public static function saveShared(Db $db, ?int $logo, string $menu): void
+    public static function saveShared(Db $db, string $menu): void
     {
-        Settings::set($db, self::key('chrome_logo'), $logo);
         Settings::set($db, self::key('chrome_menu'), $menu);
+    }
+
+    /**
+     * THE SITE'S ONE LOGO, set under Settings → Branding (D-038). There used to be two:
+     * site_logo, which nothing drew, and the header's chrome_logo, which the header drew.
+     * The header's is read as a fallback so a site that set it keeps its logo until the
+     * owner saves Branding, which retires it (retireHeaderLogo()).
+     */
+    public static function logo(Db $db): ?int
+    {
+        return Settings::mediaId($db, 'site_logo') ?? Settings::mediaId($db, self::key('chrome_logo'));
+    }
+
+    /** Called when Branding is saved: from then on site_logo alone is the logo. */
+    public static function retireHeaderLogo(Db $db): void
+    {
+        Settings::set($db, self::key('chrome_logo'), null);
     }
 
     /**

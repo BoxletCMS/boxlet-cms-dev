@@ -90,20 +90,17 @@ testBothDrivers('alt text is kept per locale, and an empty alt is stored as a ch
     assertContains('A harbour at dawn', mediaAdminGet('/admin/media/' . $id)->body, 'the screen does not show what was saved');
 });
 
-testBothDrivers('moving the focal point makes the cropped sizes again', function (string $driver) {
+// The focal point is no longer something the owner sets (D-038, the owner's review): its
+// screen controls and its route are gone. A stored point keeps its meaning — the centre
+// unless an older version moved it — and "Save as new" in the crop dialog still carries it.
+testBothDrivers('a picture\'s page offers no focal point, and its route is gone', function (string $driver) {
     $db = mediaAdminSite($driver);
-    adminUpload('/admin/media', [['name' => 'focal.jpg', 'tmp_name' => imageFixture(tmpPath('focal.jpg'), 600, 400)]]);
+    adminUpload('/admin/media', [['name' => 'plain.jpg', 'tmp_name' => imageFixture(tmpPath('plain.jpg'), 600, 400)]]);
     $id = (int) ($db->one('SELECT id FROM media')['id'] ?? 0);
 
-    $response = adminUpload('/admin/media/' . $id . '/focal', [], ['x' => '20', 'y' => '80']);
-    assertRedirectedTo('/admin/media/' . $id, $response);
-
-    $row = $db->one('SELECT focal_x, focal_y, variants_json FROM media WHERE id = ?', [$id]) ?? fail('no row');
-    assertEquals(20, (int) $row['focal_x'], 'focal x');
-    assertEquals(80, (int) $row['focal_y'], 'focal y');
-    // Setting the point clears the variants; they are made again in the same request, so
-    // the screen that says "saved" is not showing a picture with no crops.
-    assertTrue((string) ($row['variants_json'] ?? '') !== '', 'the crops were not made again');
+    $body = mediaAdminGet('/admin/media/' . $id)->body;
+    assertTrue(!str_contains($body, 'data-focal-form') && !str_contains($body, 'id="focal-x"'), 'the focal point form is still there');
+    assertEquals(404, adminUpload('/admin/media/' . $id . '/focal', [], ['x' => '20', 'y' => '80'])->status, 'the focal route still answers');
 });
 
 testBothDrivers('replacing a picture keeps its id, so pages using it need no editing', function (string $driver) {

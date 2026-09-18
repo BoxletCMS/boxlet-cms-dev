@@ -105,6 +105,7 @@ foreach ($errors as $key => $message) {
                         <div class="field">
                             <label for="page-title"><?= e(t('pages.field.title')) ?></label>
                             <input type="text" id="page-title" name="title" value="<?= e($titleValue) ?>" maxlength="255" required aria-describedby="page-title-error">
+                            <?= field_hint('hint.page.title') ?>
                             <span id="page-title-error"><?= $error('title') ?></span>
                         </div>
 
@@ -123,6 +124,7 @@ foreach ($errors as $key => $message) {
                                 <option value="<?= e($option['id']) ?>"<?= (int) ($page['parent_id'] ?? 0) === $option['id'] ? ' selected' : '' ?>><?= e(str_repeat('— ', $option['depth']) . $option['title']) ?></option>
 <?php endforeach; ?>
                             </select>
+                            <?= field_hint('hint.page.parent') ?>
                             <?= $error('parent') ?>
                         </div>
 
@@ -133,6 +135,7 @@ foreach ($errors as $key => $message) {
                                 <option value="<?= e($state) ?>"<?= (string) $page['status'] === $state ? ' selected' : '' ?>><?= e(t('pages.status.' . $state)) ?></option>
 <?php endforeach; ?>
                             </select>
+                            <?= field_hint('hint.page.status') ?>
                         </div>
 
                         <?php /* D-004. Empty when unset, never pre-filled with the page

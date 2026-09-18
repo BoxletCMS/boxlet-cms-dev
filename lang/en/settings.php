@@ -5,28 +5,32 @@
 
 return [
     'settings.title' => 'Site settings',
-    'settings.intro' => 'What this site is called, where it keeps time, and the pictures it shows when it has nothing more specific.',
+    'settings.intro' => 'What this site is called, the time it keeps, the pictures that stand for it, and what visitors see while it is closed for maintenance.',
 
     'settings.site_name' => 'Site name',
-    'settings.site_name_hint' => 'Shown in the admin bar. Empty: Boxlet.',
+    'settings.site_name_hint' => 'The site’s own name. It is shown at the top of this admin, and used where a page needs to name the site it belongs to. Left empty, the admin says Boxlet.',
 
     'settings.timezone' => 'Time zone',
-    'settings.timezone_hint' => 'Dates are stored in UTC and shown in this zone.',
+    'settings.timezone_hint' => 'The time zone your site lives in. Dates in the admin — when a page was last edited, when a picture was added — are shown in this zone.',
     'settings.timezone_invalid' => 'That is not a time zone this server knows. Nothing was saved.',
 
-    'settings.pictures' => 'Pictures',
+    'settings.branding' => 'Branding',
+    'settings.branding_intro' => 'The pictures that stand for your site: in its header, on a browser tab, and when someone shares a link to it.',
     'settings.logo' => 'Logo',
-    'settings.logo_hint' => 'Used by the header once there is one to put it in.',
+    'settings.logo_hint' => 'Shown at the top left of every page, linking to the home page. It keeps its own shape — a wide logo stays wide — and its size is chosen under Design → Header and footer. A PNG or SVG-like picture with a transparent background works best.',
     'settings.favicon' => 'Favicon',
-    'settings.favicon_hint' => 'The small icon a browser shows on the tab. A square picture works best; it is served at 200×200 and the browser sizes it down.',
+    'settings.favicon_hint' => 'The small icon a browser shows on the tab and in bookmarks, and a phone on its home screen. Use a square picture; it is shown at 200×200 pixels and smaller.',
     'settings.share_image' => 'Default sharing image',
-    'settings.share_image_hint' => 'Used when a page has none of its own.',
+    'settings.share_image_hint' => 'The picture shown when someone shares a link to your site on social media or in a chat app. A landscape picture around 1200×630 pixels works best.',
 
     // No settings.maintenance heading: it said exactly what maintenance.title in update.php
     // already says, and that one lost its last caller when the switch left the dashboard.
     // Two keys with one wording is how they drift into two different words.
-    'settings.maintenance_message' => 'What visitors are told',
-    'settings.maintenance_message_hint' => 'Empty: the standard wording.',
+    'settings.maintenance_intro' => 'Maintenance mode closes the site to visitors while you work on it: they see a short message instead of your pages, and search engines are told to come back later. You still see the whole site while logged in.',
+    'settings.maintenance_message' => 'Message for visitors while the site is closed',
+    'settings.maintenance_message_hint' => 'What visitors read instead of your site while maintenance mode is on, for example “We are updating the site and will be back this afternoon.” Leave it empty for the standard wording shown in grey.',
+    'settings.maintenance_message_save' => 'Save message',
+    'settings.maintenance_message_saved' => 'The maintenance message was saved.',
 
     'settings.save' => 'Save settings',
     'settings.saved' => 'Settings saved.',

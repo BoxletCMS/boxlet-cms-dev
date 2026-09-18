@@ -1,38 +1,84 @@
 /* The picture library and one picture. Admin tokens only (--ui-*). */
 
+/* Adding pictures and finding one, side by side (D-038): the drop zone takes the room,
+   the search the rest; one above the other on a narrow screen. */
+.media-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: var(--ui-4);
+  margin-bottom: var(--ui-6);
+}
+
 .media-upload,
 .media-search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
+  display: grid;
+  align-content: start;
   gap: var(--ui-3);
-  margin-bottom: var(--ui-5);
-  padding: var(--ui-4);
+  padding: var(--ui-5);
   background: var(--ui-panel);
   border: var(--ui-border) solid var(--ui-line);
   border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-s);
 }
 
-.media-upload {
-  border-style: dashed;
-  border-color: var(--ui-line-strong);
+.media-search .field-inline {
+  max-inline-size: none;
 }
 
-.media-upload .field,
-.media-search .field {
-  flex: 1;
-  min-width: 14rem;
+/* The drop zone: a sunken, rounded ground that says what to do, the whole of it a click
+   target. Visible at rest by its ground and its words, raised when a file is over it or
+   when the file input inside has the keyboard's focus. */
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: var(--ui-2);
+  padding: var(--ui-6) var(--ui-5);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) dashed var(--ui-control-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink-muted);
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
-/* While a file is dragged over the form. A change of ground, not only of border, so it
-   is unmistakable on a screen where the dashed border is already the resting state. */
-.media-upload.is-dropping {
+.dropzone .icon {
+  inline-size: 2rem;
+  block-size: 2rem;
+  color: var(--ui-ink-faint);
+}
+
+.dropzone-text {
+  color: var(--ui-ink);
+  font-size: var(--ui-text-lg);
+}
+
+.dropzone-browse {
+  color: var(--ui-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.dropzone-limits {
+  font-size: var(--ui-text-sm);
+}
+
+.dropzone:hover,
+.media-upload:focus-within .dropzone {
+  border-color: var(--ui-accent);
+}
+
+/* While a file is dragged over it, and while the upload is on its way. */
+.media-upload.is-dropping .dropzone,
+.media-upload.is-uploading .dropzone {
   background: var(--ui-accent-soft);
   border-color: var(--ui-accent);
 }
 
-.media-upload .field-error {
-  flex-basis: 100%;
+@media (max-width: 48rem) {
+  .media-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* The grid. auto-fill rather than auto-fit: with two pictures in the library, auto-fit
@@ -116,21 +162,6 @@
   margin: 0;
 }
 
-/* A suggestion, marked as one until the owner confirms it (D-025).
-   --ui-warning on --ui-warning-soft is the admin's existing "look at this" pair, already
-   measured against every surface by tests/contrast_test.php. A new colour here would mean
-   a new token to prove, for a badge that wants exactly what warning already says. */
-.media-suggested {
-  display: inline-block;
-  margin: 0 0 var(--ui-2);
-  padding: var(--ui-1) var(--ui-2);
-  border: var(--ui-border) solid var(--ui-warning);
-  border-radius: var(--ui-radius-m);
-  background: var(--ui-warning-soft);
-  color: var(--ui-warning);
-  font-size: var(--ui-text-xs);
-  font-weight: 550;
-}
 
 /* One picture */
 
@@ -158,47 +189,59 @@
   margin-bottom: var(--ui-5);
 }
 
-/* The focal point picker. The frame is positioned so the marker can sit on it; the
-   image fills the frame and the marker is placed in percentages, which is exactly the
-   unit the value is stored in. */
-.focal-frame {
-  position: relative;
+/* The picture itself, whole: the uncropped `full` variant. */
+.media-preview-image {
   display: block;
-  margin-bottom: var(--ui-3);
-  line-height: 0;
-  cursor: crosshair;
-}
-
-.focal-image {
   inline-size: 100%;
   block-size: auto;
   border-radius: var(--ui-radius-m);
 }
 
-/* Two rings, light over dark, so the marker is visible on any photograph. A single
-   colour disappears against half the pictures anyone will upload. */
-.focal-marker {
-  position: absolute;
-  inset-block-start: 50%;
-  inset-inline-start: 50%;
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
-  margin: -0.625rem 0 0 -0.625rem;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.75);
-  pointer-events: none;
-}
-
-.focal-fields {
+/* Crop, Replace and Delete: one row of word-and-icon buttons (D-038). Replace's form
+   opens under the row, across its whole width, when its button is pressed. */
+.media-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
-  gap: var(--ui-3);
+  align-items: flex-start;
+  gap: var(--ui-2);
+  margin-top: var(--ui-5);
+  padding-top: var(--ui-5);
+  border-top: var(--ui-border) solid var(--ui-line);
 }
 
-.focal-fields .field {
-  inline-size: 7rem;
+.media-actions form {
+  margin: 0;
+}
+
+/* The small size: three buttons share the narrow side column on one line. */
+.media-actions .button {
+  min-block-size: 2.25rem;
+  padding: var(--ui-1) var(--ui-3);
+  font-size: var(--ui-text-sm);
+}
+
+.media-replace > summary {
+  list-style: none;
+}
+
+.media-replace > summary::-webkit-details-marker {
+  display: none;
+}
+
+.media-replace[open] {
+  order: 5;
+  flex-basis: 100%;
+}
+
+.media-replace[open] > summary {
+  margin-bottom: var(--ui-3);
+}
+
+.media-replace form {
+  padding: var(--ui-4);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
 }
 
 .media-facts-list {
@@ -224,11 +267,6 @@
   font-size: var(--ui-text-sm);
 }
 
-.media-delete {
-  margin-top: var(--ui-4);
-  padding-top: var(--ui-4);
-  border-top: var(--ui-border) solid var(--ui-line);
-}
 
 .media-meta {
   display: grid;

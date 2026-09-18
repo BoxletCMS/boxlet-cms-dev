@@ -270,6 +270,30 @@ test('a control that is empty at rest has an edge you can see', function () {
     }
 });
 
+// The owner asked for softer field borders (D-038). A field is still found by its bottom
+// edge: any rule drawing a control's border in the soft line must keep the bottom in
+// --ui-control-line, which the test above holds to 3:1. Without that, "softer" would
+// quietly become the invisible field D-012 exists to prevent.
+test('a softly drawn field keeps an edge you can see', function () {
+    $tokens = adminTokens();
+    assertTrue(isset($tokens['control-soft']), '--ui-control-soft is gone; is this guard still needed?');
+
+    $found = 0;
+    foreach (adminStylesheets() as $file) {
+        foreach (cssRules($file) as [$selector, $body]) {
+            if (!preg_match('~border(?:-color)?\s*:[^;]*--ui-control-soft~', $body)) {
+                continue;
+            }
+            $found++;
+            assertTrue(
+                (bool) preg_match('~border-bottom-color\s*:\s*var\(--ui-control-line\)~', $body),
+                "{$file}: {$selector} draws a control in --ui-control-soft with no --ui-control-line edge",
+            );
+        }
+    }
+    assertTrue($found > 0, 'no rule uses --ui-control-soft: the guard is looking at nothing');
+});
+
 test('every colour in the admin comes from the admin palette', function () {
     $tokens = adminTokens();
     $allowed = ['transparent', 'inherit', 'currentcolor', 'none', 'unset'];

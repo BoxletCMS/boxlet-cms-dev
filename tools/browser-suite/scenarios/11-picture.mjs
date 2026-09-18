@@ -41,7 +41,7 @@ export default {
     }
 
     try {
-      // ---- details, and the focal point by clicking ---------------------------------------
+      // ---- details, the preview and the actions -------------------------------------------
       await page.goto(`${BASE}/admin/media/${mediaId}`, { waitUntil: 'networkidle2' });
       await report.shot(page, '01-one-picture');
 
@@ -51,45 +51,34 @@ export default {
       await controlsOnPanels(page, report, 'picture');
 
       const detail = await page.evaluate(() => {
-        const marker = document.querySelector('[data-focal-marker]');
-        const preview = document.querySelector('img.focal-image');
+        const preview = document.querySelector('img.media-preview-image');
+        const replace = document.querySelector('details.media-replace');
         return {
           facts: document.querySelectorAll('.media-facts-list dd').length,
-          hasFrame: !!document.querySelector('[data-focal-frame]'),
-          markerVisible: marker ? getComputedStyle(marker).display !== 'none' : false,
           previewDecoded: preview ? preview.naturalWidth : 0,
           locales: document.querySelectorAll('.media-meta fieldset').length,
+          focal: !!document.querySelector('[data-focal-form]'),
+          actions: Array.from(document.querySelectorAll('.media-actions .button'))
+            .filter((b) => b.offsetParent !== null).map((b) => b.textContent.replace(/\s+/g, ' ').trim()),
+          replaceOpen: replace ? replace.open : null,
         };
       });
 
       report.verdict('the picture screen shows its details and the uncropped preview',
-        detail.facts >= 4 && detail.hasFrame && detail.previewDecoded > 0,
-        `${detail.facts} facts, focal frame=${detail.hasFrame}, preview decoded at ${detail.previewDecoded}px wide`);
+        detail.facts >= 4 && detail.previewDecoded > 0,
+        `${detail.facts} facts, preview decoded at ${detail.previewDecoded}px wide`);
 
-      // A control nobody can see is a control nobody uses (CLAUDE.md).
-      report.verdict('the focal marker has a visible resting state', detail.markerVisible,
-        detail.markerVisible ? 'the marker is drawn over the picture' : 'the marker is not displayed');
+      // The owner's review (D-038): no focal point, and three actions of one word and an icon,
+      // Replace's form closed until it is asked for.
+      report.verdict('the picture screen offers Crop, Replace and Delete, and no focal point',
+        !detail.focal && detail.replaceOpen === false
+          && ['Crop', 'Replace', 'Delete'].every((word) => detail.actions.some((label) => label.startsWith(word))),
+        `actions ${JSON.stringify(detail.actions)}, focal form ${detail.focal}, replace open ${detail.replaceOpen}`);
 
-      const box = await page.$eval('[data-focal-frame]', (el) => {
-        const r = el.getBoundingClientRect();
-        return { x: r.left, y: r.top, width: r.width, height: r.height };
-      });
-      await page.mouse.click(box.x + box.width * 0.25, box.y + box.height * 0.75);
-
-      const picked = await page.evaluate(() => ({
-        x: Number(document.querySelector('[data-focal-input-x]').value),
-        y: Number(document.querySelector('[data-focal-input-y]').value),
-      }));
-      report.verdict('clicking the picture sets the focal point',
-        Math.abs(picked.x - 25) <= 3 && Math.abs(picked.y - 75) <= 3,
-        `clicked at 25%,75% and the fields read ${picked.x}%,${picked.y}%`);
-
-      await submitVia(page, '[data-focal-input-x]', 60000);
-      const savedFocal = await page.$eval('[data-focal-input-x]', (el) => Number(el.value)).catch(() => -1);
-      await report.shot(page, '02-focal-saved');
-      report.verdict('the focal point is saved and the crops made again',
-        Math.abs(savedFocal - picked.x) <= 1 && /focal point was moved/i.test(await text(page)),
-        `after saving the field reads ${savedFocal}%`);
+      await page.click('details.media-replace > summary');
+      const opened = await page.$eval('details.media-replace', (el) => el.open && !!el.querySelector('input[type="file"]').offsetParent);
+      await report.shot(page, '02-replace-open', { fullPage: false });
+      report.verdict('pressing Replace opens its form', opened, opened ? 'the file input is shown' : 'still closed');
 
       // ---- alt text per language ------------------------------------------------------------
       const altField = await page.$('.media-meta input[name^="alt_"]');
@@ -101,16 +90,14 @@ export default {
         // here because saving is what CONFIRMS a suggestion: after the save the badge is
         // correctly gone, and the same check placed lower would assert the opposite state
         // while reading exactly like this one.
-        const suggestedMark = await page.$eval('.media-meta .media-suggested',
-          (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
+        // No badge any more (D-038): the suggestion is simply there to keep or change.
+        const badge = await page.$('.media-meta .media-suggested');
         const arrivedWith = await page.$eval('.media-meta input[name^="alt_"]', (el) => el.value);
-        await report.shot(page, '03-suggested-badge', { fullPage: false });
+        await report.shot(page, '03-suggested-alt', { fullPage: false });
 
-        report.verdict('a suggested alt arrives filled in and marked as a guess (D-025)',
-          suggestedMark !== null && arrivedWith !== '',
-          suggestedMark === null
-            ? `NO badge; the field reads "${arrivedWith}"`
-            : `the field reads "${arrivedWith}", badged "${suggestedMark}"`);
+        report.verdict('a suggested alt arrives filled in, with no badge (D-025, D-038)',
+          badge === null && arrivedWith !== '',
+          `the field reads "${arrivedWith}"${badge === null ? '' : ', and a badge is still drawn'}`);
 
         const phrase = `A harbour at dawn ${Date.now().toString(36).slice(-4)}`;
         // NOT click({ clickCount: 3 }). A triple-click through this driver selects NOTHING,
@@ -130,15 +117,6 @@ export default {
         report.verdict('alt text is saved per language and comes back', readBack === phrase,
           `${detail.locales} language fieldset(s); typed "${phrase}", read back "${readBack}"`);
 
-        // The other half of D-025: saving IS confirming. The badge has to be gone now —
-        // and it would have to go even if the owner had left the suggestion word for word,
-        // which is the case tests/media_alt_test.php covers at the storage level.
-        const badgeAfterSave = await page.$('.media-meta .media-suggested');
-        report.verdict('saving confirms the suggestion and the badge goes (D-025)',
-          badgeAfterSave === null,
-          badgeAfterSave === null
-            ? 'no badge once the owner has saved'
-            : 'STILL marked as a guess after the owner saved it');
       }
     } finally {
       try {

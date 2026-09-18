@@ -78,25 +78,28 @@ export default {
       return;
     }
 
-    const addressShown = () => page.$eval(`${field} input[name$="[cta][url]"]`,
-      (input) => getComputedStyle(input).display !== 'none');
+    const address = () => page.$eval(`${field} input[name$="[cta][url]"]`,
+      (input) => ({ value: input.value, readOnly: input.readOnly, shown: getComputedStyle(input).display !== 'none' }));
 
     await page.select(`${field} select[name$="[cta][page]"]`, about.value);
     await wait(SETTLE);
-    const hiddenWithPage = !await addressShown();
+    const withPage = await address();
     const heroHrefs = await canvasHrefs(page, heroIndex);
     await page.$eval(`${field} .link-field`, (el) => el.scrollIntoView({ block: 'center' }));
     await report.shot(page, '01-button-to-a-page', { fullPage: false });
-    report.verdict('choosing a page hides the address input', hiddenWithPage,
-      hiddenWithPage ? 'hidden' : 'the address input is still shown beside a chosen page');
+    // The owner's review (D-038): the chosen page's address is shown, read-only, rather
+    // than the field disappearing.
+    report.verdict('choosing a page shows its address, read-only',
+      withPage.shown && withPage.readOnly && withPage.value === '/about',
+      JSON.stringify(withPage));
     report.verdict('the canvas draws the button with the page\'s address',
       heroHrefs.includes('/about') && !heroHrefs.some((h) => h.startsWith('page:')),
       `hrefs in the hero: ${JSON.stringify(heroHrefs)}`);
 
     await page.select(`${field} select[name$="[cta][page]"]`, '');
-    const shownAgain = await addressShown();
-    report.verdict('"another address" brings the address input back', shownAgain,
-      shownAgain ? 'shown' : 'still hidden');
+    const again = await address();
+    report.verdict('"another address" makes the address typeable again',
+      again.shown && !again.readOnly && again.value === '', JSON.stringify(again));
 
     // ---- rich text: the link panel ------------------------------------------------------
     const richIndex = await page.evaluate(() => {

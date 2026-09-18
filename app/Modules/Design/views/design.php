@@ -117,11 +117,13 @@ foreach (Typography::PAIRINGS as $name => $pairing) {
                             <input type="color" class="colour-input" id="design-secondary" name="secondary" value="<?= e($decisions['secondary'] !== '' ? $decisions['secondary'] : $colors['contrast']) ?>" aria-label="<?= e(t('design.secondary')) ?>">
                             <output class="colour-value" for="design-secondary" data-colour-for="design-secondary"><?= e($decisions['secondary'] !== '' ? $decisions['secondary'] : $colors['contrast']) ?></output>
                         </div>
+                        <?= field_hint('hint.design.secondary') ?>
                         <?= $error('secondary') ?>
                     </div>
                     <div class="field">
                         <label for="design-surface_contrast"><?= e(t('design.surface_contrast')) ?></label>
                         <?= $select('surface_contrast', $labels('surface_contrast', Tokens::SURFACE_CONTRAST)) ?>
+                        <?= field_hint('hint.design.surface_contrast') ?>
                         <?= $error('surface_contrast') ?>
                     </div>
                     <div class="field">
@@ -139,11 +141,13 @@ foreach (Typography::PAIRINGS as $name => $pairing) {
                     <div class="field">
                         <label for="design-typography"><?= e(t('design.typography')) ?></label>
                         <?= $select('typography', $typefaces) ?>
+                        <?= field_hint('hint.design.typography') ?>
                         <?= $error('typography') ?>
                     </div>
                     <div class="field">
                         <label for="design-scale"><?= e(t('design.scale')) ?></label>
                         <?= $select('scale', $labels('scale', Tokens::SCALES)) ?>
+                        <?= field_hint('hint.design.scale') ?>
                         <?= $error('scale') ?>
                     </div>
                     <p class="derived"><?= e(t('design.derived_sizes')) ?> <?= e(implode(' · ', $derived['text'])) ?></p>
@@ -154,12 +158,14 @@ foreach (Typography::PAIRINGS as $name => $pairing) {
                     <div class="field">
                         <label for="design-spacing"><?= e(t('design.spacing')) ?></label>
                         <?= $select('spacing', $labels('spacing', array_keys(Tokens::SPACING))) ?>
+                        <?= field_hint('hint.design.spacing') ?>
                         <?= $error('spacing') ?>
                     </div>
 <?php foreach (['radius' => Tokens::RADIUS, 'shadow' => Tokens::SHADOW, 'container' => array_keys(Tokens::CONTAINER)] as $key => $values): ?>
                     <div class="field">
                         <label for="design-<?= e($key) ?>"><?= e(t('design.' . $key)) ?></label>
                         <?= $select($key, $labels($key, $values)) ?>
+                        <?= field_hint('hint.design.' . $key) ?>
                         <?= $error($key) ?>
                     </div>
 <?php endforeach; ?>
@@ -178,6 +184,7 @@ foreach (Typography::PAIRINGS as $name => $pairing) {
                     <div class="field">
                         <label for="design-<?= e($key) ?>"><?= e(t('design.' . $key)) ?></label>
                         <?= $select($key, $labels($key, $values)) ?>
+                        <?= field_hint('hint.design.' . $key) ?>
 <?php if ($key === 'page_background'): ?>
                         <span class="hint"><?= e(t('design.page_background_hint')) ?></span>
 <?php endif; ?>

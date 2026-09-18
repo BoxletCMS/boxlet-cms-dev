@@ -24,7 +24,7 @@ const readChrome = (page) => page.evaluate(() => {
   const value = (name) => (document.querySelector(`[name="${name}"]`) || {}).value ?? '';
   return {
     menu: value('header_menu'),
-    logo: value('header_logo'),
+    page: value('header_button_page_en'),
     label: value('header_button_label_en'),
     url: value('header_button_url_en'),
     text: value('footer_text_en'),
@@ -48,13 +48,15 @@ export default {
       link === null ? 'no link to /admin/chrome in the admin bar' : 'the admin bar links to it');
     if (link === null) { return; }
 
+    // Inside the Design group since D-038: open it, then follow the link, as a person does.
+    await page.click('.admin-nav-group > summary');
     await clickAndWait(page, '.admin-nav a[href$="/admin/chrome"]');
 
     // ---- the screen itself ---------------------------------------------------------------
     const shape = await page.evaluate(() => ({
       panels: document.querySelectorAll('.panel').length,
       headings: Array.from(document.querySelectorAll('.panel h2')).map((h) => h.textContent.trim()),
-      logoPicker: !!document.querySelector('[name="header_logo"]'),
+      logoNote: !!document.querySelector('a[href$="/admin/settings"]:not(.admin-bar-icon)'),
       menuSelect: !!document.querySelector('[name="header_menu"]'),
       bareKeys: (document.body.textContent.match(/chrome\.[a-z_]+/g) || []).slice(0, 3),
     }));
@@ -63,9 +65,10 @@ export default {
     report.verdict('the screen groups the shared choices and then the words per language',
       shape.panels >= 2 && shape.headings.length >= 2,
       `${shape.panels} panels: ${JSON.stringify(shape.headings)}`);
-    report.verdict('the picture and menu controls are both there',
-      shape.logoPicker && shape.menuSelect,
-      `logo picker=${shape.logoPicker}, menu select=${shape.menuSelect}`);
+    // The logo moved to Settings → Branding (D-038); this screen says where it went.
+    report.verdict('the menu control is there, and the screen points to where the logo is set',
+      shape.logoNote && shape.menuSelect,
+      `link to Branding=${shape.logoNote}, menu select=${shape.menuSelect}`);
 
     // A key that does not exist renders as the key itself. That has happened twice: once on
     // the settings screen, once in an aria-label on the front end.
@@ -81,6 +84,8 @@ export default {
       // ---- saving, and reading back ------------------------------------------------------
       await retype(page, '[name="footer_text_en"]', `${MARKER} footer`);
       await retype(page, '[name="header_button_label_en"]', `${MARKER} button`);
+      // An address of its own, so the page chooser first goes back to "another address".
+      await page.select('[name="header_button_page_en"]', '');
       await retype(page, '[name="header_button_url_en"]', '/contact');
       await clickAndWait(page, 'form[action$="/admin/chrome"] button[type="submit"]', 40000);
 
@@ -131,8 +136,13 @@ export default {
       // Put every word back, whatever happened above.
       await page.goto(`${BASE}/admin/chrome`, { waitUntil: 'networkidle2' });
       await retype(page, '[name="footer_text_en"]', before.text);
+      // A page the button pointed at is put back as that page, not as its address. The
+      // label goes last: choosing a page may offer its title in place of the text.
+      await page.select('[name="header_button_page_en"]', before.page);
+      if (before.page === '') {
+        await retype(page, '[name="header_button_url_en"]', before.url);
+      }
       await retype(page, '[name="header_button_label_en"]', before.label);
-      await retype(page, '[name="header_button_url_en"]', before.url);
       await clickAndWait(page, 'form[action$="/admin/chrome"] button[type="submit"]', 40000);
 
       const restored = await readChrome(page);

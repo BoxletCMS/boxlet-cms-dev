@@ -60,8 +60,11 @@ export async function uploadPhoto(page, file) {
   await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
   const input = await page.$('input[name="files[]"]');
   if (!input) return 0;
-  await input.uploadFile(file);
-  await submitVia(page, 'input[name="files[]"]', 60000);
+  // Choosing a file uploads it at once (D-038): the navigation is the upload.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
+    input.uploadFile(file),
+  ]);
   return page.$$eval('.media-card', (els) => els.length).catch(() => 0);
 }
 

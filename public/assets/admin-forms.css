@@ -98,7 +98,8 @@
   min-block-size: 2.5rem;
   padding: var(--ui-2) var(--ui-3);
   background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-control-line);
+  border: var(--ui-border) solid var(--ui-control-soft);
+  border-bottom-color: var(--ui-control-line);
   border-radius: var(--ui-radius-m);
   color: var(--ui-ink);
   font: inherit;
@@ -213,116 +214,6 @@
   color: var(--ui-ink-muted);
 }
 
-/* Tables */
-
-/* position: relative makes the wrapper the containing block of what is absolutely placed
-   inside the table — the .visually-hidden column labels — so they scroll with it. Without
-   it they escaped the scroll box and widened the whole page on a phone: measured 704px of
-   document at a 390px viewport on the page list. */
-.table-wrap {
-  position: relative;
-  overflow-x: auto;
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-l);
-  box-shadow: var(--ui-shadow-s);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  padding: var(--ui-4) var(--ui-5);
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: var(--ui-border) solid var(--ui-line);
-}
-
-.table thead th {
-  padding-block: var(--ui-3);
-  background: var(--ui-panel-sunken);
-  color: var(--ui-ink-muted);
-  font-size: var(--ui-text-xs);
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-/* The row's own name reads as its title, not as a link in running text. */
-.table .row-title a,
-.table .page-name a {
-  color: var(--ui-ink);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.table .row-title a:hover,
-.table .page-name a:hover {
-  color: var(--ui-accent);
-  text-decoration: underline;
-}
-
-.table tbody tr:last-child th,
-.table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.table tbody tr:hover {
-  background: var(--ui-panel-sunken);
-}
-
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ui-1);
-}
-
-.row-actions form {
-  margin: 0;
-}
-
-/* Actions inside a row are the small size, so they do not set the row's height. */
-.table .button {
-  min-block-size: 2rem;
-  padding: var(--ui-1) var(--ui-3);
-  font-size: var(--ui-text-sm);
-}
-
-/* Status pills */
-
-/* A pill with a dot, so the state reads by shape as well as by colour. */
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ui-2);
-  padding: 0.125rem var(--ui-3) 0.125rem var(--ui-2);
-  border: var(--ui-border) solid transparent;
-  border-radius: 999px;
-  background: var(--ui-success-soft);
-  color: var(--ui-success);
-  font-size: var(--ui-text-xs);
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.status::before {
-  content: "";
-  inline-size: 0.4375rem;
-  block-size: 0.4375rem;
-  border-radius: 50%;
-  background: currentcolor;
-}
-
-.status-draft {
-  background: var(--ui-panel-sunken);
-  border: var(--ui-border) solid var(--ui-line-strong);
-  color: var(--ui-ink-muted);
-}
-
 /* Repeater */
 
 /* A list of items, each a small group of fields (PLAN.md O-11). These rules are here
@@ -400,8 +291,8 @@
 }
 
 /*
- * A link: a page first, an address second (PLAN.md D-034). The address input is hidden
- * while a page is chosen — the server ignores it then — and needs no script to do so.
+ * A link: a page first, an address second (PLAN.md D-034). Choosing a page fills in its
+ * address, read-only, and its title as the text (admin.js, D-038).
  */
 .link-field {
   display: grid;
@@ -414,8 +305,19 @@
   max-inline-size: none;
 }
 
-.link-field:has(select option:checked:not([value=""])) .link-address {
-  display: none;
+/* The address and the text, each named: small labels inside the one field. */
+.link-part {
+  display: grid;
+  gap: var(--ui-1);
+  font-size: var(--ui-text-sm);
+  font-weight: 550;
+  color: var(--ui-ink-muted);
+}
+
+/* An address a chosen page decides: shown, readable, and plainly not for typing into. */
+.field input[readonly] {
+  background: var(--ui-panel-sunken);
+  color: var(--ui-ink-muted);
 }
 
 /* Why a link is missing from the site: the page it points at is a draft or gone. */
@@ -428,4 +330,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: var(--ui-5) var(--ui-4);
+}
+
+/* An input and its one button on a single line (a menu's name and Rename). */
+.field-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
+  max-inline-size: 34rem;
+}
+
+.field-inline input {
+  flex: 1 1 14rem;
+  inline-size: auto;
 }

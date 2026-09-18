@@ -130,7 +130,7 @@ final class MediaReference
      * A picture whose thumbnail has not been generated yet returns null and the picker
      * shows its name alone.
      *
-     * @return list<array{id: int, name: string, thumb: string|null}>
+     * @return list<array{id: int, name: string, thumb: string|null, whole: string|null}>
      */
     public static function choices(Db $db, int $limit = 200): array
     {
@@ -140,6 +140,8 @@ final class MediaReference
                 'id' => (int) $row['id'],
                 'name' => (string) $row['filename'],
                 'thumb' => MediaVariants::url($row, 'thumb'),
+                // The whole picture, uncropped: a logo's preview must keep its shape (D-038).
+                'whole' => MediaVariants::url($row, 'full'),
             ];
         }
 

@@ -47,6 +47,7 @@ return [
     'pages.col.locale' => 'Language',
     'pages.col.address' => 'Address',
     'pages.col.status' => 'Status',
+    'pages.col.updated' => 'Last edited',
     'pages.col.actions' => 'Actions',
     'pages.status.draft' => 'Draft',
     'pages.status.published' => 'Published',
@@ -66,14 +67,14 @@ return [
     'pages.drag' => 'Drag to reorder',
     'pages.reordered' => 'The order was saved.',
     'pages.reorder_failed' => 'That order could not be saved. The page list has been reloaded.',
-    'pages.order_hint' => 'Pages are ordered within their language and their parent. Drag a row, or use Move up and Move down.',
+    'pages.order_hint' => 'Pages are ordered within their language and under their parent page. Drag a row by its handle, or use the arrows. The order is the one menus and lists of pages start from.',
     'pages.field.title' => 'Title',
     'pages.field.locale' => 'Language',
     'pages.field.template' => 'Start from a template',
     'pages.template.none' => 'Blank page',
     'pages.field.slug' => 'Address',
-    'pages.field.slug_hint_create' => 'Lowercase letters, digits and hyphens. Leave empty to generate it from the title.',
-    'pages.field.slug_hint' => 'Lowercase letters, digits and hyphens. Leave empty to make this the home page of its language.',
+    'pages.field.slug_hint_create' => 'The page’s web address after your domain: “about” gives /about. Lowercase letters, digits and hyphens. Leave it empty and it is made from the title.',
+    'pages.field.slug_hint' => 'The page’s web address after your domain: “about” gives /about. Lowercase letters, digits and hyphens. While the page is a draft it follows the title; once published it stays put, so links to it keep working. Leave it empty to make this the home page of its language.',
     'pages.field.home' => 'Make this the home page of its language',
     'pages.title_required' => 'Enter a title.',
     'pages.locale_invalid' => 'Choose a language from the list.',
@@ -110,14 +111,16 @@ return [
     'pages.field.link_url' => 'Choose a page, or type an address that starts with /, #, ?, https://, http://, mailto: or tel:, with no spaces.',
     'pages.field.link_url_missing' => 'Enter the address this link points to.',
     'pages.field.link_label' => 'Enter the text of the link.',
-    'pages.field.link_label_input' => 'Text',
+    'pages.field.link_label_input' => 'What the visitor reads, such as Read more',
     'pages.field.link_url_input' => 'Address, such as /contact or https://example.com',
     // A link points at a page first, an address second (PLAN.md D-034).
     'pages.field.link_page' => 'Page',
     'pages.field.link_address' => 'Another address…',
     'pages.field.link_page_draft' => '(draft)',
     'pages.field.link_page_gone' => 'A page that no longer exists',
-    'pages.field.link_label_page' => 'Text, or leave empty to use the page title',
+    'pages.field.link_url_part' => 'Address',
+    'pages.field.link_label_part' => 'Text',
+    'pages.field.link_hint' => 'Choose one of your pages, or “Another address…” for anything else. A chosen page fills in its address and title for you; change the text if you like. If the page’s address changes later, the link follows it.',
     'pages.field.link_gone_hint' => 'The page this link pointed at was deleted, so the site does not show the link. Choose another page or type an address.',
     'pages.field.link_draft_hint' => 'That page is a draft. The site hides the link until the page is published.',
     // The id never appears on screen now, so the refusal cannot ask for one. Measured: this
@@ -128,7 +131,7 @@ return [
     'pages.field.media_empty' => 'There are no pictures yet.',
     'pages.field.media_library' => 'Add pictures in the library',
     'pages.field.select' => 'Choose one of the options.',
-    'pages.field.richtext_hint' => 'HTML allowed: p, br, strong, b, em, i, h2, h3, ul, ol, li, blockquote, and links (a href). Everything else is removed when you save.',
+    'pages.field.richtext_hint' => 'Kept when you save: paragraphs, bold, italic, links, headings, quotes and lists. Anything else pasted in — colours, fonts, tables — is removed, so the text always wears the site’s design.',
 
     'pages.canvas' => 'The page',
     'pages.device.label' => 'Preview width',
@@ -155,12 +158,12 @@ return [
     // What the page says about itself in a search result (PLAN.md D-004). Two fields,
     // and no more: no sharing image, no robots directive, no sitemap.
     'pages.field.seo_title' => 'Title in search results',
-    'pages.field.seo_title_hint' => 'Empty: the page title is used.',
+    'pages.field.seo_title_hint' => 'The title search engines and browser tabs show. Leave it empty to use the page title; fill it in when a longer, more descriptive title helps people find the page.',
     'pages.field.seo_description' => 'Description in search results',
     // One piece of advice, not two. The first draft also explained what an empty field
     // means, and the hint came out longer than the box it sat under — the same way of
     // making a screen unreadable that D-025 names on the picture screen.
-    'pages.field.seo_description_hint' => 'A sentence or two; search results usually show about 160 characters.',
+    'pages.field.seo_description_hint' => 'The short summary search engines may show under the title. One or two sentences, about 160 characters. Leave it empty and they choose words from the page.',
 
     'pages.library' => 'Add a block',
     'pages.library_hint' => 'Each picture is the block as this site renders it.',

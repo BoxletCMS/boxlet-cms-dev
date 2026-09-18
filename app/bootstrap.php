@@ -158,7 +158,6 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/media', [MediaController::class, 'store'], $requireAdmin);
     $router->get('/admin/media/{id:\d+}', [MediaItemController::class, 'show'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}', [MediaItemController::class, 'save'], $requireAdmin);
-    $router->post('/admin/media/{id:\d+}/focal', [MediaItemController::class, 'focal'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/crop', [MediaCropController::class, 'crop'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/replace', [MediaItemController::class, 'replace'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/delete', [MediaItemController::class, 'delete'], $requireAdmin);
@@ -172,6 +171,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/menus/{id:\d+}/rename', [MenusController::class, 'rename'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/delete', [MenusController::class, 'delete'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/items', [MenusController::class, 'addItem'], $requireAdmin);
+    $router->post('/admin/menus/{id:\d+}/items/{item:\d+}', [MenusController::class, 'updateItem'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/items/{item:\d+}/delete', [MenusController::class, 'deleteItem'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/order', [MenusController::class, 'order'], $requireAdmin);
 
@@ -179,6 +179,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // maintenance message and its switch, which moved off the dashboard.
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
+    $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
 
     // The site's header and footer (D-028, D-030). Its own screen rather than another
     // section of Settings: settings are what the installer wrote and the fallback

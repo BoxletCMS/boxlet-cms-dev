@@ -36,6 +36,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-shell.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-ui.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-forms.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-tables.css')) ?>">
 <?php foreach ($styles as $style): ?>
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/' . $style)) ?>">
 <?php endforeach; ?>

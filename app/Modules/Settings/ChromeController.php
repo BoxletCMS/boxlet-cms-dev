@@ -7,7 +7,6 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
-use App\Modules\Media\MediaReference;
 use App\Modules\Menus\Menu;
 use App\Modules\Design\Composition;
 use App\Modules\Pages\PageLinks;
@@ -43,13 +42,13 @@ final class ChromeController
      * tell a posted field from a stored key. Renaming made the difference real instead of
      * teaching the guard to tolerate it.
      */
-    private const LOGO = 'header_logo';
     private const MENU = 'header_menu';
 
     /** The words the owner writes, once per enabled language; posted as <field>_<locale>. */
     private const PER_LOCALE = [
         'button_label' => 'header_button_label',
         'button_url' => 'header_button_url',
+        'button_page' => 'header_button_page',
         'text' => 'footer_text',
         'small_print' => 'footer_small_print',
     ];
@@ -72,13 +71,6 @@ final class ChromeController
     public function save(Request $request, string $locale, array $params): Response
     {
         $db = $this->db();
-
-        // An id that names no picture becomes null — the rule MediaReference sets for block
-        // content, and the one site settings follows. Nothing stops a library row being
-        // deleted after it was chosen here.
-        $known = array_column(MediaReference::choices($db), 'id');
-        $logo = (int) $request->input(self::LOGO);
-        $clearedLogo = $logo > 0 && !in_array($logo, $known, true);
 
         // A menu is chosen by name, and a name that no menu carries any more is cleared
         // rather than stored: the header would render nothing for it, and a setting that
@@ -124,29 +116,25 @@ final class ChromeController
 
         if ($errors !== []) {
             return $this->form([
-                'logo' => $logo > 0 ? $logo : null,
                 'menu' => $menu,
                 'locales' => $values,
                 'look' => $look,
             ], $errors, 422);
         }
 
-        SiteChrome::saveShared($db, $clearedLogo || $logo <= 0 ? null : $logo, $clearedMenu ? '' : $menu);
+        SiteChrome::saveShared($db, $clearedMenu ? '' : $menu);
         ChromeLook::save($db, $look);
         foreach ($values as $code => $entry) {
             SiteChrome::saveForLocale($db, $code, $entry);
         }
 
         $said = t('chrome.saved');
-        if ($clearedLogo) {
-            $said .= ' ' . t('chrome.logo_gone');
-        }
         if ($clearedMenu) {
             $said .= ' ' . t('chrome.menu_gone');
         }
         $session = $this->container->get('session');
         $session->set('flash', $said);
-        $session->set('flash_kind', $clearedLogo || $clearedMenu ? 'warning' : 'success');
+        $session->set('flash_kind', $clearedMenu ? 'warning' : 'success');
 
         return Response::redirect(Url::admin('chrome'));
     }
@@ -154,7 +142,7 @@ final class ChromeController
     /**
      * Everything the screen shows: the shared choices, and one group per enabled language.
      *
-     * @return array{logo: int|null, menu: string, locales: array<string, array<string, string>>, look: array<string, string>}
+     * @return array{menu: string, locales: array<string, array<string, string>>, look: array<string, string>}
      */
     private function stored(): array
     {
@@ -172,7 +160,6 @@ final class ChromeController
         }
 
         return [
-            'logo' => SiteChrome::header($db, $this->locales()[0] ?? 'en')['logo'],
             'menu' => SiteChrome::menuName($db),
             'locales' => $perLocale,
             'look' => ChromeLook::stored($db),
@@ -220,7 +207,7 @@ final class ChromeController
     }
 
     /**
-     * @param array{logo: int|null, menu: string, locales: array<string, array<string, string>>, look: array<string, string>} $values
+     * @param array{menu: string, locales: array<string, array<string, string>>, look: array<string, string>} $values
      * @param array<string, string> $errors
      */
     private function form(array $values, array $errors, int $status = 200): Response
@@ -230,11 +217,8 @@ final class ChromeController
         return AdminView::render($this->container, __DIR__ . '/views', 'chrome', [
             'title' => t('chrome.title'),
             'nav' => 'chrome',
-            'styles' => ['admin-media.css', 'admin-picker.css'],
-            'scripts' => ['media-picker.js'],
             'values' => $values,
             'errors' => $errors,
-            'pictures' => MediaReference::choices($db),
             'menus' => self::menuNames($db),
             'locales' => $this->container->get('locales'),
             // What "as the character has it" means right now, so each choice can say it.

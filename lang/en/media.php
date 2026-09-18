@@ -29,13 +29,17 @@ return [
     // reaches a page of ours, so this is the only place it can be explained.
     'media.too_large_named' => ':name is :size, which is more than this server accepts (:limit per picture). It was not uploaded.',
     'media.too_large_total' => 'Those pictures come to :size together, and this server accepts :limit per upload. Send them in smaller batches.',
-    'media.limits' => 'Up to :file per picture, and :request in one go.',
+    'media.limits' => 'JPEG, PNG, WebP, GIF or AVIF · up to :file each, :request at once',
 
     // The library screen.
     'media.title' => 'Media',
     'media.empty' => 'Nothing here yet. Upload a picture to start.',
     'media.upload' => 'Upload pictures',
-    'media.upload_hint' => 'Choose files, or drop them here. JPEG, PNG, WebP, GIF or AVIF.',
+    'media.upload_hint' => 'Add pictures by dragging them here, several at once, or click to choose them. Each is resized for phones and screens as it arrives, and its description for visitors who cannot see it is filled in from the picture itself or its file name.',
+    'media.drop' => 'Drag pictures here or',
+    'media.browse' => 'browse',
+    'media.uploading' => 'Uploading…',
+    'media.search_hint' => 'Finds pictures whose file name contains what you type.',
     'media.upload_submit' => 'Upload',
     'media.uploaded' => 'Uploaded :count.',
     'media.duplicate' => ':name was already in the library, so it was not stored twice.',
@@ -74,6 +78,8 @@ return [
     'media.deleted' => 'The picture was deleted.',
     // A refusal that does not say WHICH pages sends someone hunting through the site.
     'media.in_use' => 'That picture is still used on :pages. Remove it there first, then delete it.',
+    'media.replace_file' => 'The new picture',
+    'media.replace_submit' => 'Replace the picture',
     'media.replace' => 'Replace',
     'media.replace_hint' => 'Put a different picture in its place. Every page using it shows the new one, and the sizes are made again.',
     'media.replaced' => 'The picture was replaced.',
@@ -83,7 +89,7 @@ return [
     // because a confirm dialog is the last thing read and the first thing dismissed.
     'media.crop' => 'Crop',
     'media.crop_hint' => 'Choose the part of the picture to keep. The sizes are made again from what you keep.',
-    'media.crop_open' => 'Crop this picture',
+    'media.crop_open' => 'Crop',
     'media.crop_cancel' => 'Cancel',
     'media.crop_ratio' => 'Shape',
     'media.crop_ratio_free' => 'Free',
@@ -102,19 +108,9 @@ return [
     'media.crop_outside' => 'That crop falls outside the picture. Nothing was changed.',
     'media.crop_ratio_wrong' => 'That crop does not match the shape you chose. Nothing was changed.',
 
-    'media.focal' => 'Focal point',
-    'media.focal_hint' => 'Click the picture to choose what stays in frame when it is cropped.',
-    'media.focal_x' => 'Across (%)',
-    'media.focal_y' => 'Down (%)',
-    'media.focal_save' => 'Save focal point',
-    'media.focal_saved' => 'The focal point was moved, and the cropped sizes were made again.',
     'media.alt' => 'Alt text',
     'media.alt_hint' => 'What the picture shows, for someone who cannot see it. Leave it empty if the picture is decoration.',
     // A guess is marked as one until the owner looks at it. Saying "check it" rather than
-    // "suggested" alone gives them the action: the badge goes away by pressing Save, even
-    // if they change nothing (D-025).
-    'media.alt_suggested' => 'Suggested — check it',
-    'media.alt_suggested_hint' => 'Boxlet filled this in from the picture or its file name. Saving keeps it and stops the reminder, whether you change it or not.',
     'media.caption' => 'Caption',
     'media.meta_saved' => 'Saved.',
 ];

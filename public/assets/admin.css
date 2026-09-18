@@ -75,6 +75,10 @@
      saying it is there: 3:1 against every surface (D-012). Containers and badges keep
      --ui-line-strong: they are not controls. */
   --ui-control-line: #8b8579;
+  /* The top and sides of a text field: soft, at the owner's request (D-038). The field is
+     still found by its BOTTOM edge, which stays --ui-control-line, so the 3:1 rule for an
+     empty control holds (D-012); tests/contrast_test.php checks every field keeps it. */
+  --ui-control-soft: #d3cdc1;
 
   /* One accent, used for focus, links and the primary action only. A deep indigo: it
      reads as "you can press this" on paper without shouting over the site being built. */
@@ -317,10 +321,15 @@
   gap: var(--ui-3);
 }
 
-/* A sentence introducing a table or a list sits just above it, not against its edge. */
+/* A sentence introducing a table or a list sits just above it, not against its edge, and
+   a panel's gap below whatever came before it. */
 .hint + .table-wrap,
 .hint + form + .table-wrap {
   margin-top: var(--ui-3);
+}
+
+.admin-main > .panel + .hint {
+  margin-top: var(--ui-5);
 }
 
 .hint {

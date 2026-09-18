@@ -8,6 +8,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
+use App\Support\Dates;
 use App\Support\Url;
 
 /**
@@ -33,6 +34,7 @@ final class PagesController
             // and pages.js returns early when Sortable is not there.
             'scripts' => ['vendor/sortable.min.js', 'pages.js'],
             'pages' => PageTree::listing($this->db()),
+            'zone' => Dates::zone($this->db()),
             'localeLabels' => array_column($this->container->get('locales'), 'label', 'code'),
         ]);
     }

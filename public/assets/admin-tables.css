@@ -1,0 +1,163 @@
+/* The admin's tables: lists of pages, menus and items, their row actions, editing a row in
+ * place, and the status pills they carry. Admin tokens only (--ui-*), defined in admin.css.
+ * Split from admin-forms.css when that passed the size limit; loaded by the admin shell. */
+
+/* Tables */
+
+/* position: relative makes the wrapper the containing block of what is absolutely placed
+   inside the table — the .visually-hidden column labels — so they scroll with it. Without
+   it they escaped the scroll box and widened the whole page on a phone: measured 704px of
+   document at a 390px viewport on the page list. */
+.table-wrap {
+  position: relative;
+  overflow-x: auto;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--ui-4) var(--ui-5);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.table thead th {
+  padding-block: var(--ui-3);
+  background: var(--ui-panel-sunken);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The row's own name reads as its title, not as a link in running text. */
+.table .row-title a,
+.table .page-name a {
+  color: var(--ui-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.table .row-title a:hover,
+.table .page-name a:hover {
+  color: var(--ui-accent);
+  text-decoration: underline;
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover {
+  background: var(--ui-panel-sunken);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-1);
+}
+
+/* In a table the actions stay a table cell — as a flex box the cell dropped out of the
+   table and broke its row lines — and keep to one line: two words stacked in a narrow cell
+   read as two rows. An edit form opened in place still takes the width it needs. */
+.table td.row-actions {
+  display: table-cell;
+  white-space: nowrap;
+}
+
+.table td.row-actions > * {
+  display: inline-block;
+  vertical-align: middle;
+  margin-inline-end: var(--ui-1);
+}
+
+.table td.row-actions > .row-edit[open] {
+  display: block;
+  white-space: normal;
+}
+
+.row-actions form {
+  margin: 0;
+}
+
+/* Actions inside a row are the small size, so they do not set the row's height. */
+.table .button {
+  min-block-size: 2rem;
+  padding: var(--ui-1) var(--ui-3);
+  font-size: var(--ui-text-sm);
+}
+
+/* Status pills */
+
+/* A pill with a dot, so the state reads by shape as well as by colour. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-2);
+  padding: 0.125rem var(--ui-3) 0.125rem var(--ui-2);
+  border: var(--ui-border) solid transparent;
+  border-radius: 999px;
+  background: var(--ui-success-soft);
+  color: var(--ui-success);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.status::before {
+  content: "";
+  inline-size: 0.4375rem;
+  block-size: 0.4375rem;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.status-draft {
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  color: var(--ui-ink-muted);
+}
+
+/* Editing a row in place: the summary is the row's Edit button; the form opens under the
+   row's actions, on the panel's own ground. */
+.row-edit > summary {
+  list-style: none;
+}
+
+.row-edit > summary::-webkit-details-marker {
+  display: none;
+}
+
+.row-edit[open] {
+  flex-basis: 100%;
+}
+
+.row-edit-form {
+  margin-top: var(--ui-3);
+  padding: var(--ui-4);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  min-inline-size: 18rem;
+}
+
+/* A date in a row: quieter than the row's name, and never broken across two lines. */
+.table .date {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+  white-space: nowrap;
+}

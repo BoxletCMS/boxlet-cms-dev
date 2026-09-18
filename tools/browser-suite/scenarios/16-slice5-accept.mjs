@@ -43,8 +43,11 @@ export default {
     if (!already.includes(NAME)) {
       const input = await page.$('input[name="files[]"]');
       if (input === null) { report.fail('slice5: upload a 4 MB photo', 'no file input on the library'); return; }
-      await input.uploadFile(PHOTO);
-      await submitVia(page, 'input[name="files[]"]', 120000);
+      // Choosing a file uploads it at once (D-038): the navigation is the upload.
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 }),
+        input.uploadFile(PHOTO),
+      ]);
     }
 
     const card = await page.$$eval('li.media-card', (els, wanted) => {

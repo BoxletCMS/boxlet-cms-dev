@@ -42,12 +42,15 @@ final class PageLinks
      * group. Drafts are offered and marked, because a link is often written before the
      * page it points at is published, and it starts working the moment that page is.
      *
-     * @return array<int, array{title: string, depth: int, published: bool}>
+     * Each carries the address it has today, which the editor shows beside the choice
+     * (D-038); what is stored is still the reference.
+     *
+     * @return array<int, array{title: string, depth: int, published: bool, url: string}>
      */
     public static function choices(Db $db, string $locale): array
     {
         $rows = [];
-        foreach ($db->all('SELECT id, content_group_id, status FROM pages WHERE locale = ?', [$locale]) as $row) {
+        foreach ($db->all('SELECT id, content_group_id, status, slug FROM pages WHERE locale = ?', [$locale]) as $row) {
             $rows[(int) $row['id']] = $row;
         }
 
@@ -59,6 +62,7 @@ final class PageLinks
                     'title' => $option['title'],
                     'depth' => $option['depth'],
                     'published' => $row['status'] === 'published',
+                    'url' => Url::page($locale, (string) $row['slug']),
                 ];
             }
         }

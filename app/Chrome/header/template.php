@@ -19,7 +19,9 @@
 $menu = is_array($resolved['menu'] ?? null) ? $resolved['menu'] : [];
 
 $logo = is_int($content['logo'] ?? null) ? ($media[$content['logo']] ?? null) : null;
-$logoTag = \App\Modules\Media\MediaPicture::tag($logo, ['thumb', 'card'], '200px', true);
+/* `full`, the one preset that is never cropped (SPEC §5.5): a logo keeps the shape it was
+   uploaded in (D-038). thumb and card cut a wide logo down to its middle. */
+$logoTag = \App\Modules\Media\MediaPicture::tag($logo, ['full'], '20em', true);
 $button = $content['button'];
 
 /* The look (PLAN.md D-032, D-036): closed sets resolved by ChromeLook, so each is a class

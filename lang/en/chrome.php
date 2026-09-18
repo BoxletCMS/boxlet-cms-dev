@@ -15,28 +15,29 @@ return [
     'chrome.shared' => 'The same in every language',
     'chrome.words' => 'Words',
 
-    'chrome.logo' => 'Logo',
-    'chrome.logo_hint' => 'Shown in the header, linking to the home page. Without one the header shows the menu alone.',
-    'chrome.logo_gone' => 'The picture you had chosen is no longer in the library, so the logo was cleared.',
 
+    'chrome.logo_where' => 'The logo is set with the site’s other pictures, under',
+    'chrome.logo_where_link' => 'Settings → Branding.',
     'chrome.menu' => 'Menu',
-    'chrome.menu_hint' => 'Chosen by name: each language shows its own menu of that name.',
+    'chrome.menu_hint' => 'Which menu the header and footer show. Menus are built under Menus; a menu with the same name in each language gives every translation its own words.',
     'chrome.menu_none' => 'No menu',
     'chrome.no_menus' => 'There are no menus yet. Build one under Menus and it will be offered here.',
     'chrome.menu_gone' => 'The menu you had chosen no longer exists, so it was cleared.',
 
     // "Button" alone read as a toggle or a section heading on the rendered screen, with
     // "Button address" directly under it. It is the words ON the button, so it says so.
-    'chrome.button_label' => 'Button label',
-    'chrome.button_label_hint' => 'Optional. Left empty, a button to a page uses the page title; a button to an address needs a label, or none is shown.',
+    'chrome.button_label' => 'Button text',
+    'chrome.button_label_hint' => 'The words on the button, such as “Get in touch”. Choosing a page fills in its title; change it if you like. Without text no button is shown.',
     'chrome.button_url' => 'Button links to',
-    'chrome.button_url_hint' => 'A page of this site, or another address starting with /, #, ? or http, https, mailto, tel.',
+    'chrome.button_url_hint' => 'An optional button at the right of the header, for the one thing you most want visitors to do. Choose one of your pages, or “Another address…” to link anywhere else. Leave both empty for no button.',
+    'chrome.button_address' => 'Button address',
+    'chrome.button_address_hint' => 'Filled in when you choose a page. For another address, type it here: /contact, https://example.com, mailto:you@example.com or tel:+385…',
     'chrome.button_url_refused' => 'That address was not accepted, so it was not saved.',
 
     'chrome.text' => 'Footer text',
-    'chrome.text_hint' => 'A line or two under the page. Line breaks are kept.',
+    'chrome.text_hint' => 'A line or two at the foot of every page — who you are, where to find you. Line breaks are kept.',
     'chrome.small_print' => 'Small print',
-    'chrome.small_print_hint' => 'The last line: a copyright, a company number, whatever the law asks for.',
+    'chrome.small_print_hint' => 'The very last line of every page: a copyright, a company number, whatever the law asks for.',
 
     'chrome.look' => 'How they look',
     'chrome.look_intro' => 'Each choice follows the character until you pick something else. Colours come from the palette, so every combination stays readable.',

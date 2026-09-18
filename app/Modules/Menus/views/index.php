@@ -75,6 +75,7 @@ $error = static fn (string $key): string => isset($errors[$key])
                         <option value="<?= e($locale['code']) ?>"><?= e($locale['label']) ?></option>
 <?php endforeach; ?>
                     </select>
+                    <?= field_hint('hint.menus.locale') ?>
                     <?= $error('locale') ?>
                 </div>
                 <button type="submit" class="button"><?= e(t('menus.create')) ?></button>

@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\AdminView;
+use App\Support\Dates;
 use App\Support\Url;
 use Throwable;
 
@@ -46,11 +47,10 @@ final class MediaItemController
             'picture' => MediaController::card($media),
             // The uncropped variant, and only that one — see below.
             'preview' => MediaVariants::url($media, 'full'),
-            'focal' => ['x' => (int) $media['focal_x'], 'y' => (int) $media['focal_y']],
             'meta' => MediaMeta::forPicture($this->container->get('db'), $id),
             'locales' => $this->container->get('locales'),
             'usedBy' => $library->usedBy($id),
-            'added' => (string) $media['created_at'],
+            'added' => Dates::local((string) $media['created_at'], Dates::zone($this->container->get('db'))),
             'mime' => (string) $media['mime'],
         ]);
     }
@@ -80,35 +80,6 @@ final class MediaItemController
             );
         }
         $this->container->get('session')->set('flash', t('media.meta_saved'));
-
-        return Response::redirect(Url::admin('media', $id));
-    }
-
-    /**
-     * Moves the point every crop keeps in frame.
-     *
-     * THE POINT IS CHOSEN ON THE UNCROPPED PICTURE. `full` is the only variant that is
-     * not cropped (SPEC §5.5), so it is the only one where a click means what it looks
-     * like it means: on a cropped preview the edges are already gone, and a point chosen
-     * near one would land somewhere else entirely once applied to the source.
-     *
-     * Setting it clears the variants, so they are made again here — otherwise the picture
-     * would have no crops at all until someone pressed Finish, and the screen that just
-     * said "saved" would show a broken thumbnail.
-     *
-     * @param array<string, string> $params
-     */
-    public function focal(Request $request, string $locale, array $params): Response
-    {
-        $library = $this->library();
-        $id = (int) $params['id'];
-        if ($library->find($id) === null) {
-            return MediaController::missing();
-        }
-
-        $library->setFocalPoint($id, (int) $request->input('x'), (int) $request->input('y'));
-        $this->container->get('media_variants')->generate($id, MediaController::budget(microtime(true)));
-        $this->container->get('session')->set('flash', t('media.focal_saved'));
 
         return Response::redirect(Url::admin('media', $id));
     }

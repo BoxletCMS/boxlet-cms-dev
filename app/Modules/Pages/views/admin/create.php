@@ -22,6 +22,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
             <div class="field">
                 <label for="page-title"><?= e(t('pages.field.title')) ?></label>
                 <input type="text" id="page-title" name="title" value="<?= e($value('title')) ?>" maxlength="255" required>
+                <?= field_hint('hint.page.title') ?>
                 <?= $error('title') ?>
             </div>
             <div class="field">
@@ -31,6 +32,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                     <option value="<?= e($option['code']) ?>"<?= $value('locale') === $option['code'] ? ' selected' : '' ?>><?= e($option['label']) ?></option>
 <?php endforeach; ?>
                 </select>
+                <?= field_hint('hint.page.locale') ?>
                 <?= $error('locale') ?>
             </div>
             <div class="field">
@@ -42,6 +44,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                     <option value="<?= e($template['id']) ?>"<?= $value('template') === (string) $template['id'] ? ' selected' : '' ?>><?= e($template['builtin'] ? t('template.' . $template['name']) : $template['name']) ?>: <?= e($blockNames) ?></option>
 <?php endforeach; ?>
                 </select>
+                <?= field_hint('hint.page.template') ?>
                 <?= $error('template') ?>
             </div>
             <div class="field">

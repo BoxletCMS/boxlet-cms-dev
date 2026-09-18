@@ -49,6 +49,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                 <div class="field">
                     <label for="page-title"><?= e(t('pages.field.title')) ?></label>
                     <input type="text" id="page-title" name="title" value="<?= e($titleValue) ?>" maxlength="255" required>
+                    <?= field_hint('hint.page.title') ?>
                     <?= $error('title') ?>
                 </div>
                 <div class="field">
@@ -71,6 +72,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                         <option value="<?= e($option['id']) ?>"<?= (int) ($page['parent_id'] ?? 0) === $option['id'] ? ' selected' : '' ?>><?= e(str_repeat('— ', $option['depth']) . $option['title']) ?></option>
 <?php endforeach; ?>
                     </select>
+                    <?= field_hint('hint.page.parent') ?>
                     <?= $error('parent') ?>
                 </div>
                 <?php /* D-004. Left EMPTY when unset rather than pre-filled with the page

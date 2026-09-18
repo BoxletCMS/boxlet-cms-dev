@@ -45,10 +45,11 @@
    two properties set there never applied, because .block weighs exactly as much and this
    file is linked second. A rule that loses silently is worse than no rule, and it cost two
    slices — the header's height fell anyway, for an unrelated reason, which made the first
-   one look like it had worked (PLAN.md D-028, D-030, D-031). */
+   one look like it had worked (PLAN.md D-028, D-030, D-031). Zero, because the chrome's
+   height is the owner's density choice (D-032), drawn by site.css on the bar itself. */
 .block-header,
 .block-footer {
-  --section-rhythm: var(--space-m);
+  --section-rhythm: 0;
 }
 
 /* The header runs to the content's measure or edge to edge: its own decision, not the

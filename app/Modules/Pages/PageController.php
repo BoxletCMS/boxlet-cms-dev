@@ -8,6 +8,7 @@ use App\Core\Response;
 use App\Core\View;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Menus\MenuTree;
+use App\Modules\Settings\ChromeLook;
 use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
 
@@ -69,7 +70,7 @@ final class PageController
             'blocksHtml' => $html,
             // The one address this page is indexed under, whatever variant reached it.
             'canonical' => Url::canonical($locale, $slug),
-        ]);
+        ], 200, Url::page($locale, $slug));
     }
 
     /**
@@ -88,7 +89,7 @@ final class PageController
     /**
      * @param array<string, mixed> $data
      */
-    private function render(string $template, string $locale, array $data, int $status = 200): Response
+    private function render(string $template, string $locale, array $data, int $status = 200, string $current = ''): Response
     {
         // The error pages have no description of their own, and neither has anything
         // else that renders through this layout: defaulting it here is what keeps the
@@ -107,7 +108,7 @@ final class PageController
             'icon' => SiteChrome::icon($db),
             'shareImage' => null,
             'locales' => $locales,
-        ] + $this->chrome($locale, $locales);
+        ] + $this->chrome($locale, $locales, $current);
 
         return Response::html((new View(__DIR__ . '/views'))->render($template, $locale, $data), $status);
     }
@@ -130,15 +131,32 @@ final class PageController
      * term: it owns the language switcher, so a site with two locales and no footer content
      * still needs its footer, or the switcher would vanish with it.
      *
+     * THE CURRENT PAGE IS MARKED HERE, on the resolved menu, rather than handed to the
+     * templates as an address to compare: which entry is this page is a resolution like any
+     * other, and the templates stay free of URL arithmetic (PLAN.md D-032). A parent learns
+     * that the page is one of its children, so a visitor can see where they are.
+     *
      * @param array<int, array<string, mixed>> $locales
+     * @param string $current the address of the page being drawn; '' on an error page
      * @return array{headerHtml: string, footerHtml: string}
      */
-    private function chrome(string $locale, array $locales): array
+    private function chrome(string $locale, array $locales, string $current = ''): array
     {
         $db = $this->container->get('db');
         $registry = $this->container->get('chrome');
 
-        $menu = MenuTree::forVisitors($db, $locale, SiteChrome::menuName($db));
+        $menu = [];
+        foreach (MenuTree::forVisitors($db, $locale, SiteChrome::menuName($db)) as $item) {
+            $children = [];
+            $below = false;
+            foreach ($item['children'] as $child) {
+                $children[] = $child + ['current' => $current !== '' && $child['url'] === $current];
+                $below = $below || ($current !== '' && $child['url'] === $current);
+            }
+            $menu[] = ['children' => $children, 'current' => $current !== '' && $item['url'] === $current, 'current_parent' => $below] + $item;
+        }
+        // Colour, arrangement and size: the owner's choices, the character's for the rest.
+        $look = ChromeLook::resolve($db);
         // The header's button can point at a page like any link field (D-034); followed
         // here, before the check below asks whether it leads anywhere.
         $header = SiteChrome::header($db, $locale);
@@ -160,10 +178,10 @@ final class PageController
 
         return [
             'headerHtml' => $hasHeader
-                ? $registry->render('header', $header, [], '', $media, true, 'header', ['menu' => $menu], $locale, $locales)
+                ? $registry->render('header', $header, ['surface' => $look['header_surface']], $look['header_layout'], $media, true, 'header', ['menu' => $menu, 'look' => $look], $locale, $locales)
                 : '',
             'footerHtml' => $hasFooter
-                ? $registry->render('footer', $footer, [], '', [], false, 'footer', ['menu' => $menu], $locale, $locales)
+                ? $registry->render('footer', $footer, ['surface' => $look['footer_surface']], $look['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $look], $locale, $locales)
                 : '',
         ];
     }

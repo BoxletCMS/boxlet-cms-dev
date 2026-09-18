@@ -150,6 +150,31 @@ final class SiteChrome
     }
 
     /**
+     * The chrome's look as stored, one raw value per choice of ChromeLook::OPTIONS, which
+     * validates it. Read here because this class is where chrome keys are spelled.
+     *
+     * @param list<string> $names
+     * @return array<string, mixed> name => stored value, '' when nothing is stored
+     */
+    public static function look(Db $db, array $names): array
+    {
+        $keys = array_map(static fn (string $name): string => self::key('chrome_look_' . $name), $names);
+        $values = Settings::many($db, $keys, '');
+
+        return array_combine($names, array_map(static fn (string $key): mixed => $values[$key] ?? '', $keys));
+    }
+
+    /**
+     * @param array<string, string> $look name => value, already checked by ChromeLook
+     */
+    public static function saveLook(Db $db, array $look): void
+    {
+        foreach ($look as $name => $value) {
+            Settings::set($db, self::key('chrome_look_' . $name), $value);
+        }
+    }
+
+    /**
      * THE ONLY PLACE A CHROME SETTINGS KEY IS COMPOSED.
      *
      * `settings` is one JSON value per key with no locale column, and adding one would be

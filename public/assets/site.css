@@ -331,7 +331,197 @@ code {
   font-size: var(--text-sm);
 }
 
+/* THE CHROME'S LOOK (PLAN.md D-032, D-036). Every value is a closed-set class drawn from
+   the tokens: density, a rule under the header, logo size, and the header's and footer's
+   arrangements. Surfaces are the sections' own (sections.css), so contrast is the
+   palette's guarantee here as everywhere. */
+
+.site-header.density-compact { padding-block: var(--space-s); }
+.site-header.density-normal { padding-block: var(--space-m); }
+.site-header.density-roomy { padding-block: var(--space-l); }
+.site-footer.density-compact { padding-block: var(--space-m); }
+.site-footer.density-normal { padding-block: var(--space-l); }
+.site-footer.density-roomy { padding-block: var(--space-xl); }
+
+.block-header:has(.has-rule) {
+  border-block-end: var(--border-width) solid var(--section-border);
+}
+
+.logo-small .site-logo img { block-size: 2em; }
+.logo-medium .site-logo img { block-size: 2.75em; }
+.logo-large .site-logo img { block-size: 3.75em; }
+
+/* The page being drawn, and the parent it sits under: marked by a rule under the words,
+   so it reads the same on every surface without a colour of its own. */
+.site-nav a[aria-current="page"],
+.site-nav .is-current-parent > a,
+.site-footer-nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.35em;
+}
+
+/* Centred: the name above, the navigation on one axis under it. */
+.layout-centred .site-header {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.layout-centred .site-nav ul {
+  justify-content: center;
+}
+
+/* Sticky: always within reach, over whatever scrolls beneath on its own surface. */
+.block-header.layout-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Transparent: laid over the first section, taking that section's colours rather than
+   painting its own — which is what makes it readable over any surface a hero can have.
+   The first section gains the header's room above its own rhythm, so nothing sits under
+   the bar. */
+.page {
+  position: relative;
+}
+
+.block-header.layout-transparent {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 10;
+  background: transparent;
+}
+
+.page:has(> .block-header.layout-transparent) > main > .block:first-child {
+  padding-block-start: calc(var(--section-rhythm) + var(--space-3xl));
+}
+
+.page:has(> main > .block:first-child:is(.surface-contrast, .surface-image)) > .block-header.layout-transparent {
+  --section-text: var(--color-on-contrast);
+  --section-muted: var(--color-muted-on-contrast);
+  --section-link: var(--color-on-contrast);
+  --section-border: var(--color-muted-on-contrast);
+  --section-button-bg: var(--color-on-contrast);
+  --section-button-text: var(--color-contrast);
+}
+
+.page:has(> main > .block:first-child.surface-gradient) > .block-header.layout-transparent {
+  --section-text: var(--color-on-gradient);
+  --section-muted: var(--color-on-gradient);
+  --section-link: var(--color-on-gradient);
+  --section-border: var(--color-on-gradient);
+  --section-button-bg: var(--color-on-gradient);
+  --section-button-text: var(--color-gradient-start);
+}
+
+.page:has(> main > .block:first-child.surface-tinted) > .block-header.layout-transparent {
+  --section-card: var(--color-background);
+}
+
+/* Footer in columns: the owner's words beside the navigation, the small print under both. */
+.layout-columns .site-footer {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  column-gap: var(--space-xl);
+  align-items: start;
+}
+
+.layout-columns .site-footer-nav ul {
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.layout-columns .site-footer .locale-switcher,
+.layout-columns .site-small-print {
+  grid-column: 1 / -1;
+}
+
+/* Submenus. Without a script they are listed under their parent, smaller and indented, so
+   nothing is out of reach. With one (site-nav.js), each opens from its own button and
+   drops below its parent on its own surface. */
+.site-nav li {
+  position: relative;
+}
+
+.site-nav-children {
+  display: block;
+  padding-inline-start: var(--space-m);
+  font-size: var(--text-sm);
+}
+
+.site-nav-children li + li {
+  margin-block-start: var(--space-xs);
+}
+
+.nav-ready .site-nav-children {
+  display: none;
+}
+
+.nav-ready .site-nav li.is-open > .site-nav-children {
+  display: block;
+  position: absolute;
+  top: 100%;
+  inset-inline-start: 0;
+  z-index: 11;
+  min-inline-size: 12em;
+  margin-block-start: var(--space-xs);
+  padding: var(--space-s) var(--space-m);
+  background: var(--section-bg);
+  border: var(--border-width) solid var(--section-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-m);
+}
+
+/* The controls a script adds: legible at rest, in the section's own ink (CLAUDE.md). */
+.site-nav-more,
+.site-nav-toggle {
+  padding: var(--space-xs) var(--space-s);
+  background: transparent;
+  border: var(--border-width) solid var(--section-border);
+  border-radius: var(--radius-s);
+  color: var(--section-text);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.site-nav-more {
+  margin-inline-start: 0.2em;
+  padding: 0.1em 0.2em;
+  border-color: transparent;
+  font-size: var(--text-sm);
+}
+
+/* The chevron turns when its submenu is open, so the state is visible, not only spoken. */
+.site-nav-more[aria-expanded="true"] span {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
+.site-header-action .button {
+  white-space: nowrap;
+}
+
+.site-nav > ul > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.site-nav-toggle {
+  display: none;
+}
+
 @media (max-width: 40rem) {
+  /* A boxed page keeps a sliver of its frame on a phone rather than the whole of it:
+     measured, Soft's frame took 144 of a 390-pixel screen and left the header 150 to
+     draw in. min() leaves an unboxed page (frame 0) exactly as it was. */
+  body {
+    padding: min(var(--page-frame, 0rem), 3vw);
+  }
+
   .layout-split .hero,
   .image-text {
     grid-template-columns: 1fr;
@@ -341,6 +531,57 @@ code {
      not share a line at this width without one of them being squeezed to nothing. */
   .site-header {
     justify-content: flex-start;
+  }
+
+  /* The real mobile menu (D-032): one button, and the navigation folded under it until it
+     is opened. Only once site-nav.js has run — without it, the navigation wraps openly. */
+  .nav-ready .site-nav-toggle {
+    display: inline-block;
+    margin-inline-start: auto;
+    padding: var(--space-xs) var(--space-m);
+    border-radius: var(--radius-button);
+  }
+
+  /* One shape on a phone, whatever the arrangement on a wide screen: the name and the
+     Menu button on one line, and the navigation and the call to action folded under it.
+     A centred column there scattered three controls down the screen. */
+  .layout-centred .nav-ready.site-header,
+  .nav-ready.site-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    text-align: start;
+  }
+
+  .nav-ready .site-nav,
+  .nav-ready .site-header-action {
+    display: none;
+    flex-basis: 100%;
+  }
+
+  .nav-ready.nav-open .site-nav,
+  .nav-ready.nav-open .site-header-action {
+    display: block;
+  }
+
+  .layout-centred .nav-ready .site-nav ul {
+    justify-content: flex-start;
+  }
+
+  .nav-ready .site-nav ul {
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  .nav-ready .site-nav li.is-open > .site-nav-children {
+    position: static;
+    margin-block-start: var(--space-xs);
+    box-shadow: none;
+  }
+
+  .layout-columns .site-footer {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .layout-image-right .image-text-media {

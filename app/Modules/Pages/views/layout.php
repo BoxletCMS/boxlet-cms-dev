@@ -46,6 +46,11 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
+<?php /* The one script a visitor's page loads, and only when the header has a menu for it
+         to fold: the mobile menu and submenu buttons (D-036). Without it nothing breaks. */ ?>
+<?php if (str_contains($headerHtml, 'data-site-nav-toggle')): ?>
+    <script src="<?= e(Url::versioned('assets/site-nav.js')) ?>" defer></script>
+<?php endif; ?>
 </head>
 <body>
 <?php /* THE SHEET (PLAN.md D-031). A boxed page needs something to be a page: <body> holds

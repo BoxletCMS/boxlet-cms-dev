@@ -9,6 +9,7 @@ use App\Core\Response;
 use App\Modules\Admin\AdminView;
 use App\Modules\Media\MediaReference;
 use App\Modules\Menus\Menu;
+use App\Modules\Design\Composition;
 use App\Modules\Pages\PageLinks;
 use App\Support\SafeUrl;
 use App\Support\Url;
@@ -114,15 +115,24 @@ final class ChromeController
             $values[$code] = $entry;
         }
 
+        // The look (D-032, D-036): each a closed set, '' for "as the character has it".
+        // Posted as look_<choice>, never chrome_*: a form field is not a settings key.
+        $look = [];
+        foreach (array_keys(ChromeLook::OPTIONS) as $choice) {
+            $look[$choice] = trim($request->input('look_' . $choice));
+        }
+
         if ($errors !== []) {
             return $this->form([
                 'logo' => $logo > 0 ? $logo : null,
                 'menu' => $menu,
                 'locales' => $values,
+                'look' => $look,
             ], $errors, 422);
         }
 
         SiteChrome::saveShared($db, $clearedLogo || $logo <= 0 ? null : $logo, $clearedMenu ? '' : $menu);
+        ChromeLook::save($db, $look);
         foreach ($values as $code => $entry) {
             SiteChrome::saveForLocale($db, $code, $entry);
         }
@@ -144,7 +154,7 @@ final class ChromeController
     /**
      * Everything the screen shows: the shared choices, and one group per enabled language.
      *
-     * @return array{logo: int|null, menu: string, locales: array<string, array<string, string>>}
+     * @return array{logo: int|null, menu: string, locales: array<string, array<string, string>>, look: array<string, string>}
      */
     private function stored(): array
     {
@@ -165,6 +175,7 @@ final class ChromeController
             'logo' => SiteChrome::header($db, $this->locales()[0] ?? 'en')['logo'],
             'menu' => SiteChrome::menuName($db),
             'locales' => $perLocale,
+            'look' => ChromeLook::stored($db),
         ];
     }
 
@@ -209,7 +220,7 @@ final class ChromeController
     }
 
     /**
-     * @param array{logo: int|null, menu: string, locales: array<string, array<string, string>>} $values
+     * @param array{logo: int|null, menu: string, locales: array<string, array<string, string>>, look: array<string, string>} $values
      * @param array<string, string> $errors
      */
     private function form(array $values, array $errors, int $status = 200): Response
@@ -226,6 +237,8 @@ final class ChromeController
             'pictures' => MediaReference::choices($db),
             'menus' => self::menuNames($db),
             'locales' => $this->container->get('locales'),
+            // What "as the character has it" means right now, so each choice can say it.
+            'characterLook' => ChromeLook::CHARACTER[Composition::active($db)] ?? ChromeLook::CHARACTER['minimal'],
             // What the button may point at, per language: a Croatian header links to
             // Croatian pages (D-034).
             'linkPages' => array_combine($this->locales(), array_map(

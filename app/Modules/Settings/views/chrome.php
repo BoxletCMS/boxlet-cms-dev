@@ -14,10 +14,11 @@ use App\Support\Url;
  * the order the questions arrive in: which picture and which menu is one decision for the
  * site, and then the same four fields are answered once per language.
  *
- * @var array{logo: int|null, menu: string, locales: array<string, array<string, string>>} $values
+ * @var array{logo: int|null, menu: string, locales: array<string, array<string, string>>, look: array<string, string>} $values
  * @var array<string, string> $errors
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures
  * @var list<string> $menus
+ * @var array<string, string> $characterLook what the active character gives each look choice
  * @var array<string, array<int, array{title: string, depth: int, published: bool}>> $linkPages
  *      per locale, page group => what the button may point at (PLAN.md D-034)
  * @var array<int, array<string, mixed>> $locales
@@ -82,6 +83,27 @@ $picker = static function (string $key, ?int $chosen) use ($pictures): string {
                     <span class="hint" id="header_menu-hint">
                         <?= e($menus === [] ? t('chrome.no_menus') : t('chrome.menu_hint')) ?>
                     </span>
+                </div>
+            </div>
+
+            <?php /* How the chrome looks (D-032, D-036). Every choice starts "as the
+                     character has it", which names what that currently is, so leaving it
+                     alone is a choice the owner can read rather than a blank. */ ?>
+            <div class="panel stack">
+                <h2><?= e(t('chrome.look')) ?></h2>
+                <p class="hint"><?= e(t('chrome.look_intro')) ?></p>
+                <div class="look-grid">
+<?php foreach (\App\Modules\Settings\ChromeLook::OPTIONS as $choice => $options): ?>
+                    <div class="field">
+                        <label for="look_<?= e($choice) ?>"><?= e(t('chrome.look.' . $choice)) ?></label>
+                        <select id="look_<?= e($choice) ?>" name="look_<?= e($choice) ?>">
+                            <option value=""><?= e(t('chrome.look.follow', ['value' => t('chrome.look.' . $choice . '.' . ($characterLook[$choice] ?? ''))])) ?></option>
+<?php foreach ($options as $option): ?>
+                            <option value="<?= e($option) ?>"<?= ($values['look'][$choice] ?? '') === $option ? ' selected' : '' ?>><?= e(t('chrome.look.' . $choice . '.' . $option)) ?></option>
+<?php endforeach; ?>
+                        </select>
+                    </div>
+<?php endforeach; ?>
                 </div>
             </div>
 

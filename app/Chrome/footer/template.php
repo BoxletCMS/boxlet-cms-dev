@@ -17,13 +17,15 @@
  * @var string $layout simple or columns
  * @var array<int, array<string, mixed>> $media
  * @var bool $eager
- * @var array<string, mixed> $resolved values the renderer resolved; today: the menu
+ * @var array<string, mixed> $resolved values the renderer resolved: the menu, each entry
+ *                                   marked when it is the page being drawn, and the look
  * @var string $locale the locale being rendered
  * @var array<int, array<string, mixed>> $locales enabled locales
  */
 $menu = is_array($resolved['menu'] ?? null) ? $resolved['menu'] : [];
+$look = is_array($resolved['look'] ?? null) ? $resolved['look'] : [];
 ?>
-<div class="site-footer">
+<div class="site-footer density-<?= e($look['density'] ?? 'normal') ?>">
 <?php if ($content['text'] !== ''): ?>
     <div class="site-footer-text"><?= nl2br(e($content['text'])) ?></div>
 <?php endif; ?>
@@ -32,7 +34,7 @@ $menu = is_array($resolved['menu'] ?? null) ? $resolved['menu'] : [];
     <nav class="site-footer-nav">
         <ul>
 <?php foreach ($menu as $item): ?>
-            <li><a href="<?= e($item['url']) ?>"><?= e($item['label']) ?></a></li>
+            <li><a href="<?= e($item['url']) ?>"<?= !empty($item['current']) ? ' aria-current="page"' : '' ?>><?= e($item['label']) ?></a></li>
 <?php endforeach; ?>
         </ul>
     </nav>

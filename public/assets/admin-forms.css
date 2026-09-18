@@ -422,3 +422,10 @@
 .hint-warning {
   color: var(--ui-warning);
 }
+
+/* A panel of short choices, two to a row where there is room (the chrome's look). */
+.look-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--ui-5) var(--ui-4);
+}

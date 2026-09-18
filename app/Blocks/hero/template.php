@@ -1,7 +1,7 @@
 <?php
 /**
  * Hero block. Only class names here; every colour, size and font comes from CSS custom
- * properties in public/assets/site.css (SPEC §5.3).
+ * properties in public/assets/blocks.css (SPEC §5.3).
  *
  * @var array<string, mixed> $content
  * @var array<string, mixed> $style

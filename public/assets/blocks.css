@@ -1,0 +1,248 @@
+/* The page blocks' own styles: hero, text, image and text, columns. Split out of site.css,
+   which keeps the page and what every block shares, when the two together passed the size
+   limit. The same rule: only custom properties from tokens.css and the --section-*
+   properties each section sets in sections.css. No literal colours, pixel values, fonts or
+   shadows. Linked straight after site.css, the order these rules had in it. */
+
+/* Hero */
+
+.hero {
+  display: grid;
+  gap: var(--space-xl);
+  align-items: center;
+}
+
+/* Column placement and text alignment are two different things. The section's column is
+   centred on the page by .container; a left-ranged hero then fills that column, so its
+   first line sits on the same spine as every other section. Only a centred hero takes a
+   narrower measure of its own, centred within the column (see .layout-center below). */
+.hero-text {
+  display: grid;
+  gap: var(--space-m);
+}
+
+.hero-heading {
+  margin: 0;
+  font-size: var(--text-4xl);
+  /* A word longer than a phone is wide — "Northwind" at Bold's largest size — is broken
+     with a hyphen where the language allows and anywhere at all where it does not, rather
+     than pushing the page sideways. Measured on the demo's About page at 390 across.
+     anywhere, not break-word: only anywhere lets the word stop sizing the grid column the
+     heading sits in, and with break-word the column grew to 448 and took the page along. */
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+.hero-subheading {
+  margin: 0;
+  color: var(--section-muted);
+  font-size: var(--text-lg);
+}
+
+.hero-action {
+  margin: var(--space-s) 0 0;
+}
+
+.layout-center .hero,
+.layout-center .hero-text {
+  justify-items: center;
+  text-align: center;
+}
+
+/* A centred hero reads better on a shorter line than the full column gives it. */
+.layout-center .hero-text {
+  max-width: var(--container-narrow);
+  margin-inline: auto;
+}
+
+
+.layout-split .hero {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* A split hero always has a media element now, whether or not a picture has been chosen,
+   so the rules that re-flowed one WITHOUT it have gone rather than staying as selectors
+   that can no longer match. What they did — heading in one column, subheading and button
+   in the other — avoided an empty half but still left the lower part of the section dead. */
+
+/* Text and image-text */
+
+.text-heading,
+.image-text-heading {
+  margin: 0 0 var(--space-m);
+  font-size: var(--text-2xl);
+}
+
+.layout-columns .richtext {
+  columns: 2;
+  column-gap: var(--space-xl);
+}
+
+.image-text {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+  align-items: center;
+}
+
+.layout-image-right .image-text-media {
+  order: 2;
+}
+
+.fit-contain .media-placeholder {
+  aspect-ratio: 16 / 9;
+}
+
+/* A real picture is held to its column exactly as the placeholder is. Without this an
+   <img> renders at its intrinsic size — the wide variant is twelve hundred across — and in
+   a 1fr 1fr grid it pushes the text track off the page entirely. That could not happen
+   while every block drew a CSS-sized placeholder <div>, which is why it appeared only when
+   pictures did. (The size is spelt out because blocks_test forbids a px literal anywhere
+   in this file, comments included.)
+
+   The fit- classes name what the owner chose: cover fills the area and crops, contain
+   shows the whole picture. They match the placeholder's aspect ratios so a section does
+   not change height when a picture is chosen for it. */
+.image-text-media img,
+.hero-media img {
+  display: block;
+  max-inline-size: 100%;
+  inline-size: 100%;
+  block-size: auto;
+  border-radius: var(--radius-l);
+}
+
+.fit-cover .image-text-media img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.fit-contain .image-text-media img {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+
+/* Columns (PLAN.md D-008)
+
+   The layout is how many columns share a row; more items start a new row on the same
+   grid. minmax(0, 1fr) rather than 1fr, so a long word or a picture's intrinsic width
+   cannot push one column wider than the others. */
+
+.columns-head {
+  margin-block-end: var(--space-l);
+}
+
+.columns-heading {
+  margin: 0;
+  font-size: var(--text-2xl);
+}
+
+.columns-intro {
+  max-inline-size: var(--container-narrow);
+  margin: var(--space-s) 0 0;
+  color: var(--section-muted);
+  /* Body size, not the hero's larger subheading: under Minimal's tight scale on a phone
+     the larger size came out as big as the block's own heading, and the introduction
+     read as the title. */
+  font-size: var(--text-base);
+}
+
+.align-center .columns-intro {
+  margin-inline: auto;
+}
+
+.columns-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xl) var(--space-l);
+}
+
+.layout-two .columns-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.layout-four .columns-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-l) var(--space-m);
+}
+
+.columns-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.columns-media {
+  margin-block-end: var(--space-xs);
+}
+
+/* One shape for every picture in the block, so a row lines up whatever was uploaded. */
+.columns-media img,
+.columns-media .media-placeholder {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius-l);
+}
+
+.shape-square .columns-media img,
+.shape-square .columns-media .media-placeholder {
+  aspect-ratio: 1;
+}
+
+/* A portrait: smaller than the column, so a row of people reads as faces rather than as a
+   wall of photographs, and centred on the column when the section is. Cut to a circle
+   rather than rounded: a circle is a shape, not the character's radius, and border-radius
+   here may only take a token. */
+.shape-round .columns-media img,
+.shape-round .columns-media .media-placeholder {
+  inline-size: 60%;
+  aspect-ratio: 1;
+  clip-path: circle(50%);
+}
+
+.align-center .shape-round .columns-media img,
+.align-center .shape-round .columns-media .media-placeholder {
+  margin-inline: auto;
+}
+
+.columns-item-heading {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.columns-link {
+  margin: auto 0 0;
+  padding-block-start: var(--space-xs);
+  font-weight: var(--heading-weight);
+}
+
+/* Four in a row needs more room than a tablet gives it: two rows of two instead. */
+@media (max-width: 64rem) {
+  .layout-four .columns-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .layout-split .hero,
+  .image-text {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-image-right .image-text-media {
+    order: 0;
+  }
+
+  .layout-columns .richtext {
+    columns: 1;
+  }
+
+  .columns-grid,
+  .layout-two .columns-grid,
+  .layout-four .columns-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

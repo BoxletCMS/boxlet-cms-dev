@@ -1,7 +1,7 @@
 <?php
 /**
  * The site header (PLAN.md D-028, D-030). Class names only; every colour, size and font
- * comes from CSS custom properties in public/assets/site.css (SPEC §5.3).
+ * comes from CSS custom properties in public/assets/chrome.css (SPEC §5.3).
  *
  * @var array<string, mixed> $content logo and button, from the chrome screen
  * @var array<string, mixed> $style   section style layers, as for any block

@@ -86,8 +86,17 @@ final class BlockPreview
      */
     public static function sample(array $definition): array
     {
+        return self::sampleFields($definition['fields']);
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $fields
+     * @return array<string, mixed>
+     */
+    private static function sampleFields(array $fields): array
+    {
         $content = [];
-        foreach ($definition['fields'] as $name => $field) {
+        foreach ($fields as $name => $field) {
             $content[$name] = match ($field['type']) {
                 // Null, never an id. A preview is a picture of the BLOCK, and an id here
                 // makes it a picture of whichever photograph happens to hold that number —
@@ -98,6 +107,9 @@ final class BlockPreview
                 'select' => $field['options'][0],
                 'richtext' => '<p>' . e(t('preview.body')) . '</p>',
                 'textarea' => t('preview.body'),
+                // Three items, sampled like any other fields: one row of a grid, which is
+                // the shape a repeater gives a block. A string here drew nothing at all.
+                'repeater' => array_fill(0, min(3, $field['max']), self::sampleFields($field['fields'])),
                 default => t('preview.heading'),
             };
         }

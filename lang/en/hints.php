@@ -17,6 +17,14 @@ return [
     'hint.block.image_text.image' => 'The picture next to the text. Which side it sits on is chosen under Layout.',
     'hint.block.image_text.image_fit' => '“Fill the frame” crops the picture to fill its space; “Show the whole image” keeps all of it, with room around it if its shape differs.',
     'hint.block.image_text.link' => 'An optional link under the text, such as “Read more”.',
+    'hint.block.columns.heading' => 'An optional heading above the columns.',
+    'hint.block.columns.intro' => 'An optional sentence or two under the heading, before the columns.',
+    'hint.block.columns.items' => 'Each item is one column: a person, a service, a reason. How many share a row is chosen under Layout; more items than that start a new row.',
+    'hint.block.columns.items.image' => 'An optional picture at the top of this column. Leave it empty for a column of words.',
+    'hint.block.columns.items.heading' => 'The heading of this column, such as a name or a service.',
+    'hint.block.columns.items.body' => 'A few lines about it.',
+    'hint.block.columns.items.link' => 'An optional link under the text, such as “Read more”.',
+    'hint.block.columns.image_shape' => 'The same shape for every picture in the block, so the row lines up. Round suits portraits of people.',
 
     // A block's arrangement and its section style: hint.layout, hint.style.{key}
     'hint.layout' => 'How this block arranges its parts. Each character starts a block in the arrangement that suits it; change it here for this section only.',

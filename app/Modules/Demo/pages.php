@@ -24,6 +24,15 @@ return [
                 'subheading' => 'We design and build sites for independent shops, practices and makers.',
                 'cta' => ['label' => 'See what we do', 'url' => 'demo:services'],
             ], ['surface' => 'gradient', 'rhythm' => 'airy', 'align' => 'center'], 'center'],
+            ['columns', [
+                'heading' => 'What we do',
+                'intro' => 'Three things, done properly, for a handful of clients at a time.',
+                'items' => [
+                    ['heading' => 'Design', 'body' => '<p>A character for your site, chosen once and applied everywhere.</p>', 'link' => ['label' => 'How we design', 'url' => 'demo:about']],
+                    ['heading' => 'Build', 'body' => '<p>Pages you can edit yourself, in every language you need.</p>', 'link' => ['label' => 'What we build', 'url' => 'demo:services']],
+                    ['heading' => 'Care', 'body' => '<p>Updates, backups and small changes, every month, for a fixed fee.</p>', 'link' => ['label' => 'Care plans', 'url' => 'demo:services']],
+                ],
+            ], [], 'three'],
             ['image_text', [
                 'heading' => 'Design first, then everything else',
                 'body' => '<p>Every project starts with how the site should feel: calm and editorial, loud and confident, or somewhere in between.</p><p>The pages, the colours and the type all follow from those few decisions.</p>',
@@ -57,6 +66,14 @@ return [
                 'heading' => 'How we work',
                 'body' => '<p>We start by listening. Before anything is drawn, we want to know who visits your site and what they came for.</p><h3>Then we decide</h3><p>Colour, type, space and shape are chosen once, together, and applied everywhere. That is what keeps a site coherent as it grows.</p><ul><li>One conversation about character</li><li>A handful of real decisions</li><li>Pages you can edit yourself</li></ul>',
             ], ['width' => 'wide'], 'columns'],
+            ['columns', [
+                'heading' => 'The people',
+                'items' => [
+                    ['heading' => 'Ana Horvat', 'body' => '<p>Design and typography. Decides how it feels.</p>'],
+                    ['heading' => 'Marko Kovač', 'body' => '<p>Builds it, and keeps it running.</p>'],
+                ],
+                'image_shape' => 'round',
+            ], ['surface' => 'tinted', 'align' => 'center'], 'two'],
             ['image_text', [
                 'heading' => 'A quiet workshop',
                 'body' => '<p>We keep the team small on purpose. You always talk to the people doing the work.</p>',
@@ -85,6 +102,17 @@ return [
                 'heading' => 'Redesigns',
                 'body' => '<p>We keep what works, move your content across, and give the whole site one consistent character.</p>',
             ], ['surface' => 'tinted', 'divider' => 'slant'], 'image-right'],
+            ['columns', [
+                'heading' => 'How a project runs',
+                'intro' => 'Four steps, usually six to ten weeks from the first conversation to launch.',
+                'items' => [
+                    ['heading' => '1. Listen', 'body' => '<p>Who visits, and what they came for.</p>'],
+                    ['heading' => '2. Decide', 'body' => '<p>Colour, type, space and shape, once.</p>'],
+                    ['heading' => '3. Build', 'body' => '<p>Your pages, with your words in them.</p>'],
+                    ['heading' => '4. Hand over', 'body' => '<p>You edit; we look after the rest.</p>'],
+                ],
+                'image_shape' => 'square',
+            ], ['width' => 'wide'], 'four'],
             ['text', [
                 'heading' => 'Care plans',
                 'body' => '<p>Updates, backups and small changes every month, for a fixed fee. <strong>No surprises on the invoice.</strong></p>',

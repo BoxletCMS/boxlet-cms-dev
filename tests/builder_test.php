@@ -222,9 +222,13 @@ test('the page panel carries the address as a real field, not a hidden one', fun
     assertContains('data-slug-field', $body, 'the generator hook');
     assertContains('name="parent_id"', $body, 'the parent select');
     assertContains('name="status"', $body, 'the visibility select');
-    // Home is a valid parent for About; About must not be offered itself.
-    assertContains('>Home</option>', $body, 'another page as a parent');
-    assertTrue(!str_contains($body, '>About</option>'), 'the page was offered itself as its parent');
+    // Home is a valid parent for About; About must not be offered itself. Read inside the
+    // parent select only: a link field elsewhere on the screen rightly offers every page,
+    // About included, and the whole body stopped proving anything once the Columns block
+    // put link fields into the repeater templates every builder carries.
+    $parent = preg_match('~<select id="page-parent" name="parent_id">(.*?)</select>~s', $body, $match) === 1 ? $match[1] : '';
+    assertContains('>Home</option>', $parent, 'another page as a parent');
+    assertTrue(!str_contains($parent, '>About</option>'), 'the page was offered itself as its parent');
 });
 
 // A rejected save re-renders the builder, and the canvas reloads. It reads the database,

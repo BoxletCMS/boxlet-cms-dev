@@ -10,7 +10,7 @@
  * COPY ONLY: applying a character rewrites the site's whole design, which on the
  * development site nobody could put back (the owner's own colours are not a preset).
  */
-import { BASE, ADMIN } from '../config.mjs';
+import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
 import { login, applyCharacter, clickAndWait } from '../harness.mjs';
 
 const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
@@ -62,7 +62,7 @@ export default {
     }
 
     for (const character of CHARACTERS) {
-      await applyCharacter(page, character);
+      await applyCharacter(page, BASE, character);
 
       await page.setViewport({ width: 1400, height: 900, deviceScaleFactor: 2 });
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });

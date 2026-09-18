@@ -175,3 +175,14 @@
 .bx-tool[disabled]:hover {
   background: transparent;
 }
+
+/* A column with nothing in it yet (the Columns block marks it is-empty). On the page it is
+   a blank cell; here it is outlined and given height, so a new block shows its grid rather
+   than an empty band, and a forgotten column is seen before it is published. */
+.bx-canvas [data-bx-index] .is-empty {
+  min-block-size: 8rem;
+  background: var(--bx-select-soft);
+  outline: 2px dashed var(--bx-hover);
+  outline-offset: -2px;
+  border-radius: 0.5rem;
+}

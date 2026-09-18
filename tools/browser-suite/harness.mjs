@@ -398,8 +398,16 @@ export async function controlsOnPanels(page, report, where) {
  *
  * Returns the admin's visible alerts — empty when the character was accepted.
  */
-export async function applyCharacter(page, preset, action = 'save') {
-  await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' });
+/*
+ * THE SITE IS AN ARGUMENT, NEVER THIS FILE'S BASE. Applying a character rewrites the whole
+ * design, which only the copy may have done to it (PLAN.md D-033). This read the
+ * development site's address from config.mjs, so a scenario that declared `copy: true`
+ * and passed its own base nowhere still rewrote the development site's design — which is
+ * what scenario 25 did on its first run, five times. run.mjs also refuses a scenario that
+ * calls this without running against the copy.
+ */
+export async function applyCharacter(page, base, preset, action = 'save') {
+  await page.goto(`${base}/admin/design`, { waitUntil: 'networkidle2' });
   await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
   await clickAndWait(page, `form.design-form button[name="action"][value="${action}"]`);
   return alerts(page);

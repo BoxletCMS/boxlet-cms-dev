@@ -18,7 +18,7 @@
  * It borrows the demo's first page, puts pictures in it, and puts it back as it found it.
  */
 import { existsSync } from 'node:fs';
-import { BASE, ADMIN } from '../config.mjs';
+import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
 import { login, applyCharacter, fixtures } from '../harness.mjs';
 import {
   PHOTOS, CONTENT_FIELD, SURFACE_FIELD, uploadPhoto, pick, save, firstPageId, photographs,
@@ -82,6 +82,8 @@ const onPage = (page) => page.evaluate(() => {
 
 export default {
   name: 'front-pictures',
+  // Runs against the throwaway copy: it applies characters, which rewrites the whole design.
+  copy: true,
 
   async run({ page, report }) {
     if (!await login(page, BASE, ADMIN.email, ADMIN.password)) {
@@ -179,7 +181,7 @@ export default {
     let structure = null;
 
     for (const character of characters) {
-      const refused = await applyCharacter(page, character);
+      const refused = await applyCharacter(page, BASE, character);
       if (refused.length > 0) {
         report.fail(`pictures under the ${character} character`, `the design was refused: ${refused.join(' | ')}`);
         continue;
@@ -284,7 +286,7 @@ export default {
 
     // And on the character the scenarios before this one expect.
     if (characters.length > 0) {
-      await applyCharacter(page, characters[0]);
+      await applyCharacter(page, BASE, characters[0]);
     }
   },
 };

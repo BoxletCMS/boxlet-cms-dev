@@ -45,6 +45,8 @@ use App\Support\Url;
 <?php endif; ?>
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
 <?php /* The one script a visitor's page loads, and only when the header has a menu for it
          to fold: the mobile menu and submenu buttons (D-036). Without it nothing breaks. */ ?>

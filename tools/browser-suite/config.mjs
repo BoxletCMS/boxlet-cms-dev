@@ -25,7 +25,12 @@ const outside = process.env.BOXLET_SUITE_HOME ?? `${process.env.HOME}/boxlet-bro
 /** The development site: where every scenario runs unless it declares `copy: true`. */
 export const BASE = process.env.BOXLET_SUITE_BASE ?? 'https://boxlet.svejedobro.hr';
 
-/** The throwaway copy, served by `php -S 127.0.0.1:8100` from its public/ directory. */
+/**
+ * The throwaway copy, served from ~/boxlet-browser by
+ *   PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8100 -t fresh/public dev-router.php
+ * More than one worker, because the installer checks URL rewriting by asking the server
+ * from inside a request, and a single-process server cannot answer itself (D-042).
+ */
 export const COPY_BASE = process.env.BOXLET_SUITE_COPY_BASE ?? 'http://127.0.0.1:8100';
 
 /** The copy scenario 01 installs into. Its storage is read directly for the install token. */

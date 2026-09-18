@@ -23,6 +23,7 @@ use App\Support\Url;
     <title><?= e($title) ?></title>
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas.css')) ?>">
     <?php /* Reordering happens here, inside the canvas, because drag events do not cross

@@ -32,6 +32,7 @@ $repeaterError = $fieldError;
 ?>
                 <fieldset class="repeater" data-repeater="<?= e($repeaterName) ?>" data-repeater-type="<?= e($block['type']) ?>" data-repeater-max="<?= (int) $repeaterField['max'] ?>" data-text-item="<?= e(t('pages.field.repeater_item', ['number' => '%n'])) ?>">
                     <legend class="repeater-legend"><?= e($repeaterLabel) ?></legend>
+                    <?= field_hint('hint.block.' . $block['type'] . '.' . $repeaterName) ?>
                     <div class="repeater-items" data-repeater-items>
 <?php foreach ($items as $itemIndex => $itemValue): ?>
 <?php

@@ -9,10 +9,16 @@ test('every block field has a description', function () {
     foreach (['app/Blocks'] as $dir) {
         $registry = App\Core\Blocks::discover(dirname(__DIR__) . '/' . $dir);
         foreach ($registry->types() as $type) {
-            foreach (array_keys($registry->get($type)['fields']) as $field) {
-                $key = 'hint.block.' . $type . '.' . $field;
-                if (t($key) === $key) {
-                    $missing[] = $key;
+            foreach ($registry->get($type)['fields'] as $field => $spec) {
+                $keys = ['hint.block.' . $type . '.' . $field];
+                // A repeater's own fields are fields too, one segment down (SPEC §5.3).
+                foreach (array_keys($spec['fields'] ?? []) as $itemField) {
+                    $keys[] = 'hint.block.' . $type . '.' . $field . '.' . $itemField;
+                }
+                foreach ($keys as $key) {
+                    if (t($key) === $key) {
+                        $missing[] = $key;
+                    }
                 }
             }
         }

@@ -57,7 +57,7 @@ final class PageBlockController
         $block = [
             'id' => null,
             'type' => $type,
-            'content' => $registry->normalize($type, []),
+            'content' => $registry->fresh($type),
             'style' => Composition::style($character, $type),
             'layout' => Composition::layout($registry, $character, $type),
         ];

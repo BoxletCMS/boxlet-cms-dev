@@ -51,15 +51,7 @@ final class DemoSite
             $id = $ids[$page['slug']];
             $blocks = [];
             foreach ($page['blocks'] as [$type, $content, $style, $layout]) {
-                foreach ($registry->get($type)['fields'] as $name => $field) {
-                    if ($field['type'] === 'link' && is_array($content[$name] ?? null) && is_string($content[$name]['url'] ?? null)) {
-                        $content[$name]['url'] = (string) preg_replace_callback('~^demo:([a-z0-9-]*)$~', $reference, $content[$name]['url']);
-                    }
-                    if ($field['type'] === 'richtext' && is_string($content[$name] ?? null)) {
-                        $linked = (string) preg_replace_callback('~(?<=href=")demo:([a-z0-9-]*)(?=")~', $reference, $content[$name]);
-                        $content[$name] = RichText::sanitize($linked);
-                    }
-                }
+                $content = self::link($registry->get($type)['fields'], $content, $reference);
                 $blocks[] = [
                     'id' => null,
                     'type' => $type,
@@ -83,6 +75,37 @@ final class DemoSite
         }
 
         return count($pages);
+    }
+
+    /**
+     * The seed's `demo:{slug}` links turned into page references, in link fields and rich
+     * text alike, and inside a repeater's items the same way as at the top: the Columns
+     * block's links would otherwise have been stored as `demo:about`, which no link rule
+     * accepts, and drawn as nothing.
+     *
+     * @param array<string, array<string, mixed>> $fields
+     * @param array<string, mixed> $content
+     * @param callable(array<int|string, string>): string $reference
+     * @return array<string, mixed>
+     */
+    private static function link(array $fields, array $content, callable $reference): array
+    {
+        foreach ($fields as $name => $field) {
+            if ($field['type'] === 'link' && is_array($content[$name] ?? null) && is_string($content[$name]['url'] ?? null)) {
+                $content[$name]['url'] = (string) preg_replace_callback('~^demo:([a-z0-9-]*)$~', $reference, $content[$name]['url']);
+            }
+            if ($field['type'] === 'richtext' && is_string($content[$name] ?? null)) {
+                $linked = (string) preg_replace_callback('~(?<=href=")demo:([a-z0-9-]*)(?=")~', $reference, $content[$name]);
+                $content[$name] = RichText::sanitize($linked);
+            }
+            if ($field['type'] === 'repeater' && is_array($content[$name] ?? null)) {
+                foreach ($content[$name] as $i => $item) {
+                    $content[$name][$i] = is_array($item) ? self::link($field['fields'], $item, $reference) : $item;
+                }
+            }
+        }
+
+        return $content;
     }
 
     /**

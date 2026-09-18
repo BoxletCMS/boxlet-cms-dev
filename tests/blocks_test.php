@@ -24,8 +24,8 @@ function validBlock(): array
     ];
 }
 
-test('the shipped blocks are hero, image_text and text, and all valid', function () {
-    assertEquals(['hero', 'image_text', 'text'], Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types(), 'types');
+test('the shipped blocks are columns, hero, image_text and text, and all valid', function () {
+    assertEquals(['columns', 'hero', 'image_text', 'text'], Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types(), 'types');
 });
 
 test('a valid definition passes and gets its optional flags filled in', function () {
@@ -173,8 +173,8 @@ test('a hero layout that reserves a picture area always draws the placeholder', 
     // The rules that re-flowed a split hero WITHOUT a media element can never match again.
     // Dead CSS explaining a case that cannot arise is worse than none: it reads as
     // deliberate.
-    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/site.css');
-    assertTrue(!str_contains($css, ':not(:has(.hero-media))'), 'site.css still carries the unreachable no-media split rules');
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/blocks.css');
+    assertTrue(!str_contains($css, ':not(:has(.hero-media))'), 'blocks.css still carries the unreachable no-media split rules');
 });
 
 test('stored content of the wrong shape renders as empty values, never an error', function () {
@@ -199,7 +199,7 @@ test('no block template or front-end stylesheet hard-codes a colour, size, font 
     // literal values and may never read a site token (tests/admin_test.php).
     // \s*+ is possessive: without it the lookahead could match after backtracking over a space.
     $mustUseVar = '~^\s*(color|background|background-color|border-color|font-family|font-size|box-shadow|border-radius)\s*:\s*+(?!var\(|inherit|transparent|none|currentColor|0;)([^;]+);~mi';
-    foreach (['site.css', 'sections.css'] as $css) {
+    foreach (['site.css', 'blocks.css', 'chrome.css', 'sections.css'] as $css) {
         $source = (string) file_get_contents($root . '/public/assets/' . $css);
         assertTrue(!preg_match($literal, $source, $match), "{$css} contains the literal " . ($match[0] ?? ''));
         assertTrue(!preg_match($mustUseVar, $source, $match), "{$css} sets " . trim($match[0] ?? '') . ' without a custom property');

@@ -18,7 +18,7 @@
  * refusal runs last because it deliberately submits a broken palette, and the editorial
  * character is re-applied afterwards so later scenarios start from a sane design.
  */
-import { BASE, ADMIN } from '../config.mjs';
+import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
 import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels } from '../harness.mjs';
 
 const STYLE_GUIDE = 4;
@@ -28,6 +28,9 @@ const sectionClasses = (page) => page.$$eval('section', (els) => els.map((e) => 
 
 export default {
   name: 'design',
+  // Runs against the throwaway copy: it applies every character and resets section
+  // styles, which on the development site would overwrite the owner's design.
+  copy: true,
 
   async run({ page, report }) {
     if (!await login(page, BASE, ADMIN.email, ADMIN.password)) {
@@ -48,7 +51,7 @@ export default {
     // ---- each character, seen on the home page and in the admin ------------------------
     const adminFingerprints = [];
     for (const preset of presets) {
-      const errors = await applyCharacter(page, preset);
+      const errors = await applyCharacter(page, BASE, preset);
       if (errors.length > 0) {
         report.fail(`apply the ${preset} character`, `refused: ${errors.join(' | ')}`);
         continue;
@@ -101,7 +104,7 @@ export default {
      * specificity met and the other stylesheet was linked second.
      */
     for (const [preset, boxed, fullHeader] of [['soft', true, false], ['bold', false, true]]) {
-      const refusedPage = await applyCharacter(page, preset);
+      const refusedPage = await applyCharacter(page, BASE, preset);
       if (refusedPage.length > 0) {
         report.fail(`the ${preset} character applies`, refusedPage.join(' | '));
         continue;
@@ -168,14 +171,14 @@ export default {
 
     // ---- design only, then reset sections ------------------------------------------------
     const handTuned = after[target];
-    await applyCharacter(page, presets[0], 'save');
+    await applyCharacter(page, BASE, presets[0], 'save');
     await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
     const afterDesignOnly = await sectionClasses(page);
     report.verdict('"design only" leaves section styles alone',
       afterDesignOnly[target] === handTuned,
       `section ${target}: "${handTuned}" -> "${afterDesignOnly[target]}"`);
 
-    await applyCharacter(page, presets[0], 'save_composition');
+    await applyCharacter(page, BASE, presets[0], 'save_composition');
     await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
     const afterReset = await sectionClasses(page);
     await report.shot(page, 'after-reset-sections');
@@ -203,6 +206,6 @@ export default {
         : `refused with: "${refusal.join(' | ').slice(0, 240)}"`);
 
     // Leave the site on a sane design for the scenarios that follow.
-    await applyCharacter(page, presets[0], 'save');
+    await applyCharacter(page, BASE, presets[0], 'save');
   },
 };

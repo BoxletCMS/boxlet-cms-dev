@@ -123,6 +123,30 @@ final class Blocks
     }
 
     /**
+     * The content a block starts with when it is added to a page: every field empty, and
+     * every repeater holding three empty items rather than none.
+     *
+     * Three, because a repeater with no items draws nothing at all — a new Columns block
+     * was an empty band on the canvas and "no items yet" in the inspector, which reads as
+     * a block that failed to load. Three is one row of the default layout, and the owner
+     * removes what they do not need, as they would a field they leave empty. Never more
+     * than the repeater's own maximum.
+     *
+     * @return array<string, mixed>
+     */
+    public function fresh(string $type): array
+    {
+        $content = $this->normalize($type, []);
+        foreach ($this->get($type)['fields'] as $name => $field) {
+            if ($field['type'] === 'repeater') {
+                $content[$name] = array_fill(0, min(3, $field['max']), self::emptyItem($field));
+            }
+        }
+
+        return $content;
+    }
+
+    /**
      * One empty item of a repeater: every field present, at its empty value.
      *
      * Needed twice by the editor — to render the blank item its <template> holds, and to

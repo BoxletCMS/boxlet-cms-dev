@@ -68,6 +68,9 @@ testBothDrivers('the demo links its pages by reference, and the links lead there
     $services = (int) ($db->one("SELECT id FROM pages WHERE slug = 'services'")['id'] ?? 0);
     assertContains('"url":"page:' . $services . '"', $stored, 'no reference to the services page');
 
+    // A link inside a column is a link like any other (the Columns block's items).
+    assertContains('<a href="/about">How we design</a>', dispatch('/')->body, 'a column\'s link does not lead to its page');
+
     $db->query("UPDATE pages SET slug = 'what-we-do' WHERE id = ?", [$services]);
     assertContains('href="/what-we-do"', dispatch('/')->body, 'the home page does not follow the renamed page');
     assertContains('<a href="/">', dispatch('/style-guide')->body, 'the style guide\'s links to home do not lead there');

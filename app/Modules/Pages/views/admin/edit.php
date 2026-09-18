@@ -136,7 +136,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
     $block = [
         'id' => null,
         'type' => $type,
-        'content' => $registry->normalize($type, []),
+        'content' => $registry->fresh($type),
         'style' => Composition::style($character, $type),
         'layout' => Composition::layout($registry, $character, $type),
     ];

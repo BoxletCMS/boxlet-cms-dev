@@ -16,10 +16,20 @@
 (function () {
   'use strict';
 
-  var form = document.querySelector('[data-media-upload]');
-  if (form) {
-    upload(form);
+  // A picture's Replace: its drop zone opens under the buttons when asked for (D-039).
+  var replaceToggle = document.querySelector('[data-replace-toggle]');
+  var replacePanel = document.querySelector('[data-replace-panel]');
+  if (replaceToggle && replacePanel) {
+    replacePanel.hidden = true;
+    replaceToggle.addEventListener('click', function () {
+      var open = replacePanel.hidden;
+      replacePanel.hidden = !open;
+      replaceToggle.setAttribute('aria-expanded', String(open));
+    });
   }
+
+  // The library's drop zone, and a picture's Replace (D-039): the same behaviour for both.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-media-upload]'), upload);
 
   function upload(form) {
     var input = form.querySelector('[data-media-input]');
@@ -104,6 +114,9 @@
     // Dropping files onto the form. The files are put into the real input rather than
     // posted separately, so the drop and the button take the same path — including the
     // size check above.
+    // A replacement takes one file: a drop of several keeps the first rather than failing.
+    var single = !input.multiple;
+
     ['dragenter', 'dragover'].forEach(function (name) {
       form.addEventListener(name, function (event) {
         event.preventDefault();
@@ -125,7 +138,13 @@
       }
       // DataTransfer is the only way to write to a file input; assigning .files a plain
       // array does nothing and the form would submit empty.
-      input.files = event.dataTransfer.files;
+      if (single && event.dataTransfer.files.length > 1) {
+        var one = new DataTransfer();
+        one.items.add(event.dataTransfer.files[0]);
+        input.files = one.files;
+      } else {
+        input.files = event.dataTransfer.files;
+      }
       send();
     });
   }

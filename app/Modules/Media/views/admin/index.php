@@ -24,8 +24,8 @@ use App\Support\Url;
                  media.js refuses an oversized file before the form is submitted. That is
                  the only place it CAN be refused readably: nginx answers a body over
                  client_max_body_size with its own 413 page before PHP runs at all. */ ?>
-        <?php /* Adding pictures and finding one, side by side: the two things this screen
-                 is for, before the pictures themselves (D-038). */ ?>
+        <?php /* Adding pictures, then finding one: the two things this screen is for, before
+                 the pictures themselves, each the full width (D-039). */ ?>
         <div class="media-tools">
         <form class="media-upload" method="post" action="<?= e(Url::admin('media')) ?>" enctype="multipart/form-data"
               data-media-upload
@@ -54,15 +54,12 @@ use App\Support\Url;
             <button type="submit" class="button no-js-only"><?= e(t('media.upload_submit')) ?></button>
         </form>
 
+        <?php /* No words around it: a search field and its button say what they are (D-039).
+                 The label stays for a screen reader. */ ?>
         <form class="media-search" method="get" action="<?= e(Url::admin('media')) ?>" role="search">
-            <div class="field">
-                <label for="media-search"><?= e(t('media.search')) ?></label>
-                <div class="field-inline">
-                    <input type="search" id="media-search" name="q" value="<?= e($search) ?>" aria-describedby="media-search-hint">
-                    <button type="submit" class="button button-secondary"><?= icon('search') ?> <?= e(t('media.search_submit')) ?></button>
-                </div>
-                <span class="hint" id="media-search-hint"><?= e(t('media.search_hint')) ?></span>
-            </div>
+            <label for="media-search" class="visually-hidden"><?= e(t('media.search')) ?></label>
+            <input type="search" id="media-search" name="q" value="<?= e($search) ?>" placeholder="<?= e(t('media.search_placeholder')) ?>">
+            <button type="submit" class="button button-secondary"><?= icon('search') ?> <?= e(t('media.search_submit')) ?></button>
         </form>
         </div>
 

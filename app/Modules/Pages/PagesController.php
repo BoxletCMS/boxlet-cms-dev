@@ -29,6 +29,8 @@ final class PagesController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/index', [
             'title' => t('pages.title'),
             'nav' => 'pages',
+            // A list wants the room: a table in the reading column scrolled sideways (D-039).
+            'wide' => true,
             'styles' => ['admin-pages.css'],
             // The drag is an addition: the Up and Down buttons work without either file,
             // and pages.js returns early when Sortable is not there.

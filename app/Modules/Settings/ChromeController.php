@@ -87,7 +87,7 @@ final class ChromeController
             // objected to here.
             $entry = [
                 'button_label' => trim($request->input(self::field('button_label', $code))),
-                'button_url' => trim($request->input(self::field('button_url', $code))),
+                'button_url' => SafeUrl::normalize($request->input(self::field('button_url', $code))),
                 'text' => trim($request->input(self::field('text', $code))),
                 'small_print' => trim($request->input(self::field('small_print', $code))),
             ];

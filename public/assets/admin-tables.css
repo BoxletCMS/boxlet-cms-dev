@@ -85,10 +85,6 @@
   margin-inline-end: var(--ui-1);
 }
 
-.table td.row-actions > .row-edit[open] {
-  display: block;
-  white-space: normal;
-}
 
 .row-actions form {
   margin: 0;
@@ -132,32 +128,34 @@
   color: var(--ui-ink-muted);
 }
 
-/* Editing a row in place: the summary is the row's Edit button; the form opens under the
-   row's actions, on the panel's own ground. */
-.row-edit > summary {
-  list-style: none;
-}
-
-.row-edit > summary::-webkit-details-marker {
-  display: none;
-}
-
-.row-edit[open] {
-  flex-basis: 100%;
-}
-
-.row-edit-form {
-  margin-top: var(--ui-3);
-  padding: var(--ui-4);
-  background: var(--ui-panel-sunken);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
-  min-inline-size: 18rem;
-}
-
 /* A date in a row: quieter than the row's name, and never broken across two lines. */
 .table .date {
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-sm);
   white-space: nowrap;
+}
+
+/* The status as the switch that changes it (D-039): the same pill, with an edge and a
+   pointer so it reads as something to press at rest, raised on hover. */
+.admin .status-toggle {
+  border-color: currentcolor;
+  font: inherit;
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin .status-toggle:hover {
+  box-shadow: var(--ui-ring);
+}
+
+/* An action shown as its icon alone: square, the height of a small button. */
+.table .button-icon {
+  inline-size: 2rem;
+  padding: 0;
+}
+
+.table .button-icon .icon {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
 }

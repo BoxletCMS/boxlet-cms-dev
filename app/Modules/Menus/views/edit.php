@@ -11,6 +11,7 @@ use App\Support\Url;
  *                 hidden: bool, first: bool, last: bool}> $items
  * @var list<array{id: int, title: string, status: string, url: string}> $pages
  * @var array<string, string> $errors
+ * @var int $editing the item whose edit dialog is open on arrival, 0 for none
  * @var string $title
  * @var string $csrf
  */
@@ -111,30 +112,11 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
 <?php endif; ?>
                         </td>
                         <td class="row-actions">
-                            <?php /* Editing opens in place, as a <details>: no script needed, and
-                                     the row stays where the owner was looking. */ ?>
-                            <details class="row-edit">
-                                <summary class="button button-ghost"><?= icon('pencil') ?> <?= e(t('menus.item.edit')) ?></summary>
-                                <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items', $item['id'])) ?>" class="stack row-edit-form" data-link>
-                                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                                    <div class="field">
-                                        <label for="item-<?= e($item['id']) ?>-page"><?= e(t('menus.item.page')) ?></label>
-                                        <select id="item-<?= e($item['id']) ?>-page" name="page_id" data-link-page><?= $pageOptions($item['page_id']) ?></select>
-                                    </div>
-                                    <div class="field">
-                                        <label for="item-<?= e($item['id']) ?>-url"><?= e(t('menus.item.url')) ?></label>
-                                        <input type="text" id="item-<?= e($item['id']) ?>-url" name="url" maxlength="2048" data-link-address
-                                               value="<?= e($item['target']) ?>"<?= $item['page_id'] !== null ? ' readonly' : '' ?>>
-                                    </div>
-                                    <div class="field">
-                                        <label for="item-<?= e($item['id']) ?>-label"><?= e(t('menus.item.label')) ?></label>
-                                        <input type="text" id="item-<?= e($item['id']) ?>-label" name="label" maxlength="255" data-link-label value="<?= e($item['label']) ?>">
-                                    </div>
-                                    <div class="form-actions">
-                                        <button type="submit" class="button"><?= e(t('menus.item.save')) ?></button>
-                                    </div>
-                                </form>
-                            </details>
+                            <?php /* Editing opens in a dialog over the list (D-039): the row stays
+                                     as it is. A link, so it works without a script too — the
+                                     server then draws the dialog already open; menus.js opens
+                                     it in place instead. */ ?>
+                            <a class="button button-ghost" href="<?= e(Url::admin('menus', $menuId)) ?>?edit=<?= e($item['id']) ?>" data-dialog-open="item-dialog-<?= e($item['id']) ?>"><?= icon('pencil') ?> <?= e(t('menus.item.edit')) ?></a>
                             <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items', $item['id'], 'delete')) ?>">
                                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                                 <button type="submit" class="button button-ghost button-danger"><?= icon('trash-2') ?> <?= e(t('menus.delete')) ?></button>
@@ -147,6 +129,40 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
         </div>
 <?php /* One form per row, outside the table so a form element cannot land between <tr>s,
          referenced by the buttons' form attribute. The same arrangement the page list uses. */ ?>
+<?php foreach ($items as $item): ?>
+        <?php /* One dialog per item, outside the table like the move forms. `open` when the
+                 page was asked for with ?edit=, which is the no-script path; the X and Cancel
+                 close it without a script too, as a method="dialog" form does. */ ?>
+        <dialog class="dialog" id="item-dialog-<?= e($item['id']) ?>" aria-labelledby="item-dialog-<?= e($item['id']) ?>-title"<?= $editing === $item['id'] ? ' open' : '' ?>>
+            <div class="dialog-head">
+                <h2 id="item-dialog-<?= e($item['id']) ?>-title"><?= e(t('menus.item.edit_title', ['label' => $item['label']])) ?></h2>
+                <form method="dialog">
+                    <button type="submit" class="button button-ghost button-icon" title="<?= e(t('menus.item.cancel')) ?>"><?= icon('x') ?><span class="visually-hidden"><?= e(t('menus.item.cancel')) ?></span></button>
+                </form>
+            </div>
+            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items', $item['id'])) ?>" class="stack" data-link>
+                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                <div class="field">
+                    <label for="item-<?= e($item['id']) ?>-page"><?= e(t('menus.item.page')) ?></label>
+                    <select id="item-<?= e($item['id']) ?>-page" name="page_id" data-link-page><?= $pageOptions($item['page_id']) ?></select>
+                    <?= field_hint('menus.item.page_hint') ?>
+                </div>
+                <div class="field">
+                    <label for="item-<?= e($item['id']) ?>-url"><?= e(t('menus.item.url')) ?></label>
+                    <input type="text" id="item-<?= e($item['id']) ?>-url" name="url" maxlength="2048" data-link-address
+                           value="<?= e($item['target']) ?>"<?= $item['page_id'] !== null ? ' readonly' : '' ?>>
+                </div>
+                <div class="field">
+                    <label for="item-<?= e($item['id']) ?>-label"><?= e(t('menus.item.label')) ?></label>
+                    <input type="text" id="item-<?= e($item['id']) ?>-label" name="label" maxlength="255" data-link-label value="<?= e($item['label']) ?>">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button"><?= e(t('menus.item.save')) ?></button>
+                    <a class="button button-ghost" href="<?= e(Url::admin('menus', $menuId)) ?>" data-dialog-close><?= e(t('menus.item.cancel')) ?></a>
+                </div>
+            </form>
+        </dialog>
+<?php endforeach; ?>
 <?php foreach ($items as $item): ?>
         <form method="post" action="<?= e(Url::admin('menus', $menuId, 'order')) ?>" id="menu-move-<?= e($item['id']) ?>" class="visually-hidden">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

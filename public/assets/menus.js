@@ -12,6 +12,25 @@
 (function () {
   'use strict';
 
+  // Editing an item opens its dialog in place (D-039). The Edit link still works without
+  // this: it asks the server for the page with that dialog drawn open.
+  document.addEventListener('click', function (event) {
+    var opener = event.target.closest && event.target.closest('[data-dialog-open]');
+    if (opener) {
+      var dialog = document.getElementById(opener.getAttribute('data-dialog-open'));
+      if (dialog && typeof dialog.showModal === 'function') {
+        event.preventDefault();
+        dialog.showModal();
+      }
+      return;
+    }
+    var closer = event.target.closest && event.target.closest('[data-dialog-close]');
+    if (closer && closer.closest('dialog')) {
+      event.preventDefault();
+      closer.closest('dialog').close();
+    }
+  });
+
   var rows = document.querySelector('[data-menu-rows]');
   var form = document.querySelector('[data-menu-order]');
   if (!rows || !form || !window.Sortable) {

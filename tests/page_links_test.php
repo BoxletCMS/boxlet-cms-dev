@@ -176,3 +176,21 @@ testBothDrivers('the header screen saves a page as the button\'s target', functi
     ]));
     assertEquals(PageLinks::to($contact), SiteChrome::header($db, 'en')['button']['url'], 'the stored target');
 });
+
+// A bare email or phone number is the link it was meant to be (D-039): mailto: and tel:,
+// which a phone can tap to write or to call. A path is never mistaken for a number.
+test('an email or a phone number typed as an address becomes a link that works', function () {
+    assertEquals('mailto:info@example.com', App\Support\SafeUrl::normalize(' info@example.com '), 'an email');
+    assertEquals('tel:+385912345678', App\Support\SafeUrl::normalize('+385 91 234 5678'), 'a phone number with spaces');
+    assertEquals('tel:+3859123456', App\Support\SafeUrl::normalize('tel:+385 (91) 234-56'), 'tel: with punctuation');
+    assertEquals('/2024/05/01', App\Support\SafeUrl::normalize('/2024/05/01'), 'a path of digits');
+    assertEquals('tel:+38591234', App\Support\SafeUrl::normalize(App\Support\SafeUrl::normalize('+385 91 234')), 'normalising twice changes nothing');
+
+    $parsed = BlockForm::parse(blockRegistry(), [
+        ['type' => 'hero', 'heading' => 'Hi', 'cta' => ['page' => '', 'url' => '+385 91 234 5678', 'label' => 'Call us']],
+    ], []);
+    assertEquals([], $parsed['errors'], 'a phone number was refused');
+    assertEquals('tel:+385912345678', $parsed['blocks'][0]['content']['cta']['url'] ?? null, 'the stored link');
+
+    assertEquals('<p><a href="mailto:hi@example.com">write</a></p>', RichText::sanitize('<p><a href="hi@example.com">write</a></p>'), 'an email in rich text');
+});

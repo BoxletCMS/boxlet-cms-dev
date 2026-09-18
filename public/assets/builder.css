@@ -52,8 +52,8 @@
 }
 
 .builder-devices .button {
-  padding-block: var(--ui-1);
-  font-size: var(--ui-text-sm);
+  inline-size: 2.25rem;
+  min-block-size: 2.25rem;
 }
 
 .builder-devices [aria-pressed="true"] {

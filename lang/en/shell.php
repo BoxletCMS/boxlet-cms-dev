@@ -52,7 +52,7 @@ return [
     'richtext.link' => 'Link',
     'richtext.unlink' => 'Unlink',
     'richtext.url' => 'Address',
-    'richtext.url_placeholder' => 'https://example.com',
+    'richtext.url_placeholder' => 'https://example.com, an email or a phone number',
     'richtext.page' => 'Page',
     'richtext.heading_2' => 'Heading 2',
     'richtext.heading_3' => 'Heading 3',

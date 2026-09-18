@@ -52,7 +52,7 @@ export default {
 
       const detail = await page.evaluate(() => {
         const preview = document.querySelector('img.media-preview-image');
-        const replace = document.querySelector('details.media-replace');
+        const replace = document.querySelector('[data-replace-panel]');
         return {
           facts: document.querySelectorAll('.media-facts-list dd').length,
           previewDecoded: preview ? preview.naturalWidth : 0,
@@ -60,7 +60,7 @@ export default {
           focal: !!document.querySelector('[data-focal-form]'),
           actions: Array.from(document.querySelectorAll('.media-actions .button'))
             .filter((b) => b.offsetParent !== null).map((b) => b.textContent.replace(/\s+/g, ' ').trim()),
-          replaceOpen: replace ? replace.open : null,
+          replaceOpen: replace ? !replace.hidden : null,
         };
       });
 
@@ -75,8 +75,8 @@ export default {
           && ['Crop', 'Replace', 'Delete'].every((word) => detail.actions.some((label) => label.startsWith(word))),
         `actions ${JSON.stringify(detail.actions)}, focal form ${detail.focal}, replace open ${detail.replaceOpen}`);
 
-      await page.click('details.media-replace > summary');
-      const opened = await page.$eval('details.media-replace', (el) => el.open && !!el.querySelector('input[type="file"]').offsetParent);
+      await page.click('[data-replace-toggle]');
+      const opened = await page.$eval('[data-replace-panel]', (el) => !el.hidden && !!el.querySelector('.dropzone').offsetParent);
       await report.shot(page, '02-replace-open', { fullPage: false });
       report.verdict('pressing Replace opens its form', opened, opened ? 'the file input is shown' : 'still closed');
 

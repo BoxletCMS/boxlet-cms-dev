@@ -133,6 +133,8 @@
   --ui-shadow-s: 0 1px 0 rgb(28 27 24 / 0.04), 0 1px 3px rgb(28 27 24 / 0.06);
   --ui-shadow-m: 0 1px 2px rgb(28 27 24 / 0.06), 0 8px 24px rgb(28 27 24 / 0.08);
   --ui-ring: 0 0 0 3px rgb(59 63 196 / 0.22);
+  /* What dims the page behind a dialog. */
+  --ui-scrim: rgb(28 27 24 / 0.35);
 
   /* Comfortable to read, never edge to edge; the Design screen opts into the wide one. */
   --ui-content: 64rem;

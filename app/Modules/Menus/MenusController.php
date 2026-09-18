@@ -32,6 +32,7 @@ final class MenusController
         return AdminView::render($this->container, __DIR__ . '/views', 'index', [
             'title' => t('menus.title'),
             'nav' => 'menus',
+            'wide' => true,
             'styles' => ['admin-pages.css'],
             'menus' => Menu::all($this->db()),
             'locales' => $this->container->get('locales'),
@@ -65,6 +66,7 @@ final class MenusController
             return AdminView::render($this->container, __DIR__ . '/views', 'index', [
                 'title' => t('menus.title'),
                 'nav' => 'menus',
+                'wide' => true,
                 'styles' => ['admin-pages.css'],
                 'menus' => Menu::all($db),
                 'locales' => $this->container->get('locales'),
@@ -91,7 +93,9 @@ final class MenusController
             return self::missing();
         }
 
-        return $this->form($menu, []);
+        // ?edit=<item> opens that item's dialog on arrival, which is how Edit works without a
+        // script (D-039). A number that is not one of this menu's items opens nothing.
+        return $this->form($menu, [], 200, (int) ($request->query['edit'] ?? 0));
     }
 
     /**
@@ -273,7 +277,7 @@ final class MenusController
      * @param array<string, mixed> $menu
      * @param array<string, string> $errors
      */
-    private function form(array $menu, array $errors, int $status = 200): Response
+    private function form(array $menu, array $errors, int $status = 200, int $editing = 0): Response
     {
         $db = $this->db();
         $id = (int) $menu['id'];
@@ -281,11 +285,13 @@ final class MenusController
         return AdminView::render($this->container, __DIR__ . '/views', 'edit', [
             'title' => (string) $menu['name'],
             'nav' => 'menus',
+            'wide' => true,
             'styles' => ['admin-pages.css'],
             'scripts' => ['vendor/sortable.min.js', 'menus.js'],
             'menu' => $menu,
             'items' => MenuTree::admin($db, $id),
             'pages' => Menu::pageChoices($db, (string) $menu['locale']),
+            'editing' => $editing,
             'errors' => $errors,
         ], $status);
     }

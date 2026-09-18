@@ -189,7 +189,7 @@ final class Menu
      */
     private static function cleanUrl(?string $url): ?string
     {
-        $url = $url === null ? '' : trim($url);
+        $url = SafeUrl::normalize($url ?? '');
 
         return $url !== '' && SafeUrl::isAllowed($url) ? $url : null;
     }

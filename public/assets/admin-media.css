@@ -1,10 +1,9 @@
 /* The picture library and one picture. Admin tokens only (--ui-*). */
 
-/* Adding pictures and finding one, side by side (D-038): the drop zone takes the room,
-   the search the rest; one above the other on a narrow screen. */
+/* Adding pictures, then finding one: the drop zone and, under it, the search, each the
+   full width of the column (D-039). */
 .media-tools {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
   gap: var(--ui-4);
   margin-bottom: var(--ui-6);
 }
@@ -21,8 +20,28 @@
   box-shadow: var(--ui-shadow-s);
 }
 
-.media-search .field-inline {
-  max-inline-size: none;
+.media-search {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.media-search input {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 2.5rem;
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-control-soft);
+  border-bottom-color: var(--ui-control-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+}
+
+.media-search input:focus {
+  border-color: var(--ui-accent);
+  box-shadow: var(--ui-ring);
+  outline: none;
 }
 
 /* The drop zone: a sunken, rounded ground that says what to do, the whole of it a click
@@ -73,12 +92,6 @@
 .media-upload.is-uploading .dropzone {
   background: var(--ui-accent-soft);
   border-color: var(--ui-accent);
-}
-
-@media (max-width: 48rem) {
-  .media-tools {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* The grid. auto-fill rather than auto-fit: with two pictures in the library, auto-fit
@@ -220,28 +233,20 @@
   font-size: var(--ui-text-sm);
 }
 
-.media-replace > summary {
-  list-style: none;
+.media-replace {
+  margin-top: var(--ui-3);
 }
 
-.media-replace > summary::-webkit-details-marker {
-  display: none;
+/* The replacement's drop zone sits in the side column: no card of its own around it. */
+.media-replace-form {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
-.media-replace[open] {
-  order: 5;
-  flex-basis: 100%;
-}
-
-.media-replace[open] > summary {
-  margin-bottom: var(--ui-3);
-}
-
-.media-replace form {
-  padding: var(--ui-4);
-  background: var(--ui-panel-sunken);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
+.media-replace-form .dropzone {
+  padding: var(--ui-5) var(--ui-4);
 }
 
 .media-facts-list {

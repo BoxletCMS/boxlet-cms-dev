@@ -75,6 +75,46 @@
   justify-self: center;
 }
 
+/* A dialog over the screen (editing a menu item, D-039). Opened by a script as a modal, or
+   drawn open by the server when there is no script — so it places itself either way, and
+   the page behind is dimmed by its backdrop or, without one, by a wide shadow. */
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  inline-size: min(34rem, calc(100vw - 2 * var(--ui-4)));
+  max-block-size: calc(100dvh - 2 * var(--ui-4));
+  margin: auto;
+  padding: var(--ui-6);
+  overflow: auto;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-m), 0 0 0 100vmax var(--ui-scrim);
+  color: var(--ui-ink);
+}
+
+.dialog::backdrop {
+  background: var(--ui-scrim);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-4);
+  margin-bottom: var(--ui-5);
+}
+
+.dialog-head h2 {
+  margin: 0;
+}
+
+.dialog-head form {
+  margin: 0;
+}
+
 /* Buttons */
 
 /* One height for every button, so a row of them lines up whatever each one says, and a
@@ -158,6 +198,18 @@
   color: var(--ui-danger);
 }
 
+/* A button showing its icon alone: square, the icon a size up from the text. It always
+   carries a visually-hidden label and a title, so it is named for everyone (D-039). */
+.button-icon {
+  inline-size: 2.5rem;
+  padding: 0;
+}
+
+.button-icon .icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
 /* A small button, for rows of a table and the controls inside a block: same shape, less
    height, so a row of actions does not outgrow the row it sits in. */
 .button-small {
@@ -216,4 +268,10 @@
 
 .check-ok .check-status {
   color: var(--ui-success);
+}
+
+/* A script-only button keeps the button's own layout: .js-only would otherwise make it
+   inline-block and drop its icon out of line. */
+.js .button.js-only {
+  display: inline-flex;
 }

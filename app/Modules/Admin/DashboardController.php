@@ -36,6 +36,7 @@ final class DashboardController
         return AdminView::render($this->container, __DIR__ . '/views', 'dashboard', [
             'title' => t('admin.dashboard.title'),
             'nav' => 'dashboard',
+            'wide' => true,
             'styles' => ['admin-dashboard.css'],
             'published' => $count("SELECT COUNT(*) AS n FROM pages WHERE status = 'published'"),
             'drafts' => $count("SELECT COUNT(*) AS n FROM pages WHERE status <> 'published'"),

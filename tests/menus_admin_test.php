@@ -148,3 +148,32 @@ test('every menu write needs a CSRF token', function () {
         assertEquals(403, dispatch($path, null, 'POST', ['name' => 'X'])->status, "unguarded: {$path}");
     }
 });
+
+// The menu screen itself, rendered: a template that does not parse failed only in the
+// browser, because nothing here drew it. Edit opens a dialog per item (D-039), drawn open
+// when asked for with ?edit=, which is the path without a script.
+testBothDrivers('the menu screen draws, with a dialog per item, open when asked for', function (string $driver) {
+    $db = adminSite($driver);
+    $menu = Menu::create($db, 'en', 'Header');
+    $item = (int) Menu::addItem($db, $menu, null, null, '/one', 'One');
+
+    $body = dispatch('/admin/menus/' . $menu)->body;
+    assertContains('id="item-dialog-' . $item . '"', $body, 'no dialog for the item');
+    assertTrue(!str_contains($body, 'id="item-dialog-' . $item . '" aria-labelledby="item-dialog-' . $item . '-title" open'), 'the dialog is open on arrival');
+
+    $asked = dispatch('/admin/menus/' . $menu . '?edit=' . $item)->body;
+    assertContains('aria-labelledby="item-dialog-' . $item . '-title" open', $asked, 'the dialog is not open when asked for');
+});
+
+testBothDrivers('an item is edited through its own route', function (string $driver) {
+    $db = adminSite($driver);
+    $menu = Menu::create($db, 'en', 'Header');
+    $item = (int) Menu::addItem($db, $menu, null, null, '/one', 'One');
+
+    assertRedirectedTo('/admin/menus/' . $menu, adminPost('/admin/menus/' . $menu . '/items/' . $item, [
+        'page_id' => '', 'url' => 'info@example.com', 'label' => 'Write to us',
+    ]));
+    $row = Menu::findItem($db, $item) ?? [];
+    assertEquals('mailto:info@example.com', $row['url'] ?? null, 'the address, made a link');
+    assertEquals('Write to us', $row['label'] ?? null, 'the label');
+});

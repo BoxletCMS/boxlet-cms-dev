@@ -39,7 +39,7 @@ return [
     'media.drop' => 'Drag pictures here or',
     'media.browse' => 'browse',
     'media.uploading' => 'Uploading…',
-    'media.search_hint' => 'Finds pictures whose file name contains what you type.',
+    'media.search_placeholder' => 'Search pictures by name',
     'media.upload_submit' => 'Upload',
     'media.uploaded' => 'Uploaded :count.',
     'media.duplicate' => ':name was already in the library, so it was not stored twice.',
@@ -78,7 +78,7 @@ return [
     'media.deleted' => 'The picture was deleted.',
     // A refusal that does not say WHICH pages sends someone hunting through the site.
     'media.in_use' => 'That picture is still used on :pages. Remove it there first, then delete it.',
-    'media.replace_file' => 'The new picture',
+    'media.replace_drop' => 'Drop the new picture here or',
     'media.replace_submit' => 'Replace the picture',
     'media.replace' => 'Replace',
     'media.replace_hint' => 'Put a different picture in its place. Every page using it shows the new one, and the sizes are made again.',

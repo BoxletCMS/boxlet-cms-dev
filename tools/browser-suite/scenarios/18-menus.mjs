@@ -114,6 +114,19 @@ export default {
         `${JSON.stringify(before)} -> ${JSON.stringify(after)}`
         + (said.length ? `; the admin said: ${JSON.stringify(said)}` : ''));
       await report.shot(page, '02-reordered');
+
+      // ---- editing an item in its dialog (D-039) -------------------------------------------
+      await page.click('tbody[data-menu-rows] tr:nth-child(2) [data-dialog-open]');
+      const dialogId = await page.$eval('tbody[data-menu-rows] tr:nth-child(2) [data-dialog-open]', (a) => a.getAttribute('data-dialog-open'));
+      const open = await page.$eval(`#${dialogId}`, (d) => d.open && d.matches(':modal'));
+      await report.shot(page, '03-edit-dialog', { fullPage: false });
+      report.verdict('Edit opens the item in a dialog over the list', open, open ? 'a modal dialog' : 'no dialog opened');
+      const renamed = `Zz renamed ${Date.now().toString(36).slice(-3)}`;
+      await retype(page, `#${dialogId} input[name="label"]`, renamed);
+      await submitVia(page, `#${dialogId} input[name="label"]`, 40000);
+      const labelsAfterEdit = await rowLabels(page);
+      report.verdict('saving the dialog changes the item', labelsAfterEdit.some((label) => label.includes(renamed)),
+        `rows: ${JSON.stringify(labelsAfterEdit)}`);
     } finally {
       // By exact id, captured at creation. A menu left behind would make the next run's
       // "created a menu" count wrong and its name collide.

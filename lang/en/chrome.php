@@ -31,7 +31,7 @@ return [
     'chrome.button_url' => 'Button links to',
     'chrome.button_url_hint' => 'An optional button at the right of the header, for the one thing you most want visitors to do. Choose one of your pages, or “Another address…” to link anywhere else. Leave both empty for no button.',
     'chrome.button_address' => 'Button address',
-    'chrome.button_address_hint' => 'Filled in when you choose a page. For another address, type it here: /contact, https://example.com, mailto:you@example.com or tel:+385…',
+    'chrome.button_address_hint' => 'Filled in when you choose a page. For anything else type it here: /contact, https://example.com, an email address or a phone number. An email opens the visitor’s mail app; a phone number can be tapped to call on a phone.',
     'chrome.button_url_refused' => 'That address was not accepted, so it was not saved.',
 
     'chrome.text' => 'Footer text',

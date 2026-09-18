@@ -75,17 +75,24 @@ use App\Support\Url;
                         </td>
                         <td><?= e($localeLabels[$page['locale']] ?? $page['locale']) ?></td>
                         <td class="address"><?php if ($published): ?><a href="<?= e($address) ?>"><?= e($address) ?></a><?php else: ?><?= e($address) ?><?php endif; ?></td>
-                        <td><span class="status status-<?= e($page['status']) ?>"><?= e(t('pages.status.' . $page['status'])) ?></span></td>
-                        <td class="date"><?= e(\App\Support\Dates::local($page['updated'], $zone)) ?></td>
-                        <td class="row-actions">
+                        <?php /* THE STATUS IS THE SWITCH (D-039): pressing "Published" makes
+                                 the page a draft, pressing "Draft" publishes it. A pill with an
+                                 edge, so it reads as something to press at rest; the title and
+                                 the hidden words say what pressing it does. */ ?>
+                        <td>
                             <form method="post" action="<?= e(Url::admin('pages', $id, 'status')) ?>">
                                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                                 <input type="hidden" name="status" value="<?= $published ? 'draft' : 'published' ?>">
-                                <button type="submit" class="button button-ghost"><?= e(t($published ? 'pages.unpublish' : 'pages.publish')) ?></button>
+                                <button type="submit" class="status status-<?= e($page['status']) ?> status-toggle" title="<?= e(t($published ? 'pages.unpublish_hint' : 'pages.publish_hint')) ?>">
+                                    <?= e(t('pages.status.' . $page['status'])) ?><span class="visually-hidden"> — <?= e(t($published ? 'pages.unpublish' : 'pages.publish')) ?></span>
+                                </button>
                             </form>
+                        </td>
+                        <td class="date"><?= e(\App\Support\Dates::local($page['updated'], $zone)) ?></td>
+                        <td class="row-actions">
                             <form method="post" action="<?= e(Url::admin('pages', $id, 'delete')) ?>">
                                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                                <button type="submit" class="button button-ghost button-danger" data-confirm="<?= e(t('pages.delete_confirm', ['title' => $page['title']])) ?>"><?= e(t('pages.delete')) ?></button>
+                                <button type="submit" class="button button-ghost button-danger button-icon" title="<?= e(t('pages.delete')) ?>" data-confirm="<?= e(t('pages.delete_confirm', ['title' => $page['title']])) ?>"><?= icon('trash-2') ?><span class="visually-hidden"><?= e(t('pages.delete')) ?></span></button>
                             </form>
                         </td>
                     </tr>

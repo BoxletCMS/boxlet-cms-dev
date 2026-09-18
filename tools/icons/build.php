@@ -18,7 +18,7 @@ const VERSION = '1.47.0';
 
 const ICONS = [
     'arrow-down', 'arrow-up', 'chevron-down', 'cloud-upload', 'crop', 'external-link',
-    'grip-vertical', 'image-up', 'log-out', 'menu', 'pencil', 'plus', 'replace', 'search', 'settings',
+    'grip-vertical', 'image-up', 'log-out', 'menu', 'monitor', 'smartphone', 'tablet', 'pencil', 'plus', 'replace', 'search', 'settings',
     'trash-2', 'x',
 ];
 

@@ -66,8 +66,9 @@ foreach ($errors as $key => $message) {
                 <p class="builder-title" data-title-echo><?= e($titleValue !== '' ? $titleValue : t('pages.new')) ?></p>
 
                 <div class="builder-devices" role="group" aria-label="<?= e(t('pages.device.label')) ?>">
-<?php foreach (['phone' => '24rem', 'tablet' => '48rem', 'desktop' => '100%'] as $device => $width): ?>
-                    <button type="button" class="button button-ghost" data-device="<?= e($device) ?>" data-width="<?= e($width) ?>"<?= $device === 'desktop' ? ' aria-pressed="true"' : ' aria-pressed="false"' ?>><?= e(t('pages.device.' . $device)) ?></button>
+<?php /* Icons, each named for a screen reader and on hover (D-039). */ ?>
+<?php foreach (['phone' => ['24rem', 'smartphone'], 'tablet' => ['48rem', 'tablet'], 'desktop' => ['100%', 'monitor']] as $device => [$width, $deviceIcon]): ?>
+                    <button type="button" class="button button-ghost button-icon" data-device="<?= e($device) ?>" data-width="<?= e($width) ?>" title="<?= e(t('pages.device.' . $device)) ?>"<?= $device === 'desktop' ? ' aria-pressed="true"' : ' aria-pressed="false"' ?>><?= icon($deviceIcon) ?><span class="visually-hidden"><?= e(t('pages.device.' . $device)) ?></span></button>
 <?php endforeach; ?>
                 </div>
 
@@ -79,11 +80,13 @@ foreach ($errors as $key => $message) {
                     </select>
                 </label>
 
-                <a class="button button-ghost" href="<?= e(Url::admin('pages', $pageId, 'form')) ?>"><?= e(t('pages.editor.fallback')) ?></a>
+                <?php /* The plain editor is for when this one cannot run, so it is offered only
+                         then: without a script, this is the way to the page's text (D-039). */ ?>
+                <noscript><a class="button button-ghost" href="<?= e(Url::admin('pages', $pageId, 'form')) ?>"><?= e(t('pages.editor.fallback')) ?></a></noscript>
 <?php if ($published): ?>
                 <?php /* A new tab: this form holds unsaved work, and navigating away from
                          it to look at the published page would be a poor trade. */ ?>
-                <a class="button button-ghost" href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>" target="_blank" rel="noopener"><?= e(t('pages.view')) ?></a>
+                <a class="button button-ghost button-icon" href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>" target="_blank" rel="noopener" title="<?= e(t('pages.view')) ?>"><?= icon('external-link') ?><span class="visually-hidden"><?= e(t('pages.view')) ?></span></a>
 <?php endif; ?>
                 <button type="submit" name="action" value="save" class="button"><?= e(t('pages.save')) ?></button>
             </div>

@@ -132,3 +132,24 @@ test('a versioned URL changes only when the file does', function () {
     removeTree($dir);
     Url::usePublicPath(dirname(__DIR__) . '/public');
 });
+
+// Every admin screen draws. A template that did not parse once reached the development
+// site because no test rendered that screen; this renders them all, with something on
+// each to show (a page, a menu with an item, a picture).
+testBothDrivers('every admin screen draws', function (string $driver) {
+    $db = adminSite($driver);
+    $page = createPage($db, 'en', 'about', 'About');
+    $menu = App\Modules\Menus\Menu::create($db, 'en', 'Header');
+    App\Modules\Menus\Menu::addItem($db, $menu, null, $page, null, 'About');
+    $picture = storedPicture($db, 'photo.jpg', ['full' => ['width' => 800, 'height' => 600, 'formats' => ['jpg']]]);
+
+    foreach ([
+        '/admin', '/admin/pages', '/admin/pages/new', '/admin/pages/' . $page, '/admin/pages/' . $page . '/form',
+        '/admin/media', '/admin/media/' . $picture, '/admin/design', '/admin/menus', '/admin/menus/' . $menu,
+        '/admin/chrome', '/admin/settings',
+    ] as $path) {
+        $response = dispatch($path);
+        assertEquals(200, $response->status, $path);
+        assertContains('</html>', $response->body, "{$path} stopped drawing part way");
+    }
+});

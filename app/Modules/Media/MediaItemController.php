@@ -50,6 +50,8 @@ final class MediaItemController
             'meta' => MediaMeta::forPicture($this->container->get('db'), $id),
             'locales' => $this->container->get('locales'),
             'usedBy' => $library->usedBy($id),
+            // The size check a replacement is refused by before it is sent, as an upload is.
+            'limits' => \App\Support\Bytes::limits(),
             'added' => Dates::local((string) $media['created_at'], Dates::zone($this->container->get('db'))),
             'mime' => (string) $media['mime'],
         ]);

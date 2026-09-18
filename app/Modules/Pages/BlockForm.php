@@ -215,7 +215,8 @@ final class BlockForm
         switch ($field['type']) {
             case 'link':
                 $label = is_array($raw) ? self::line($raw['label'] ?? null) : '';
-                $url = is_array($raw) ? self::line($raw['url'] ?? null) : '';
+                // A bare email or phone number becomes the link it was meant to be (D-039).
+                $url = SafeUrl::normalize(is_array($raw) ? self::line($raw['url'] ?? null) : '');
                 // A chosen page wins over a typed address (PLAN.md D-034): the address input
                 // is hidden while a page is chosen, so whatever it still holds is stale.
                 $page = is_array($raw) ? self::line($raw['page'] ?? null) : '';

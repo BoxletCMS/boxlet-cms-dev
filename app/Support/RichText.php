@@ -132,8 +132,14 @@ final class RichText
                     $node->removeAttribute($attribute);
                 }
             }
-            if ($tag === 'a' && $node->hasAttribute('href') && !SafeUrl::isLink($node->getAttribute('href'))) {
-                $node->removeAttribute('href');
+            if ($tag === 'a' && $node->hasAttribute('href')) {
+                // A bare email or phone number becomes the link it was meant to be (D-039).
+                $href = SafeUrl::normalize($node->getAttribute('href'));
+                if (SafeUrl::isLink($href)) {
+                    $node->setAttribute('href', $href);
+                } else {
+                    $node->removeAttribute('href');
+                }
             }
 
             // Last, so the block's final name is known and its children are settled.

@@ -10,6 +10,7 @@ use App\Support\Url;
  * @var array<string, array{alt: string, caption: string, suggested: bool}> $meta
  * @var list<array<string, mixed>> $locales
  * @var array<int, string> $usedBy page id => title
+ * @var array{file: int, request: int, fileLabel: string, requestLabel: string} $limits
  * @var string $added
  * @var string $mime
  * @var string $csrf
@@ -66,21 +67,10 @@ use App\Support\Url;
                              be a control that cannot do anything — worse than an absent one. */ ?>
                     <button type="button" class="button button-secondary" data-crop-open hidden><?= icon('crop') ?> <?= e(t('media.crop_open')) ?></button>
 <?php endif; ?>
-                    <details class="media-replace">
-                        <summary class="button button-secondary"><?= icon('image-up') ?> <?= e(t('media.replace')) ?></summary>
-                        <?php /* Replacing keeps the id, so every page showing this picture
-                                 shows the new one with nothing to go and find. */ ?>
-                        <form method="post" action="<?= e(Url::admin('media', $picture['id'], 'replace')) ?>" enctype="multipart/form-data" class="stack">
-                            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                            <div class="field">
-                                <label for="replace-file"><?= e(t('media.replace_file')) ?></label>
-                                <input type="file" id="replace-file" name="file" aria-describedby="replace-hint"
-                                       accept="image/jpeg,image/png,image/webp,image/gif,image/avif">
-                                <p class="hint" id="replace-hint"><?= e(t('media.replace_hint')) ?></p>
-                            </div>
-                            <button type="submit" class="button"><?= e(t('media.replace_submit')) ?></button>
-                        </form>
-                    </details>
+                    <?php /* Replace opens its drop zone under this row rather than in it, so
+                             the three buttons never move (D-039). A script-only button: without
+                             one the drop zone below is simply always shown. */ ?>
+                    <button type="button" class="button button-secondary js-only" aria-expanded="false" aria-controls="media-replace" data-replace-toggle><?= icon('image-up') ?> <?= e(t('media.replace')) ?></button>
                     <?php /* Deleting is refused while a page still shows the picture, so this
                              button is not hidden when it is in use: the refusal names the
                              pages, which is more use than a control that has quietly gone. */ ?>
@@ -88,6 +78,31 @@ use App\Support\Url;
                         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                         <button type="submit" class="button button-ghost button-danger"
                                 data-confirm="<?= e(t('media.delete_confirm', ['name' => $picture['filename']])) ?>"><?= icon('trash-2') ?> <?= e(t('media.delete')) ?></button>
+                    </form>
+                </div>
+                <div class="media-replace" id="media-replace" data-replace-panel>
+                    <?php /* The same drop zone as the library's, for one picture: dropped or
+                             chosen, it goes up at once (D-039). Without a script the zone
+                             still opens the file chooser and a button sends it. */ ?>
+                    <form method="post" action="<?= e(Url::admin('media', $picture['id'], 'replace')) ?>" enctype="multipart/form-data" class="media-upload media-replace-form"
+                          data-media-upload
+                          data-max-file="<?= $limits['file'] ?>"
+                          data-max-request="<?= $limits['request'] ?>"
+                          data-file-label="<?= e($limits['fileLabel']) ?>"
+                          data-request-label="<?= e($limits['requestLabel']) ?>"
+                          data-too-large="<?= e(t('media.too_large_named')) ?>"
+                          data-too-large-total="<?= e(t('media.too_large_total')) ?>"
+                          data-uploading="<?= e(t('media.uploading')) ?>">
+                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                        <label class="dropzone" for="replace-file">
+                            <?= icon('image-up') ?>
+                            <span class="dropzone-text"><?= e(t('media.replace_drop')) ?> <span class="dropzone-browse"><?= e(t('media.browse')) ?></span></span>
+                            <span class="dropzone-limits"><?= e(t('media.replace_hint')) ?></span>
+                        </label>
+                        <input type="file" id="replace-file" name="file" class="visually-hidden" data-media-input
+                               accept="image/jpeg,image/png,image/webp,image/gif,image/avif">
+                        <p class="field-error" data-media-error role="alert" hidden></p>
+                        <button type="submit" class="button no-js-only"><?= e(t('media.replace_submit')) ?></button>
                     </form>
                 </div>
             </div>

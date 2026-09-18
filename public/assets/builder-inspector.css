@@ -8,10 +8,18 @@
 
 /* Page settings: a short fixed form above the library. */
 
-/* Folded by default (D-040): a summary line with a chevron, the fields when opened. */
+/* Folded by default (D-040): a summary line with a chevron, the fields when opened. On a
+   light grey ground of its own, title included, so it reads as one box apart from the
+   block being edited below it. --ui-bg, which every admin ink is measured against. */
 .panel-page {
-  padding-bottom: var(--ui-3);
-  border-bottom: var(--ui-border) solid var(--ui-line);
+  padding: var(--ui-2) var(--ui-4);
+  background: var(--ui-bg);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.panel-page[open] {
+  padding-bottom: var(--ui-4);
 }
 
 .panel-page > summary {

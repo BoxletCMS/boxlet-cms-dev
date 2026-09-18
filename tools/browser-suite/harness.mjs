@@ -20,7 +20,8 @@
  */
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { readdirSync, existsSync, mkdirSync, rmSync, copyFileSync } from 'node:fs';
+import { readdirSync, existsSync, mkdirSync, rmSync, copyFileSync, readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { BASE, SHOTS as SHOTS_DIR, CHROME, MODULES, SITE_DIR, CHECKOUT } from './config.mjs';
 
@@ -152,6 +153,39 @@ export async function login(page, base, email, password) {
   await page.type('input[name="password"]', password, { delay: 10 });
   await submitVia(page, 'input[name="password"]');
   return !page.url().includes('/login');
+}
+
+/**
+ * Aborts when the site copy is running OLDER CODE than the checkout (PLAN.md D-029).
+ *
+ * requireServed() below refuses stale stylesheets. Nothing refused stale PHP, and that is
+ * a whole class of wasted measurement: 5c's logo was fixed in the checkout, the copy still
+ * held the controller from before the fix, and five screenshots under five characters all
+ * said "no logo" about code that did not exist there. A green row about the wrong tree.
+ *
+ * The copy records the revision it was synced from, in storage/checkout.rev. A file rather
+ * than an admin endpoint on purpose: an endpoint would mean adding product code to serve a
+ * development need, which is the worse trade.
+ *
+ * WHAT IT DOES NOT CATCH, said plainly: a copy edited by hand after the sync still claims
+ * that revision. It catches "older than the checkout", which is what actually happens.
+ */
+export function requireCurrentCode() {
+  const recorded = existsSync(`${SITE_DIR}/storage/checkout.rev`)
+    ? readFileSync(`${SITE_DIR}/storage/checkout.rev`, 'utf8').trim()
+    : '';
+  const head = execSync('git rev-parse HEAD', { cwd: CHECKOUT, encoding: 'utf8' }).trim();
+
+  if (recorded === '') {
+    throw new Error(`${SITE_DIR} does not record which revision it was synced from. `
+      + `Sync it and write ${head} into storage/checkout.rev, or the run measures code nobody chose.`);
+  }
+  if (recorded !== head) {
+    throw new Error(`${SITE_DIR} is running ${recorded.slice(0, 12)}, the checkout is at ${head.slice(0, 12)}. `
+      + 'Re-sync the copy: a run against older code reports its absence as a product failure.');
+  }
+
+  return head;
 }
 
 /**

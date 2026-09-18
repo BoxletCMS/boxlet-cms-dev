@@ -13,7 +13,7 @@
  * checklist whose whole output is per-item verdicts.
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { openBrowser, reporter } from './harness.mjs';
+import { openBrowser, reporter, requireCurrentCode } from './harness.mjs';
 
 const dir = new URL('./scenarios/', import.meta.url);
 const wanted = process.argv.slice(2);
@@ -55,6 +55,27 @@ if (banned.length > 0) {
     + 'Use retype() from harness.mjs.');
   process.exit(2);
 }
+
+/*
+ * THE COPY MUST BE RUNNING THIS CHECKOUT'S CODE (PLAN.md D-029).
+ *
+ * Refused here, before a browser opens, rather than reported per scenario: every verdict
+ * in the run is about whatever code the copy holds, so one stale sync makes the whole
+ * output a statement about the wrong tree. In 5c that produced five screenshots under five
+ * characters all agreeing there was no logo, about a fix that was already written.
+ */
+let revision;
+try {
+  revision = requireCurrentCode();
+} catch (error) {
+  // A REFUSAL, NOT A CRASH. Thrown, it arrived as an uncaught exception with a stack
+  // trace, and a guard that reads like a bug in the harness is a guard someone deletes.
+  // Same exit as "no scenario matches": say the one thing that is wrong, and stop.
+  console.error(error.message);
+  console.error('Run tools/browser-suite/sync-copy.sh to bring the copy up to date.');
+  process.exit(2);
+}
+console.log(`Copy is at ${revision.slice(0, 12)}, matching the checkout.`);
 
 const all = [];
 

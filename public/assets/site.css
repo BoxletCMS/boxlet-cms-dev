@@ -231,10 +231,107 @@ code {
   object-fit: contain;
 }
 
+/* Site chrome (PLAN.md D-028, D-030)
+
+   The header and footer are rendered by the block machinery, so they arrive wearing
+   .block and take the section rhythm — which is meant for a band of content, not for a
+   bar. Without these rules the header stood a third of a screen tall with the navigation
+   falling down it as a bulleted list, because nothing here described .site-nav at all.
+
+   The rhythm is TIGHTENED THROUGH THE SAME PROPERTY the sections use, rather than by
+   overriding padding: a chrome band is a section with less air, not a special case. */
+
+.block-header,
+.block-footer {
+  --section-rhythm: var(--space-m);
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-m) var(--space-l);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-logo {
+  display: inline-flex;
+  text-decoration: none;
+}
+
+/* Held by its height so a wide logo and a square one sit on the same line, and sized in
+   ems so the character's own scale carries it. */
+.site-logo img {
+  display: block;
+  block-size: 2.5em;
+  inline-size: auto;
+  border-radius: 0;
+}
+
+.site-nav ul,
+.site-footer-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-m);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A navigation link keeps its colour at rest and gains the underline on hover and focus.
+   The reverse — grey until touched — is the "no control is ever invisible at rest" rule
+   broken in the quietest possible way (CLAUDE.md). */
+.site-nav a,
+.site-footer-nav a {
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a:focus-visible,
+.site-footer-nav a:hover,
+.site-footer-nav a:focus-visible {
+  text-decoration: underline;
+}
+
+.site-nav-children {
+  display: none;
+}
+
+.site-header-action {
+  margin: 0;
+}
+
+.site-footer {
+  display: grid;
+  gap: var(--space-s);
+}
+
+.site-footer-text {
+  color: var(--section-muted);
+}
+
+/* The switcher sits in the footer now, so it no longer carries the standalone padding it
+   had when the layout drew it on its own. */
+.site-footer .locale-switcher {
+  padding-block: 0;
+}
+
+.site-small-print {
+  margin: 0;
+  color: var(--section-muted);
+  font-size: var(--text-sm);
+}
+
 @media (max-width: 40rem) {
   .layout-split .hero,
   .image-text {
     grid-template-columns: 1fr;
+  }
+
+  /* On a narrow screen the bar becomes a stack: a logo, its navigation and a button do
+     not share a line at this width without one of them being squeezed to nothing. */
+  .site-header {
+    justify-content: flex-start;
   }
 
   .layout-image-right .image-text-media {

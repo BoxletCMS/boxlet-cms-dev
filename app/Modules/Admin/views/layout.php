@@ -54,6 +54,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
                 <a href="<?= e(Url::admin('media')) ?>"<?= $current('media') ?>><?= e(t('admin.nav.media')) ?></a>
                 <a href="<?= e(Url::admin('design')) ?>"<?= $current('design') ?>><?= e(t('admin.nav.design')) ?></a>
                 <a href="<?= e(Url::admin('menus')) ?>"<?= $current('menus') ?>><?= e(t('admin.nav.menus')) ?></a>
+                <a href="<?= e(Url::admin('chrome')) ?>"<?= $current('chrome') ?>><?= e(t('admin.nav.chrome')) ?></a>
                 <a href="<?= e(Url::admin('settings')) ?>"<?= $current('settings') ?>><?= e(t('admin.nav.settings')) ?></a>
             </nav>
             <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">

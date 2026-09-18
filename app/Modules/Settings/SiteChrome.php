@@ -120,6 +120,36 @@ final class SiteChrome
     }
 
     /**
+     * What the chrome screen writes: the choices that are the same in every language.
+     *
+     * The menu is stored by NAME. Menus are unique per (locale, name), so one name gives
+     * each translation its own menu and nothing dangles when a menu is deleted and made
+     * again. An id would have had to be re-chosen, per locale, every time.
+     */
+    public static function saveShared(Db $db, ?int $logo, string $menu): void
+    {
+        Settings::set($db, self::key('chrome_logo'), $logo);
+        Settings::set($db, self::key('chrome_menu'), $menu);
+    }
+
+    /**
+     * What the chrome screen writes for one language: the owner's own words.
+     *
+     * Callers pass FIELD NAMES, never keys. The locale suffix is this class's business and
+     * stays in key(); a controller spelling it out would be the sixth hand-rolled copy of a
+     * contract, which is the mistake Settings itself was written to end.
+     *
+     * @param array{button_label: string, button_url: string, text: string, small_print: string} $values
+     */
+    public static function saveForLocale(Db $db, string $locale, array $values): void
+    {
+        Settings::set($db, self::key('chrome_button_label', $locale), $values['button_label']);
+        Settings::set($db, self::key('chrome_button_url', $locale), $values['button_url']);
+        Settings::set($db, self::key('chrome_footer_text', $locale), $values['text']);
+        Settings::set($db, self::key('chrome_small_print', $locale), $values['small_print']);
+    }
+
+    /**
      * THE ONLY PLACE A CHROME SETTINGS KEY IS COMPOSED.
      *
      * `settings` is one JSON value per key with no locale column, and adding one would be

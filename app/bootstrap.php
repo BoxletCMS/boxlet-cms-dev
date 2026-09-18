@@ -26,6 +26,7 @@ use App\Modules\Media\MediaVariants;
 use App\Modules\Media\MediaWriter;
 use App\Modules\Pages\PagesController;
 use App\Modules\Menus\MenusController;
+use App\Modules\Settings\ChromeController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Update\Maintenance;
 use App\Modules\Update\MaintenanceController;
@@ -178,6 +179,12 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // maintenance message and its switch, which moved off the dashboard.
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
+
+    // The site's header and footer (D-028, D-030). Its own screen rather than another
+    // section of Settings: settings are what the installer wrote and the fallback
+    // pictures, while this is what a visitor sees at the top and bottom of every page.
+    $router->get('/admin/chrome', [ChromeController::class, 'show'], $requireAdmin);
+    $router->post('/admin/chrome', [ChromeController::class, 'save'], $requireAdmin);
 
     $router->get('/admin/design', [DesignController::class, 'show'], $requireAdmin);
     $router->post('/admin/design', [DesignController::class, 'save'], $requireAdmin);

@@ -139,12 +139,19 @@ final class PageController
         $header = SiteChrome::header($db, $locale);
         $footer = SiteChrome::footer($db, $locale);
 
+        // The logo is a picture like any other and has to be RESOLVED before the template
+        // sees it, exactly as a block's pictures are. Handing the header an empty lookup
+        // was a silent failure of my own making: the setting was saved, the template asked
+        // for a tag, MediaPicture had no entry for that id and drew nothing at all. The
+        // header simply had no logo, under every character, and nothing said why.
+        $media = $header['logo'] === null ? [] : MediaPicture::resolve($db, $locale, [$header['logo']]);
+
         $hasHeader = $header['logo'] !== null || $header['button']['url'] !== '' || $menu !== [];
         $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $menu !== [] || count($locales) > 1;
 
         return [
             'headerHtml' => $hasHeader
-                ? $registry->render('header', $header, [], '', [], true, 'header', ['menu' => $menu], $locale, $locales)
+                ? $registry->render('header', $header, [], '', $media, true, 'header', ['menu' => $menu], $locale, $locales)
                 : '',
             'footerHtml' => $hasFooter
                 ? $registry->render('footer', $footer, [], '', [], false, 'footer', ['menu' => $menu], $locale, $locales)

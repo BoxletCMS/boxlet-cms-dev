@@ -29,7 +29,7 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
         </div>
 
         <div class="panel stack">
-            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'rename')) ?>">
+            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'rename')) ?>" class="stack">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
                     <label for="menu-name"><?= e(t('menus.name')) ?></label>
@@ -114,7 +114,7 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
 
         <div class="panel stack">
             <h2><?= e(t('menus.item.add')) ?></h2>
-            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items')) ?>">
+            <form method="post" action="<?= e(Url::admin('menus', $menuId, 'items')) ?>" class="stack">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
                     <label for="item-page"><?= e(t('menus.item.page')) ?></label>

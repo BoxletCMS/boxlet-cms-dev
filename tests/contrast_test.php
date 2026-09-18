@@ -91,6 +91,26 @@ test('every admin ink is readable on every admin surface', function () {
     }
 });
 
+// The bar across the top is the admin's one dark surface, so its inks are measured
+// against it alone: the matrix above pairs inks with pale surfaces, where these light
+// inks would fail by design. The mark is decoration and carries no text, so it is held to
+// the 3:1 of a shape rather than the 4.5:1 of words.
+test('the bar\'s inks are readable on the bar', function () {
+    $tokens = adminTokens();
+
+    foreach (['bar', 'bar-ink', 'bar-ink-muted', 'bar-raised', 'mark'] as $name) {
+        assertTrue(isset($tokens[$name]), "--ui-{$name} is gone from admin.css");
+    }
+    foreach (['bar-ink', 'bar-ink-muted'] as $ink) {
+        foreach (['bar', 'bar-raised'] as $surface) {
+            $ratio = Color::contrast($tokens[$ink], $tokens[$surface]);
+            assertTrue($ratio >= 4.5, sprintf('--ui-%s on --ui-%s is %.2f:1, under the 4.5:1 text rule', $ink, $surface, $ratio));
+        }
+    }
+    $ratio = Color::contrast($tokens['mark'], $tokens['bar']);
+    assertTrue($ratio >= 3.0, sprintf('--ui-mark on --ui-bar is %.2f:1, under the 3:1 rule for a shape', $ratio));
+});
+
 test('the ink on a filled accent surface is readable', function () {
     $tokens = adminTokens();
 

@@ -1,0 +1,130 @@
+/* The admin's frame: the dark bar, the site's name beside the mark, the navigation, and
+ * View site and Log out. Admin tokens only (--ui-*), defined in admin.css. Loaded by the
+ * admin shell alone: the login screen and the installer have no bar. */
+
+.admin-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ui-bar);
+  color: var(--ui-bar-ink);
+}
+
+.admin-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-2) var(--ui-5);
+  box-sizing: border-box;
+  min-height: var(--ui-bar-height);
+  max-width: var(--ui-content-wide);
+  margin-inline: auto;
+  padding: var(--ui-2) var(--ui-5);
+}
+
+.admin-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-3);
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/* A box inside a box: the mark. Drawn by CSS, so there is no image to ship or theme. */
+.admin-brand::before {
+  content: "";
+  flex: none;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  box-sizing: border-box;
+  border: 0.3125rem solid var(--ui-mark);
+  border-radius: var(--ui-radius-s);
+}
+
+.admin-nav {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--ui-1);
+}
+
+/* Legible at rest on the dark bar, raised on hover, and the current section marked by
+   both a lighter ink and a ground, never by colour alone. */
+.admin .admin-nav a {
+  padding: var(--ui-2) var(--ui-3);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-bar-ink-muted);
+  font-weight: 550;
+  text-decoration: none;
+}
+
+.admin .admin-nav a:hover {
+  background: var(--ui-bar-raised);
+  color: var(--ui-bar-ink);
+}
+
+.admin .admin-nav [aria-current] {
+  background: var(--ui-bar-raised);
+  color: var(--ui-bar-ink);
+  box-shadow: inset 0 -2px 0 var(--ui-mark);
+}
+
+.admin-bar-end {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+}
+
+.admin-logout {
+  margin: 0;
+}
+
+/* The bar's own quiet controls: View site and Log out. Not a .button variant, because they
+   live on the one dark surface and are measured against it (contrast_test). */
+.admin .admin-bar-link {
+  display: inline-block;
+  padding: var(--ui-2) var(--ui-3);
+  background: transparent;
+  border: var(--ui-border) solid var(--ui-bar-raised);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-bar-ink);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+  font-weight: 550;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin .admin-bar-link:hover {
+  background: var(--ui-bar-raised);
+}
+
+.admin .admin-bar :focus-visible {
+  outline-color: var(--ui-bar-ink);
+}
+
+@media (max-width: 40rem) {
+  .admin-bar-inner {
+    padding-inline: var(--ui-4);
+  }
+
+  /* On a phone the navigation is one scrolling row rather than three wrapped ones. */
+  .admin-nav {
+    flex: 1 0 100%;
+    flex-wrap: nowrap;
+    align-items: center;
+    order: 3;
+    overflow-x: auto;
+    margin-inline: calc(var(--ui-4) * -1);
+    padding-inline: var(--ui-4);
+    scrollbar-width: none;
+  }
+
+  .admin-bar-end {
+    margin-inline-start: auto;
+  }
+}

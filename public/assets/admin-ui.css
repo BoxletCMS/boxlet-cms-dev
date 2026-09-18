@@ -7,13 +7,12 @@
 
 .notice {
   display: block;
-  margin: 0 0 var(--ui-5);
-  padding: var(--ui-3) var(--ui-4);
+  margin: 0 0 var(--ui-6);
+  padding: var(--ui-3) var(--ui-4) var(--ui-3) var(--ui-5);
   background: var(--ui-panel);
   border: var(--ui-border) solid var(--ui-line);
   border-left: var(--ui-1) solid var(--ui-ink-faint);
   border-radius: var(--ui-radius-m);
-  box-shadow: var(--ui-shadow-s);
 }
 
 .notice-success {
@@ -36,21 +35,71 @@
   color: var(--ui-warning);
 }
 
+/* A screen's one sentence of explanation, under its title. Shared by every screen, so it
+   lives with the shell rather than with the page list that used it first. */
+.page-subtitle {
+  max-inline-size: 44rem;
+  margin: calc(var(--ui-4) * -1) 0 var(--ui-6);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-base);
+}
+
+/* Nothing here yet: a drawn empty box, one sentence, and the action that fills it. */
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--ui-4);
+  padding: var(--ui-8) var(--ui-6);
+  background: var(--ui-panel);
+  border: var(--ui-border) dashed var(--ui-line-strong);
+  border-radius: var(--ui-radius-l);
+  text-align: center;
+}
+
+.empty-state::before {
+  content: "";
+  inline-size: 3rem;
+  block-size: 3rem;
+  box-sizing: border-box;
+  border: var(--ui-2) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+}
+
+.empty-state p {
+  max-inline-size: 28rem;
+  margin: 0;
+  color: var(--ui-ink-muted);
+}
+
+.empty-state .button {
+  justify-self: center;
+}
+
 /* Buttons */
 
+/* One height for every button, so a row of them lines up whatever each one says, and a
+   primary action that reads as the one to press: filled, with a hairline of depth. */
 .button {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   justify-self: start;
-  padding: var(--ui-2) var(--ui-4);
+  gap: var(--ui-2);
+  box-sizing: border-box;
+  min-block-size: 2.5rem;
+  padding: var(--ui-2) var(--ui-5);
   border: var(--ui-border) solid transparent;
   border-radius: var(--ui-radius-m);
   background: var(--ui-accent);
+  box-shadow: var(--ui-shadow-s);
   color: var(--ui-on-accent);
   font: inherit;
-  font-weight: 550;
-  line-height: 1.4;
+  font-weight: 600;
+  line-height: 1.3;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
 }
 
 .admin a.button {
@@ -68,7 +117,7 @@
 .button-secondary,
 .admin a.button-secondary {
   background: var(--ui-panel);
-  border-color: var(--ui-line-strong);
+  border-color: var(--ui-control-line);
   color: var(--ui-ink);
 }
 
@@ -86,6 +135,7 @@
 .admin a.button-ghost {
   background: transparent;
   border-color: transparent;
+  box-shadow: none;
   color: var(--ui-accent);
 }
 
@@ -104,7 +154,16 @@
 .button-danger,
 .admin a.button-danger {
   background: transparent;
+  box-shadow: none;
   color: var(--ui-danger);
+}
+
+/* A small button, for rows of a table and the controls inside a block: same shape, less
+   height, so a row of actions does not outgrow the row it sits in. */
+.button-small {
+  min-block-size: 2rem;
+  padding: var(--ui-1) var(--ui-3);
+  font-size: var(--ui-text-sm);
 }
 
 .button-danger:hover {

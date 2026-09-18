@@ -35,9 +35,10 @@
 
 .fieldset {
   display: grid;
-  gap: var(--ui-4);
+  gap: var(--ui-5);
+  box-sizing: border-box;
   margin: 0;
-  padding: var(--ui-5);
+  padding: var(--ui-6);
   background: var(--ui-panel);
   border: var(--ui-border) solid var(--ui-line);
   border-radius: var(--ui-radius-l);
@@ -48,13 +49,23 @@
 }
 
 .fieldset > legend {
-  padding-inline: var(--ui-2);
-  margin-inline-start: calc(var(--ui-2) * -1);
-  font-size: var(--ui-text-sm);
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ui-ink-muted);
+  float: left;
+  margin: 0;
+  padding: 0 0 var(--ui-4);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ui-ink);
+}
+
+/* A floated legend is laid out inside the box like any heading, so the grid gap below it
+   is the same as between fields, and as a grid item it stretches to the box's width by
+   itself. Giving it inline-size: 100% as well resolved against the fieldset's OWN
+   container on a phone and pushed the page 50px wider than the window. */
+.fieldset > legend + * {
+  clear: both;
 }
 
 /* Fields */
@@ -74,7 +85,7 @@
 
 .field > label,
 .field > .field-label {
-  font-weight: 550;
+  font-weight: 600;
   line-height: var(--ui-leading-tight);
 }
 
@@ -84,12 +95,14 @@
   box-sizing: border-box;
   inline-size: 100%;
   max-inline-size: 34rem;
+  min-block-size: 2.5rem;
   padding: var(--ui-2) var(--ui-3);
   background: var(--ui-panel);
   border: var(--ui-border) solid var(--ui-control-line);
   border-radius: var(--ui-radius-m);
   color: var(--ui-ink);
   font: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .field textarea {
@@ -107,6 +120,8 @@
 .field select:focus,
 .field textarea:focus {
   border-color: var(--ui-accent);
+  box-shadow: var(--ui-ring);
+  outline: none;
 }
 
 .field input[type="checkbox"] {
@@ -200,7 +215,12 @@
 
 /* Tables */
 
+/* position: relative makes the wrapper the containing block of what is absolutely placed
+   inside the table — the .visually-hidden column labels — so they scroll with it. Without
+   it they escaped the scroll box and widened the whole page on a phone: measured 704px of
+   document at a 390px viewport on the page list. */
 .table-wrap {
+  position: relative;
   overflow-x: auto;
   background: var(--ui-panel);
   border: var(--ui-border) solid var(--ui-line);
@@ -215,20 +235,35 @@
 
 .table th,
 .table td {
-  padding: var(--ui-3) var(--ui-4);
+  padding: var(--ui-4) var(--ui-5);
   text-align: left;
   vertical-align: middle;
   border-bottom: var(--ui-border) solid var(--ui-line);
 }
 
 .table thead th {
+  padding-block: var(--ui-3);
   background: var(--ui-panel-sunken);
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-xs);
   font-weight: 650;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* The row's own name reads as its title, not as a link in running text. */
+.table .row-title a,
+.table .page-name a {
+  color: var(--ui-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.table .row-title a:hover,
+.table .page-name a:hover {
+  color: var(--ui-accent);
+  text-decoration: underline;
 }
 
 .table tbody tr:last-child th,
@@ -250,18 +285,36 @@
   margin: 0;
 }
 
+/* Actions inside a row are the small size, so they do not set the row's height. */
+.table .button {
+  min-block-size: 2rem;
+  padding: var(--ui-1) var(--ui-3);
+  font-size: var(--ui-text-sm);
+}
+
 /* Status pills */
 
+/* A pill with a dot, so the state reads by shape as well as by colour. */
 .status {
-  display: inline-block;
-  padding: var(--ui-1) var(--ui-2);
-  border-radius: var(--ui-radius-s);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-2);
+  padding: 0.125rem var(--ui-3) 0.125rem var(--ui-2);
+  border: var(--ui-border) solid transparent;
+  border-radius: 999px;
   background: var(--ui-success-soft);
   color: var(--ui-success);
   font-size: var(--ui-text-xs);
   font-weight: 650;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status::before {
+  content: "";
+  inline-size: 0.4375rem;
+  block-size: 0.4375rem;
+  border-radius: 50%;
+  background: currentcolor;
 }
 
 .status-draft {

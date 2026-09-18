@@ -38,7 +38,7 @@ $error = static fn (string $key): string => isset($errors[$key])
                 <tbody>
 <?php foreach ($menus as $menu): ?>
                     <tr>
-                        <td><a href="<?= e(Url::admin('menus', $menu['id'])) ?>"><?= e($menu['name']) ?></a></td>
+                        <td class="row-title"><a href="<?= e(Url::admin('menus', $menu['id'])) ?>"><?= e($menu['name']) ?></a></td>
                         <td><?= e($menu['locale']) ?></td>
                         <td><?= e(t('menus.items_count', ['count' => (string) $menu['items']])) ?></td>
                         <td>
@@ -59,7 +59,7 @@ $error = static fn (string $key): string => isset($errors[$key])
 
         <div class="panel stack">
             <h2><?= e(t('menus.new')) ?></h2>
-            <form method="post" action="<?= e(Url::admin('menus')) ?>">
+            <form method="post" action="<?= e(Url::admin('menus')) ?>" class="stack">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
                     <label for="menu-name"><?= e(t('menus.name')) ?></label>

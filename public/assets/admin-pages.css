@@ -1,27 +1,8 @@
 /* The page list and the page editor. Admin tokens only (--ui-*). */
 
-.page-subtitle {
-  margin: calc(var(--ui-3) * -1) 0 var(--ui-5);
-  color: var(--ui-ink-faint);
-  font-size: var(--ui-text-sm);
-}
-
 .address {
   font-family: var(--ui-mono);
   font-size: var(--ui-text-sm);
-}
-
-.empty-state {
-  padding: var(--ui-7) var(--ui-5);
-  background: var(--ui-panel);
-  border: var(--ui-border) dashed var(--ui-line-strong);
-  border-radius: var(--ui-radius-l);
-  text-align: center;
-}
-
-.empty-state p {
-  margin: 0 0 var(--ui-4);
-  color: var(--ui-ink-muted);
 }
 
 /* Editor */

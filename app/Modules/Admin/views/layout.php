@@ -33,6 +33,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
     <meta name="robots" content="noindex">
     <title><?= e($title) ?></title>
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-shell.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-ui.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-forms.css')) ?>">
 <?php foreach ($styles as $style): ?>
@@ -57,10 +58,15 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
                 <a href="<?= e(Url::admin('chrome')) ?>"<?= $current('chrome') ?>><?= e(t('admin.nav.chrome')) ?></a>
                 <a href="<?= e(Url::admin('settings')) ?>"<?= $current('settings') ?>><?= e(t('admin.nav.settings')) ?></a>
             </nav>
-            <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
-                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                <button type="submit" class="button button-ghost"><?= e(t('admin.logout')) ?></button>
-            </form>
+            <div class="admin-bar-end">
+                <?php /* The site's home in a new tab: leaving the admin mid-edit would lose
+                         whatever is unsaved. */ ?>
+                <a class="admin-bar-link" href="<?= e(Url::asset('')) ?>" target="_blank" rel="noopener"><?= e(t('admin.view_site')) ?></a>
+                <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
+                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                    <button type="submit" class="admin-bar-link"><?= e(t('admin.logout')) ?></button>
+                </form>
+            </div>
         </div>
     </header>
     <main class="admin-main<?= $wide ? ' admin-main-wide' : '' ?><?= $bare ? ' admin-main-bare' : '' ?>" id="admin-content">

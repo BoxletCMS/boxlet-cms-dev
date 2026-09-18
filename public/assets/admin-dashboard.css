@@ -1,0 +1,58 @@
+/* The dashboard. Admin tokens only (--ui-*), defined in admin.css. */
+
+/* The dashboard's figures: four cards in a row, each the way into the screen it counts. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--ui-4);
+  margin: 0 0 var(--ui-5);
+  padding: 0;
+  list-style: none;
+}
+
+.admin a.stat {
+  display: grid;
+  gap: var(--ui-1);
+  block-size: 100%;
+  box-sizing: border-box;
+  padding: var(--ui-5);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-s);
+  color: var(--ui-ink);
+  text-decoration: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.admin a.stat:hover {
+  border-color: var(--ui-control-line);
+  box-shadow: var(--ui-shadow-m);
+}
+
+.stat-label {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: var(--ui-font-display);
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* A character is a word, not a number: the same place, a smaller size. */
+.stat-word {
+  font-size: var(--ui-text-2xl);
+  line-height: 1.4;
+}
+
+.stat-note {
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-sm);
+}

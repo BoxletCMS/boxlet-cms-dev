@@ -21,30 +21,38 @@ final class Presets
         'editorial' => [
             'seed' => '#8a1c2b', 'secondary' => '#1f1a17', 'typography' => 'editorial', 'scale' => '1.333',
             'spacing' => 'roomy', 'radius' => 'subtle', 'shadow' => 'none', 'container' => 'narrow', 'surface_contrast' => 'low',
+            'header_width' => 'content', 'boxed' => 'no', 'page_background' => 'surface',
         ],
         // Restraint: near-neutral graphite, one sans family on a tight scale, even spacing,
         // barely rounded, flat.
         'minimal' => [
             'seed' => '#3a4250', 'secondary' => '', 'typography' => 'modern', 'scale' => '1.2',
             'spacing' => 'normal', 'radius' => 'subtle', 'shadow' => 'none', 'container' => 'normal', 'surface_contrast' => 'low',
+            'header_width' => 'content', 'boxed' => 'no', 'page_background' => 'surface',
         ],
         // Loud: a condensed-feeling grotesk on the steepest scale, saturated violet,
         // round corners, layered depth, wide sections, strongly separated surfaces.
         'bold' => [
             'seed' => '#6d28d9', 'secondary' => '#1e1045', 'typography' => 'grotesk', 'scale' => '1.5',
             'spacing' => 'normal', 'radius' => 'round', 'shadow' => 'layered', 'container' => 'wide', 'surface_contrast' => 'high',
+            'header_width' => 'full', 'boxed' => 'no', 'page_background' => 'contrast',
         ],
         // Gentle: sage green, a rounded family, generous spacing, pill shapes, soft
         // shadows, a pale cream second colour for contrast sections.
+        // The one character that ships BOXED, so the decision is visible to an owner who
+        // never goes looking for it. A feature no default demonstrates is a feature nobody
+        // finds.
         'soft' => [
             'seed' => '#3b6b4f', 'secondary' => '#f5ecdc', 'typography' => 'rounded', 'scale' => '1.25',
             'spacing' => 'generous', 'radius' => 'pill', 'shadow' => 'soft', 'container' => 'normal', 'surface_contrast' => 'medium',
+            'header_width' => 'content', 'boxed' => 'yes', 'page_background' => 'surface',
         ],
         // Raw: monospace in capitals, compact spacing on a big scale, hard offset shadows
         // and thick rules, square corners, full-width, pure blue on stark yellow.
         'brutalist' => [
             'seed' => '#1f1fd1', 'secondary' => '#ffe600', 'typography' => 'mono', 'scale' => '1.414',
             'spacing' => 'compact', 'radius' => 'none', 'shadow' => 'hard', 'container' => 'full', 'surface_contrast' => 'high',
+            'header_width' => 'full', 'boxed' => 'no', 'page_background' => 'border',
         ],
     ];
 

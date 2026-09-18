@@ -2,15 +2,30 @@
    the --section-* properties each section sets in sections.css (layer 2). No literal
    colours, pixel values, fonts or shadows. */
 
+/* The page as a sheet (PLAN.md D-031)
+
+   body carries what is AROUND the page and .page carries the page. The inset is one token:
+   zero when the design is not boxed, so the surrounding colour is never visible and no text
+   can sit on it — which is what keeps the palette's contrast guarantee intact without
+   adding a single pair to it.
+
+   Fallbacks name the old behaviour, so a site whose stylesheet predates these tokens
+   renders exactly as it did. */
 body {
   margin: 0;
+  padding: var(--page-frame, 0);
   color: var(--color-text);
-  background: var(--color-background);
+  background: var(--page-bg, var(--color-background));
   font-family: var(--font-body);
   font-weight: var(--body-weight);
   font-size: var(--text-base);
   line-height: var(--leading-body);
 }
+
+.page {
+  background: var(--page-sheet, var(--color-background));
+}
+
 
 .container {
   max-width: var(--container-width);
@@ -233,18 +248,12 @@ code {
 
 /* Site chrome (PLAN.md D-028, D-030)
 
-   The header and footer are rendered by the block machinery, so they arrive wearing
-   .block and take the section rhythm — which is meant for a band of content, not for a
-   bar. Without these rules the header stood a third of a screen tall with the navigation
-   falling down it as a bulleted list, because nothing here described .site-nav at all.
-
-   The rhythm is TIGHTENED THROUGH THE SAME PROPERTY the sections use, rather than by
-   overriding padding: a chrome band is a section with less air, not a special case. */
-
-.block-header,
-.block-footer {
-  --section-rhythm: var(--space-m);
-}
+   What the chrome LOOKS like lives here; what it measures lives in sections.css, next to
+   the .block rule that sets those properties. Two rules of mine sat here setting
+   --section-rhythm and --section-width and neither ever applied: .block sets both, the
+   selectors weigh the same, and sections.css is linked second. The header's height did
+   fall when I wrote the first one, so I believed it — but it fell because a bar holds less
+   than a band of content. Measured afterwards: the header was still taking --space-xl. */
 
 .site-header {
   display: flex;

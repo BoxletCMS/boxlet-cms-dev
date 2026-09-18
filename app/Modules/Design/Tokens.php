@@ -17,6 +17,25 @@ final class Tokens
     public const CONTAINER = ['narrow' => 42.0, 'normal' => 56.0, 'wide' => 68.0, 'full' => 80.0];
     public const SURFACE_CONTRAST = ['low', 'medium', 'high'];
 
+    /*
+     * The page itself (PLAN.md D-031).
+     *
+     * Two values for the header, not a second four-value container decision: the header
+     * either holds the same measure as the content or runs edge to edge.
+     *
+     * BOXED IS 'no'/'yes' RATHER THAN A BOOLEAN, so it is one of the closed-set decisions
+     * like every other: design_tokens stores JSON scalars, choices() lists allowed strings
+     * and the screen renders a select from them. A bool would be the single exception in
+     * all three.
+     *
+     * The page background is a SHADE FROM THE PALETTE, never a free colour — the reasoning
+     * §5.4 uses to refuse a free colour per section. It shows only around a boxed page, so
+     * no text ever sits on it and Palette::failures() gains no pairs.
+     */
+    public const HEADER_WIDTH = ['content', 'full'];
+    public const BOXED = ['no', 'yes'];
+    public const PAGE_BACKGROUND = ['surface', 'border', 'contrast'];
+
     /** Type steps as powers of the scale ratio, from small print to the largest heading. */
     private const TYPE_STEPS = ['sm' => -1, 'base' => 0, 'lg' => 1, 'xl' => 2, '2xl' => 3, '3xl' => 4, '4xl' => 5];
     private const SPACE_STEPS = ['xs' => 0.25, 's' => 0.5, 'm' => 1, 'l' => 2, 'xl' => 4, '2xl' => 6, '3xl' => 8];
@@ -42,6 +61,9 @@ final class Tokens
             'shadow' => self::SHADOW,
             'container' => array_keys(self::CONTAINER),
             'surface_contrast' => self::SURFACE_CONTRAST,
+            'header_width' => self::HEADER_WIDTH,
+            'boxed' => self::BOXED,
+            'page_background' => self::PAGE_BACKGROUND,
         ];
     }
 
@@ -120,6 +142,33 @@ final class Tokens
             // Hard shadows come with heavy rules and outlined cards; everything else is hairline.
             'border' => ['width' => $hard ? '3px' : '1px', 'card' => $hard ? '3px' : '0px'],
             'container' => ['width' => self::rem($width), 'narrow' => self::rem($width * 0.68), 'wide' => self::rem($width * 1.3)],
+            'page' => self::page($decisions, $colors, self::SPACING[$decisions['spacing']]),
+        ];
+    }
+
+    /**
+     * The page as a sheet (D-031): what sits around it, how far it is inset, and how wide
+     * the header runs.
+     *
+     * THE FRAME IS ZERO WHEN THE PAGE IS NOT BOXED, which is what makes the background
+     * decision harmless rather than conditional: there is no area around the sheet, so the
+     * colour has nothing to paint and no text can land on it. One value decides it, in one
+     * place, instead of every rule asking whether boxing is on.
+     *
+     * @param array<string, string> $decisions
+     * @param array<string, string> $colors
+     * @return array<string, string>
+     */
+    private static function page(array $decisions, array $colors, float $spacingUnit): array
+    {
+        $boxed = $decisions['boxed'] === 'yes';
+
+        return [
+            'bg' => $colors[$decisions['page_background']] ?? $colors['surface'],
+            'frame' => $boxed ? self::rem($spacingUnit * 3) : '0',
+            // The sheet keeps the page background; only what surrounds it changes.
+            'sheet' => $colors['background'],
+            'header-width' => $decisions['header_width'] === 'full' ? '100%' : self::rem(self::CONTAINER[$decisions['container']]),
         ];
     }
 

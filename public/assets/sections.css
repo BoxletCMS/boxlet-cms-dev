@@ -39,6 +39,25 @@
   padding-block: 0;
 }
 
+/* Site chrome is drawn by the same machinery, so it arrives wearing .block and takes the
+   rule above — a band of content's rhythm and the content's measure. Neither suits a bar.
+   These overrides live HERE, beside the rule they answer, and not in site.css: the same
+   two properties set there never applied, because .block weighs exactly as much and this
+   file is linked second. A rule that loses silently is worse than no rule, and it cost two
+   slices — the header's height fell anyway, for an unrelated reason, which made the first
+   one look like it had worked (PLAN.md D-028, D-030, D-031). */
+.block-header,
+.block-footer {
+  --section-rhythm: var(--space-m);
+}
+
+/* The header runs to the content's measure or edge to edge: its own decision, not the
+   content's (D-031). Through --section-width rather than a max-width override, so the one
+   rule above still decides how a container is measured. */
+.block-header {
+  --section-width: var(--page-header-width, var(--container-width));
+}
+
 /* Surface */
 
 .surface-tinted {

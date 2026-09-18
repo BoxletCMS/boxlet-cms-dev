@@ -166,6 +166,26 @@ foreach (Typography::PAIRINGS as $name => $pairing) {
                     <p class="derived"><?= e(t('design.derived_spacing')) ?> <?= e(implode(' · ', $derived['space'])) ?></p>
                 </fieldset>
 
+                <?php /* Its own group rather than three more controls under Shape (D-031).
+                         Shape is about the content — its spacing, corners, shadows and
+                         measure; these three are about the page as a whole. Put together
+                         they would have turned that group into a drawer for anything left
+                         over. */ ?>
+                <fieldset class="fieldset">
+                    <legend><?= e(t('design.page')) ?></legend>
+                    <p class="hint"><?= e(t('design.page_hint')) ?></p>
+<?php foreach (['header_width' => Tokens::HEADER_WIDTH, 'boxed' => Tokens::BOXED, 'page_background' => Tokens::PAGE_BACKGROUND] as $key => $values): ?>
+                    <div class="field">
+                        <label for="design-<?= e($key) ?>"><?= e(t('design.' . $key)) ?></label>
+                        <?= $select($key, $labels($key, $values)) ?>
+<?php if ($key === 'page_background'): ?>
+                        <span class="hint"><?= e(t('design.page_background_hint')) ?></span>
+<?php endif; ?>
+                        <?= $error($key) ?>
+                    </div>
+<?php endforeach; ?>
+                </fieldset>
+
 <?php if ($character !== '' && $hasBlocks): ?>
                 <div class="apply-choice">
                     <h2><?= e(t('design.apply.title', ['character' => t('design.preset.' . $character)])) ?></h2>

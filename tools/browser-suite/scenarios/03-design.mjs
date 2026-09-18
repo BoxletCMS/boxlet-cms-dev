@@ -87,6 +87,66 @@ export default {
         ? `same chrome under all ${adminFingerprints.length}: ${distinct[0]}`
         : `DIFFERS: ${JSON.stringify(adminFingerprints)}`);
 
+    /*
+     * ---- the page as a sheet, and the header's own width (PLAN.md D-031) ---------------
+     *
+     * Geometry rather than a screenshot. Twice today a downscaled image showed me something
+     * the DOM then disproved — a second language switcher, and sections bleeding past the
+     * sheet — because at a shrunk width an inset of seventy pixels is fifteen.
+     *
+     * The second verdict is the one SPEC §5.4 leans on when it exempts the page background
+     * from the contrast pairs: nothing renders outside the sheet, so nothing has to be
+     * legible against what surrounds it. And the third catches a rule that silently lost:
+     * a full-width header measured the content's width, because two selectors of equal
+     * specificity met and the other stylesheet was linked second.
+     */
+    for (const [preset, boxed, fullHeader] of [['soft', true, false], ['bold', false, true]]) {
+      const refusedPage = await applyCharacter(page, preset);
+      if (refusedPage.length > 0) {
+        report.fail(`the ${preset} character applies`, refusedPage.join(' | '));
+        continue;
+      }
+
+      await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
+      const seen = await page.evaluate(() => {
+        const sheet = document.querySelector('.page');
+        const box = sheet.getBoundingClientRect();
+        const outside = [];
+        for (const el of document.querySelectorAll('.page > *, main > section')) {
+          const r = el.getBoundingClientRect();
+          if (r.width > 0 && (r.left < box.left - 0.5 || r.right > box.right + 0.5)) {
+            outside.push(el.className.toString().slice(0, 30));
+          }
+        }
+        const headerBox = document.querySelector('header.block-header > .container');
+        const contentBox = document.querySelector('main section .container');
+
+        return {
+          around: getComputedStyle(document.body).backgroundColor,
+          sheetColour: getComputedStyle(sheet).backgroundColor,
+          sheetWidth: Math.round(box.width),
+          viewport: window.innerWidth,
+          header: headerBox ? Math.round(headerBox.getBoundingClientRect().width) : 0,
+          content: contentBox ? Math.round(contentBox.getBoundingClientRect().width) : 0,
+          outside,
+        };
+      });
+
+      const inset = seen.sheetWidth < seen.viewport;
+      report.verdict(`${preset}: the page is ${boxed ? 'a sheet with a margin around it' : 'the whole window'}`,
+        boxed ? inset && seen.around !== seen.sheetColour : !inset,
+        `sheet ${seen.sheetWidth} of ${seen.viewport}; around ${seen.around}, sheet ${seen.sheetColour}`);
+
+      report.verdict(`${preset}: nothing renders outside the sheet`, seen.outside.length === 0,
+        seen.outside.length === 0 ? 'every section stays within the page' : JSON.stringify(seen.outside));
+
+      report.verdict(`${preset}: the header is ${fullHeader ? 'wider than the content' : 'the content\'s width'}`,
+        fullHeader ? seen.header > seen.content : seen.header === seen.content,
+        `header ${seen.header}, content ${seen.content}`);
+
+      await report.shot(page, `page-${preset}`);
+    }
+
     // ---- one section's surface and rhythm ----------------------------------------------
     await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
     const before = await sectionClasses(page);

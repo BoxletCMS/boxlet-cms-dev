@@ -6,7 +6,9 @@
  *   node suite/run.mjs pages design just those
  *
  * Scenarios are ./scenarios/NN-name.mjs and export default { name, run({ page, report }) }.
- * The numeric prefix is the order: 01 installs the site the rest of them use.
+ * The numeric prefix is the order. Most run against the development site; the few that
+ * would damage it declare `copy: true` and run against the throwaway copy, which 01
+ * installs (config.mjs, PLAN.md D-033).
  *
  * Each scenario gets its own browser, so one that hangs or dies cannot take the others
  * with it, and a failure in one still leaves the rest reportable — which matters for a
@@ -59,14 +61,24 @@ if (banned.length > 0) {
 /*
  * THE COPY MUST BE RUNNING THIS CHECKOUT'S CODE (PLAN.md D-029).
  *
+ * Asked only when a chosen scenario runs against the copy. The development site IS this
+ * checkout, so for everything else there is nothing that could have fallen behind.
+ *
  * Refused here, before a browser opens, rather than reported per scenario: every verdict
  * in the run is about whatever code the copy holds, so one stale sync makes the whole
  * output a statement about the wrong tree. In 5c that produced five screenshots under five
  * characters all agreeing there was no logo, about a fix that was already written.
  */
-let revision;
+const scenarios = [];
+for (const file of files) {
+  scenarios.push({ file, scenario: (await import(new URL(file, dir))).default });
+}
+
+let revision = null;
 try {
-  revision = requireCurrentCode();
+  if (scenarios.some(({ scenario }) => scenario.copy)) {
+    revision = requireCurrentCode();
+  }
 } catch (error) {
   // A REFUSAL, NOT A CRASH. Thrown, it arrived as an uncaught exception with a stack
   // trace, and a guard that reads like a bug in the harness is a guard someone deletes.
@@ -75,12 +87,13 @@ try {
   console.error('Run tools/browser-suite/sync-copy.sh to bring the copy up to date.');
   process.exit(2);
 }
-console.log(`Copy is at ${revision.slice(0, 12)}, matching the checkout.`);
+if (revision !== null) {
+  console.log(`Copy is at ${revision.slice(0, 12)}, matching the checkout.`);
+}
 
 const all = [];
 
-for (const file of files) {
-  const scenario = (await import(new URL(file, dir))).default;
+for (const { file, scenario } of scenarios) {
   const area = scenario.name || file.replace(/\.mjs$/, '');
   console.log(`\n=== ${area} ===`);
 

@@ -10,11 +10,13 @@
  * the two apart. The only honest test is to fail five times and then try the CORRECT
  * password: if it is refused, the lock is real.
  */
-import { BASE, ADMIN } from '../config.mjs';
+import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
 import { submitVia, alerts, SLOW } from '../harness.mjs';
 
 export default {
   name: 'lockout',
+  // Runs against the throwaway copy, never the development site (config.mjs).
+  copy: true,
 
   async run({ page, report }) {
     const messages = [];

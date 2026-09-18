@@ -17,11 +17,13 @@
  * CORRECT password.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { BASE, SITE_DIR, ADMIN, SITE_NAME } from '../config.mjs';
+import { COPY_BASE as BASE, SITE_DIR, COPY_ADMIN as ADMIN, SITE_NAME } from '../config.mjs';
 import { submitVia, alerts, heading, resetForInstall, SLOW } from '../harness.mjs';
 
 export default {
   name: 'install',
+  // Runs against the throwaway copy, never the development site (config.mjs).
+  copy: true,
 
   async run({ page, report }) {
     // ---- this scenario's own precondition ----------------------------------------------

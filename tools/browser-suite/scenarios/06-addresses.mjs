@@ -13,7 +13,7 @@
  * stated in the verdict rather than hidden.
  */
 import { execFileSync } from 'node:child_process';
-import { BASE, SITE_DIR } from '../config.mjs';
+import { COPY_BASE as BASE, SITE_DIR } from '../config.mjs';
 
 /** Runs a tiny PHP snippet against the throwaway copy's database. */
 function sql(statement) {
@@ -32,6 +32,8 @@ async function raw(page, url) {
 
 export default {
   name: 'addresses',
+  // Runs against the throwaway copy, never the development site (config.mjs).
+  copy: true,
 
   async run({ page, report }) {
     // A page to aim at, and the home page.

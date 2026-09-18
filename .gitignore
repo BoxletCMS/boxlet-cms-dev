@@ -9,6 +9,7 @@
 # file ship: a fresh install must have somewhere to put originals, and that
 # somewhere must already refuse to serve them.
 !/storage/uploads/
+/storage/uploads/*
 !/storage/uploads/.gitkeep
 !/storage/uploads/.htaccess
 /public/cache/*

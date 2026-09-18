@@ -14,7 +14,7 @@
  */
 import { writeFileSync, unlinkSync, existsSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { BASE, SITE_DIR, ADMIN } from '../config.mjs';
+import { COPY_BASE as BASE, SITE_DIR, COPY_ADMIN as ADMIN } from '../config.mjs';
 import { login, clickAndWait, heading, SLOW } from '../harness.mjs';
 
 const MIGRATION = '9001_checklist_update.sql';
@@ -54,6 +54,8 @@ function forgetMigration(name) {
 
 export default {
   name: 'update',
+  // Runs against the throwaway copy, never the development site (config.mjs).
+  copy: true,
 
   async run({ page, report }) {
     const file = `${SITE_DIR}/migrations/${MIGRATION}`;

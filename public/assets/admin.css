@@ -182,6 +182,15 @@
   border-radius: var(--ui-radius-s);
 }
 
+/* An icon from the sprite (icon() in helpers.php, D-037): the size of the text beside it,
+   in the text's own colour, so it can never have a contrast of its own to get wrong. */
+.admin .icon {
+  flex: none;
+  inline-size: 1.125em;
+  block-size: 1.125em;
+  vertical-align: -0.2em;
+}
+
 .admin pre {
   margin: var(--ui-2) 0;
   padding: var(--ui-3);

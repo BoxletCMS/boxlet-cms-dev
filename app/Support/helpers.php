@@ -57,3 +57,17 @@ function t(string $key, array $replace = []): string
 
     return $text;
 }
+
+/**
+ * An icon from the admin's sprite (PLAN.md D-037), drawn in the current text colour.
+ *
+ * DECORATION ONLY: it is hidden from assistive technology, so whatever it sits in must say
+ * what it does in words — visible text beside it, or a visually-hidden label and a title
+ * for a control that shows the icon alone.
+ */
+function icon(string $name): string
+{
+    $href = \App\Support\Url::versioned('assets/vendor/icons.svg') . '#i-' . $name;
+
+    return '<svg class="icon" aria-hidden="true" focusable="false"><use href="' . e($href) . '"></use></svg>';
+}

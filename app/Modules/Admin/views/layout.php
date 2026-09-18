@@ -40,31 +40,53 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/' . $style)) ?>">
 <?php endforeach; ?>
     <script src="<?= e(Url::versioned('assets/admin.js')) ?>" defer></script>
+    <script src="<?= e(Url::versioned('assets/admin-nav.js')) ?>" defer></script>
 <?php foreach ($scripts as $script): ?>
     <script src="<?= e(Url::versioned('assets/' . $script)) ?>" defer></script>
 <?php endforeach; ?>
 </head>
 <body class="admin">
     <a class="skip-link" href="#admin-content"><?= e(t('admin.skip')) ?></a>
-    <header class="admin-bar">
+    <header class="admin-bar" data-admin-bar>
         <div class="admin-bar-inner">
             <span class="admin-brand"><?= e($siteName !== '' ? $siteName : t('admin.brand')) ?></span>
-            <nav class="admin-nav" aria-label="<?= e(t('admin.nav.label')) ?>">
+            <?php /* The phone's menu button, born hidden: admin-nav.js shows it and folds the
+                     navigation under it. Without a script the navigation simply wraps. */ ?>
+            <button type="button" class="admin-bar-icon admin-nav-toggle" aria-expanded="false" aria-controls="admin-nav" hidden data-admin-nav-toggle>
+                <?= icon('menu') ?><span class="visually-hidden"><?= e(t('admin.nav.open')) ?></span>
+            </button>
+            <nav class="admin-nav" id="admin-nav" aria-label="<?= e(t('admin.nav.label')) ?>">
                 <a href="<?= e(Url::admin()) ?>"<?= $current('dashboard') ?>><?= e(t('admin.nav.dashboard')) ?></a>
                 <a href="<?= e(Url::admin('pages')) ?>"<?= $current('pages') ?>><?= e(t('admin.nav.pages')) ?></a>
                 <a href="<?= e(Url::admin('media')) ?>"<?= $current('media') ?>><?= e(t('admin.nav.media')) ?></a>
-                <a href="<?= e(Url::admin('design')) ?>"<?= $current('design') ?>><?= e(t('admin.nav.design')) ?></a>
+                <?php /* The site's look and its header and footer are one subject, so they are
+                         one entry with two screens under it. A <details>, so it opens and
+                         closes without a script; admin-nav.js only closes it on a click
+                         elsewhere. */ ?>
+                <details class="admin-nav-group"<?= in_array($nav, ['design', 'chrome'], true) ? ' data-current' : '' ?>>
+                    <summary><?= e(t('admin.nav.design')) ?><?= icon('chevron-down') ?></summary>
+                    <div class="admin-nav-sub">
+                        <a href="<?= e(Url::admin('design')) ?>"<?= $current('design') ?>><?= e(t('admin.nav.design_style')) ?></a>
+                        <a href="<?= e(Url::admin('chrome')) ?>"<?= $current('chrome') ?>><?= e(t('admin.nav.chrome')) ?></a>
+                    </div>
+                </details>
                 <a href="<?= e(Url::admin('menus')) ?>"<?= $current('menus') ?>><?= e(t('admin.nav.menus')) ?></a>
-                <a href="<?= e(Url::admin('chrome')) ?>"<?= $current('chrome') ?>><?= e(t('admin.nav.chrome')) ?></a>
-                <a href="<?= e(Url::admin('settings')) ?>"<?= $current('settings') ?>><?= e(t('admin.nav.settings')) ?></a>
             </nav>
             <div class="admin-bar-end">
+                <?php /* Icons alone, each named for a screen reader and on hover. */ ?>
+                <a class="admin-bar-icon" href="<?= e(Url::admin('settings')) ?>" title="<?= e(t('admin.nav.settings')) ?>"<?= $current('settings') ?>>
+                    <?= icon('settings') ?><span class="visually-hidden"><?= e(t('admin.nav.settings')) ?></span>
+                </a>
                 <?php /* The site's home in a new tab: leaving the admin mid-edit would lose
                          whatever is unsaved. */ ?>
-                <a class="admin-bar-link" href="<?= e(Url::asset('')) ?>" target="_blank" rel="noopener"><?= e(t('admin.view_site')) ?></a>
+                <a class="admin-bar-icon" href="<?= e(Url::asset('')) ?>" target="_blank" rel="noopener" title="<?= e(t('admin.view_site')) ?>">
+                    <?= icon('external-link') ?><span class="visually-hidden"><?= e(t('admin.view_site')) ?></span>
+                </a>
                 <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
                     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                    <button type="submit" class="admin-bar-link"><?= e(t('admin.logout')) ?></button>
+                    <button type="submit" class="admin-bar-icon" title="<?= e(t('admin.logout')) ?>">
+                        <?= icon('log-out') ?><span class="visually-hidden"><?= e(t('admin.logout')) ?></span>
+                    </button>
                 </form>
             </div>
         </div>

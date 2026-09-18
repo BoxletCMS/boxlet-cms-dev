@@ -27,6 +27,8 @@ return [
     // The longest item in the bar, and deliberately: "Chrome" is what the code calls it,
     // not what the owner does. They came looking for the thing at the top of the page.
     'admin.nav.chrome' => 'Header and footer',
+    'admin.nav.design_style' => 'Character and colours',
+    'admin.nav.open' => 'Menu',
     'admin.nav.settings' => 'Settings',
     'admin.logout' => 'Log out',
     'admin.view_site' => 'View site',

@@ -7,6 +7,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
 use App\Modules\Media\MediaPicture;
+use App\Modules\Menus\MenuTree;
 use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
 
@@ -94,14 +95,60 @@ final class PageController
         // a browser asks for it whatever the status. One indexed lookup per render, and
         // null when no favicon is chosen. A sharing picture is show()'s: a link preview of
         // an error page is not worth a row.
+        $db = $this->container->get('db');
+        $locales = $this->container->get('locales');
+
         $data += [
             'canonical' => null,
             'description' => '',
-            'icon' => SiteChrome::icon($this->container->get('db')),
+            'icon' => SiteChrome::icon($db),
             'shareImage' => null,
-            'locales' => $this->container->get('locales'),
-        ];
+            'locales' => $locales,
+        ] + $this->chrome($locale, $locales);
 
         return Response::html((new View(__DIR__ . '/views'))->render($template, $locale, $data), $status);
+    }
+
+    /**
+     * The site's header and footer, drawn by the block machinery so they inherit the design
+     * tokens and the section style layers (PLAN.md D-028, D-030).
+     *
+     * Computed here rather than in show(), for the reason the icon is: the 404 page carries
+     * chrome too. A page that says "not found" without the site's own header around it
+     * reads as a broken site rather than a wrong address.
+     *
+     * THE MENU IS RESOLVED ONCE, here, and handed to both templates — the same rule pictures
+     * follow. A template asks the database nothing. The chrome stores the menu's NAME, so a
+     * menu deleted and made again under that name simply works, and nothing dangles when it
+     * is not.
+     *
+     * NEITHER IS DRAWN EMPTY. A header with no logo, button or menu has nothing to show, and
+     * an empty <header> on every page is noise. The footer's condition carries one extra
+     * term: it owns the language switcher, so a site with two locales and no footer content
+     * still needs its footer, or the switcher would vanish with it.
+     *
+     * @param array<int, array<string, mixed>> $locales
+     * @return array{headerHtml: string, footerHtml: string}
+     */
+    private function chrome(string $locale, array $locales): array
+    {
+        $db = $this->container->get('db');
+        $registry = $this->container->get('chrome');
+
+        $menu = MenuTree::forVisitors($db, $locale, SiteChrome::menuName($db));
+        $header = SiteChrome::header($db, $locale);
+        $footer = SiteChrome::footer($db, $locale);
+
+        $hasHeader = $header['logo'] !== null || $header['button']['url'] !== '' || $menu !== [];
+        $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $menu !== [] || count($locales) > 1;
+
+        return [
+            'headerHtml' => $hasHeader
+                ? $registry->render('header', $header, [], '', [], true, 'header', ['menu' => $menu], $locale, $locales)
+                : '',
+            'footerHtml' => $hasFooter
+                ? $registry->render('footer', $footer, [], '', [], false, 'footer', ['menu' => $menu], $locale, $locales)
+                : '',
+        ];
     }
 }

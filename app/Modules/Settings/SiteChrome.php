@@ -60,6 +60,89 @@ final class SiteChrome
     }
 
     /**
+     * What the header block is drawn from (PLAN.md D-028, D-030).
+     *
+     * The shape is the block's own content, so the renderer hands it straight to
+     * Blocks::render() and the template asks nothing. There is NO menu here: the menu is
+     * named once for the whole site and resolved per locale by MenuTree::forVisitors().
+     *
+     * @return array{logo: int|null, button: array{label: string, url: string}}
+     */
+    public static function header(Db $db, string $locale): array
+    {
+        $values = Settings::many($db, [
+            self::key('chrome_logo'),
+            self::key('chrome_button_label', $locale),
+            self::key('chrome_button_url', $locale),
+        ], '');
+
+        $logo = Settings::mediaId($db, self::key('chrome_logo'));
+
+        return [
+            'logo' => $logo,
+            'button' => [
+                'label' => self::string($values[self::key('chrome_button_label', $locale)] ?? ''),
+                'url' => self::string($values[self::key('chrome_button_url', $locale)] ?? ''),
+            ],
+        ];
+    }
+
+    /**
+     * What the footer block is drawn from. Both fields are the owner's own words, so both
+     * are per locale — a Croatian page with an English small print is the kind of thing
+     * nobody notices until a visitor does.
+     *
+     * @return array{text: string, small_print: string}
+     */
+    public static function footer(Db $db, string $locale): array
+    {
+        $values = Settings::many($db, [
+            self::key('chrome_footer_text', $locale),
+            self::key('chrome_small_print', $locale),
+        ], '');
+
+        return [
+            'text' => self::string($values[self::key('chrome_footer_text', $locale)] ?? ''),
+            'small_print' => self::string($values[self::key('chrome_small_print', $locale)] ?? ''),
+        ];
+    }
+
+    /**
+     * The NAME of the menu the chrome shows, not its id.
+     *
+     * A name resolves inside whichever locale is being rendered — menus are unique per
+     * (locale, name) — so one stored value gives each translation its own menu, and there
+     * is no id left dangling when a menu is deleted and made again.
+     */
+    public static function menuName(Db $db): string
+    {
+        return Settings::text($db, self::key('chrome_menu'));
+    }
+
+    /**
+     * THE ONLY PLACE A CHROME SETTINGS KEY IS COMPOSED.
+     *
+     * `settings` is one JSON value per key with no locale column, and adding one would be
+     * a migration on a table six callers already read, to express something a key can say.
+     * So a language-specific value carries its locale in the key — and that shape lives
+     * here, once. Settings itself exists because six places had grown their own copy of the
+     * same three lines; a suffix spelled out at each call site would be that all over again.
+     */
+    private static function key(string $name, ?string $locale = null): string
+    {
+        return $locale === null ? $name : $name . ':' . $locale;
+    }
+
+    /**
+     * A stored value as a string. A settings table edited by hand is a real thing on a
+     * shared host, and a header that fatals on one bad row is worse than one that is blank.
+     */
+    private static function string(mixed $value): string
+    {
+        return is_string($value) ? $value : '';
+    }
+
+    /**
      * The first of $presets this picture actually has, as a file path and a MIME type.
      *
      * @param list<string> $presets in order of preference

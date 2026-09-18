@@ -149,8 +149,18 @@ final class Blocks
      * @param bool         $eager   the first section on the page, which is never lazy-loaded
      * @param string       $wrapper the element to wrap it in: a page block is a section, but
      *                              site chrome is a header or a footer (PLAN.md D-030)
+     * @param array<string, mixed> $resolved values the renderer resolved for this template;
+     *                              today: the menu. A page block is rendered without it, and
+     *                              a second kind of value belongs in an argument about this
+     *                              line rather than quietly in the same bag.
+     * @param string $locale  the locale being rendered — a fact about the request, not
+     *                        something resolved for one template, which is why it is its own
+     *                        argument and not another key in $resolved (D-030)
+     * @param array<int, array<string, mixed>> $locales enabled locales, for the footer's
+     *                        language switcher; empty for a page block, which has no use
+     *                        for them yet
      */
-    public function render(string $type, array $content, array $style = [], string $layout = '', array $media = [], bool $eager = false, string $wrapper = 'section'): string
+    public function render(string $type, array $content, array $style = [], string $layout = '', array $media = [], bool $eager = false, string $wrapper = 'section', array $resolved = [], string $locale = '', array $locales = []): string
     {
         // An allowlist, not the caller's word for it: this string is written straight into
         // the markup, and "whatever you pass" is how a tag name becomes an injection point.
@@ -163,14 +173,14 @@ final class Blocks
 
         $layout = $this->layout($type, $layout);
         $template = $this->directory . '/' . $type . '/template.php';
-        $include = static function (string $__template, array $content, array $style, string $layout, array $media, bool $eager): void {
+        $include = static function (string $__template, array $content, array $style, string $layout, array $media, bool $eager, array $resolved, string $locale, array $locales): void {
             require $__template;
         };
 
         $style = SectionStyle::normalize($style);
         ob_start();
         try {
-            $include($template, $this->normalize($type, $content), $style, $layout, $media, $eager);
+            $include($template, $this->normalize($type, $content), $style, $layout, $media, $eager, $resolved, $locale, $locales);
         } catch (Throwable $e) {
             ob_end_clean();
             throw $e;

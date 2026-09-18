@@ -47,6 +47,13 @@ $cache = (string) $config->get('app.cache_path');
 // Loaded eagerly: a malformed block definition must fail at boot, not at render.
 $blocks = Blocks::discover($root . '/app/Blocks');
 
+// The site's header and footer: the SAME machine over a different directory (PLAN.md
+// D-030), so they inherit the design tokens and the section style layers. Two registries
+// rather than one directory with a scope flag, because the page editor's library IS
+// $blocks — so a header cannot be offered as page content by construction, rather than by
+// a check somebody has to remember. Eager for the same reason as above.
+$chrome = Blocks::discover($root . '/app/Chrome');
+
 $request = Request::fromGlobals();
 Url::configure($request->basePath, '');
 Url::usePublicPath($root . '/public');
@@ -55,6 +62,7 @@ $container = new Container();
 $container->set('config', fn () => $config);
 $container->set('request', fn () => $request);
 $container->set('blocks', fn () => $blocks);
+$container->set('chrome', fn () => $chrome);
 $container->set('installed', fn () => is_file($storage . '/install.lock'));
 $container->set('db', fn () => Db::fromConfig($config->get('database', [])));
 $container->set('session', fn () => Session::start($storage . '/sessions', $request->https));

@@ -122,13 +122,19 @@ final class DesignController
         }
 
         $view = new View(dirname(__DIR__) . '/Pages/views');
-        // The second renderer of the site layout, so it owes it the same complete set
-        // PageController::render() assembles. A preview describes no page in particular,
-        // so it gives no description and the layout emits no tag (D-004).
-        // The second renderer of the site layout, so it owes it the same complete set
-        // PageController::render() assembles — every variable the layout reads, not only
-        // the ones that existed when this line was last touched. It has now been caught
-        // out twice, by `description` and then by `icon`.
+        // THE SECOND RENDERER OF THE SITE LAYOUT, so it owes that layout the same complete
+        // set PageController::render() assembles — every variable the layout reads, not only
+        // the ones that existed when this line was last touched. It has now been caught out
+        // three times: by `description`, then by `icon`, then by the chrome of 5c. The
+        // warning was already written here in two copies and still did not stop the third,
+        // which says the real fix is one source for these variables rather than a louder
+        // comment. Recorded for the architect rather than smuggled into this slice.
+        //
+        // A preview describes no page in particular, so it gives no description and the
+        // layout emits no tag (D-004). It draws NO CHROME for the same reason: the header
+        // and footer are decisions about the whole site, while this preview exists to judge
+        // the tokens and the section styles of one character, and chrome around the specimen
+        // would be furniture competing with the thing being looked at.
         $body = $view->render('page', 'en', [
             'title' => t('design.preview'),
             'blocksHtml' => $html,
@@ -137,6 +143,8 @@ final class DesignController
             'icon' => null,
             'shareImage' => null,
             'locales' => [],
+            'headerHtml' => '',
+            'footerHtml' => '',
         ]);
         $response = Response::admin($body);
         // The one admin page that may be framed, and only by the admin itself.

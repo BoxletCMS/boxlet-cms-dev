@@ -13,6 +13,10 @@ use App\Support\Url;
  * @var string $description meta description; empty when the page gives none (D-004)
  * @var array{url: string, type: string}|null $icon the site's tab icon (D-028)
  * @var string|null $shareImage absolute URL of the default sharing picture (D-028)
+ * @var string $headerHtml the site header, already rendered, or '' when there is none (5c)
+ * @var string $footerHtml the site footer, already rendered, or '' when there is none.
+ *                         It carries the language switcher: the site has exactly one footer
+ *                         and this layout must not draw a second (D-028).
  */
 ?>
 <!doctype html>
@@ -44,17 +48,14 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
 </head>
 <body>
+<?= $headerHtml ?>
     <main>
 <?= $content ?>
     </main>
-<?php /* ONE footer for the site (D-028, 5c). The switcher lives in its own partial so the
-         owner's footer can include it instead of carrying a second copy; until that footer
-         exists this is still the only <footer> on the page, and it draws nothing at all
-         when a single locale is enabled. */ ?>
-<?php if (count($locales) > 1): ?>
-    <footer class="container">
-<?php require __DIR__ . '/partials/locale-switcher.php'; ?>
-    </footer>
-<?php endif; ?>
+<?= $footerHtml ?>
+<?php /* NO SECOND FOOTER HERE. The site has exactly one and the chrome footer is it — it
+         carries the language switcher through the same partial this layout used to include.
+         Rendering the switcher here as well would put two of them on every translated page,
+         which is what "one footer" was decided to prevent (D-028). */ ?>
 </body>
 </html>

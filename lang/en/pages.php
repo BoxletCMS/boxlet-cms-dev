@@ -107,11 +107,19 @@ return [
     'pages.field.repeater_remove' => 'Remove item',
     'pages.field.repeater_item' => 'Item :number',
     'pages.field.repeater_empty' => 'No items yet. Add the first one.',
-    'pages.field.link_url' => 'Links must start with /, #, ?, https://, http://, mailto: or tel:, with no spaces.',
+    'pages.field.link_url' => 'Choose a page, or type an address that starts with /, #, ?, https://, http://, mailto: or tel:, with no spaces.',
     'pages.field.link_url_missing' => 'Enter the address this link points to.',
     'pages.field.link_label' => 'Enter the text of the link.',
     'pages.field.link_label_input' => 'Text',
     'pages.field.link_url_input' => 'Address, such as /contact or https://example.com',
+    // A link points at a page first, an address second (PLAN.md D-034).
+    'pages.field.link_page' => 'Page',
+    'pages.field.link_address' => 'Another address…',
+    'pages.field.link_page_draft' => '(draft)',
+    'pages.field.link_page_gone' => 'A page that no longer exists',
+    'pages.field.link_label_page' => 'Text, or leave empty to use the page title',
+    'pages.field.link_gone_hint' => 'The page this link pointed at was deleted, so the site does not show the link. Choose another page or type an address.',
+    'pages.field.link_draft_hint' => 'That page is a draft. The site hides the link until the page is published.',
     // The id never appears on screen now, so the refusal cannot ask for one. Measured: this
     // fires only for a value that is not a whole number — a well-formed id naming a picture
     // that is gone is nulled on save instead (MediaReference), so it never reaches here.

@@ -28,9 +28,9 @@ return [
     // "Button" alone read as a toggle or a section heading on the rendered screen, with
     // "Button address" directly under it. It is the words ON the button, so it says so.
     'chrome.button_label' => 'Button label',
-    'chrome.button_label_hint' => 'Optional. A button needs both a label and an address, or none is shown.',
-    'chrome.button_url' => 'Button address',
-    'chrome.button_url_hint' => 'Starts with /, #, ? or http, https, mailto, tel.',
+    'chrome.button_label_hint' => 'Optional. Left empty, a button to a page uses the page title; a button to an address needs a label, or none is shown.',
+    'chrome.button_url' => 'Button links to',
+    'chrome.button_url_hint' => 'A page of this site, or another address starting with /, #, ? or http, https, mailto, tel.',
     'chrome.button_url_refused' => 'That address was not accepted, so it was not saved.',
 
     'chrome.text' => 'Footer text',

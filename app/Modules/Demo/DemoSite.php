@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageLinks;
 use App\Support\RichText;
 use RuntimeException;
 
@@ -38,13 +39,25 @@ final class DemoSite
         $character = Composition::active($db);
 
         $pages = self::pages();
+        // Every page first, so a link can refer to one seeded after it (PLAN.md D-034). A
+        // new page's group is its own id.
+        $ids = [];
         foreach ($pages as $page) {
-            $id = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, []);
+            $ids[$page['slug']] = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, []);
+        }
+        $reference = static fn (array $match): string => isset($ids[$match[1]]) ? PageLinks::to($ids[$match[1]]) : $match[0];
+
+        foreach ($pages as $page) {
+            $id = $ids[$page['slug']];
             $blocks = [];
             foreach ($page['blocks'] as [$type, $content, $style, $layout]) {
                 foreach ($registry->get($type)['fields'] as $name => $field) {
+                    if ($field['type'] === 'link' && is_array($content[$name] ?? null) && is_string($content[$name]['url'] ?? null)) {
+                        $content[$name]['url'] = (string) preg_replace_callback('~^demo:([a-z0-9-]*)$~', $reference, $content[$name]['url']);
+                    }
                     if ($field['type'] === 'richtext' && is_string($content[$name] ?? null)) {
-                        $content[$name] = RichText::sanitize($content[$name]);
+                        $linked = (string) preg_replace_callback('~(?<=href=")demo:([a-z0-9-]*)(?=")~', $reference, $content[$name]);
+                        $content[$name] = RichText::sanitize($linked);
                     }
                 }
                 $blocks[] = [

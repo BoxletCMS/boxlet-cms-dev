@@ -40,6 +40,7 @@ return [
     'richtext.unlink' => 'Unlink',
     'richtext.url' => 'Address',
     'richtext.url_placeholder' => 'https://example.com',
+    'richtext.page' => 'Page',
     'richtext.heading_2' => 'Heading 2',
     'richtext.heading_3' => 'Heading 3',
     'richtext.heading_4' => 'Heading 4',

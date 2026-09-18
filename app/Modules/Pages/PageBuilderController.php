@@ -78,6 +78,9 @@ final class PageBuilderController
         // Every picture the page refers to, in one query, before any block draws: a
         // template is handed what it needs and never touches a database.
         $media = MediaPicture::forBlocks($this->db(), $registry, $locale, $blocks);
+        // Links to pages followed the way a visitor's page follows them (PLAN.md D-034), so
+        // a link to a draft is missing here exactly as it will be on the site.
+        $links = PageLinks::targets($this->db(), $registry, (string) $page['locale'], $blocks);
 
         $html = '';
         $first = true;
@@ -88,6 +91,7 @@ final class PageBuilderController
             if ($content === null || !$registry->has($block['type'])) {
                 continue;
             }
+            $content = PageLinks::content($registry, $block['type'], $content, $links);
             $html .= $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first);
             $first = false;
         }
@@ -217,6 +221,8 @@ final class PageBuilderController
             'library' => $this->library(),
             // What a media field offers. The editor asks for a picture by name, never by id.
             'pictures' => MediaReference::choices($this->db()),
+            // What a link field offers: this page's language, in tree order (D-034).
+            'linkPages' => PageLinks::choices($this->db(), (string) $page['locale']),
             // Page settings live in the panel beside the canvas. Offering a parent is the
             // only place a cycle could be created, so the list already excludes this page
             // and everything under it (PageTree).

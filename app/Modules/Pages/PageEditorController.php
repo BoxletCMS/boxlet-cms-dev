@@ -291,6 +291,8 @@ final class PageEditorController
             'registry' => $this->registry(),
             // What a media field offers. The editor asks for a picture by name, never by id.
             'pictures' => MediaReference::choices($this->db()),
+            // What a link field offers: this page's language, in tree order (D-034).
+            'linkPages' => PageLinks::choices($this->db(), (string) $page['locale']),
         ], $status);
     }
 

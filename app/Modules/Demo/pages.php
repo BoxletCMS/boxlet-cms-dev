@@ -9,6 +9,10 @@
 // picture that was never uploaded is a dangling reference, and the first photograph
 // that happens to take that number is silently adopted by the page. Photographs arrive
 // with D-022 and are set explicitly then.
+//
+// LINKS TO DEMO PAGES ARE WRITTEN `demo:{slug}` (`demo:` alone is the home page). The seed
+// turns each into a page reference, `page:{group}`, once every page exists — the demo links
+// the way an owner's site does (PLAN.md D-034), so renaming a page cannot break it.
 
 return [
     [
@@ -18,12 +22,12 @@ return [
             ['hero', [
                 'heading' => 'Small studio, carefully made websites',
                 'subheading' => 'We design and build sites for independent shops, practices and makers.',
-                'cta' => ['label' => 'See what we do', 'url' => '/services'],
+                'cta' => ['label' => 'See what we do', 'url' => 'demo:services'],
             ], ['surface' => 'gradient', 'rhythm' => 'airy', 'align' => 'center'], 'center'],
             ['image_text', [
                 'heading' => 'Design first, then everything else',
                 'body' => '<p>Every project starts with how the site should feel: calm and editorial, loud and confident, or somewhere in between.</p><p>The pages, the colours and the type all follow from those few decisions.</p>',
-                'link' => ['label' => 'How we work', 'url' => '/about'],
+                'link' => ['label' => 'How we work', 'url' => 'demo:about'],
             ], ['surface' => 'tinted'], 'image-left'],
             ['text', [
                 'heading' => 'What clients say',
@@ -56,7 +60,7 @@ return [
             ['image_text', [
                 'heading' => 'A quiet workshop',
                 'body' => '<p>We keep the team small on purpose. You always talk to the people doing the work.</p>',
-                'link' => ['label' => 'Our services', 'url' => '/services'],
+                'link' => ['label' => 'Our services', 'url' => 'demo:services'],
             ], ['surface' => 'contrast', 'divider' => 'line'], 'image-right'],
             ['text', [
                 'heading' => 'Where to find us',
@@ -99,9 +103,9 @@ return [
             // character's composition now, and `minimal` composes `airy`, so without this
             // the demo never shows `normal` at all — and this page exists to show every
             // value of every choice.
-            ['text', ['heading' => 'Plain surface, normal rhythm', 'body' => '<p>Body text with <strong>bold</strong>, <em>italic</em> and <a href="/">a link</a>.</p>'], ['rhythm' => 'normal'], 'single'],
+            ['text', ['heading' => 'Plain surface, normal rhythm', 'body' => '<p>Body text with <strong>bold</strong>, <em>italic</em> and <a href="demo:">a link</a>.</p>'], ['rhythm' => 'normal'], 'single'],
             ['text', ['heading' => 'Tinted surface', 'body' => '<p>Tinted sections separate content without shouting.</p>'], ['surface' => 'tinted', 'divider' => 'line'], 'single'],
-            ['text', ['heading' => 'Contrast surface', 'body' => '<p>Text and <a href="/">links</a> switch colour on contrast surfaces.</p>'], ['surface' => 'contrast', 'divider' => 'slant'], 'single'],
+            ['text', ['heading' => 'Contrast surface', 'body' => '<p>Text and <a href="demo:">links</a> switch colour on contrast surfaces.</p>'], ['surface' => 'contrast', 'divider' => 'slant'], 'single'],
             ['text', ['heading' => 'Image surface', 'body' => '<p>Until a picture is chosen, the image surface uses the contrast colours.</p>'], ['surface' => 'image', 'divider' => 'curve'], 'single'],
             ['text', ['heading' => 'Gradient surface', 'body' => '<p>From the main colour to a neighbouring hue.</p>'], ['surface' => 'gradient'], 'single'],
             // The other alignment, said out loud for the same reason: `minimal` composes

@@ -216,6 +216,12 @@ final class BlockForm
             case 'link':
                 $label = is_array($raw) ? self::line($raw['label'] ?? null) : '';
                 $url = is_array($raw) ? self::line($raw['url'] ?? null) : '';
+                // A chosen page wins over a typed address (PLAN.md D-034): the address input
+                // is hidden while a page is chosen, so whatever it still holds is stale.
+                $page = is_array($raw) ? self::line($raw['page'] ?? null) : '';
+                if (preg_match('~^[1-9][0-9]{0,9}$~', $page) === 1) {
+                    $url = PageLinks::to((int) $page);
+                }
                 $value = ['label' => $label, 'url' => $url];
                 if ($label === '' && $url === '') {
                     return [$value, $required ? t('pages.field.required') : null];
@@ -223,11 +229,16 @@ final class BlockForm
                 if ($url === '') {
                     return [$value, t('pages.field.link_url_missing')];
                 }
-                if (!SafeUrl::isAllowed($url)) {
+                if (!SafeUrl::isLink($url)) {
                     return [$value, t('pages.field.link_url')];
                 }
+                // A page supplies its own title when the text is left empty; an address
+                // has nothing to say about itself.
+                if ($label === '' && PageLinks::reference($url) === null) {
+                    return [$value, t('pages.field.link_label')];
+                }
 
-                return [$value, $label === '' ? t('pages.field.link_label') : null];
+                return [$value, null];
 
             case 'media':
                 $text = self::line($raw);

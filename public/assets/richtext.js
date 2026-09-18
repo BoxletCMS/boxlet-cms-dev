@@ -50,6 +50,9 @@
         openOnClick: false,
         autolink: false,
         HTMLAttributes: { target: null, rel: null },
+        // page:{group}, a link to a page followed at render (PLAN.md D-034). Without it the
+        // link extension refuses the scheme and drops the mark when the field loads.
+        protocols: ['page'],
       }),
     ];
   }
@@ -170,14 +173,28 @@
         return;
       }
       var input = link.querySelector('input');
+      var page = link.querySelector('select');
       link.hidden = false;
       // The address of the link the cursor is in, so editing one starts from what it is.
       // extendMarkRange first: with only part of a link selected, getAttributes returns
       // nothing and the field came back empty when reopening on an existing link.
       editor.chain().extendMarkRange('link').run();
-      input.value = editor.getAttributes('link').href || '';
-      input.focus();
-      input.select();
+      var href = editor.getAttributes('link').href || '';
+      // A link to a page opens on that page; anything else opens on its address. A page
+      // that is no longer offered falls back to the address, so it is seen rather than lost.
+      var offered = page && Array.prototype.some.call(page.options, function (option) {
+        return option.value !== '' && option.value === href;
+      });
+      if (page) {
+        page.value = offered ? href : '';
+      }
+      input.value = offered ? '' : href;
+      if (offered) {
+        page.focus();
+      } else {
+        input.focus();
+        input.select();
+      }
     }
 
     function closeLink(refocus) {
@@ -197,7 +214,8 @@
           return;
         }
         event.preventDefault();
-        var href = link.querySelector('input').value.trim();
+        var page = link.querySelector('select');
+        var href = page && page.value !== '' ? page.value : link.querySelector('input').value.trim();
         var chain = editor.chain().focus().extendMarkRange('link');
         if (action.getAttribute('data-rt-link') === 'apply' && href !== '') {
           chain.setLink({ href: href }).run();

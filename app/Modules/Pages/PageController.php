@@ -37,6 +37,8 @@ final class PageController
         // Every picture this page refers to, in one query rather than one per block, and
         // before anything renders: a template is handed what it needs and never queries.
         $media = MediaPicture::forBlocks($db, $registry, $locale, $blocks);
+        // Links to pages, followed in one query in the visitor's language (PLAN.md D-034).
+        $links = PageLinks::targets($db, $registry, $locale, $blocks);
 
         $html = '';
         $first = true;
@@ -48,7 +50,8 @@ final class PageController
             // Only the first section that actually draws is eager. Everything below the
             // fold is lazy, which is the whole point of loading="lazy" — and the first
             // picture is usually the one a visitor is waiting to see.
-            $html .= $registry->render($block['type'], $block['content'], $block['style'], $block['layout'], $media, $first);
+            $content = PageLinks::content($registry, $block['type'], $block['content'], $links);
+            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first);
             $first = false;
         }
 
@@ -136,7 +139,13 @@ final class PageController
         $registry = $this->container->get('chrome');
 
         $menu = MenuTree::forVisitors($db, $locale, SiteChrome::menuName($db));
+        // The header's button can point at a page like any link field (D-034); followed
+        // here, before the check below asks whether it leads anywhere.
         $header = SiteChrome::header($db, $locale);
+        $header['button'] = PageLinks::link(
+            $header['button'],
+            PageLinks::targets($db, $registry, $locale, [['type' => 'header', 'content' => $header]]),
+        );
         $footer = SiteChrome::footer($db, $locale);
 
         // The logo is a picture like any other and has to be RESOLVED before the template

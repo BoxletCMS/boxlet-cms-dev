@@ -172,6 +172,7 @@ function renderRepeaterBlock(Blocks $registry, array $content, int|string $index
         'character' => 'soft',
         'registry' => $registry,
         'pictures' => [],
+        'linkPages' => [],
     ], null);
 }
 

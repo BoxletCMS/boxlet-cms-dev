@@ -92,11 +92,12 @@ final class PageBlockController
             'character' => $character,
             'registry' => $registry,
             'pictures' => MediaReference::choices($this->db()),
+            'linkPages' => PageLinks::choices($this->db(), (string) $page['locale']),
             // The picture this block refers to, so a block re-drawn as it is edited shows
             // the photograph rather than the placeholder it had a moment ago.
             'canvasHtml' => $registry->render(
                 $type,
-                $block['content'],
+                PageLinks::content($registry, $type, $block['content'], PageLinks::targets($this->db(), $registry, (string) $page['locale'], [$block])),
                 $block['style'],
                 $block['layout'],
                 MediaPicture::forBlocks($this->db(), $registry, $locale, [$block]),

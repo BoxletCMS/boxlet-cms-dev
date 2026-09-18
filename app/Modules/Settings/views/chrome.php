@@ -18,6 +18,8 @@ use App\Support\Url;
  * @var array<string, string> $errors
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures
  * @var list<string> $menus
+ * @var array<string, array<int, array{title: string, depth: int, published: bool}>> $linkPages
+ *      per locale, page group => what the button may point at (PLAN.md D-034)
  * @var array<int, array<string, mixed>> $locales
  * @var string $title
  * @var string $csrf
@@ -97,11 +99,29 @@ $picker = static function (string $key, ?int $chosen) use ($pictures): string {
                     <span class="hint" id="<?= e($field('button_label')) ?>-hint"><?= e(t('chrome.button_label_hint')) ?></span>
                 </div>
 
+<?php
+    // A page first, an address second (PLAN.md D-034), exactly as in a block's link field.
+    $buttonGroup = \App\Modules\Pages\PageLinks::reference($word($code, 'button_url'));
+    $buttonPages = $linkPages[$code] ?? [];
+?>
                 <div class="field">
-                    <label for="<?= e($field('button_url')) ?>"><?= e(t('chrome.button_url')) ?></label>
-                    <input type="text" id="<?= e($field('button_url')) ?>" name="<?= e($field('button_url')) ?>"
-                           maxlength="2048" value="<?= e($word($code, 'button_url')) ?>"
-                           aria-describedby="<?= e($field('button_url')) ?>-hint">
+                    <label for="<?= e($field('button_page')) ?>"><?= e(t('chrome.button_url')) ?></label>
+                    <div class="link-field">
+                        <select id="<?= e($field('button_page')) ?>" name="<?= e($field('button_page')) ?>"
+                                aria-describedby="<?= e($field('button_url')) ?>-hint">
+                            <option value=""<?= $buttonGroup === null ? ' selected' : '' ?>><?= e(t('pages.field.link_address')) ?></option>
+<?php if ($buttonGroup !== null && !isset($buttonPages[$buttonGroup])): ?>
+                            <option value="<?= e((string) $buttonGroup) ?>" selected><?= e(t('pages.field.link_page_gone')) ?></option>
+<?php endif; ?>
+<?php foreach ($buttonPages as $group => $choice): ?>
+                            <option value="<?= e((string) $group) ?>"<?= $group === $buttonGroup ? ' selected' : '' ?>><?= e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) ?></option>
+<?php endforeach; ?>
+                        </select>
+                        <input type="text" class="link-address" id="<?= e($field('button_url')) ?>" name="<?= e($field('button_url')) ?>"
+                               maxlength="2048" value="<?= e($buttonGroup === null ? $word($code, 'button_url') : '') ?>"
+                               placeholder="<?= e(t('pages.field.link_url_input')) ?>"
+                               aria-label="<?= e(t('chrome.button_url') . ': ' . t('pages.field.link_url_input')) ?>">
+                    </div>
                     <span class="hint" id="<?= e($field('button_url')) ?>-hint"><?= e(t('chrome.button_url_hint')) ?></span>
                     <?= $error($field('button_url')) ?>
                 </div>

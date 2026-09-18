@@ -20,6 +20,8 @@
  * @var mixed  $fieldValue  the stored value, already normalized
  * @var string|null $fieldError
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
+ * @var array<int, array{title: string, depth: int, published: bool}> $linkPages page group => what a link field
+ *                                                    may point at, in tree order (PLAN.md D-034)
  */
 $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_marker') : '');
 ?>
@@ -68,6 +70,15 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
                                  a class; admin.css makes that attribute win over anything
                                  that would lay the panel out. */ ?>
                         <div class="richtext-link" data-richtext-link hidden>
+                            <?php /* A page first, as in a link field (PLAN.md D-034). The
+                                     option's value is the stored reference itself, so
+                                     richtext.js applies whichever of the two is chosen. */ ?>
+                            <select class="rt-link-page" aria-label="<?= e(t('richtext.page')) ?>">
+                                <option value=""><?= e(t('pages.field.link_address')) ?></option>
+<?php foreach ($linkPages as $group => $choice): ?>
+                                <option value="<?= e(\App\Modules\Pages\PageLinks::to($group)) ?>"><?= e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) ?></option>
+<?php endforeach; ?>
+                            </select>
                             <input type="url" class="rt-link-input" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>">
                             <button type="button" class="button button-secondary" data-rt-link="apply"><?= e(t('richtext.link')) ?></button>
                             <button type="button" class="button button-ghost" data-rt-link="remove"><?= e(t('richtext.unlink')) ?></button>
@@ -99,11 +110,35 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
                     <?php /* A new tab, because leaving the editor to add a picture would
                              lose everything typed since the last save. */ ?>
                     <span class="hint"><a href="<?= e(\App\Support\Url::admin('media')) ?>" target="_blank" rel="noopener"><?= e(t('pages.field.media_library')) ?></a></span>
-<?php elseif ($fieldSpec['type'] === 'link'): ?>
-                    <div class="field-row">
-                        <input type="text" id="<?= e($fieldId) ?>" name="<?= e($fieldName) ?>[label]" value="<?= e($fieldValue['label'] ?? '') ?>" placeholder="<?= e(t('pages.field.link_label_input')) ?>" aria-label="<?= e($fieldLabel . ': ' . t('pages.field.link_label_input')) ?>">
-                        <input type="text" id="<?= e($fieldId) ?>-url" name="<?= e($fieldName) ?>[url]" value="<?= e($fieldValue['url'] ?? '') ?>" placeholder="<?= e(t('pages.field.link_url_input')) ?>" aria-label="<?= e($fieldLabel . ': ' . t('pages.field.link_url_input')) ?>">
+<?php elseif ($fieldSpec['type'] === 'link'):
+    // A PAGE FIRST, AN ADDRESS SECOND (PLAN.md D-034). The page is stored as a reference
+    // and followed at render, so renaming its address moves the link with it. The typed
+    // address is for everything that is not a page, and admin-forms.css hides it while a
+    // page is chosen — without a script, because the server ignores it then anyway.
+    $linkUrl = (string) ($fieldValue['url'] ?? '');
+    $linkGroup = \App\Modules\Pages\PageLinks::reference($linkUrl);
+    $linkChoice = $linkGroup === null ? null : ($linkPages[$linkGroup] ?? false);
+    $linkAddress = $linkGroup === null ? $linkUrl : '';
+    $linkPlaceholder = t($linkGroup === null ? 'pages.field.link_label_input' : 'pages.field.link_label_page');
+?>
+                    <div class="link-field">
+                        <select id="<?= e($fieldId) ?>" name="<?= e($fieldName) ?>[page]" aria-label="<?= e($fieldLabel . ': ' . t('pages.field.link_page')) ?>">
+                            <option value=""<?= $linkGroup === null ? ' selected' : '' ?>><?= e(t('pages.field.link_address')) ?></option>
+<?php if ($linkChoice === false): ?>
+                            <option value="<?= e((string) $linkGroup) ?>" selected><?= e(t('pages.field.link_page_gone')) ?></option>
+<?php endif; ?>
+<?php foreach ($linkPages as $group => $choice): ?>
+                            <option value="<?= e((string) $group) ?>"<?= $group === $linkGroup ? ' selected' : '' ?>><?= e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) ?></option>
+<?php endforeach; ?>
+                        </select>
+                        <input type="text" class="link-address" id="<?= e($fieldId) ?>-url" name="<?= e($fieldName) ?>[url]" value="<?= e($linkAddress) ?>" placeholder="<?= e(t('pages.field.link_url_input')) ?>" aria-label="<?= e($fieldLabel . ': ' . t('pages.field.link_url_input')) ?>">
+                        <input type="text" id="<?= e($fieldId) ?>-label" name="<?= e($fieldName) ?>[label]" value="<?= e($fieldValue['label'] ?? '') ?>" placeholder="<?= e($linkPlaceholder) ?>" aria-label="<?= e($fieldLabel . ': ' . t('pages.field.link_label_input')) ?>">
                     </div>
+<?php if ($linkChoice === false): ?>
+                    <span class="hint hint-warning"><?= e(t('pages.field.link_gone_hint')) ?></span>
+<?php elseif (is_array($linkChoice) && !$linkChoice['published']): ?>
+                    <span class="hint hint-warning"><?= e(t('pages.field.link_draft_hint')) ?></span>
+<?php endif; ?>
 <?php elseif ($fieldSpec['type'] === 'select'): ?>
                     <select id="<?= e($fieldId) ?>" name="<?= e($fieldName) ?>">
 <?php foreach ($fieldSpec['options'] as $option): ?>

@@ -11,7 +11,7 @@ use DOMText;
  * Reduces HTML typed into a richtext field to a fixed whitelist, applied when a page is
  * saved (SPEC §5.3). Elements outside the whitelist are unwrapped, keeping their text;
  * a few are removed together with their content. Only <a href> keeps an attribute, and
- * only with a URL that SafeUrl allows.
+ * only with a URL that SafeUrl allows or a page reference (PLAN.md D-034).
  *
  * This decides what may be stored at all. What an allowed block then looks like — a div
  * that should be a paragraph, a heading level we do not store, a break an editor left at a
@@ -132,7 +132,7 @@ final class RichText
                     $node->removeAttribute($attribute);
                 }
             }
-            if ($tag === 'a' && $node->hasAttribute('href') && !SafeUrl::isAllowed($node->getAttribute('href'))) {
+            if ($tag === 'a' && $node->hasAttribute('href') && !SafeUrl::isLink($node->getAttribute('href'))) {
                 $node->removeAttribute('href');
             }
 

@@ -54,6 +54,25 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     }
 });
 
+// The demo links to its own pages the way an owner's site does: by reference, so renaming
+// a page cannot break it (PLAN.md D-034). A typed '/services' would still render; only the
+// stored form shows which one the seed wrote.
+testBothDrivers('the demo links its pages by reference, and the links lead there', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
+
+    $stored = implode("\n", array_column($db->all('SELECT content_json FROM page_blocks'), 'content_json'));
+    assertTrue(!str_contains($stored, 'demo:'), 'a demo: marker was stored');
+    assertTrue(!str_contains($stored, '"\/services"') && !str_contains($stored, '"\/about"'), 'a demo link was stored as a typed path');
+
+    $services = (int) ($db->one("SELECT id FROM pages WHERE slug = 'services'")['id'] ?? 0);
+    assertContains('"url":"page:' . $services . '"', $stored, 'no reference to the services page');
+
+    $db->query("UPDATE pages SET slug = 'what-we-do' WHERE id = ?", [$services]);
+    assertContains('href="/what-we-do"', dispatch('/')->body, 'the home page does not follow the renamed page');
+    assertContains('<a href="/">', dispatch('/style-guide')->body, 'the style guide\'s links to home do not lead there');
+});
+
 // The seed stores what the editor would store. A block that names only its surface takes
 // the character's composition for everything else — otherwise the unnamed keys fall to the
 // closed-set defaults, which the character did not choose, and the editor rightly shows the

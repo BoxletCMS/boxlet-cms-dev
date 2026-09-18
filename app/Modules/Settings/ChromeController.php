@@ -9,6 +9,7 @@ use App\Core\Response;
 use App\Modules\Admin\AdminView;
 use App\Modules\Media\MediaReference;
 use App\Modules\Menus\Menu;
+use App\Modules\Pages\PageLinks;
 use App\Support\SafeUrl;
 use App\Support\Url;
 
@@ -97,11 +98,17 @@ final class ChromeController
                 'text' => trim($request->input(self::field('text', $code))),
                 'small_print' => trim($request->input(self::field('small_print', $code))),
             ];
+            // A chosen page wins over a typed address, as in a block's link field (PLAN.md
+            // D-034); the address input is hidden while a page is chosen.
+            $page = trim($request->input(self::field('button_page', $code)));
+            if (preg_match('~^[1-9][0-9]{0,9}$~', $page) === 1) {
+                $entry['button_url'] = PageLinks::to((int) $page);
+            }
 
             // The same guard the menu builder uses for an item's address: an address that
             // is not one we would follow is refused here rather than written into every
             // page's header. Both halves of a button are needed, or it is not a link.
-            if ($entry['button_url'] !== '' && !SafeUrl::isAllowed($entry['button_url'])) {
+            if ($entry['button_url'] !== '' && !SafeUrl::isLink($entry['button_url'])) {
                 $errors[self::field('button_url', $code)] = t('chrome.button_url_refused');
             }
             $values[$code] = $entry;
@@ -219,6 +226,12 @@ final class ChromeController
             'pictures' => MediaReference::choices($db),
             'menus' => self::menuNames($db),
             'locales' => $this->container->get('locales'),
+            // What the button may point at, per language: a Croatian header links to
+            // Croatian pages (D-034).
+            'linkPages' => array_combine($this->locales(), array_map(
+                static fn (string $code): array => PageLinks::choices($db, $code),
+                $this->locales(),
+            )),
         ], $status);
     }
 

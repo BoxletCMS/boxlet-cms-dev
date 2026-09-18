@@ -23,7 +23,10 @@ final class BlockDefinition
     public const FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'media_multi', 'link', 'select', 'toggle', 'number', 'repeater'];
 
     /** The subset implemented so far. The rest arrive when a block needs them. */
-    public const SUPPORTED_FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'link', 'select'];
+    public const SUPPORTED_FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'link', 'select', 'repeater'];
+
+    /** A repeater's own fields cannot hold another repeater, and it must say how many items it takes. */
+    private const REPEATER_KEYS = ['type', 'required', 'translatable', 'fields', 'max'];
 
     public const NAME = '~^[a-z][a-z0-9_]*$~';
     public const SLUG = '~^[a-z][a-z0-9_-]*$~';
@@ -115,12 +118,29 @@ final class BlockDefinition
         if (!is_array($field)) {
             self::fail($type, "{$at}: must be an array");
         }
-        foreach (array_keys($field) as $key) {
-            if (!in_array($key, self::FIELD_KEYS, true)) {
-                self::fail($type, "{$at}: unknown key '{$key}'");
-            }
-        }
+        /*
+         * THE TYPE IS READ BEFORE THE KEYS ARE CHECKED, because which keys are allowed
+         * depends on it: a repeater takes 'fields' and 'max' and no 'options', everything
+         * else is the other way round. Checking first and reading after rejected every
+         * repeater ever written as "unknown key 'max'" — caught by measuring the contract
+         * rather than by reading it back.
+         */
         $fieldType = $field['type'] ?? null;
+        $allowed = $fieldType === 'repeater' ? self::REPEATER_KEYS : self::FIELD_KEYS;
+        foreach (array_keys($field) as $key) {
+            if (in_array($key, $allowed, true)) {
+                continue;
+            }
+            // Say which rule was broken, not merely that something was. "unknown key 'max'"
+            // sends the reader looking for a typo; "only a repeater takes 'max'" does not.
+            if (in_array($key, ['fields', 'max'], true)) {
+                self::fail($type, "{$at}: only a repeater takes '{$key}'");
+            }
+            if ($key === 'options') {
+                self::fail($type, "{$at}: a repeater does not take 'options'");
+            }
+            self::fail($type, "{$at}: unknown key '{$key}'");
+        }
         if (!is_string($fieldType) || !in_array($fieldType, self::FIELD_TYPES, true)) {
             self::fail($type, "{$at}: 'type' must be one of " . implode(', ', self::FIELD_TYPES));
         }
@@ -151,6 +171,43 @@ final class BlockDefinition
             $normalized['options'] = $options;
         } elseif (array_key_exists('options', $field)) {
             self::fail($type, "{$at}: only select fields take 'options'");
+        }
+
+        /*
+         * A REPEATER DECLARES ONE ITEM AND HOW MANY OF THEM (PLAN.md O-11).
+         *
+         * Its `fields` are ordinary field declarations, checked by this same method — so a
+         * media field inside an item is a media field, a richtext field is sanitised like
+         * any other, and nothing here has to know which types exist.
+         *
+         * ONE LEVEL ONLY. A repeater inside a repeater is a table, and a block editor that
+         * nests groups without end is one nobody can read — the same reasoning that caps a
+         * menu at one level of submenu (D-028). Refused at boot, where every other malformed
+         * definition is refused, rather than discovered at render.
+         */
+        if ($fieldType === 'repeater') {
+            $max = $field['max'] ?? null;
+            if (!is_int($max) || $max < 1) {
+                self::fail($type, "{$at}: a repeater needs 'max', how many items it takes, at least 1");
+            }
+
+            $itemFields = $field['fields'] ?? null;
+            if (!is_array($itemFields) || $itemFields === []) {
+                self::fail($type, "{$at}: a repeater needs 'fields', the fields of one item");
+            }
+
+            $items = [];
+            foreach ($itemFields as $itemName => $itemField) {
+                if (is_array($itemField) && ($itemField['type'] ?? '') === 'repeater') {
+                    self::fail($type, "{$at}: field '{$itemName}': a repeater cannot hold another repeater — "
+                        . 'groups nested without end are a table, not a block, and nobody can read an editor '
+                        . 'built that way (the reasoning that stops a menu at one level of submenu)');
+                }
+                $items[(string) $itemName] = self::validateField($type, $itemName, $itemField);
+            }
+
+            $normalized['fields'] = $items;
+            $normalized['max'] = $max;
         }
 
         return $normalized;

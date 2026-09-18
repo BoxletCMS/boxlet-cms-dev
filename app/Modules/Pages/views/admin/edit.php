@@ -143,6 +143,30 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         </template>
 <?php endforeach; ?>
 
+<?php /* One <template> per repeater, keyed type.field. At the TOP LEVEL rather than
+         nested inside the block template above: a <template>'s contents are not live
+         nodes, so neither editor's renumber() reaches inside one, and a template that had
+         baked in a block's position would add items to the wrong block after the first
+         move. Both indices are placeholders and repeater.js substitutes them on clone
+         (PLAN.md O-11). An item's markup depends only on the block type and the field, so
+         one template per pair serves every block of that type on the page. */ ?>
+<?php foreach ($registry->types() as $templateType): ?>
+<?php foreach ($registry->get($templateType)['fields'] as $templateField => $templateSpec): ?>
+<?php if ($templateSpec['type'] !== 'repeater') { continue; } ?>
+        <template data-item-template="<?= e($templateType) ?>.<?= e($templateField) ?>">
+<?php
+    $blockType = $templateType;
+    $blockIndex = '__INDEX__';
+    $repeaterName = (string) $templateField;
+    $repeaterField = $templateSpec;
+    $itemIndex = '__ITEM__';
+    $itemValue = \App\Core\Blocks::emptyItem($templateSpec);
+    require __DIR__ . '/item.php';
+?>
+        </template>
+<?php endforeach; ?>
+<?php endforeach; ?>
+
         <div class="row-actions editor-secondary">
             <form method="post" action="<?= e(Url::admin('pages', $pageId, 'status')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

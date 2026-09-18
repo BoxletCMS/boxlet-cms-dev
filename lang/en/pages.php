@@ -100,6 +100,13 @@ return [
     'pages.editor.errors' => 'Nothing was saved. Fix the fields marked below, then save again.',
     'pages.editor.truncated' => 'Nothing was saved. This page sent more form fields than the server accepts (max_input_vars = :limit), so PHP silently dropped some of them, and saving would have lost content. Ask your host to raise max_input_vars, or split the page. Your browser\'s Back button may still have your changes.',
     'pages.field.required' => 'This field is required.',
+    // Refused rather than trimmed: somebody typed those items, and dropping the last one
+    // silently is how an owner loses work without being told (O-11).
+    'pages.field.repeater_max' => 'This block takes at most :max items. Remove one and save again.',
+    'pages.field.repeater_add' => 'Add item',
+    'pages.field.repeater_remove' => 'Remove item',
+    'pages.field.repeater_item' => 'Item :number',
+    'pages.field.repeater_empty' => 'No items yet. Add the first one.',
     'pages.field.link_url' => 'Links must start with /, #, ?, https://, http://, mailto: or tel:, with no spaces.',
     'pages.field.link_url_missing' => 'Enter the address this link points to.',
     'pages.field.link_label' => 'Enter the text of the link.',

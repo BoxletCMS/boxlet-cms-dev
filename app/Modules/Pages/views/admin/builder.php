@@ -199,6 +199,27 @@ foreach ($errors as $key => $message) {
             <?php /* _end must stay the last field: PHP drops everything past max_input_vars. */ ?>
             <input type="hidden" name="_end" value="1">
         </form>
+<?php /* One <template> per repeater, keyed type.field — the same set the fallback editor
+         emits, and for the same reason: a <template>'s contents are not live nodes, so
+         renumber() never reaches inside one and both indices must stay placeholders until
+         repeater.js clones it (PLAN.md O-11). A block inserted into the canvas needs
+         nothing extra here, because these cover every type the registry knows. */ ?>
+<?php foreach ($registry->types() as $templateType): ?>
+<?php foreach ($registry->get($templateType)['fields'] as $templateField => $templateSpec): ?>
+<?php if ($templateSpec['type'] !== 'repeater') { continue; } ?>
+        <template data-item-template="<?= e($templateType) ?>.<?= e($templateField) ?>">
+<?php
+    $blockType = $templateType;
+    $blockIndex = '__INDEX__';
+    $repeaterName = (string) $templateField;
+    $repeaterField = $templateSpec;
+    $itemIndex = '__ITEM__';
+    $itemValue = \App\Core\Blocks::emptyItem($templateSpec);
+    require __DIR__ . '/item.php';
+?>
+        </template>
+<?php endforeach; ?>
+<?php endforeach; ?>
         <?php /* Deferred, so they run in this order: the shell, then the changes. */ ?>
         <script src="<?= e(Url::versioned('assets/builder.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-blocks.js')) ?>" defer></script>

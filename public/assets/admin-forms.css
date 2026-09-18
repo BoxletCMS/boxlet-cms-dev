@@ -269,3 +269,79 @@
   border: var(--ui-border) solid var(--ui-line-strong);
   color: var(--ui-ink-muted);
 }
+
+/* Repeater */
+
+/* A list of items, each a small group of fields (PLAN.md O-11). These rules are here
+   rather than in admin-pages.css or builder-inspector.css because BOTH editors render a
+   repeater and the shell loads this file on every admin screen — the same reason the
+   behaviour is one repeater.js rather than a copy in admin.js and another in builder.js.
+
+   A fieldset, not a .field: there is no single input for a label to point at, so the
+   legend names the group the way a label names a field. */
+
+.repeater {
+  display: grid;
+  gap: var(--ui-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+.repeater-legend {
+  padding: 0;
+  font-weight: 550;
+  line-height: var(--ui-leading-tight);
+}
+
+.repeater-items {
+  display: grid;
+  gap: var(--ui-3);
+}
+
+/* One item reads as one thing: a sunken card inside the block's own panel, so a list of
+   three is three shapes rather than one wall of fields. */
+.repeater-item {
+  display: grid;
+  gap: var(--ui-4);
+  margin: 0;
+  padding: var(--ui-4);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+.repeater-item-legend {
+  padding-inline: var(--ui-2);
+  margin-inline-start: calc(var(--ui-2) * -1);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ui-ink-muted);
+}
+
+.repeater-item-body {
+  display: grid;
+  gap: var(--ui-4);
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+.repeater-item-controls,
+.repeater-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-1);
+}
+
+/* D-012: no control is invisible at rest. Add sits on the panel's own surface under the
+   list, so it keeps a real button's border rather than appearing on hover. */
+.repeater-controls .button {
+  font-size: var(--ui-text-sm);
+}

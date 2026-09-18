@@ -45,17 +45,16 @@ final class MediaPicture
      */
     public static function forBlocks(Db $db, Blocks $registry, string $locale, array $blocks): array
     {
-        $fields = MediaReference::fields($registry);
         $ids = [];
 
         foreach ($blocks as $block) {
             $type = is_string($block['type'] ?? null) ? $block['type'] : '';
             $content = is_array($block['content'] ?? null) ? $block['content'] : [];
-            foreach ($fields[$type] ?? [] as $field) {
-                $value = $content[$field] ?? null;
-                if (is_int($value)) {
-                    $ids[] = $value;
-                }
+            // Asked rather than repeated: this walked only the top level, as did the rule
+            // on save, so a picture inside a repeater item rendered in the editor and was
+            // missing from the page (O-11).
+            foreach (MediaReference::idsIn($registry, $type, $content) as $id) {
+                $ids[] = $id;
             }
             $style = is_array($block['style'] ?? null) ? $block['style'] : [];
             $surface = $style[SectionStyle::IMAGE] ?? null;

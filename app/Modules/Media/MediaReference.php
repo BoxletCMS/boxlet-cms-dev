@@ -46,6 +46,54 @@ final class MediaReference
     }
 
     /**
+     * Every media id inside one block's content, wherever it lives (PLAN.md O-11).
+     *
+     * ONE TRAVERSAL, HERE. Both halves of the media contract walked block content
+     * separately and both walked only the top level: resolve() below, which nulls an id
+     * naming no picture on save, and MediaPicture::forBlocks(), which resolves pictures for
+     * rendering. A media field inside a repeater item was invisible to both — it would have
+     * worked in the editor and vanished from the page, which is the first bug an owner
+     * would have met. Two traversals of one shape is how one gets fixed and the other does
+     * not, so forBlocks() now asks this.
+     *
+     * @param array<string, mixed> $content normalized content
+     * @return list<int>
+     */
+    public static function idsIn(Blocks $registry, string $type, array $content): array
+    {
+        if (!$registry->has($type)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($registry->get($type)['fields'] as $name => $field) {
+            $value = $content[$name] ?? null;
+            if (($field['type'] ?? '') === 'media') {
+                if (is_int($value) && $value > 0) {
+                    $ids[] = $value;
+                }
+                continue;
+            }
+            if (($field['type'] ?? '') !== 'repeater' || !is_array($value)) {
+                continue;
+            }
+            foreach ($field['fields'] as $itemName => $itemField) {
+                if (($itemField['type'] ?? '') !== 'media') {
+                    continue;
+                }
+                foreach ($value as $item) {
+                    $id = is_array($item) ? ($item[$itemName] ?? null) : null;
+                    if (is_int($id) && $id > 0) {
+                        $ids[] = $id;
+                    }
+                }
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * The data attributes media-picker.js reads off a <select data-media-field>.
      *
      * Extracted from the block editor's view when site settings became a second screen
@@ -106,20 +154,55 @@ final class MediaReference
      */
     public static function resolve(Db $db, Blocks $registry, string $type, array $content): array
     {
-        foreach (self::fields($registry)[$type] ?? [] as $field) {
+        if (!$registry->has($type)) {
+            return $content;
+        }
+
+        // One query for every id the block carries, wherever it lives, rather than one per
+        // field — and the same traversal idsIn() uses, so the rule reaches inside a
+        // repeater's items exactly as far as the renderer does.
+        $known = [];
+        foreach (self::idsIn($registry, $type, $content) as $id) {
+            $known[$id] = false;
+        }
+        if ($known !== []) {
+            $placeholders = implode(', ', array_fill(0, count($known), '?'));
+            foreach ($db->all("SELECT id FROM media WHERE id IN ({$placeholders})", array_keys($known)) as $row) {
+                $known[(int) $row['id']] = true;
+            }
+        }
+        $keep = static fn (mixed $id): ?int => is_int($id) && $id > 0 && ($known[$id] ?? false) ? $id : null;
+
+        foreach ($registry->get($type)['fields'] as $name => $field) {
             // Only fields the content actually carries: this never adds a key that
             // normalize() did not put there.
-            if (!array_key_exists($field, $content)) {
+            if (!array_key_exists($name, $content)) {
                 continue;
             }
-            $id = $content[$field];
-            if (!is_int($id) || $id <= 0) {
-                $content[$field] = null;
+            if (($field['type'] ?? '') === 'media') {
+                $content[$name] = $keep($content[$name]);
                 continue;
             }
-            if ($db->one('SELECT id FROM media WHERE id = ?', [$id]) === null) {
-                $content[$field] = null;
+            if (($field['type'] ?? '') !== 'repeater' || !is_array($content[$name])) {
+                continue;
             }
+
+            // A picture chosen inside an item and deleted from the library afterwards. This
+            // walked the top level only, as did the renderer, so such an id survived the
+            // save and then drew nothing on the page (O-11).
+            $items = [];
+            foreach ($content[$name] as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                foreach ($field['fields'] as $itemName => $itemField) {
+                    if (($itemField['type'] ?? '') === 'media' && array_key_exists($itemName, $item)) {
+                        $item[$itemName] = $keep($item[$itemName]);
+                    }
+                }
+                $items[] = $item;
+            }
+            $content[$name] = $items;
         }
 
         return $content;

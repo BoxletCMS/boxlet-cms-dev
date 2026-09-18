@@ -116,19 +116,79 @@ final class Blocks
     {
         $normalized = [];
         foreach ($this->get($type)['fields'] as $name => $field) {
-            $value = $content[$name] ?? null;
-            $normalized[$name] = match ($field['type']) {
-                'media' => is_int($value) && $value > 0 ? $value : null,
-                'link' => [
-                    'label' => is_array($value) && is_string($value['label'] ?? null) ? $value['label'] : '',
-                    'url' => is_array($value) && is_string($value['url'] ?? null) ? $value['url'] : '',
-                ],
-                'select' => is_string($value) && in_array($value, $field['options'], true) ? $value : $field['options'][0],
-                default => is_string($value) ? $value : '',
-            };
+            $normalized[$name] = self::value($field, $content[$name] ?? null);
         }
 
         return $normalized;
+    }
+
+    /**
+     * One empty item of a repeater: every field present, at its empty value.
+     *
+     * Needed twice by the editor — to render the blank item its <template> holds, and to
+     * append one when a browser without JavaScript presses Add — and both must agree with
+     * what normalize() produces for a stored item, which is why it asks the same value().
+     *
+     * @param array<string, mixed> $field a validated repeater declaration
+     * @return array<string, mixed>
+     */
+    public static function emptyItem(array $field): array
+    {
+        $item = [];
+        foreach ($field['fields'] as $name => $itemField) {
+            $item[$name] = self::value($itemField, null);
+        }
+
+        return $item;
+    }
+
+    /**
+     * One field's stored value, made safe for a template (PLAN.md O-11).
+     *
+     * Split out of normalize() because a repeater's items are the same question asked
+     * again, one level down: each item is a set of fields, each field cleaned by type. A
+     * second copy of the match below, written for items, is how a type added later gets
+     * handled in one place and forgotten in the other.
+     *
+     * @param array<string, mixed> $field a validated field declaration
+     */
+    private static function value(array $field, mixed $value): mixed
+    {
+        if ($field['type'] === 'repeater') {
+            /*
+             * A LIST, ALWAYS, and never longer than the definition allows. Anything that is
+             * not a list of items reads as no items rather than as an error: the same rule
+             * every other field follows here, so a template can draw the items it is given
+             * without asking whether it was given any.
+             *
+             * Trimmed rather than refused, because this runs on RENDER as well as on save.
+             * A definition whose max shrinks would otherwise make every page that used the
+             * old maximum fail to draw, which is a worse answer than showing the first few.
+             */
+            $items = [];
+            foreach (is_array($value) ? array_values($value) : [] as $item) {
+                if (count($items) >= $field['max']) {
+                    break;
+                }
+                $one = [];
+                foreach ($field['fields'] as $itemName => $itemField) {
+                    $one[$itemName] = self::value($itemField, is_array($item) ? ($item[$itemName] ?? null) : null);
+                }
+                $items[] = $one;
+            }
+
+            return $items;
+        }
+
+        return match ($field['type']) {
+            'media' => is_int($value) && $value > 0 ? $value : null,
+            'link' => [
+                'label' => is_array($value) && is_string($value['label'] ?? null) ? $value['label'] : '',
+                'url' => is_array($value) && is_string($value['url'] ?? null) ? $value['url'] : '',
+            ],
+            'select' => is_string($value) && in_array($value, $field['options'], true) ? $value : $field['options'][0],
+            default => is_string($value) ? $value : '',
+        };
     }
 
     /**

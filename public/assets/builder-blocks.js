@@ -63,9 +63,16 @@
     }
     api.renumber();
     // A block arrives as HTML from the server, so its rich text field is a plain textarea
-    // until this turns it into an editor.
+    // and its picture field a plain select until these turn them into editors.
     if (window.boxletRichText) {
       window.boxletRichText.scan(group);
+    }
+    // The picker had no scan until the repeater needed one for a newly added item, so an
+    // inserted block kept the bare select where every block already on the page showed a
+    // picker. It still posted the right field — which is why nobody saw it — but it was
+    // not the control the rest of the editor offers.
+    if (window.boxletPicker) {
+      window.boxletPicker.scan(group);
     }
     api.tellCanvas('refresh', {});
     api.show(index);
@@ -198,6 +205,26 @@
     });
   }
 
+  /**
+   * Turn a cloned field group's pickers back into the plain selects the server sent, so
+   * place() can raise new ones on them.
+   *
+   * The same reasoning as unsetRichText above: a clone of a live picker is not a picker.
+   * It carries data-picker-ready, so scan() skips it, and the button and panel beside it
+   * are dead markup whose listeners stayed with the block it was copied from — a duplicate
+   * whose picture field could be read but never changed.
+   */
+  function unsetPicker(group) {
+    group.querySelectorAll('select[data-picker-ready]').forEach(function (select) {
+      var picker = select.parentNode.querySelector('.media-picker');
+      if (picker) {
+        picker.remove();
+      }
+      select.hidden = false;
+      select.removeAttribute('data-picker-ready');
+    });
+  }
+
   function act(action) {
     var index = api.selected();
     var group = api.groups.querySelector('[data-block-group="' + index + '"]');
@@ -225,6 +252,7 @@
       groupCopy.setAttribute('data-block-key', key);
       groupCopy.hidden = true;
       unsetRichText(groupCopy);
+      unsetPicker(groupCopy);
       // A duplicate is a new block. Keeping the id would make the save overwrite the
       // block it was copied from instead of adding one.
       var id = groupCopy.querySelector('[name$="[id]"]');

@@ -79,12 +79,138 @@ final class BlockForm
     }
 
     /**
+     * One repeater item moved within its block — D-011's pattern one level down, where the
+     * same route serves the drag and the buttons a browser without JavaScript uses.
+     *
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     */
+    public static function moveItem(Blocks $registry, array $blocks, int $position, string $field, int $item, string $direction): array
+    {
+        [$content, $declared] = self::repeaterAt($registry, $blocks, $position, $field);
+        if ($content === null || $declared === null) {
+            return $blocks;
+        }
+        $items = is_array($content[$field] ?? null) ? array_values($content[$field]) : [];
+        $target = $direction === 'up' ? $item - 1 : $item + 1;
+        if (!isset($items[$item], $items[$target])) {
+            return $blocks;
+        }
+        [$items[$item], $items[$target]] = [$items[$target], $items[$item]];
+        $content[$field] = $items;
+        // The WHOLE element back, never an assignment into its 'content' offset: writing
+        // through a nested offset of a list narrows that element to the one key written,
+        // and the block shape this method promises is lost with it.
+        $updated = $blocks[$position];
+        $updated['content'] = $content;
+        $blocks[$position] = $updated;
+
+        return $blocks;
+    }
+
+    /**
+     * An empty item appended to a repeater, for the Add button without JavaScript.
+     *
+     * Refuses past the maximum rather than growing the list and letting the save reject
+     * it: the button that cannot do anything should do nothing, not hand back an error
+     * for something the editor itself just did.
+     *
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     */
+    public static function addItem(Blocks $registry, array $blocks, int $position, string $field): array
+    {
+        [$content, $declared] = self::repeaterAt($registry, $blocks, $position, $field);
+        if ($content === null || $declared === null) {
+            return $blocks;
+        }
+        $items = is_array($content[$field] ?? null) ? array_values($content[$field]) : [];
+        if (count($items) >= $declared['max']) {
+            return $blocks;
+        }
+        $items[] = Blocks::emptyItem($declared);
+        $content[$field] = $items;
+        // The whole element back, for the reason given in moveItem().
+        $updated = $blocks[$position];
+        $updated['content'] = $content;
+        $blocks[$position] = $updated;
+
+        return $blocks;
+    }
+
+    /**
+     * One block's content and the declaration of a repeater field on it, or [null, null]
+     * when the position, the block's type or the field name names no repeater.
+     *
+     * THE FIELD NAME COMES FROM A FORM, so it is a key only once the registry agrees it is
+     * one. An action naming a field the block does not declare moves nothing rather than
+     * reaching into stored content with whatever was posted.
+     *
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @return array{0: array<string, mixed>|null, 1: array<string, mixed>|null}
+     */
+    private static function repeaterAt(Blocks $registry, array $blocks, int $position, string $field): array
+    {
+        $block = $blocks[$position] ?? null;
+        if ($block === null || !is_array($block['content']) || !$registry->has($block['type'])) {
+            return [null, null];
+        }
+        $declared = $registry->get($block['type'])['fields'][$field] ?? null;
+        if (!is_array($declared) || ($declared['type'] ?? '') !== 'repeater') {
+            return [null, null];
+        }
+
+        return [$block['content'], $declared];
+    }
+
+    /**
      * @param array<string, mixed> $field
      * @return array{0: mixed, 1: string|null} the cleaned value and an error, if any
      */
     private static function field(array $field, mixed $raw): array
     {
         $required = $field['required'] === true;
+
+        /*
+         * A REPEATER IS THE SAME QUESTION, ONCE PER ITEM (PLAN.md O-11).
+         *
+         * Each item's fields go through this very method, so a media field inside an item
+         * is validated as a media field and a richtext field is sanitised per item — no
+         * special case, and nothing here has to know which types exist.
+         *
+         * Over the maximum is REFUSED rather than trimmed, unlike on render: here somebody
+         * typed those items, and silently dropping the last one is how an owner loses work
+         * without being told. Blocks::normalize() trims instead, because a page must still
+         * draw when a definition's maximum shrinks under it.
+         */
+        if ($field['type'] === 'repeater') {
+            $rows = is_array($raw) ? array_values($raw) : [];
+            $items = [];
+            $itemError = null;
+            foreach ($rows as $row) {
+                if (($row['_delete'] ?? '') === '1') {
+                    continue;
+                }
+                $item = [];
+                foreach ($field['fields'] as $itemName => $itemField) {
+                    [$value, $error] = self::field($itemField, is_array($row) ? ($row[$itemName] ?? null) : null);
+                    $item[$itemName] = $value;
+                    // The first thing wrong, named once: a message per item per field would
+                    // bury the block's own errors under a list nobody reads.
+                    $itemError ??= $error;
+                }
+                $items[] = $item;
+            }
+
+            if (count($items) > $field['max']) {
+                return [array_slice($items, 0, $field['max']), t('pages.field.repeater_max', ['max' => $field['max']])];
+            }
+            if ($items === [] && $required) {
+                return [[], t('pages.field.required')];
+            }
+
+            return [$items, $itemError];
+        }
 
         switch ($field['type']) {
             case 'link':

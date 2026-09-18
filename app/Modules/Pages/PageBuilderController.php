@@ -107,6 +107,28 @@ final class PageBuilderController
     }
 
     /**
+     * The builder re-rendered with what the form submitted and nothing saved — a repeater
+     * control pressed in the panel without JavaScript (PLAN.md O-11).
+     *
+     * The canvas reloads when this renders and draws from the database, which does not
+     * hold these blocks: without the stash the item just added would be missing from the
+     * page while its fields sat filled in beside it. The same mechanism rejected() uses
+     * below, without the error posture — nothing here failed.
+     *
+     * @param array<string, mixed> $page
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     */
+    public function again(array $page, string $title, string $slug, array $blocks): Response
+    {
+        $this->container->get('session')->set('pending_canvas', [
+            'page' => (int) $page['id'],
+            'blocks' => $blocks,
+        ]);
+
+        return $this->shell($page, $title, $slug, $blocks);
+    }
+
+    /**
      * Re-renders the builder after a save that did not validate, so the user stays in the
      * editor they were using. PageEditorController calls this; the parsing, validation
      * and storage it runs first are the same for both editors.
@@ -179,7 +201,7 @@ final class PageBuilderController
             // Both: the picker shows the library's own cards (admin-media.css) inside its
             // own panel (admin-picker.css), and one definition of a card beats a short list.
             'styles' => ['admin-richtext.css', 'builder.css', 'builder-inspector.css', 'admin-media.css', 'admin-picker.css'],
-            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'media-picker.js'],
+            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'media-picker.js', 'repeater.js'],
             'wide' => true,
             'bare' => true,
             'page' => $page,

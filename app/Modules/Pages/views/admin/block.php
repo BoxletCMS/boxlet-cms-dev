@@ -7,6 +7,10 @@ use App\Modules\Design\Composition;
  * inside a <template> that admin.js clones. admin.js never knows which fields a block
  * has: it only rewrites blocks[n] and block-n- as groups are added, removed or moved.
  *
+ * One field's markup lives in field.php, because a repeater's items hold the same kind of
+ * fields one level down and a second copy is how a field type added later works here and
+ * silently does not there (PLAN.md O-11).
+ *
  * @var int|string $index
  * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
  * @var array<string, string> $errors
@@ -43,106 +47,24 @@ $pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::p
 <?php if ($known): ?>
 <?php foreach ($registry->get($block['type'])['fields'] as $name => $field): ?>
 <?php
-    $value = $block['content'][$name] ?? null;
-    $inputId = $idPrefix . $name;
-    $inputName = $prefix . '[' . $name . ']';
-    $label = t('block.' . $block['type'] . '.' . $name) . ($field['required'] ? ' ' . t('pages.required_marker') : '');
     $fieldError = $errors[$index . '.' . $name] ?? null;
+
+    if ($field['type'] === 'repeater') {
+        $repeaterName = (string) $name;
+        $repeaterField = $field;
+        $stored = $block['content'][$name] ?? null;
+        $items = is_array($stored) ? array_values($stored) : [];
+        require __DIR__ . '/repeater.php';
+        continue;
+    }
+
+    $fieldSpec = $field;
+    $fieldKey = 'block.' . $block['type'] . '.' . $name;
+    $fieldName = $prefix . '[' . $name . ']';
+    $fieldId = $idPrefix . $name;
+    $fieldValue = $block['content'][$name] ?? null;
+    require __DIR__ . '/field.php';
 ?>
-                <div class="field">
-                    <label for="<?= e($inputId) ?>"><?= e($label) ?></label>
-<?php if ($field['type'] === 'richtext'): ?>
-                    <?php /* The textarea is the real field and carries the name. richtext.js
-                             moves the name onto a hidden input and puts the editor above it,
-                             so a browser without JavaScript still edits this page, and the
-                             plain toggle is simply what is underneath rather than a second
-                             input kept in step. */ ?>
-                    <?php /* The toolbar is ours now, not the editor's (D-017). Short text
-                             labels rather than an invented icon set: legible at rest by
-                             construction, which is what D-012 asks for, and one less thing
-                             to draw twice. Each button says what it does through title and
-                             an accessible label; richtext.js binds them by data-rt. */ ?>
-                    <div class="richtext" data-richtext>
-                        <div class="richtext-toolbar" data-richtext-toolbar role="toolbar" aria-label="<?= e(t('richtext.toolbar')) ?>">
-                            <div class="rt-group">
-                                <button type="button" class="rt-button" data-rt="bold" aria-pressed="false" title="<?= e(t('richtext.bold')) ?>"><span aria-hidden="true">B</span><span class="visually-hidden"><?= e(t('richtext.bold')) ?></span></button>
-                                <button type="button" class="rt-button rt-italic" data-rt="italic" aria-pressed="false" title="<?= e(t('richtext.italic')) ?>"><span aria-hidden="true">I</span><span class="visually-hidden"><?= e(t('richtext.italic')) ?></span></button>
-                                <?php /* Drawn, not written: an emoji renders as an empty box wherever that font is
-         missing — measured in the headless browser, where it drew as tofu — and an
-         ampersand does not say "link" to anyone. currentColor means the icon inherits
-         --ui-ink like every text label beside it, so it carries the same 16.51:1 and
-         D-012 needs no separate decision. */ ?>
-<button type="button" class="rt-button" data-rt="link" aria-pressed="false" title="<?= e(t('richtext.link')) ?>"><svg class="rt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.5 13.5a4.5 4.5 0 0 0 6.36 0l2.83-2.83a4.5 4.5 0 0 0-6.36-6.36l-1.06 1.06"/><path d="M13.5 10.5a4.5 4.5 0 0 0-6.36 0l-2.83 2.83a4.5 4.5 0 0 0 6.36 6.36l1.06-1.06"/></svg><span class="visually-hidden"><?= e(t('richtext.link')) ?></span></button>
-                            </div>
-                            <div class="rt-group">
-                                <button type="button" class="rt-button" data-rt="h2" aria-pressed="false" title="<?= e(t('richtext.heading_2')) ?>"><span aria-hidden="true">H2</span><span class="visually-hidden"><?= e(t('richtext.heading_2')) ?></span></button>
-                                <button type="button" class="rt-button" data-rt="h3" aria-pressed="false" title="<?= e(t('richtext.heading_3')) ?>"><span aria-hidden="true">H3</span><span class="visually-hidden"><?= e(t('richtext.heading_3')) ?></span></button>
-                                <button type="button" class="rt-button" data-rt="h4" aria-pressed="false" title="<?= e(t('richtext.heading_4')) ?>"><span aria-hidden="true">H4</span><span class="visually-hidden"><?= e(t('richtext.heading_4')) ?></span></button>
-                                <button type="button" class="rt-button" data-rt="quote" aria-pressed="false" title="<?= e(t('richtext.quote')) ?>"><span aria-hidden="true">&#8220;</span><span class="visually-hidden"><?= e(t('richtext.quote')) ?></span></button>
-                            </div>
-                            <div class="rt-group">
-                                <button type="button" class="rt-button" data-rt="bullet" aria-pressed="false" title="<?= e(t('richtext.bullets')) ?>"><span aria-hidden="true">&#8226;</span><span class="visually-hidden"><?= e(t('richtext.bullets')) ?></span></button>
-                                <button type="button" class="rt-button" data-rt="ordered" aria-pressed="false" title="<?= e(t('richtext.numbers')) ?>"><span aria-hidden="true">1.</span><span class="visually-hidden"><?= e(t('richtext.numbers')) ?></span></button>
-                            </div>
-                            <div class="rt-group rt-history">
-                                <button type="button" class="rt-button" data-rt="undo" title="<?= e(t('richtext.undo')) ?>"><span aria-hidden="true">&#8630;</span><span class="visually-hidden"><?= e(t('richtext.undo')) ?></span></button>
-                                <button type="button" class="rt-button" data-rt="redo" title="<?= e(t('richtext.redo')) ?>"><span aria-hidden="true">&#8631;</span><span class="visually-hidden"><?= e(t('richtext.redo')) ?></span></button>
-                            </div>
-                        </div>
-                        <?php /* In the flow, not over the text, so it never covers what is
-                                 being linked. Hidden with the hidden attribute rather than
-                                 a class; admin.css makes that attribute win over anything
-                                 that would lay the panel out. */ ?>
-                        <div class="richtext-link" data-richtext-link hidden>
-                            <input type="url" class="rt-link-input" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>">
-                            <button type="button" class="button button-secondary" data-rt-link="apply"><?= e(t('richtext.link')) ?></button>
-                            <button type="button" class="button button-ghost" data-rt-link="remove"><?= e(t('richtext.unlink')) ?></button>
-                        </div>
-                        <textarea id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" rows="8" data-richtext-source><?= e($value) ?></textarea>
-                        <div class="richtext-actions">
-                            <button type="button" class="button button-ghost js-only" data-richtext-toggle data-label-plain="<?= e(t('richtext.plain')) ?>" data-label-rich="<?= e(t('richtext.rich')) ?>"><?= e(t('richtext.plain')) ?></button>
-                            <span class="hint js-only"><?= e(t('richtext.paste_plain')) ?></span>
-                        </div>
-                    </div>
-                    <span class="hint"><?= e(t('pages.field.richtext_hint')) ?></span>
-<?php elseif ($field['type'] === 'textarea'): ?>
-                    <textarea id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" rows="3"><?= e($value) ?></textarea>
-<?php elseif ($field['type'] === 'media'): ?>
-                    <?php /* A choice, never a number. Without JavaScript this select IS the
-                             control: nobody can know that "7" is the harbour photograph, so
-                             the id never appears on screen. The picker replaces it when
-                             JavaScript runs, and both post the same field, so the server
-                             validates one thing (MediaReference, on save). */ ?>
-                    <select id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" data-media-field<?= $pickerAttributes() ?>>
-                        <option value=""><?= e(t('pages.field.media_none')) ?></option>
-<?php foreach ($pictures as $picture): ?>
-                        <option value="<?= e($picture['id']) ?>"<?= $picture['thumb'] === null ? '' : ' data-thumb="' . e($picture['thumb']) . '"' ?><?= (int) $value === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
-<?php endforeach; ?>
-                    </select>
-<?php if ($pictures === []): ?>
-                    <span class="hint"><?= e(t('pages.field.media_empty')) ?></span>
-<?php endif; ?>
-                    <?php /* A new tab, because leaving the editor to add a picture would
-                             lose everything typed since the last save. */ ?>
-                    <span class="hint"><a href="<?= e(\App\Support\Url::admin('media')) ?>" target="_blank" rel="noopener"><?= e(t('pages.field.media_library')) ?></a></span>
-<?php elseif ($field['type'] === 'link'): ?>
-                    <div class="field-row">
-                        <input type="text" id="<?= e($inputId) ?>" name="<?= e($inputName) ?>[label]" value="<?= e($value['label'] ?? '') ?>" placeholder="<?= e(t('pages.field.link_label_input')) ?>" aria-label="<?= e($label . ': ' . t('pages.field.link_label_input')) ?>">
-                        <input type="text" id="<?= e($inputId) ?>-url" name="<?= e($inputName) ?>[url]" value="<?= e($value['url'] ?? '') ?>" placeholder="<?= e(t('pages.field.link_url_input')) ?>" aria-label="<?= e($label . ': ' . t('pages.field.link_url_input')) ?>">
-                    </div>
-<?php elseif ($field['type'] === 'select'): ?>
-                    <select id="<?= e($inputId) ?>" name="<?= e($inputName) ?>">
-<?php foreach ($field['options'] as $option): ?>
-                        <option value="<?= e($option) ?>"<?= $option === $value ? ' selected' : '' ?>><?= e(t('block.' . $block['type'] . '.' . $name . '.' . $option)) ?></option>
-<?php endforeach; ?>
-                    </select>
-<?php else: ?>
-                    <input type="text" id="<?= e($inputId) ?>" name="<?= e($inputName) ?>" value="<?= e($value) ?>">
-<?php endif; ?>
-<?php if ($fieldError !== null): ?>
-                    <p class="field-error" role="alert"><?= e($fieldError) ?></p>
-<?php endif; ?>
-                </div>
 <?php endforeach; ?>
 <?php $layouts = $registry->get($block['type'])['layouts']; ?>
 <?php if (count($layouts) > 1): ?>

@@ -85,6 +85,15 @@ final class PageEditorController
         if (preg_match('~^(up|down)-(\d+)$~', $action, $move)) {
             return $this->form($page, $title, $slug, BlockForm::move($blocks, (int) $move[2], $move[1]));
         }
+        // A repeater's own controls, for a browser with no JavaScript (PLAN.md O-11). The
+        // field name is matched against what a field name may be, and then against what
+        // the block actually declares, inside BlockForm — a posted name is not a key.
+        if (preg_match('~^item-(up|down)-(\d+)-([a-z][a-z0-9_]*)-(\d+)$~', $action, $move)) {
+            return $this->again($request, $page, $title, $slug, BlockForm::moveItem($registry, $blocks, (int) $move[2], $move[3], (int) $move[4], $move[1]));
+        }
+        if (preg_match('~^item-add-(\d+)-([a-z][a-z0-9_]*)$~', $action, $add)) {
+            return $this->again($request, $page, $title, $slug, BlockForm::addItem($registry, $blocks, (int) $add[1], $add[2]));
+        }
 
         // The plain editor sends no settings fields, so each falls back to what the page
         // already has. Only the visual editor's page panel submits them.
@@ -202,6 +211,33 @@ final class PageEditorController
     }
 
     /**
+     * The editor the request came from, re-rendered with the change applied and nothing
+     * saved: a repeater's Add, Move up or Move down pressed without JavaScript.
+     *
+     * A BLOCK's own move and remove render the plain form unconditionally, and that is
+     * safe only because builder-inspector.css hides them inside the visual editor's panel
+     * — they would, in its own words, "either do nothing or throw the user back into the
+     * plain editor". A repeater's controls are NOT hidden there, because in the panel they
+     * do real work, so a submit from the panel has to come back as the panel. Without
+     * this, one press of Add on an item would replace the canvas with the plain form and
+     * take every unsaved change on the page with it.
+     *
+     * Not reject(): that answers 422 for a save that failed. Nothing here failed, so this
+     * answers 200.
+     *
+     * @param array<string, mixed> $page
+     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     */
+    private function again(Request $request, array $page, string $title, string $slug, array $blocks): Response
+    {
+        if ($request->input('editor') === 'builder') {
+            return (new PageBuilderController($this->container))->again($page, $title, $slug, $blocks);
+        }
+
+        return $this->form($page, $title, $slug, $blocks);
+    }
+
+    /**
      * A save that did not validate re-renders the editor it was sent from, so nobody is
      * moved to a different screen at the moment they have to fix something. Everything
      * before this point — parsing, validation, storage — is the same for both.
@@ -240,7 +276,7 @@ final class PageEditorController
             // Both: the picker shows the library's own cards (admin-media.css) inside its
             // own panel (admin-picker.css), and one definition of a card beats a short list.
             'styles' => ['admin-richtext.css', 'admin-pages.css', 'admin-media.css', 'admin-picker.css'],
-            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'media-picker.js'],
+            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'media-picker.js', 'repeater.js'],
             'character' => Composition::active($this->db()),
             'page' => $page,
             'titleValue' => $title,

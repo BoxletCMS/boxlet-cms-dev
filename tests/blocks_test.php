@@ -53,6 +53,16 @@ $malformed = [
     'reserved field name' => [fn () => ['fields' => ['type' => ['type' => 'text']]] + validBlock(), "Block sample: field 'type': the name is reserved by the page editor"],
     'select without options' => [fn () => ['fields' => ['x' => ['type' => 'select']]] + validBlock(), "Block sample: field 'x': a select needs 'options'"],
     'options on a text field' => [fn () => ['fields' => ['x' => ['type' => 'text', 'options' => ['a']]]] + validBlock(), "Block sample: field 'x': only select fields take 'options'"],
+    // A repeater declares one item and how many of them (PLAN.md O-11). It was already in
+    // the closed FIELD_TYPES list and simply unimplemented, so these check the declaration,
+    // not a new type.
+    'repeater without max' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'fields' => ['y' => ['type' => 'text']]]]] + validBlock(), "Block sample: field 'x': a repeater needs 'max'"],
+    'repeater with max zero' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 0, 'fields' => ['y' => ['type' => 'text']]]]] + validBlock(), "Block sample: field 'x': a repeater needs 'max'"],
+    'repeater without fields' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 2]]] + validBlock(), "Block sample: field 'x': a repeater needs 'fields'"],
+    'repeater with options' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 2, 'fields' => ['y' => ['type' => 'text']], 'options' => ['a']]]] + validBlock(), "Block sample: field 'x': a repeater does not take 'options'"],
+    'max on a text field' => [fn () => ['fields' => ['x' => ['type' => 'text', 'max' => 2]]] + validBlock(), "Block sample: field 'x': only a repeater takes 'max'"],
+    'a repeater inside a repeater' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 2, 'fields' => ['y' => ['type' => 'repeater', 'max' => 2, 'fields' => ['z' => ['type' => 'text']]]]]]] + validBlock(), "a repeater cannot hold another repeater"],
+    'a bad field inside an item' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 2, 'fields' => ['y' => ['type' => 'colour']]]]] + validBlock(), "Block sample: field 'y': 'type' must be one of"],
     'no layouts' => [fn () => ['layouts' => []] + validBlock(), "Block sample: 'layouts' must be a non-empty list"],
     'duplicate layout' => [fn () => ['layouts' => ['one', 'one']] + validBlock(), "Block sample: 'layouts' contains a duplicate"],
     'default layout not offered' => [fn () => ['defaults' => ['layout' => 'three']] + validBlock(), "Block sample: 'defaults' must be"],
@@ -108,6 +118,21 @@ test('every block, layout, field and select option has an admin label', function
             $keys[] = "block.{$type}.{$name}";
             foreach ($field['options'] ?? [] as $option) {
                 $keys[] = "block.{$type}.{$name}.{$option}";
+            }
+            // A repeater's items are fields too, and each one carries its own label in the
+            // editor (PLAN.md O-11). The third segment names an item's field where a
+            // select's names an option, and the two can never collide: a repeater refuses
+            // 'options' and a select cannot take 'fields'.
+            //
+            // This covers nothing today, because no shipped block has a repeater yet. It is
+            // written now so the Columns block (D-008) cannot arrive with unlabelled item
+            // fields — t() returns the key itself when nothing is defined, so the failure
+            // this prevents is the raw string "block.columns.items.heading" on screen.
+            foreach ($field['fields'] ?? [] as $itemName => $itemField) {
+                $keys[] = "block.{$type}.{$name}.{$itemName}";
+                foreach ($itemField['options'] ?? [] as $option) {
+                    $keys[] = "block.{$type}.{$name}.{$itemName}.{$option}";
+                }
             }
         }
         foreach ($keys as $key) {

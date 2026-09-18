@@ -21,7 +21,23 @@
 
   var open = null;
 
-  Array.prototype.forEach.call(document.querySelectorAll('select[data-media-field]'), upgrade);
+  /**
+   * Upgrades every picker inside root that is not upgraded already.
+   *
+   * A ROOT, NOT THE DOCUMENT, because markup arrives after load: a block inserted into the
+   * canvas, and an item added to a repeater, both come from the server as HTML whose
+   * picture field is a plain select until this runs over it. richtext.js has had this from
+   * the start (window.boxletRichText.scan) and builder-blocks.js calls it when it inserts
+   * a block — the picker had no equivalent, so an inserted block's picture field stayed
+   * the bare select. Postable and correct, but not the control every other field shows.
+   */
+  function scan(root) {
+    Array.prototype.forEach.call((root || document).querySelectorAll('select[data-media-field]'), upgrade);
+  }
+
+  window.boxletPicker = { scan: scan };
+
+  scan(document);
 
   // Anywhere else closes the panel. A picker left open over the fields it covers is a
   // control that has to be dismissed before the form can be used.
@@ -50,9 +66,14 @@
 
   function upgrade(select) {
     var url = select.getAttribute('data-picker-url');
-    if (!url) {
+    // Marked, not counted: scan() runs over a subtree that may already hold upgraded
+    // pickers — a duplicated block carries them in its clone — and upgrading one twice
+    // would leave two buttons in front of one field. richtext.js marks the same way
+    // (data-richtext-ready), and builder-blocks.js clears the mark when it strips a clone.
+    if (!url || select.hasAttribute('data-picker-ready')) {
       return;
     }
+    select.setAttribute('data-picker-ready', '');
 
     var root = document.createElement('div');
     root.className = 'media-picker';

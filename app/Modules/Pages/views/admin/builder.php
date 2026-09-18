@@ -102,8 +102,16 @@ foreach ($errors as $key => $message) {
                              fixed, while the library is long and scrolls: a scrolling grid
                              above a four-field form would bury the form. Both belong to
                              the "nothing selected" state. */ ?>
-                    <div class="panel-page" data-page-settings>
-                        <h2><?= e(t('pages.panel.page')) ?></h2>
+                    <?php /* Folded away by default, as a block's section style is (D-040): it
+                             is set once and then mostly left, and open it pushed the block
+                             library below the fold. It opens by itself when one of its
+                             fields was refused — page errors are keyed by the field's name,
+                             block errors by position and field, so a key without a dot is
+                             the page's. */ ?>
+<?php $pageRefused = array_filter(array_keys($errors), static fn (string $key): bool => !str_contains($key, '.')) !== []; ?>
+                    <details class="panel-page" data-page-settings<?= $pageRefused ? ' open' : '' ?>>
+                        <summary><?= e(t('pages.panel.page')) ?></summary>
+                        <div class="panel-page-fields">
 
                         <div class="field">
                             <label for="page-title"><?= e(t('pages.field.title')) ?></label>
@@ -155,7 +163,8 @@ foreach ($errors as $key => $message) {
                             <textarea id="page-seo-description" name="seo_description" rows="2" aria-describedby="page-seo-description-hint"><?= e($seo['description']) ?></textarea>
                             <span class="hint" id="page-seo-description-hint"><?= e(t('pages.field.seo_description_hint')) ?></span>
                         </div>
-                    </div>
+                        </div>
+                    </details>
 
                     <?php /* Shown while nothing is selected. Each picture is the block
                              itself, rendered by the server (BlockPreview). */ ?>
@@ -180,16 +189,10 @@ foreach ($errors as $key => $message) {
                             <h2 data-selected-name></h2>
                             <button type="button" class="button button-ghost" data-deselect><?= e(t('pages.panel.done')) ?></button>
                         </div>
-                        <?php /* These act on the page in front of you. The identical
-                                 controls inside each field group submit the form instead,
-                                 which belongs to the plain editor; builder.css hides
-                                 them here. */ ?>
-                        <div class="panel-actions">
-                            <button type="button" class="button button-secondary" data-block-action="up"><?= e(t('pages.move_up')) ?></button>
-                            <button type="button" class="button button-secondary" data-block-action="down"><?= e(t('pages.move_down')) ?></button>
-                            <button type="button" class="button button-secondary" data-block-action="duplicate"><?= e(t('pages.duplicate')) ?></button>
-                            <button type="button" class="button button-ghost button-danger" data-block-action="remove"><?= e(t('pages.remove')) ?></button>
-                        </div>
+                        <?php /* Moving, copying and removing the block live on the block itself
+                                 now, as icons in the canvas (D-040); this panel is its fields.
+                                 The identical controls inside each field group belong to the
+                                 plain editor, and builder.css hides them here. */ ?>
                     </div>
 
                     <div class="panel-blocks" data-block-groups>

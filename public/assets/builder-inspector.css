@@ -8,16 +8,47 @@
 
 /* Page settings: a short fixed form above the library. */
 
+/* Folded by default (D-040): a summary line with a chevron, the fields when opened. */
 .panel-page {
-  display: grid;
-  gap: var(--ui-4);
-  padding-bottom: var(--ui-4);
+  padding-bottom: var(--ui-3);
   border-bottom: var(--ui-border) solid var(--ui-line);
 }
 
-.panel-page h2 {
-  margin: 0;
+.panel-page > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--ui-1);
+  font-family: var(--ui-font-display);
   font-size: var(--ui-text-base);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.panel-page > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The chevron, drawn: it turns when the section is open. */
+.panel-page > summary::after {
+  content: "";
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-right: 2px solid var(--ui-ink-muted);
+  border-bottom: 2px solid var(--ui-ink-muted);
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.panel-page[open] > summary::after {
+  transform: rotate(225deg);
+}
+
+.panel-page-fields {
+  display: grid;
+  gap: var(--ui-4);
+  margin-top: var(--ui-4);
 }
 
 .panel-page .field input,

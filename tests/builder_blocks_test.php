@@ -255,10 +255,26 @@ test('the endpoint re-draws a block from the values being edited', function () {
     assertTrue(!str_contains($response->body, 'bad()'), 'a script survived into the canvas');
 });
 
-test('the panel carries the editor\'s own block controls', function () {
-    $body = dispatch('/admin/pages/' . builderPage())->body;
-
-    foreach (['up', 'down', 'duplicate', 'remove'] as $action) {
-        assertContains('data-block-action="' . $action . '"', $body, "the {$action} control");
+// THE RULE CHANGED (D-040): a block's controls were a row of buttons in the panel; the
+// owner moved them onto the selected block, as icons in the canvas. The canvas draws them
+// with a script, so what can be asserted here is what it draws them from — their words,
+// handed over by the canvas page — and that the builder routes each one to the same act()
+// the panel's buttons called. The panel no longer carries them.
+test('the selected block\'s controls are on the canvas, and the builder acts on them', function () {
+    $id = builderPage();
+    $canvas = dispatch('/admin/pages/' . $id . '/canvas')->body;
+    foreach (['pages.move_up', 'pages.move_down', 'pages.duplicate', 'pages.remove'] as $key) {
+        assertContains(e(t($key)), $canvas, "the canvas does not carry the words for {$key}");
     }
+    assertContains('data-icons=', $canvas, 'the canvas does not know where the icons are');
+
+    $script = (string) file_get_contents(dirname(__DIR__) . '/public/assets/canvas.js');
+    foreach (['up', 'down', 'duplicate', 'remove'] as $action) {
+        assertContains("['{$action}',", $script, "canvas.js offers no {$action} control");
+    }
+    $builder = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder.js');
+    assertContains("event.data.type === 'action' && api.act", $builder, 'builder.js does not route a canvas action');
+    assertContains('api.act = act;', (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js'), 'act() is not exposed');
+
+    assertTrue(!str_contains(dispatch('/admin/pages/' . $id)->body, 'data-block-action="up"'), 'the panel still carries the controls');
 });

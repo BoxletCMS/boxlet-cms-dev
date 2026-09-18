@@ -148,7 +148,7 @@ return [
     'pages.panel.nothing_selected_hint' => 'Choose a block on the page to edit what it says.',
     'pages.panel.done' => 'Done',
     'pages.duplicate' => 'Duplicate',
-    'pages.panel.page' => 'Page',
+    'pages.panel.page' => 'Page settings & SEO',
     'pages.field.parent' => 'Parent page',
     'pages.parent.none' => 'Top level',
     'pages.parent_invalid' => 'Choose a parent page from the list.',

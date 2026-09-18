@@ -282,6 +282,8 @@
     api.tellCanvas('select', { index: to });
   }
 
+  api.act = act;
+
   api.form.addEventListener('click', function (event) {
     var add = event.target.closest && event.target.closest('[data-add-type]');
     if (add) {

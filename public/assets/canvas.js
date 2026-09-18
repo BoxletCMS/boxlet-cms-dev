@@ -75,6 +75,7 @@
     });
     var last = list[list.length - 1];
     overlay.appendChild(insertButton(list.length, last ? last.offsetTop + last.offsetHeight : 0, parts[1]));
+    drawTools();
   }
 
   /**
@@ -87,9 +88,60 @@
     blocks().forEach(function (section, i) {
       section.classList.toggle('bx-selected', i === index);
     });
+    drawTools();
     if (announce !== false) {
       tell('select', { index: index });
     }
+  }
+
+  /*
+   * THE SELECTED BLOCK'S OWN CONTROLS (D-040): move up, move down, duplicate and remove,
+   * as icons on the block's top right corner rather than a row of buttons in the panel, so
+   * the block's fields start higher. Drawn in the overlay like the insertion controls, for
+   * the same reason: nothing may sit between the sections. The action itself is the
+   * builder's — this only says which one was pressed.
+   */
+  var ACTIONS = [['up', 'arrow-up'], ['down', 'arrow-down'], ['duplicate', 'copy'], ['remove', 'trash-2']];
+
+  function drawTools() {
+    var old = overlay.querySelector('.bx-tools');
+    if (old) {
+      old.remove();
+    }
+    var list = blocks();
+    var index = list.findIndex(function (section) { return section.classList.contains('bx-selected'); });
+    if (index < 0) {
+      return;
+    }
+    var section = list[index];
+    var labels = (document.body.getAttribute('data-block-labels') || 'Move up|Move down|Duplicate|Remove').split('|');
+    var sprite = document.body.getAttribute('data-icons') || '';
+    var tools = document.createElement('div');
+    tools.className = 'bx-tools';
+    tools.setAttribute('role', 'toolbar');
+    ACTIONS.forEach(function (pair, i) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'bx-tool' + (pair[0] === 'remove' ? ' bx-tool-danger' : '');
+      button.setAttribute('data-block-action', pair[0]);
+      button.setAttribute('aria-label', labels[i]);
+      button.title = labels[i];
+      // At the ends there is nowhere to move to: shown, and shown as unavailable.
+      if ((pair[0] === 'up' && index === 0) || (pair[0] === 'down' && index === list.length - 1)) {
+        button.disabled = true;
+      }
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('focusable', 'false');
+      var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      use.setAttribute('href', sprite + '#i-' + pair[1]);
+      svg.appendChild(use);
+      button.appendChild(svg);
+      tools.appendChild(button);
+    });
+    tools.style.top = Math.round(section.offsetTop + 12) + 'px';
+    tools.style.left = Math.round(section.offsetLeft + section.offsetWidth - 12) + 'px';
+    overlay.appendChild(tools);
   }
 
   function refresh() {
@@ -99,6 +151,12 @@
   }
 
   document.addEventListener('click', function (event) {
+    var action = event.target.closest && event.target.closest('[data-block-action]');
+    if (action) {
+      event.preventDefault();
+      tell('action', { action: action.getAttribute('data-block-action') });
+      return;
+    }
     var insert = event.target.closest && event.target.closest('[data-insert-at]');
     if (insert) {
       event.preventDefault();

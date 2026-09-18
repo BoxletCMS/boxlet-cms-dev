@@ -156,6 +156,10 @@
       }
     } else if (event.data.type === 'reorder') {
       reorderTo(event.data.keys);
+    } else if (event.data.type === 'action' && api.act) {
+      // The selected block's controls in the canvas (D-040): the same act() the panel's
+      // buttons used to call, so there is one way to move, copy or remove a block.
+      api.act(event.data.action);
     }
   });
 

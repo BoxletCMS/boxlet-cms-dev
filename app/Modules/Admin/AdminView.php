@@ -69,7 +69,12 @@ final class AdminView
      * on every admin page, and four round trips for four numbers would be the rail's whole
      * cost.
      *
-     * @return array{counts: array{pages: int, media: int, menus: int, forms: int}, host: string, zone: string, time: string, adminEmail: string}
+     * The rail's folded or open state comes from the boxlet_rail cookie admin-nav.js sets
+     * when the owner uses the toggle, so the server draws it right the first time and the
+     * rail never opens and then folds as a page loads. Only the admin ever gets it: it is
+     * set by the admin's own script, on /admin.
+     *
+     * @return array{counts: array{pages: int, media: int, menus: int, forms: int}, host: string, zone: string, time: string, adminEmail: string, railState: string}
      */
     private static function frame(Container $container): array
     {
@@ -91,6 +96,7 @@ final class AdminView
             'zone' => $zone,
             'time' => (new DateTimeImmutable('now', new DateTimeZone($zone)))->format('H:i'),
             'adminEmail' => (string) ($admin['email'] ?? ''),
+            'railState' => preg_match('~(?:^|;)\s*boxlet_rail=(compact|wide)~', (string) $container->get('request')->header('cookie'), $rail) === 1 ? $rail[1] : '',
         ];
     }
 }

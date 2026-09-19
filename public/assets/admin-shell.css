@@ -1,11 +1,12 @@
 /* The admin's frame (PLAN.md D-052, "Workbench"): a rail down the left with every screen in
- * four groups, and a strip across the top of the content saying where you are. Admin tokens
+ * four groups; the strip across the top of the content is admin-strip.css. Admin tokens
  * only (--ui-*), defined in admin.css. Loaded by the admin shell alone: the login screen and
  * the installer have no frame.
  *
- * Three widths. Wide: the rail with its words. Under 1000px: the rail keeps only its icons,
- * each named on hover and for a screen reader. On a phone: the rail folds behind a menu
- * button (admin-nav.js), or, without a script, sits above the content as a plain list. */
+ * Wide, the rail has its words. On a phone it folds behind a menu button (admin-nav.js),
+ * or, without a script, sits above the content as a plain list. Between the two it can keep
+ * only its icons — under 1000px, in the page editor, or when the owner folds it — and that
+ * is admin-rail-compact.css. */
 
 .admin-frame {
   display: grid;
@@ -176,171 +177,6 @@
   font-size: 0.625rem;
 }
 
-/* ---- the strip ----------------------------------------------------------------------- */
-
-.admin-column {
-  min-inline-size: 0;
-}
-
-.admin-strip {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--ui-3);
-  block-size: 2.875rem;
-  box-sizing: border-box;
-  padding-inline: var(--ui-5) var(--ui-4);
-  background: var(--ui-bg);
-  box-shadow: inset 0 -1px 0 var(--ui-line);
-}
-
-.admin-where {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: var(--ui-2);
-  min-inline-size: 0;
-  margin: 0;
-  font-size: var(--ui-text-base);
-  white-space: nowrap;
-}
-
-.admin .admin-host {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ui-2);
-  min-inline-size: 0;
-  margin-inline-start: calc(-1 * var(--ui-2));
-  padding: 0.3125rem var(--ui-2);
-  overflow: hidden;
-  border-radius: var(--ui-radius-m);
-  color: var(--ui-ink);
-  font-weight: 500;
-  text-decoration: none;
-  text-overflow: ellipsis;
-}
-
-.admin .admin-host:hover {
-  background: var(--ui-panel);
-}
-
-/* The site is live: a small green dot, the one place success colour sits at rest. */
-.admin-live {
-  flex: none;
-  inline-size: 0.3125rem;
-  block-size: 0.3125rem;
-  background: var(--ui-success);
-  border-radius: 50%;
-}
-
-.admin-where-slash {
-  color: var(--ui-line-strong);
-}
-
-.admin-where-screen {
-  overflow: hidden;
-  color: var(--ui-ink-faint);
-  text-overflow: ellipsis;
-}
-
-.admin-strip-end {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-1);
-}
-
-.admin-clock {
-  margin-inline-end: var(--ui-2);
-  color: var(--ui-ink-faint);
-  font-family: var(--ui-mono);
-  font-size: var(--ui-text-xs);
-  white-space: nowrap;
-}
-
-.admin-logout {
-  margin: 0;
-}
-
-/* View site, Log out and the phone's menu button: icons alone, each named for a screen
-   reader and on hover. Legible at rest in the muted ink, raised on hover. */
-.admin .admin-strip-icon {
-  display: inline-grid;
-  place-items: center;
-  inline-size: 1.75rem;
-  block-size: 1.75rem;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: var(--ui-radius-m);
-  color: var(--ui-ink-muted);
-  cursor: pointer;
-}
-
-.admin .admin-strip-icon .icon {
-  inline-size: 1rem;
-  block-size: 1rem;
-}
-
-.admin .admin-strip-icon:hover {
-  background: var(--ui-panel);
-  color: var(--ui-ink);
-}
-
-/* The menu button exists only on a phone, and only once admin-nav.js has shown it. */
-.admin .admin-nav-toggle {
-  display: none;
-}
-
-/* ---- under 1000px: the rail keeps its icons -------------------------------------------- */
-
-@media (min-width: 47.5625rem) and (max-width: 62.5rem) {
-  .admin-frame {
-    grid-template-columns: 3.25rem minmax(0, 1fr);
-  }
-
-  .rail-brand {
-    justify-content: center;
-    padding-inline: 0;
-  }
-
-  .rail-nav {
-    padding-inline: var(--ui-1);
-  }
-
-  .admin .rail-nav a {
-    justify-content: center;
-  }
-
-  /* Hidden to the eye, kept for a screen reader: the entry's name is still its name. */
-  .rail-name,
-  .rail-label,
-  .rail-count,
-  .rail-who {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  /* A group's name becomes the rule between groups. */
-  .rail-group {
-    block-size: 1px;
-    margin: var(--ui-3) var(--ui-2);
-    overflow: hidden;
-    background: var(--ui-line);
-    color: transparent;
-  }
-
-  .admin .rail-user {
-    justify-content: center;
-    padding-inline: 0;
-  }
-}
-
 /* ---- a phone: the rail folds behind a button ------------------------------------------- */
 
 @media (max-width: 47.5rem) {
@@ -355,18 +191,7 @@
     box-shadow: inset 0 -1px 0 var(--ui-line);
   }
 
-  .admin-strip {
-    padding-inline: var(--ui-2) var(--ui-3);
-  }
-
-  .admin-clock {
-    display: none;
-  }
-
-  /* With one: the button shows, and the rail is a drawer over the page until it is used. */
-  .admin .nav-ready .admin-nav-toggle {
-    display: inline-grid;
-  }
+  /* With a script: the rail is a drawer over the page until the strip's button opens it. */
 
   .nav-ready .admin-rail {
     position: fixed;

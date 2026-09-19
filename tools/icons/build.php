@@ -22,7 +22,7 @@ const ICONS = [
     'trash-2', 'x',
     // The rail and the Workbench screens (D-052).
     'chart-column', 'check', 'circle-alert', 'clock', 'ellipsis-vertical', 'file-text', 'gauge', 'history',
-    'image', 'list', 'list-checks', 'palette', 'panels-top-left',
+    'chevron-left', 'image', 'list', 'list-checks', 'palette', 'panels-top-left',
 ];
 
 if (PHP_SAPI !== 'cli') {

@@ -26,6 +26,8 @@ return [
     'admin.nav.group.presentation' => 'Presentation',
     'admin.nav.group.administration' => 'Administration',
     'admin.your_login' => 'Your login',
+    'admin.rail.fold' => 'Fold the menu to its icons',
+    'admin.rail.open' => 'Open the menu',
     'admin.site_time' => 'The site\'s time zone, and the time there now',
     'admin.nav.pages' => 'Pages',
     'admin.nav.media' => 'Media',

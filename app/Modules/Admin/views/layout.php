@@ -28,6 +28,7 @@ use App\Support\Url;
  * @var string $zone the site's time zone
  * @var string $time the time there now, H:i
  * @var string $adminEmail who is logged in
+ * @var string $railState 'compact' or 'wide' as the owner last left the rail, '' if never
  */
 $current = static fn (string $section): string => $nav === $section ? ' aria-current="page"' : '';
 
@@ -73,6 +74,8 @@ foreach ($rail as $entries) {
     <title><?= e($title) ?></title>
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-shell.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-strip.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-rail-compact.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-ui.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-forms.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-tables.css')) ?>">
@@ -87,7 +90,9 @@ foreach ($rail as $entries) {
 </head>
 <body class="admin">
     <a class="skip-link" href="#admin-content"><?= e(t('admin.skip')) ?></a>
-    <div class="admin-frame" data-admin-frame>
+    <?php /* The page editor always opens with the rail folded to its icons: the canvas needs
+             the room. Elsewhere it is as the owner last left it (admin-rail-compact.css). */ ?>
+    <div class="admin-frame<?= $bare || $railState === 'compact' ? ' rail-compact' : ($railState === 'wide' ? ' rail-wide' : '') ?>" data-admin-frame<?= $bare ? ' data-rail-editor' : '' ?>>
         <?php /* THE RAIL (D-052): the site's name, then every screen in four groups, each entry
                  with its icon and, where it has one, how many there are. Grouped because it
                  has to hold a dozen screens, which a bar across the top could not. Without a
@@ -128,6 +133,12 @@ foreach ($rail as $entries) {
             <?php /* THE STRIP: where you are — the site's host, then the screen — and, on the
                      right, the site's own time and zone, the site in a new tab, and Log out. */ ?>
             <header class="admin-strip" data-admin-bar>
+                <?php /* Folds the rail to its icons or opens it again; born hidden, shown by
+                         admin-nav.js, which is what makes it work. */ ?>
+                <button type="button" class="rail-toggle" aria-controls="admin-rail" aria-expanded="true" hidden data-rail-toggle
+                        data-fold="<?= e(t('admin.rail.fold')) ?>" data-open="<?= e(t('admin.rail.open')) ?>" title="<?= e(t('admin.rail.fold')) ?>">
+                    <?= icon('chevron-left') ?><span class="visually-hidden" data-rail-toggle-label><?= e(t('admin.rail.fold')) ?></span>
+                </button>
                 <?php /* The phone's menu button, born hidden: admin-nav.js shows it and folds
                          the rail behind it. */ ?>
                 <button type="button" class="admin-strip-icon admin-nav-toggle" aria-expanded="false" aria-controls="admin-rail" hidden data-admin-nav-toggle>

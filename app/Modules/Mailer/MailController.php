@@ -80,6 +80,7 @@ final class MailController
                 ->subject(t('mail.test_subject', ['site' => $site]))
                 ->text(t('mail.test_body', ['site' => $site]));
             $this->container->get('mail_transport')->send($email);
+            MailSettings::clearFailure($db);
             $session->set('flash', t('mail.test_sent', ['address' => $addresses['notify']]));
         } catch (TransportExceptionInterface | RfcComplianceException $e) {
             $session->set('flash', t('mail.test_failed', ['reason' => $e->getMessage()]));

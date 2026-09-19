@@ -23,7 +23,7 @@ test('the page library does not offer the header or the footer', function (): vo
     $pages = blockRegistry();
     assertTrue(!$pages->has('header'), 'the page block library offers a header');
     assertTrue(!$pages->has('footer'), 'the page block library offers a footer');
-    assertEquals(['columns', 'hero', 'image_text', 'text'], $pages->types(), 'page block types');
+    assertEquals(['columns', 'form', 'hero', 'image_text', 'text'], $pages->types(), 'page block types');
 });
 
 test('the chrome registry offers exactly the header and the footer', function (): void {

@@ -43,7 +43,7 @@ $error = static fn (string $key): string => isset($errors[$key])
                         <td><?= e($form['locale']) ?></td>
                         <td><?= e((string) $form['fields']) ?></td>
                         <td>
-                            <?= e(t('forms.messages_count', ['count' => (string) $form['messages']])) ?>
+                            <a href="<?= e(Url::admin('forms', $form['id'], 'messages')) ?>"><?= e(t('forms.messages_count', ['count' => (string) $form['messages']])) ?></a>
 <?php if ($form['unread'] > 0): ?>
                             <span class="badge badge-accent"><?= e(t('forms.unread_count', ['count' => (string) $form['unread']])) ?></span>
 <?php endif; ?>

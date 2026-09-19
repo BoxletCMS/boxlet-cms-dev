@@ -20,6 +20,7 @@
  * @var mixed  $fieldValue  the stored value, already normalized
  * @var string|null $fieldError
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
+ * @var array<int, string> $formChoices the forms a form field may choose, id => name
  * @var array<int, array{title: string, depth: int, published: bool, url: string}> $linkPages page group => what a link field
  *                                                    may point at, in tree order (PLAN.md D-034)
  */
@@ -92,6 +93,16 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
                     <span class="hint"><?= e(t('pages.field.richtext_hint')) ?></span>
 <?php elseif ($fieldSpec['type'] === 'textarea'): ?>
                     <textarea id="<?= e($fieldId) ?>" name="<?= e($fieldName) ?>" rows="3"><?= e($fieldValue) ?></textarea>
+<?php elseif ($fieldSpec['type'] === 'form'): ?>
+                    <?php /* A form of the page's own language, by name (D-046). A form is made
+                             on its own screen, opened in a new tab so nothing typed here is lost. */ ?>
+                    <select id="<?= e($fieldId) ?>" name="<?= e($fieldName) ?>">
+                        <option value=""><?= e(t('pages.field.form_none')) ?></option>
+<?php foreach ($formChoices as $formId => $formName): ?>
+                        <option value="<?= e((string) $formId) ?>"<?= (int) $fieldValue === $formId ? ' selected' : '' ?>><?= e($formName) ?></option>
+<?php endforeach; ?>
+                    </select>
+                    <span class="hint"><?php if ($formChoices === []): ?><?= e(t('pages.field.form_empty')) ?> <?php endif; ?><a href="<?= e(\App\Support\Url::admin('forms')) ?>" target="_blank" rel="noopener"><?= e(t('pages.field.form_manage')) ?></a></span>
 <?php elseif ($fieldSpec['type'] === 'media'): ?>
                     <?php /* A choice, never a number. Without JavaScript this select IS the
                              control: nobody can know that "7" is the harbour photograph, so

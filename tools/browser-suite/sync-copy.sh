@@ -5,9 +5,12 @@
 # copy's revision does not match the checkout's HEAD, and a guard nobody can satisfy gets
 # switched off — so the sync that makes it true lives here, next to it.
 #
-# Only code moves: app/, lang/ and public/assets. Not storage, not the database, not
-# public/m or public/cache — those belong to the copy (D-013), and --delete is never used
-# for the same reason.
+# Only code moves: app/, lang/, public/assets and migrations/. Not storage, not the
+# database, not public/m or public/cache — those belong to the copy (D-013), and --delete is
+# never used for the same reason (08-update puts a migration of its own into the copy's
+# migrations/, which a --delete would remove under it). migrations/ was missing until the
+# demo seed first needed a new table (0016, forms): the copy installed without it and the
+# install failed at the site step.
 #
 #   tools/browser-suite/sync-copy.sh [target]
 #
@@ -27,7 +30,7 @@ if [ "$(cd "$target" && pwd)" = "$checkout" ]; then
   exit 1
 fi
 
-for part in app lang public/assets; do
+for part in app lang public/assets migrations; do
   rsync -a "$checkout/$part/" "$target/$part/"
 done
 
@@ -35,5 +38,5 @@ revision="$(git -C "$checkout" rev-parse HEAD)"
 mkdir -p "$target/storage"
 printf '%s\n' "$revision" > "$target/storage/checkout.rev"
 
-echo "Synced app, lang and public/assets into $target"
+echo "Synced app, lang, public/assets and migrations into $target"
 echo "Recorded revision ${revision:0:12}"

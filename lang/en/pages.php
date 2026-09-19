@@ -32,6 +32,12 @@ return [
     'block.image_text.image_fit.cover' => 'Fill the frame',
     'block.image_text.image_fit.contain' => 'Show the whole image',
     'block.image_text.link' => 'Link',
+    'block.form' => 'Form',
+    'block.form.heading' => 'Heading',
+    'block.form.intro' => 'Introduction',
+    'block.form.form' => 'Form',
+    'block.form.layout.stacked' => 'Heading above the form',
+    'block.form.layout.beside' => 'Heading beside the form',
     'block.columns' => 'Columns',
     'block.columns.heading' => 'Heading',
     'block.columns.intro' => 'Introduction',
@@ -144,6 +150,9 @@ return [
     // fires only for a value that is not a whole number — a well-formed id naming a picture
     // that is gone is nulled on save instead (MediaReference), so it never reaches here.
     'pages.field.media' => 'That is not one of the pictures offered. Choose one from the list, or choose no picture.',
+    'pages.field.form_none' => 'No form',
+    'pages.field.form_empty' => 'No forms in this page\'s language yet.',
+    'pages.field.form_manage' => 'Make or edit forms',
     'pages.field.media_none' => 'No picture',
     'pages.field.media_empty' => 'There are no pictures yet.',
     'pages.field.media_library' => 'Add pictures in the library',

@@ -68,4 +68,9 @@ return [
     'forms.autoreply_body_hint' => 'Plain text. Write it in the form\'s language.',
     'forms.save' => 'Save form',
     'forms.saved' => 'The form was saved.',
+    'forms.mail.subject' => 'New message: :form (:site)',
+    'forms.mail.from_page' => 'Sent from the page ":page": :url',
+    'forms.mail.all_messages' => 'All messages sent through this form: :url',
+    'forms.mail.ticked' => 'Yes',
+    'forms.mail.not_ticked' => 'No',
 ];

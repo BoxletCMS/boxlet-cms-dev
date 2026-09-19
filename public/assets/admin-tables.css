@@ -189,3 +189,25 @@
   background: var(--ui-accent-soft);
   color: var(--ui-accent);
 }
+
+/* A message not yet opened: its line in the list reads bolder until it is. */
+.messages-table .is-unread .row-title a {
+  font-weight: 650;
+}
+
+/* One message's answers: each label above what was written under it. */
+.message-answers {
+  display: grid;
+  gap: var(--ui-1);
+  margin: 0;
+}
+
+.message-answers dt {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+}
+
+.message-answers dd {
+  margin: 0 0 var(--ui-3);
+  overflow-wrap: anywhere;
+}

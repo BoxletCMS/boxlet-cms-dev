@@ -24,8 +24,8 @@ function validBlock(): array
     ];
 }
 
-test('the shipped blocks are columns, hero, image_text and text, and all valid', function () {
-    assertEquals(['columns', 'hero', 'image_text', 'text'], Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types(), 'types');
+test('the shipped blocks are columns, form, hero, image_text and text, and all valid', function () {
+    assertEquals(['columns', 'form', 'hero', 'image_text', 'text'], Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types(), 'types');
 });
 
 test('a valid definition passes and gets its optional flags filled in', function () {

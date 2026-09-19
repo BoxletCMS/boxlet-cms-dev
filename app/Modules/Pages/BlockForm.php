@@ -242,6 +242,7 @@ final class BlockForm
                 return [$value, null];
 
             case 'media':
+            case 'form':
                 $text = self::line($raw);
                 if ($text === '') {
                     return [null, $required ? t('pages.field.required') : null];

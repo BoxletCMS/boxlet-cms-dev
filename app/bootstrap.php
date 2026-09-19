@@ -28,6 +28,8 @@ use App\Modules\Pages\PagesController;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Menus\MenusController;
 use App\Modules\Forms\FormsController;
+use App\Modules\Forms\FormSubmitController;
+use App\Modules\Forms\MessagesController;
 use App\Modules\Languages\LanguagesController;
 use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
@@ -194,6 +196,10 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/forms/{id:\d+}', [FormsController::class, 'edit'], $requireAdmin);
     $router->post('/admin/forms/{id:\d+}', [FormsController::class, 'update'], $requireAdmin);
     $router->post('/admin/forms/{id:\d+}/delete', [FormsController::class, 'delete'], $requireAdmin);
+    $router->get('/admin/forms/{id:\d+}/messages', [MessagesController::class, 'index'], $requireAdmin);
+    $router->get('/admin/forms/{id:\d+}/messages/{message:\d+}', [MessagesController::class, 'show'], $requireAdmin);
+    $router->post('/admin/forms/{id:\d+}/messages/{message:\d+}/delete', [MessagesController::class, 'delete'], $requireAdmin);
+    $router->get('/admin/forms/{id:\d+}/export', [MessagesController::class, 'export'], $requireAdmin);
 
     // Site settings (D-028): the one screen that edits what the installer wrote, plus the
     // maintenance message and its switch, which moved off the dashboard.
@@ -223,6 +229,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/design/check', [DesignController::class, 'check'], $requireAdmin);
 
     // Pages: the home page of a locale has the empty slug. Slugs are one path segment.
+    // A visitor sending a form (D-046). Unprefixed: the form knows its own language.
+    $router->visitorPost('/form/{id:\d+}', [FormSubmitController::class, 'submit']);
     $router->get('/', [PageController::class, 'show']);
     $router->get('/{slug:[a-z0-9]+(?:-[a-z0-9]+)*}', [PageController::class, 'show']);
     $router->setNotFound([PageController::class, 'notFound']);

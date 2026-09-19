@@ -78,6 +78,15 @@ final class Url
         return self::$primaryLocale;
     }
 
+    /**
+     * An address this site already made — a page's, the admin's — as a full URL, for
+     * somewhere with no page to resolve it against, such as an email.
+     */
+    public static function withOrigin(string $path): string
+    {
+        return self::$origin . $path;
+    }
+
     public static function canonical(string $locale, string $slug = ''): string
     {
         return self::$origin . self::page($locale, $slug);

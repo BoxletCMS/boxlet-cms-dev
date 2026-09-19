@@ -10,6 +10,9 @@
 // that happens to take that number is silently adopted by the page. Photographs arrive
 // with D-022 and are set explicitly then.
 //
+// THE CONTACT FORM IS WRITTEN `demo:form`: the seed makes one form in the demo's language
+// and puts its id there (PLAN.md D-046).
+//
 // LINKS TO DEMO PAGES ARE WRITTEN `demo:{slug}` (`demo:` alone is the home page). The seed
 // turns each into a page reference, `page:{group}`, once every page exists — the demo links
 // the way an owner's site does (PLAN.md D-034), so renaming a page cannot break it.
@@ -47,6 +50,11 @@ return [
                 'body' => '<p>You edit your own pages. Nothing breaks when you do, because every block already knows how to look good.</p>',
                 'image_fit' => 'contain',
             ], [], 'image-right'],
+            ['form', [
+                'heading' => 'Write to us',
+                'intro' => 'Tell us a little about your project. We reply within two working days.',
+                'form' => 'demo:form',
+            ], ['surface' => 'tinted'], 'stacked'],
             ['hero', [
                 'heading' => 'Ready when you are',
                 'subheading' => 'Tell us about your project and we will reply within two working days.',
@@ -79,6 +87,11 @@ return [
                 'body' => '<p>We keep the team small on purpose. You always talk to the people doing the work.</p>',
                 'link' => ['label' => 'Our services', 'url' => 'demo:services'],
             ], ['surface' => 'contrast', 'divider' => 'line'], 'image-right'],
+            ['form', [
+                'heading' => 'Ask us anything',
+                'intro' => 'Questions about a project, a price or a date. One of us will answer, usually the same day.',
+                'form' => 'demo:form',
+            ], [], 'beside'],
             ['text', [
                 'heading' => 'Where to find us',
                 'body' => '<p>Ilica 1, Zagreb. Coffee is on us. Write to <a href="mailto:hello@example.com">hello@example.com</a> first.</p>',

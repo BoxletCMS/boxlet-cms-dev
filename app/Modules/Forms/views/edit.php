@@ -23,6 +23,7 @@ $settings = $form['settings'];
 ?>
         <div class="page-header">
             <h1><?= e($form['name'] !== '' ? $form['name'] : t('forms.edit')) ?></h1>
+            <a class="button button-secondary" href="<?= e(Url::admin('forms', $form['id'], 'messages')) ?>"><?= e(t('forms.messages')) ?></a>
         </div>
         <p class="page-subtitle"><a href="<?= e(Url::admin('forms')) ?>"><?= e(t('forms.back')) ?></a> · <?= e(t('forms.in_language', ['language' => $language])) ?></p>
 

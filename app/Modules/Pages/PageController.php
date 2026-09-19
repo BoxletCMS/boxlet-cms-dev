@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Modules\Forms\FormBlocks;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Menus\MenuTree;
 use App\Modules\Settings\ChromeLook;
@@ -40,6 +41,16 @@ final class PageController
         $media = MediaPicture::forBlocks($db, $registry, $locale, $blocks);
         // Links to pages, followed in one query in the visitor's language (PLAN.md D-034).
         $links = PageLinks::targets($db, $registry, $locale, $blocks);
+        // Forms, with what the visitor just did to one (D-046): ?sent=id after a send.
+        $sent = $request->query['sent'] ?? null;
+        $forms = FormBlocks::resolve(
+            $db,
+            $blocks,
+            $locale,
+            (int) $page['id'],
+            (string) $this->container->get('config')->get('app.key'),
+            is_string($sent) && ctype_digit($sent) ? (int) $sent : null,
+        );
 
         $html = '';
         $first = true;
@@ -52,7 +63,7 @@ final class PageController
             // fold is lazy, which is the whole point of loading="lazy" — and the first
             // picture is usually the one a visitor is waiting to see.
             $content = PageLinks::content($registry, $block['type'], $block['content'], $links);
-            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first);
+            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first, 'section', ['forms' => $forms], $locale);
             $first = false;
         }
 

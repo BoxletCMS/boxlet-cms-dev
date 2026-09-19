@@ -20,10 +20,10 @@ use RuntimeException;
 final class BlockDefinition
 {
     /** The closed set of field types in SPEC §5.3. */
-    public const FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'media_multi', 'link', 'select', 'toggle', 'number', 'repeater'];
+    public const FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'media_multi', 'link', 'select', 'toggle', 'number', 'repeater', 'form'];
 
     /** The subset implemented so far. The rest arrive when a block needs them. */
-    public const SUPPORTED_FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'link', 'select', 'repeater'];
+    public const SUPPORTED_FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'link', 'select', 'repeater', 'form'];
 
     /** A repeater's own fields cannot hold another repeater, and it must say how many items it takes. */
     private const REPEATER_KEYS = ['type', 'required', 'translatable', 'fields', 'max'];

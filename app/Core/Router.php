@@ -26,11 +26,12 @@ use function FastRoute\simpleDispatcher;
  *   /admin            dispatch "/admin" with the primary locale; admin has no prefix
  *
  * Every non-GET request must carry a valid CSRF token; that is checked here so no
- * route can forget it. /, /hr/ and other home pages 404 until Slice 3.
+ * route can forget it. The one exception is declared by name, visitorPost(), for a form a
+ * visitor sends: visitors have no session to hold a token, so such a route guards itself. /, /hr/ and other home pages 404 until Slice 3.
  */
 final class Router
 {
-    /** @var list<array{string, string, array{class-string, string}, list<array{class-string, string}>}> */
+    /** @var list<array{string, string, array{class-string, string}, list<array{class-string, string}>, bool}> */
     private array $routes = [];
 
     /** @var array{class-string, string}|null */
@@ -52,7 +53,7 @@ final class Router
      */
     public function get(string $path, array $handler, array $middleware = []): void
     {
-        $this->routes[] = ['GET', $path, $handler, $middleware];
+        $this->routes[] = ['GET', $path, $handler, $middleware, true];
     }
 
     /**
@@ -61,7 +62,21 @@ final class Router
      */
     public function post(string $path, array $handler, array $middleware = []): void
     {
-        $this->routes[] = ['POST', $path, $handler, $middleware];
+        $this->routes[] = ['POST', $path, $handler, $middleware, true];
+    }
+
+    /**
+     * A POST a VISITOR sends, such as a contact form (PLAN.md D-046), exempt from the
+     * session CSRF check every other POST meets. Visitors have no session — a public page
+     * must not start one — so there is no token to check; the handler must stand guard
+     * itself, as the form route does with a signed time token, a honeypot and a rate limit.
+     * Named, not a flag on post(), so the exemption is visible where it is used.
+     *
+     * @param array{class-string, string} $handler
+     */
+    public function visitorPost(string $path, array $handler): void
+    {
+        $this->routes[] = ['POST', $path, $handler, [], false];
     }
 
     /**
@@ -115,21 +130,21 @@ final class Router
     private function dispatcher(): Dispatcher
     {
         return simpleDispatcher(function (RouteCollector $collector): void {
-            foreach ($this->routes as [$method, $path, $handler, $middleware]) {
-                $collector->addRoute($method, $path, [$handler, $middleware]);
+            foreach ($this->routes as [$method, $path, $handler, $middleware, $session]) {
+                $collector->addRoute($method, $path, [$handler, $middleware, $session]);
             }
         });
     }
 
     /**
-     * @param array{array{class-string, string}, list<array{class-string, string}>} $route
+     * @param array{array{class-string, string}, list<array{class-string, string}>, bool} $route
      * @param array<string, string> $params
      */
     private function run(array $route, Request $request, string $locale, array $params): Response
     {
-        [$handler, $middleware] = $route;
+        [$handler, $middleware, $session] = $route;
 
-        if ($request->method !== 'GET' && $request->method !== 'HEAD'
+        if ($session && $request->method !== 'GET' && $request->method !== 'HEAD'
             && !$this->container->get('session')->validCsrf($request->body['_csrf'] ?? null)) {
             // A post over post_max_size arrives with $_POST and $_FILES both empty, so the
             // token is missing for a reason that has nothing to do with the token. Saying

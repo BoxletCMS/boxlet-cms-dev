@@ -102,7 +102,7 @@ final class BlockPreview
                 // makes it a picture of whichever photograph happens to hold that number —
                 // on a fresh install nothing, and on a used one somebody's holiday snap.
                 // Every layout that reserves a picture area draws its placeholder anyway.
-                'media' => null,
+                'media', 'form' => null,
                 'link' => ['label' => t('preview.link'), 'url' => '#'],
                 'select' => $field['options'][0],
                 'richtext' => '<p>' . e(t('preview.body')) . '</p>',

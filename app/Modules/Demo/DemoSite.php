@@ -6,6 +6,7 @@ use App\Core\Blocks;
 use App\Core\Db;
 use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
+use App\Modules\Forms\Form;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageLinks;
 use App\Support\RichText;
@@ -46,12 +47,17 @@ final class DemoSite
             $ids[$page['slug']] = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, []);
         }
         $reference = static fn (array $match): string => isset($ids[$match[1]]) ? PageLinks::to($ids[$match[1]]) : $match[0];
+        // One contact form, in the demo's language, for every Form block the seed holds.
+        $form = Form::create($db, $locale, 'Contact');
 
         foreach ($pages as $page) {
             $id = $ids[$page['slug']];
             $blocks = [];
             foreach ($page['blocks'] as [$type, $content, $style, $layout]) {
                 $content = self::link($registry->get($type)['fields'], $content, $reference);
+                if (($content['form'] ?? null) === 'demo:form') {
+                    $content['form'] = $form;
+                }
                 $blocks[] = [
                     'id' => null,
                     'type' => $type,

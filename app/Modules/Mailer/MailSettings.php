@@ -136,6 +136,35 @@ final class MailSettings
         };
     }
 
+    /**
+     * Records that a message could not be sent, and why, for the admin to show (D-046): a
+     * form's notification fails after the visitor has been thanked, so nobody else would
+     * ever know. Only the last failure is kept; a test message that succeeds clears it.
+     */
+    public static function recordFailure(Db $db, string $reason): void
+    {
+        Settings::set($db, 'mail_last_failure', ['at' => gmdate('Y-m-d H:i:s'), 'reason' => mb_substr($reason, 0, 500)]);
+    }
+
+    public static function clearFailure(Db $db): void
+    {
+        Settings::set($db, 'mail_last_failure', null);
+    }
+
+    /**
+     * The last message that could not be sent, or null.
+     *
+     * @return array{at: string, reason: string}|null
+     */
+    public static function lastFailure(Db $db): ?array
+    {
+        $failure = Settings::get($db, 'mail_last_failure');
+
+        return is_array($failure) && is_string($failure['at'] ?? null) && is_string($failure['reason'] ?? null)
+            ? ['at' => $failure['at'], 'reason' => $failure['reason']]
+            : null;
+    }
+
     /** Whether a way of sending is chosen at all. */
     public static function configured(Db $db): bool
     {

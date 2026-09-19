@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
 use App\Modules\Design\Composition;
+use App\Modules\Forms\FormBlocks;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Media\MediaReference;
 
@@ -92,6 +93,8 @@ final class PageBlockController
             'character' => $character,
             'registry' => $registry,
             'pictures' => MediaReference::choices($this->db()),
+            // What a form field offers: the forms of the page's own language (D-046).
+            'formChoices' => \App\Modules\Forms\Form::choices($this->db(), (string) $page['locale']),
             'linkPages' => PageLinks::choices($this->db(), (string) $page['locale']),
             // The picture this block refers to, so a block re-drawn as it is edited shows
             // the photograph rather than the placeholder it had a moment ago.
@@ -101,6 +104,11 @@ final class PageBlockController
                 $block['style'],
                 $block['layout'],
                 MediaPicture::forBlocks($this->db(), $registry, $locale, [$block]),
+                false,
+                'section',
+                // The form this block shows, drawn as a visitor sees it (D-046).
+                ['forms' => FormBlocks::resolve($this->db(), [$block], (string) $page['locale'], null, (string) $this->container->get('config')->get('app.key'))],
+                (string) $page['locale'],
             ),
         ], null);
 

@@ -226,6 +226,120 @@
   }
 }
 
+/* Form (PLAN.md D-046)
+
+   Fields in the section's own colours, so a form reads on a plain section and a contrast
+   one alike: the field is the section's background with an edge in its text colour. */
+
+.form-block-head {
+  margin-block-end: var(--space-l);
+}
+
+.form-block-heading {
+  margin: 0;
+  font-size: var(--text-2xl);
+}
+
+.form-block-intro {
+  max-inline-size: var(--container-narrow);
+  margin: var(--space-s) 0 0;
+  color: var(--section-muted);
+}
+
+.layout-beside .form-block {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.site-form {
+  display: grid;
+  gap: var(--space-m);
+  max-inline-size: var(--container-narrow);
+}
+
+.align-center .site-form {
+  margin-inline: auto;
+  text-align: start;
+}
+
+/* Beside its heading the form has a column of its own, and fills it: held to the reading
+   measure and centred there as well, it came out a narrow strip in the middle of the
+   column, measured at a sixth of the section's width. */
+.layout-beside .site-form {
+  max-inline-size: none;
+  margin-inline: 0;
+}
+
+.site-form-field {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.site-form-field > label {
+  font-weight: var(--heading-weight);
+}
+
+.site-form-optional {
+  color: var(--section-muted);
+  font-weight: var(--body-weight);
+}
+
+.site-form input:not([type="checkbox"]),
+.site-form select,
+.site-form textarea {
+  inline-size: 100%;
+  box-sizing: border-box;
+  padding: var(--space-s) var(--space-m);
+  color: var(--section-text);
+  background: var(--section-bg);
+  /* The muted text colour, which is checked at 4.5:1 on every surface: an empty field is
+     a control, and its edge is all that shows it is there (CLAUDE.md). */
+  border: var(--border-width) solid var(--section-muted);
+  border-radius: var(--radius-m);
+  font: inherit;
+}
+
+.site-form input:focus-visible,
+.site-form select:focus-visible,
+.site-form textarea:focus-visible {
+  outline: var(--border-width) solid var(--section-link);
+  outline-offset: var(--border-width);
+}
+
+.site-form-check label {
+  display: flex;
+  gap: var(--space-s);
+  align-items: baseline;
+}
+
+.site-form-error,
+.site-form-alert {
+  margin: 0;
+  font-weight: var(--heading-weight);
+}
+
+/* The honeypot: out of sight and out of reach, never display: none, which some scripts
+   read as "leave this one empty". */
+.site-form-trap {
+  position: absolute;
+  inline-size: 0.0625rem;
+  block-size: 0.0625rem;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.site-form-actions {
+  margin: 0;
+}
+
+.form-block-sent {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--heading-weight);
+}
+
 @media (max-width: 40rem) {
   .layout-split .hero,
   .image-text {
@@ -243,6 +357,10 @@
   .columns-grid,
   .layout-two .columns-grid,
   .layout-four .columns-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .layout-beside .form-block {
     grid-template-columns: minmax(0, 1fr);
   }
 }

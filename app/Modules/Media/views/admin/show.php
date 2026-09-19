@@ -92,7 +92,8 @@ use App\Support\Url;
                           data-request-label="<?= e($limits['requestLabel']) ?>"
                           data-too-large="<?= e(t('media.too_large_named')) ?>"
                           data-too-large-total="<?= e(t('media.too_large_total')) ?>"
-                          data-uploading="<?= e(t('media.uploading')) ?>">
+                          data-uploading="<?= e(t('media.uploading')) ?>"
+                          data-confirm-send="<?= e($usedBy === [] ? t('media.replace_confirm_unused', ['name' => $picture['filename']]) : t('media.replace_confirm', ['name' => $picture['filename'], 'count' => (string) count($usedBy)])) ?>">
                         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                         <label class="dropzone" for="replace-file">
                             <?= icon('image-up') ?>

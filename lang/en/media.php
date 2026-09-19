@@ -83,6 +83,9 @@ return [
     'media.replace' => 'Replace',
     'media.replace_hint' => 'Put a different picture in its place. Every page using it shows the new one, and the sizes are made again.',
     'media.replaced' => 'The picture was replaced.',
+    // :file is filled in by the browser with the dropped file's name.
+    'media.replace_confirm' => 'Replace ":name" with :file? It changes the picture on every page that shows it (pages: :count), and the old picture cannot be brought back.',
+    'media.replace_confirm_unused' => 'Replace ":name" with :file? The old picture cannot be brought back.',
     'media.replace_duplicate' => 'Those exact bytes are already in the library, as :name. Nothing was replaced.',
     // Cropping (D-026). The two buttons are deliberately not symmetrical: one is safe and
     // one cannot be undone, and the wording has to carry that difference on its own,

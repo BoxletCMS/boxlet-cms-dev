@@ -14,7 +14,7 @@ use App\Modules\Media\MediaPicture;
 /**
  * One picture resolved the way a page resolves it.
  *
- * @return array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string}
+ * @return array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}
  */
 function resolvedPicture(Db $db, int $id, string $locale = 'en'): array
 {
@@ -37,7 +37,26 @@ testBothDrivers('a picture renders as <picture>, best format first and the origi
     // The original format is the <img>, never also a <source>: a browser that understood
     // neither source would be offered the same file twice.
     assertTrue(!str_contains($html, 'type="image/jpeg"'), 'the original format was offered as a <source> as well');
-    assertContains('m/hero/' . $id . '-harbour.jpg"', $html, 'the img points at the original format');
+    // Every address carries the picture's version since replacing kept its address (the
+    // owner's report, 2026-09-19); these assertions changed with it, deliberately.
+    assertContains('m/hero/' . $id . '-harbour.jpg?v=', $html, 'the img points at the original format');
+});
+
+testBothDrivers('a replaced picture is a new address, so no browser shows the old one from its cache', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    $id = storedPicture($db, 'harbour', ['card' => ['width' => 600, 'height' => 400, 'formats' => ['jpg']]]);
+    $before = MediaPicture::tag(resolvedPicture($db, $id), ['card']);
+
+    // What replace() changes: the original, and with it its hash. Name and id stay.
+    $db->query('UPDATE media SET hash = ? WHERE id = ?', ['ffffffff0000', $id]);
+    $after = MediaPicture::tag(resolvedPicture($db, $id), ['card']);
+
+    assertTrue($before !== $after, 'the same address before and after');
+    assertContains('m/card/' . $id . '-harbour.jpg?v=ffffffff', $after, 'the new version');
+    // The library's own thumbnails too, which is where the old picture stayed.
+    $row = $db->one('SELECT * FROM media WHERE id = ?', [$id]) ?? fail('no picture');
+    assertEquals(null, App\Modules\Media\MediaVariants::url($row, 'thumb'), 'a preset never made');
+    assertContains('?v=ffffffff', (string) App\Modules\Media\MediaVariants::url($row, 'card'), 'the library address');
 });
 
 testBothDrivers('width and height are the variant output size, not the original', function (string $driver) {
@@ -61,11 +80,11 @@ testBothDrivers('every generated preset becomes a srcset candidate, with its wid
 
     $html = MediaPicture::tag(resolvedPicture($db, $id), ['card', 'wide'], '(max-width: 40rem) 100vw, 50vw');
 
-    assertContains('m/card/' . $id . '-street.avif 600w', $html, 'the card candidate');
-    assertContains('m/wide/' . $id . '-street.avif 1200w', $html, 'the wide candidate');
+    assertTrue(preg_match('~m/card/' . $id . '-street\.avif\?v=[^ ]+ 600w~', $html) === 1, 'the card candidate');
+    assertTrue(preg_match('~m/wide/' . $id . '-street\.avif\?v=[^ ]+ 1200w~', $html) === 1, 'the wide candidate');
     assertContains('sizes="(max-width: 40rem) 100vw, 50vw"', $html, 'the sizes hint');
     // Largest last: the <img> is what a browser without srcset support downloads.
-    assertContains('<img src="/m/wide/' . $id . '-street.jpg"', $html, 'the img points at the largest available preset');
+    assertContains('<img src="/m/wide/' . $id . '-street.jpg?v=', $html, 'the img points at the largest available preset');
 });
 
 testBothDrivers('a half-generated picture renders the presets that exist', function (string $driver) {

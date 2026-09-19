@@ -241,7 +241,7 @@ final class MediaVariants
             (int) $media['id'],
             (string) $media['filename'],
             in_array('webp', $formats, true) ? 'webp' : $formats[0],
-        ));
+        )) . MediaPresets::version((string) ($media['hash'] ?? ''));
     }
 
     /**

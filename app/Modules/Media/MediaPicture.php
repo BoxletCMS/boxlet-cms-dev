@@ -22,7 +22,7 @@ use App\Modules\Design\SectionStyle;
  * <source>, and the last is the <img> every browser understands.
  *
  * @phpstan-type Variant array{width: int, height: int, formats: list<string>}
- * @phpstan-type Picture array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, Variant>, alt: string}
+ * @phpstan-type Picture array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, Variant>, alt: string, version: string}
  */
 final class MediaPicture
 {
@@ -89,6 +89,7 @@ final class MediaPicture
                 'focalY' => (int) $row['focal_y'],
                 'variants' => MediaVariants::of($row),
                 'alt' => '',
+                'version' => MediaPresets::version((string) ($row['hash'] ?? '')),
             ];
         }
 
@@ -214,7 +215,7 @@ final class MediaPicture
      */
     private static function url(array $picture, string $preset, string $format): string
     {
-        return \App\Support\Url::asset(MediaPresets::file($preset, $picture['id'], $picture['filename'], $format));
+        return \App\Support\Url::asset(MediaPresets::file($preset, $picture['id'], $picture['filename'], $format)) . $picture['version'];
     }
 
     private static function mime(string $format): string

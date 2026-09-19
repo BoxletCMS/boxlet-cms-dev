@@ -96,6 +96,14 @@
       if (!check() || !input.files || !input.files.length) {
         return;
       }
+      // Replacing asks first (the owner's report, 2026-09-19): a dropped file went up at
+      // once and changed the picture on every page using it. The question names the file,
+      // so a wrong one dropped by accident is caught; declining leaves the picture alone.
+      var question = form.getAttribute('data-confirm-send');
+      if (question && !window.confirm(question.replace(':file', input.files[0].name))) {
+        input.value = '';
+        return;
+      }
       form.classList.add('is-uploading');
       var text = form.querySelector('.dropzone-text');
       if (text) {

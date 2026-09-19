@@ -6,7 +6,7 @@
  * @var array<string, mixed> $content logo and button, from the chrome screen
  * @var array<string, mixed> $style   section style layers, as for any block
  * @var string $layout the character's header variant: left, centred, transparent, sticky
- * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string}> $media id => resolved picture
+ * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}> $media id => resolved picture
  * @var bool $eager
  * @var array<string, mixed> $resolved values the renderer resolved: the menu, each entry
  *                                   marked when it is the page being drawn, and the look

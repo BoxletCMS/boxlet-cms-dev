@@ -253,7 +253,7 @@ final class SiteChrome
             $format = self::choose($formats, $originalFirst);
 
             return [
-                'file' => MediaPresets::file($preset, $id, (string) $media['filename'], $format),
+                'file' => MediaPresets::file($preset, $id, (string) $media['filename'], $format) . MediaPresets::version((string) ($media['hash'] ?? '')),
                 'type' => 'image/' . ($format === 'jpg' ? 'jpeg' : $format),
             ];
         }

@@ -20,7 +20,7 @@
  * The picture shape is restated rather than imported: @phpstan-import-type resolves in a
  * class docblock, and a template has no class.
  *
- * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string}> $media id => resolved picture
+ * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}> $media id => resolved picture
  * @var bool $eager
  */
 $sizes = '(max-width: 40rem) 100vw, ' . (['two' => '50vw', 'four' => '25vw'][$layout] ?? '33vw');

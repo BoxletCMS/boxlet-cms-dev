@@ -122,4 +122,18 @@ final class MediaPresets
     {
         return 'm/' . $preset . '/' . $mediaId . '-' . $filename . '.' . $extension;
     }
+
+    /**
+     * What a variant's address carries after the file name so that a REPLACED picture is a
+     * new address (the owner's report, 2026-09-19): replace() keeps the id and the name,
+     * so every variant came back at the address the old one had, and browsers went on
+     * showing the old picture from their cache — measured in the library, even after a
+     * reload. The first eight characters of the original's hash, which replace() changes;
+     * a query string, so the file on disk and its serving without PHP are untouched, the
+     * way site.css is versioned (SPEC §5.4).
+     */
+    public static function version(string $hash): string
+    {
+        return $hash === '' ? '' : '?v=' . substr($hash, 0, 8);
+    }
 }

@@ -7,6 +7,7 @@ use App\Support\Url;
  *
  * @var list<array{id: int, filename: string, original: string, size: string, width: int, height: int, complete: bool, thumb: string|null}> $pictures
  * @var string $search
+ * @var int $remakeLeft pictures still owed a remake (D-048)
  * @var array{file: int, request: int, fileLabel: string, requestLabel: string} $limits
  * @var string $csrf
  *
@@ -67,3 +68,7 @@ use App\Support\Url;
          else. Two copies of a card would drift the moment one gained a detail. */ ?>
 <?php $picking = false; ?>
 <?php require __DIR__ . '/cards.php'; ?>
+<?php if ($pictures !== []): ?>
+
+<?php require __DIR__ . '/remake.php'; ?>
+<?php endif; ?>

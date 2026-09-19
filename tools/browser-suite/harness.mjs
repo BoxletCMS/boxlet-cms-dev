@@ -23,7 +23,7 @@ import { pathToFileURL } from 'node:url';
 import { readdirSync, existsSync, mkdirSync, rmSync, copyFileSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { BASE, SHOTS as SHOTS_DIR, CHROME, MODULES, SITE_DIR, CHECKOUT } from './config.mjs';
+import { SHOTS as SHOTS_DIR, CHROME, MODULES, SITE_DIR, CHECKOUT } from './config.mjs';
 
 /*
  * Puppeteer, found where node_modules actually is rather than where this file sits.

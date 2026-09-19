@@ -19,6 +19,8 @@ use App\Modules\Pages\PageEditorController;
 use App\Modules\Media\MediaController;
 use App\Modules\Media\MediaCropController;
 use App\Modules\Media\MediaEncoder;
+use App\Modules\Media\MediaRemake;
+use App\Modules\Media\MediaRemakeController;
 use App\Modules\Media\MediaItemController;
 use App\Modules\Media\MediaLibrary;
 use App\Modules\Media\MediaUpload;
@@ -97,6 +99,15 @@ $container->set('mail_transport', fn (Container $c) => MailSettings::transport($
 $container->set('media_encoder', fn () => new MediaEncoder());
 $container->set('media_writer', fn (Container $c) => new MediaWriter($c->get('media_encoder')));
 $container->set('media_upload', fn (Container $c) => new MediaUpload($c->get('db'), $storage, $c->get('media_encoder')));
+// Making every picture's sizes again, step by step (D-048).
+$container->set('media_remake', fn (Container $c) => new MediaRemake(
+    $c->get('db'),
+    $c->get('media_encoder'),
+    $c->get('media_writer'),
+    $c->get('media_variants'),
+    $storage,
+    $root . '/public',
+));
 $container->set('media_variants', fn (Container $c) => new MediaVariants(
     $c->get('db'),
     $c->get('media_encoder'),
@@ -171,6 +182,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // disk by the web server; no route here ever answers for one.
     $router->get('/admin/media', [MediaController::class, 'index'], $requireAdmin);
     $router->post('/admin/media', [MediaController::class, 'store'], $requireAdmin);
+    // Making every picture's sizes again, a step per request (D-048).
+    $router->post('/admin/media/remake', [MediaRemakeController::class, 'start'], $requireAdmin);
+    $router->post('/admin/media/remake/step', [MediaRemakeController::class, 'step'], $requireAdmin);
     $router->get('/admin/media/{id:\d+}', [MediaItemController::class, 'show'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}', [MediaItemController::class, 'save'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/crop', [MediaCropController::class, 'crop'], $requireAdmin);

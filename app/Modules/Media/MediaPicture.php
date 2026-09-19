@@ -89,7 +89,7 @@ final class MediaPicture
                 'focalY' => (int) $row['focal_y'],
                 'variants' => MediaVariants::of($row),
                 'alt' => '',
-                'version' => MediaPresets::version((string) ($row['hash'] ?? '')),
+                'version' => MediaPresets::version((string) ($row['hash'] ?? ''), (int) ($row['revision'] ?? 0)),
             ];
         }
 

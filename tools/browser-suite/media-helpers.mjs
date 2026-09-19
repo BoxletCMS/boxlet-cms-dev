@@ -7,8 +7,17 @@
  * extracting what they have in common into a module, not copying it into four files.
  */
 import { readdirSync, existsSync, statSync } from 'node:fs';
-import { BASE, SITE_DIR, PHOTOS } from './config.mjs';
+import { SITE_DIR, PHOTOS } from './config.mjs';
 import { submitVia, clickAndWait } from './harness.mjs';
+
+/*
+ * THE SITE IS WHERE THE PAGE ALREADY IS, never config's BASE (PLAN.md D-042). These helpers
+ * went to the development site's address whatever site the scenario ran on, so a copy
+ * scenario's uploads landed on the development site's login screen and nothing was
+ * uploaded anywhere — found when scenario 35 on the copy found an empty library. A helper
+ * is always called on a page that has logged in to the site it means.
+ */
+const here = (page) => new URL(page.url()).origin;
 
 /** Outside the repository, so it comes from configuration (D-029). Re-exported because
  *  six scenarios import it from here rather than reaching past this module. */
@@ -57,7 +66,7 @@ export function variantFiles(preset) {
 
 /** Puts a photograph in the library and returns how many cards are on the screen. */
 export async function uploadPhoto(page, file) {
-  await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
+  await page.goto(`${here(page)}/admin/media`, { waitUntil: 'networkidle2' });
   const input = await page.$('input[name="files[]"]');
   if (!input) return 0;
   // Choosing a file uploads it at once (D-038): the navigation is the upload.
@@ -101,7 +110,7 @@ export const claimants = (page) => page.$$eval('.media-used a', (els) => els.map
 export async function clearReferences(page, mediaId, claimedBy) {
   for (const claimer of claimedBy) {
     if (!Number.isInteger(claimer.id)) continue;
-    await page.goto(`${BASE}/admin/pages/${claimer.id}/form`, { waitUntil: 'networkidle2' });
+    await page.goto(`${here(page)}/admin/pages/${claimer.id}/form`, { waitUntil: 'networkidle2' });
     await page.$$eval('select[data-media-field]', (els, id) => {
       for (const el of els) {
         if (el.value === String(id)) {
@@ -155,7 +164,7 @@ export async function pick(page, selector, nth) {
 export const save = (page) => clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]', 30000);
 
 /** The first page in the tree, as an id. */
-export const firstPageId = (page) => page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' })
+export const firstPageId = (page) => page.goto(`${here(page)}/admin/pages`, { waitUntil: 'networkidle2' })
   .then(() => page.$eval('.page-tree a[href*="/admin/pages/"]',
     (el) => (el.getAttribute('href').match(/\/admin\/pages\/(\d+)/) || [])[1]))
   .catch(() => null);

@@ -130,10 +130,15 @@ final class MediaPresets
      * showing the old picture from their cache — measured in the library, even after a
      * reload. The first eight characters of the original's hash, which replace() changes;
      * a query string, so the file on disk and its serving without PHP are untouched, the
-     * way site.css is versioned (SPEC §5.4).
+     * way site.css is versioned (SPEC §5.4). A remake keeps the hash and changes the files,
+     * so its revision is part of it too (D-048).
      */
-    public static function version(string $hash): string
+    public static function version(string $hash, int $revision = 0): string
     {
-        return $hash === '' ? '' : '?v=' . substr($hash, 0, 8);
+        if ($hash === '') {
+            return '';
+        }
+
+        return '?v=' . substr($hash, 0, 8) . ($revision > 0 ? '.' . $revision : '');
     }
 }

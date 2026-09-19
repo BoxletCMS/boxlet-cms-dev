@@ -116,4 +116,14 @@ return [
     // A guess is marked as one until the owner looks at it. Saying "check it" rather than
     'media.caption' => 'Caption',
     'media.meta_saved' => 'Saved.',
+    'media.remake_title' => 'Make every size again',
+    'media.remake_intro' => 'Each picture is kept in several sizes, made when it was uploaded. Making them again gives older pictures what this site makes now — smaller files since the latest update — and is needed if the sizes themselves change. Pictures stay on your pages the whole time; the new files replace the old ones one by one.',
+    'media.remake_start' => 'Make every size again',
+    'media.remake_confirm' => 'Make every picture\'s sizes again? It can take a few minutes with many pictures. Your pages keep showing them throughout.',
+    'media.remake_started' => 'Pictures to make again: :count. It runs by itself while this page is open.',
+    'media.remake_left' => 'Pictures still to make again: :left.',
+    'media.remake_continue' => 'Continue',
+    'media.remake_auto' => 'Continuing by itself. You can leave this page; coming back carries on.',
+    'media.remake_progress' => 'Still to make again: :left.',
+    'media.remake_done' => 'Every picture\'s sizes were made again.',
 ];

@@ -135,7 +135,7 @@ final class MediaReference
     public static function choices(Db $db, int $limit = 200): array
     {
         $choices = [];
-        foreach ($db->all('SELECT id, filename, hash, variants_json FROM media ORDER BY id DESC LIMIT ' . $limit) as $row) {
+        foreach ($db->all('SELECT id, filename, hash, revision, variants_json FROM media ORDER BY id DESC LIMIT ' . $limit) as $row) {
             $choices[] = [
                 'id' => (int) $row['id'],
                 'name' => (string) $row['filename'],

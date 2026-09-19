@@ -77,9 +77,10 @@ final class MediaController
             'title' => t('media.title'),
             'nav' => 'media',
             'styles' => ['admin-media.css'],
-            'scripts' => ['media.js'],
+            'scripts' => ['media.js', 'media-remake.js'],
             'wide' => true,
             'pictures' => $pictures,
+            'remakeLeft' => $this->container->get('media_remake')->left(),
             'search' => $search,
             'limits' => Bytes::limits(),
         ]);

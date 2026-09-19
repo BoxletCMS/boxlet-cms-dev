@@ -180,7 +180,7 @@ final class MediaVariants
      * @param array{width: int, height: int, bytes: int} $result
      * @return array{width: int, height: int, bytes: int}
      */
-    private function smallerAvif(
+    public function smallerAvif(
         string $preset,
         string $format,
         string $source,
@@ -241,7 +241,7 @@ final class MediaVariants
             (int) $media['id'],
             (string) $media['filename'],
             in_array('webp', $formats, true) ? 'webp' : $formats[0],
-        )) . MediaPresets::version((string) ($media['hash'] ?? ''));
+        )) . MediaPresets::version((string) ($media['hash'] ?? ''), (int) ($media['revision'] ?? 0));
     }
 
     /**

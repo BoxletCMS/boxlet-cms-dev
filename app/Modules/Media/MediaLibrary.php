@@ -69,22 +69,16 @@ final class MediaLibrary
      */
     public function usedBy(int $mediaId): array
     {
-        $fields = MediaReference::fields($this->registry);
-
         $used = [];
         foreach ($this->candidates($mediaId) as $row) {
-            $type = (string) $row['block_type'];
-
-            // A picture in a block's own field: hero.image, image_text.image, and any
-            // media field a block added later declares.
+            // A picture anywhere in a block's content: its own fields (hero.image) and the
+            // items of a repeater (a Columns block's columns). MediaReference::idsIn() is the
+            // one traversal of that shape; this checked only the top level until a column's
+            // picture could be deleted from under its page (D-052). The exact comparison
+            // the LIKE could not make: 7 is not 70.
             $content = json_decode((string) $row['content_json'], true);
-            if (is_array($content)) {
-                foreach ($fields[$type] ?? [] as $field) {
-                    // The exact comparison the LIKE could not make: 7 is not 70.
-                    if (isset($content[$field]) && is_int($content[$field]) && $content[$field] === $mediaId) {
-                        $used[(int) $row['page_id']] = (string) $row['title'];
-                    }
-                }
+            if (is_array($content) && in_array($mediaId, MediaReference::idsIn($this->registry, (string) $row['block_type'], $content), true)) {
+                $used[(int) $row['page_id']] = (string) $row['title'];
             }
 
             // A picture chosen as the section's own surface (D-024). Same narrowing, same
@@ -202,10 +196,20 @@ final class MediaLibrary
         // usefully on a large site is untested: on a small fixture it fetches the same
         // number of rows as the broken pattern did, so the reason to prefer it is that it
         // matches media references at all, not a measured saving.
+        //
+        // Every media field's name, a repeater item's included: "image":7 inside a column
+        // is written exactly as it is at the top level.
         $names = [];
-        foreach (MediaReference::fields($this->registry) as $fields) {
-            foreach ($fields as $field) {
-                $names[$field] = true;
+        foreach ($this->registry->types() as $type) {
+            foreach ($this->registry->get($type)['fields'] as $name => $field) {
+                if (($field['type'] ?? '') === 'media') {
+                    $names[(string) $name] = true;
+                }
+                foreach (($field['type'] ?? '') === 'repeater' ? $field['fields'] : [] as $itemName => $itemField) {
+                    if (($itemField['type'] ?? '') === 'media') {
+                        $names[(string) $itemName] = true;
+                    }
+                }
             }
         }
         if ($names === []) {

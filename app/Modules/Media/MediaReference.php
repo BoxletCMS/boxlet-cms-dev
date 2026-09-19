@@ -26,26 +26,6 @@ use App\Core\Db;
 final class MediaReference
 {
     /**
-     * Block type => the names of its media fields, taken from the registry rather than a
-     * list kept here, so a block added later is covered without anyone remembering to.
-     *
-     * @return array<string, list<string>>
-     */
-    public static function fields(Blocks $registry): array
-    {
-        $fields = [];
-        foreach ($registry->types() as $type) {
-            foreach ($registry->get($type)['fields'] as $name => $field) {
-                if (($field['type'] ?? '') === 'media') {
-                    $fields[$type][] = (string) $name;
-                }
-            }
-        }
-
-        return $fields;
-    }
-
-    /**
      * Every media id inside one block's content, wherever it lives (PLAN.md O-11).
      *
      * ONE TRAVERSAL, HERE. Both halves of the media contract walked block content

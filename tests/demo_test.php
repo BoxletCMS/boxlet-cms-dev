@@ -38,13 +38,12 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     // silently adopted by the page holding it — measured, and then not deletable, because
     // a page "used" it. Photographs arrive with D-022 and are set explicitly.
     $referenced = [];
+    // Through idsIn(), so a picture in a repeater item (a Columns block's column) counts too:
+    // the top-level field list this used to walk could not see one (D-052).
     foreach ($db->all('SELECT block_type, content_json FROM page_blocks') as $row) {
         $content = json_decode((string) $row['content_json'], true);
-        foreach (MediaReference::fields($registry)[(string) $row['block_type']] ?? [] as $field) {
-            $value = is_array($content) ? ($content[$field] ?? null) : null;
-            if ($value !== null) {
-                $referenced[] = $row['block_type'] . '.' . $field . ' = ' . var_export($value, true);
-            }
+        foreach (MediaReference::idsIn($registry, (string) $row['block_type'], is_array($content) ? $content : []) as $id) {
+            $referenced[] = $row['block_type'] . ' = ' . $id;
         }
     }
     assertEquals([], $referenced, 'the demo seed references media ids');

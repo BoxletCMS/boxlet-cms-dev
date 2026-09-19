@@ -269,3 +269,22 @@ testBothDrivers('deleting a picture does not leave a section pointing at it', fu
     assertTrue(!$library->delete(21)['deleted'], 'the picture was deleted while a section used it');
     assertTrue($library->find(21) !== null, 'the row went anyway');
 });
+
+// A picture inside a repeater item — a Columns block's column — is as much in use as one in
+// a block's own field. Found while building the Media table's "Used on" (D-052).
+testBothDrivers('a picture in a column of a Columns block is in use, and cannot be deleted', function (string $driver) {
+    $db = adminSite($driver);
+    $library = libraryFor($db);
+    $db->query(
+        'INSERT INTO media (filename, original_name, path, mime, size, width, height, hash, created_at, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ['column-photo', 'column.jpg', 'uploads/col.jpg', 'image/jpeg', 100, 800, 600, 'hash-column', '2026-01-01 00:00:00', 'complete'],
+    );
+    $mediaId = (int) $db->lastInsertId();
+    createPage($db, 'en', 'team', 'Team', true, [
+        ['type' => 'columns', 'content' => ['heading' => 'Us', 'items' => [['image' => $mediaId, 'heading' => 'One']]]],
+    ]);
+
+    assertEquals(['Team'], array_values($library->usedBy($mediaId)), 'the page using it');
+    assertTrue(!$library->delete($mediaId)['deleted'], 'deleted while a column shows it');
+});

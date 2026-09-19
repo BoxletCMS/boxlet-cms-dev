@@ -78,12 +78,10 @@ final class PageController
      */
     public function notFound(Request $request, string $locale, array $params): Response
     {
-        $copy = [
-            'en' => ['title' => 'Page not found', 'intro' => 'There is no page at this address.'],
-            'hr' => ['title' => 'Stranica nije pronađena', 'intro' => 'Na ovoj adresi nema stranice.'],
-        ];
-
-        return $this->render('404', $locale, $copy[$locale] ?? $copy['en'], 404);
+        return $this->render('404', $locale, [
+            'title' => site_t('site.not_found.title', $locale),
+            'intro' => site_t('site.not_found.intro', $locale),
+        ], 404);
     }
 
     /**

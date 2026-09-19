@@ -22,15 +22,10 @@ if (count($locales) < 2) {
 }
 
 /*
- * NOT t(). The visitor-facing side has no translation mechanism: t() is the admin's, and
- * every string a visitor reads is either the owner's own content or, like the 404 page's
- * wording in PageController, a small per-locale map written where it is used. My first
- * version called t('site.languages') — a key that does not exist, in a mechanism this side
- * of the app does not use, which would have put a bare key into an aria-label.
- *
- * Falls back to English for a locale not listed, the way the 404 copy does.
+ * NOT t(), which is the admin's language: site_t(), the few words the site itself says to
+ * a visitor, in the page's language (lang/site/, D-044).
  */
-$label = ['en' => 'Languages', 'hr' => 'Jezici', 'de' => 'Sprachen'][$locale] ?? 'Languages';
+$label = site_t('site.languages', $locale);
 ?>
 <nav class="locale-switcher" aria-label="<?= e($label) ?>">
 <?php foreach ($locales as $option): ?>

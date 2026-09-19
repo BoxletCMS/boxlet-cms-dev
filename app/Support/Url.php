@@ -72,6 +72,12 @@ final class Url
      * Absolute canonical URL of a page: the same address page() gives, without any query
      * string, on this site's origin.
      */
+    /** The site's main language, as configure() was given it. */
+    public static function primaryLocale(): string
+    {
+        return self::$primaryLocale;
+    }
+
     public static function canonical(string $locale, string $slug = ''): string
     {
         return self::$origin . self::page($locale, $slug);

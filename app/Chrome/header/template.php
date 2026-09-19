@@ -31,9 +31,9 @@ $classes = 'site-header density-' . ($look['density'] ?? 'normal')
     . ' logo-' . ($look['logo_size'] ?? 'medium')
     . (($look['header_rule'] ?? 'off') === 'on' ? ' has-rule' : '');
 
-/* NOT t(), for the reason the language switcher gives: visitor-facing words the product
-   supplies are a small per-locale map where they are used (PLAN.md O-19). */
-$menuLabel = ['en' => 'Menu', 'hr' => 'Izbornik', 'de' => 'Menü'][$locale ?? ''] ?? 'Menu';
+/* NOT t(), for the reason the language switcher gives: site_t() says the site's own few
+   words in the page's language (lang/site/, D-044). */
+$menuLabel = site_t('site.menu', (string) ($locale ?? ''));
 ?>
 <div class="<?= e($classes) ?>" data-site-header>
 <?php if ($logoTag !== ''): ?>

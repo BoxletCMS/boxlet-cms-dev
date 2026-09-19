@@ -86,3 +86,33 @@ function field_hint(string $key, string $id = ''): string
 
     return '<span class="hint"' . ($id !== '' ? ' id="' . e($id) . '"' : '') . '>' . e($text) . '</span>';
 }
+
+/**
+ * What the site itself says to a visitor (PLAN.md O-19, D-044): the few words Boxlet puts on
+ * a page that are not the owner's — "page not found", the name of the menu and of the
+ * language switcher. Not t(), which is the admin's own language.
+ *
+ * In the page's language where lang/site/ has it, else the site's main language, else
+ * English: a language added from the admin that Boxlet has no words for falls back the way
+ * a translation's missing alt text does (D-043), and English is the last resort because it
+ * is the one set that is always complete.
+ */
+function site_t(string $key, string $locale): string
+{
+    static $loaded = [];
+    foreach ([$locale, \App\Support\Url::primaryLocale(), 'en'] as $code) {
+        if (preg_match('~^[a-z]{2,3}$~', $code) !== 1) {
+            continue;
+        }
+        if (!array_key_exists($code, $loaded)) {
+            $file = dirname(__DIR__, 2) . '/lang/site/' . $code . '.php';
+            $strings = is_file($file) ? require $file : [];
+            $loaded[$code] = is_array($strings) ? $strings : [];
+        }
+        if (is_string($loaded[$code][$key] ?? null)) {
+            return $loaded[$code][$key];
+        }
+    }
+
+    return $key;
+}

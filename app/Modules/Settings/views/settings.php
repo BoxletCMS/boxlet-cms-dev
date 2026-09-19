@@ -109,6 +109,8 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
 
 <?php require dirname(__DIR__, 2) . '/Auth/views/two-step-panel.php'; ?>
 
+<?php require dirname(__DIR__, 2) . '/Stats/views/panel.php'; ?>
+
         <?php /* MAINTENANCE IN ONE PLACE (D-038): the switch, and the message visitors see
                  while it is on. Two forms, because HTML has none nested and the switch posts
                  to /admin/maintenance, which owns the flag file (D-021); the message is a

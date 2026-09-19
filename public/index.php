@@ -4,6 +4,7 @@ use App\Core\ErrorHandler;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\RewriteCheck;
+use App\Modules\Stats\Tracker;
 use App\Modules\Update\UpdateGate;
 use App\Support\Url;
 use Dotenv\Dotenv;
@@ -87,7 +88,21 @@ if ($gate !== null) {
 // bar() as well as check(): Router::dispatch() appends the maintenance bar too, and if
 // only one of the two call sites did it, the tests and the live site would disagree about
 // whether the owner can see that their site is hidden.
-UpdateGate::bar(
-    $container,
-    $container->get('router')->dispatch($container->get('request')),
-)->send();
+$request = $container->get('request');
+$response = UpdateGate::bar($container, $container->get('router')->dispatch($request));
+$response->send();
+
+// Visit statistics (PLAN.md D-051), counted after the page has gone: the connection is
+// released first where PHP-FPM can do that, so the visitor never waits for the count, and
+// a failure is logged and never shown. wanted() needs no database, so the admin's own
+// requests, redirects and errors stop there.
+if (Tracker::wanted($request, $response)) {
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    }
+    try {
+        Tracker::record($container->get('db'), $request, $response);
+    } catch (Throwable $e) {
+        error_log('Statistics: ' . get_class($e) . ': ' . $e->getMessage());
+    }
+}

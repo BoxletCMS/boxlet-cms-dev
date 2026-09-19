@@ -38,6 +38,7 @@ use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Settings\ChromeController;
 use App\Modules\Settings\SettingsController;
+use App\Modules\Stats\StatsSettingsController;
 use App\Modules\Update\Maintenance;
 use App\Modules\Update\MaintenanceController;
 use App\Modules\Update\Update;
@@ -232,6 +233,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/two-step', [TwoFactorController::class, 'confirm'], $requireAdmin);
     $router->post('/admin/two-step/codes', [TwoFactorController::class, 'renew'], $requireAdmin);
     $router->post('/admin/two-step/off', [TwoFactorController::class, 'off'], $requireAdmin);
+    // Visit statistics (D-051): the Settings panel's settings, and deleting every count.
+    $router->post('/admin/settings/statistics', [StatsSettingsController::class, 'save'], $requireAdmin);
+    $router->post('/admin/settings/statistics/erase', [StatsSettingsController::class, 'erase'], $requireAdmin);
     // The site's languages (D-043), a panel on the Settings screen with its own forms. A
     // code is two letters, the ISO 639-1 list the installer offers.
     $router->post('/admin/languages', [LanguagesController::class, 'add'], $requireAdmin);

@@ -21,10 +21,10 @@
   display: none;
 }
 
-/* The admin's own faces: Inter for reading and Space Grotesk for titles. Both already ship
-   in public/assets/fonts for the site's pairings, so the admin adds no file and sends nothing
-   anywhere; it only declares them under names of its own, so a site pairing can never
-   change the admin's type (SPEC §5.4). Latin and latin-ext, as the site declares them. */
+/* The admin's own face: Inter, for reading and for titles (D-052). It already ships in
+   public/assets/fonts for the site's pairings, so the admin adds no file and sends nothing
+   anywhere; it only declares it under a name of its own, so a site pairing can never change
+   the admin's type (SPEC §5.4). Latin and latin-ext, as the site declares them. */
 @font-face {
   font-family: "Boxlet UI";
   src: url("fonts/inter/inter-latin-wght.woff2") format("woff2");
@@ -41,66 +41,65 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-@font-face {
-  font-family: "Boxlet Display";
-  src: url("fonts/space-grotesk/space-grotesk-latin-wght.woff2") format("woff2");
-  font-weight: 300 700;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: "Boxlet Display";
-  src: url("fonts/space-grotesk/space-grotesk-latin-ext-wght.woff2") format("woff2");
-  font-weight: 300 700;
-  font-display: swap;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
 .admin {
-  /* Neutrals: a warm paper rather than a cool grey — the workbench, not the spreadsheet.
-     Every ink below is measured against every surface by tests/contrast_test.php. */
-  --ui-bg: #f3f1ec;
-  --ui-panel: #ffffff;
-  --ui-panel-sunken: #f8f7f3;
-  --ui-ink: #1c1b18;
-  --ui-ink-muted: #524e46;
-  /* The quietest text there is: hints and captions. 4.5:1 against the darkest surface it
-     can meet, the warning tint — anything lighter fails there first (PLAN.md D-012). */
-  --ui-ink-faint: #625d54;
-  --ui-line: #e5e1d8;
-  --ui-line-strong: #cdc6b8;
+  /* A dark workbench (PLAN.md D-052, the "Workbench" redesign after Nocturne): cool,
+     blue-leaning neutrals, one lavender accent, and nothing pure black or pure white. It
+     replaced the warm paper of D-007's first admin at the owner's choice. Every ink below is
+     measured against every surface by tests/contrast_test.php. The values started from
+     docs/design_handoff_admin_v2/IMPLEMENTATION-boxlet.md §3 and were moved only where that
+     test said so. */
+  --ui-bg: #161826;
+  /* A panel, a card, a control's own ground: one step up from the page. */
+  --ui-panel: #1a1d2b;
+  /* One step DOWN: the rail, a table's head, a well of code. On a dark ground a recess is
+     darker, not lighter. */
+  --ui-panel-sunken: #131522;
+  --ui-ink: #e9e9ed;
+  --ui-ink-muted: #a6aabb;
+  /* The quietest text there is: hints, captions, kickers. 4.5:1 against the lightest
+     surface it can meet, the success tint — anything darker fails there first (D-012). */
+  --ui-ink-faint: #8e93a5;
+  --ui-line: #2a2d3c;
+  --ui-line-strong: #3f424d;
   /* The edge of a control that is empty at rest — a text field, the colour swatch, the
      editor box. It has no text of its own to be found by, so its border is the only thing
      saying it is there: 3:1 against every surface (D-012). Containers and badges keep
-     --ui-line-strong: they are not controls. */
-  --ui-control-line: #8b8579;
+     --ui-line-strong: they are not controls. Nocturne's #595d6c measured 2.6:1 on the page
+     and was raised to this. */
+  --ui-control-line: #737789;
   /* The top and sides of a text field: soft, at the owner's request (D-038). The field is
      still found by its BOTTOM edge, which stays --ui-control-line, so the 3:1 rule for an
      empty control holds (D-012); tests/contrast_test.php checks every field keeps it. */
-  --ui-control-soft: #d3cdc1;
+  --ui-control-soft: #3f424d;
 
-  /* One accent, used for focus, links and the primary action only. A deep indigo: it
-     reads as "you can press this" on paper without shouting over the site being built. */
-  --ui-accent: #3b3fc4;
-  --ui-accent-dark: #2d30a3;
-  --ui-accent-soft: #ecebfb;
-  --ui-on-accent: #ffffff;
+  /* One accent, for focus, links, the current place and the primary action — a line, a
+     bar or a fill, never a flood. Buttons stay FILLED with it, where Nocturne outlines them:
+     CLAUDE.md's "no control is ever invisible at rest" is the owner's rule (D-052).
+     --ui-accent-dark is the hover, and on a dark ground a hover raises, so it is lighter. */
+  --ui-accent: #9184d9;
+  --ui-accent-dark: #b5abfc;
+  /* The accent's tint behind a current row or a chosen item. Darker than Nocturne's
+     #2b2741, which left the accent itself at 4.43:1 on it. */
+  --ui-accent-soft: #262239;
+  --ui-on-accent: #161826;
 
-  --ui-danger: #b3261e;
-  --ui-danger-soft: #fcebe9;
-  --ui-success: #17643c;
-  --ui-success-soft: #e6f4ec;
-  --ui-warning: #7f5300;
-  --ui-warning-soft: #fcf3e1;
+  /* Colour only for problems and their resolution; a normal state stays neutral. The tints
+     are dark enough that every ink above keeps 4.5:1 on them. */
+  --ui-danger: #e8958c;
+  --ui-danger-soft: #2f1d25;
+  --ui-success: #7fb98a;
+  --ui-success-soft: #1a2923;
+  --ui-warning: #d9a85c;
+  --ui-warning-soft: #2b2419;
 
-  /* The bar across the top: the one dark surface in the admin, so the tool reads as a
-     frame around the work. Its inks are measured against it alone (contrast_test). */
-  --ui-bar: #1c1b18;
-  --ui-bar-ink: #f3f1ec;
-  --ui-bar-ink-muted: #b8b2a6;
-  --ui-bar-raised: #33312c;
-  /* The brand mark's colour. Decoration only: it never carries text. */
+  /* The frame: the rail and the strip above the content. Darker than the page, so the tool
+     reads as a frame around the work. Its inks are measured against it alone. */
+  --ui-bar: #131522;
+  --ui-bar-ink: #e9e9ed;
+  --ui-bar-ink-muted: #a6aabb;
+  --ui-bar-raised: #23263a;
+  /* The brand mark's colour, the one warm pixel in the admin. Decoration only: it never
+     carries text, and it is not to spread. */
   --ui-mark: #ff6b3d;
 
   /* The spacing scale. One rhythm for the whole admin: 4 between a label and its input,
@@ -114,27 +113,33 @@
   --ui-7: 3rem;
   --ui-8: 4rem;
 
+  /* One face for reading and for titles (D-052): Inter, where titles were Space Grotesk.
+     Hierarchy is size and space, never a heavier weight — headings stop at 500. */
   --ui-font: "Boxlet UI", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --ui-font-display: "Boxlet Display", "Boxlet UI", system-ui, sans-serif;
+  --ui-font-display: var(--ui-font);
+  /* Every number, address, size, time and shortcut is set in this; prose never is. */
   --ui-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --ui-text-xs: 0.75rem;
-  --ui-text-sm: 0.8125rem;
-  --ui-text-base: 0.9375rem;
-  --ui-text-lg: 1.0625rem;
-  --ui-text-xl: 1.375rem;
-  --ui-text-2xl: 2rem;
-  --ui-leading: 1.55;
-  --ui-leading-tight: 1.2;
+  /* A dense tool: 13px to read, 21px for a page's title. */
+  --ui-text-xs: 0.6875rem;
+  --ui-text-sm: 0.75rem;
+  --ui-text-base: 0.8125rem;
+  --ui-text-lg: 0.9375rem;
+  --ui-text-xl: 1.3125rem;
+  --ui-text-2xl: 1.375rem;
+  --ui-leading: 1.5;
+  --ui-leading-tight: 1.25;
 
-  --ui-radius-s: 0.3125rem;
-  --ui-radius-m: 0.5rem;
-  --ui-radius-l: 0.875rem;
+  --ui-radius-s: 0.25rem;
+  --ui-radius-m: 0.375rem;
+  --ui-radius-l: 0.5rem;
   --ui-border: 1px;
-  --ui-shadow-s: 0 1px 0 rgb(28 27 24 / 0.04), 0 1px 3px rgb(28 27 24 / 0.06);
-  --ui-shadow-m: 0 1px 2px rgb(28 27 24 / 0.06), 0 8px 24px rgb(28 27 24 / 0.08);
-  --ui-ring: 0 0 0 3px rgb(59 63 196 / 0.22);
+  /* Elevation on a dark ground is a hairline edge and ambient darkness, never a stack of
+     shadows. */
+  --ui-shadow-s: 0 0 0 1px rgb(233 233 237 / 0.04), 0 1px 2px rgb(5 6 12 / 0.4);
+  --ui-shadow-m: 0 0 0 1px rgb(233 233 237 / 0.06), 0 12px 32px rgb(5 6 12 / 0.55);
+  --ui-ring: 0 0 0 3px rgb(145 132 217 / 0.35);
   /* What dims the page behind a dialog. */
-  --ui-scrim: rgb(28 27 24 / 0.35);
+  --ui-scrim: rgb(9 10 17 / 0.6);
 
   /* Comfortable to read, never edge to edge; the Design screen opts into the wide one. */
   --ui-content: 64rem;
@@ -142,6 +147,9 @@
   --ui-bar-height: 4rem;
 
   margin: 0;
+  /* The browser's own parts — scrollbars, a select's list, a date picker, a checkbox —
+     drawn dark too, or they are white holes in the page. */
+  color-scheme: dark;
   background: var(--ui-bg);
   color: var(--ui-ink);
   font-family: var(--ui-font);
@@ -156,20 +164,20 @@
 .admin h2,
 .admin h3 {
   font-family: var(--ui-font-display);
-  font-weight: 600;
+  font-weight: 500;
   line-height: var(--ui-leading-tight);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .admin h1 {
   margin: 0;
-  font-size: var(--ui-text-2xl);
-  letter-spacing: -0.03em;
+  font-size: var(--ui-text-xl);
+  letter-spacing: -0.015em;
 }
 
 .admin h2 {
   margin: 0 0 var(--ui-4);
-  font-size: var(--ui-text-xl);
+  font-size: var(--ui-text-lg);
 }
 
 .admin h3 {
@@ -358,6 +366,6 @@
   }
 
   .admin h1 {
-    font-size: var(--ui-text-xl);
+    font-size: var(--ui-text-lg);
   }
 }

@@ -15,6 +15,9 @@ return [
     'settings.timezone_invalid' => 'That is not a time zone this server knows. Nothing was saved.',
 
     'settings.branding' => 'Branding',
+    'settings.general' => 'General',
+    'settings.sections' => 'Settings sections',
+    'settings.last_saved' => 'Last saved :when',
     'settings.branding_intro' => 'The pictures that stand for your site: in its header, on a browser tab, and when someone shares a link to it.',
     'settings.logo' => 'Logo',
     'settings.logo_hint' => 'Shown at the top left of every page, linking to the home page. It keeps its own shape — a wide logo stays wide — and its size is chosen under Design → Header and footer. A PNG or SVG-like picture with a transparent background works best.',

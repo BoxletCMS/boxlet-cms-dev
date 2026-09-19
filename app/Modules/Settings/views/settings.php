@@ -17,6 +17,7 @@ use App\Support\Url;
  * @var list<array{id: int, name: string, thumb: string|null, whole: string|null}> $pictures
  * @var list<string> $timezones
  * @var bool $maintenanceOn
+ * @var string|null $lastSaved when these settings were last saved, from the activity log
  * @var string $title
  * @var string $csrf
  */
@@ -54,10 +55,24 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
         <p class="notice notice-error" role="alert"><?= e($notice) ?></p>
 <?php endif; ?>
 
-        <form method="post" action="<?= e(Url::admin('settings')) ?>">
+        <?php /* THE SETTINGS HAVE THEIR OWN AXIS (D-052): a list of the sections down the left,
+                 each a link to its place, so a screen that keeps growing stays one glance to
+                 the part wanted. Plain anchors; settings-nav.js only marks where you are. */ ?>
+        <div class="settings-layout">
+        <nav class="settings-nav" aria-label="<?= e(t('settings.sections')) ?>" data-settings-nav>
+<?php foreach (['general' => 'settings.general', 'branding' => 'settings.branding', 'languages' => 'languages.title', 'mail' => 'mail.title', 'two-step' => 'twofactor.title', 'statistics' => 'stats.title', 'maintenance' => 'maintenance.title'] as $anchor => $key): ?>
+            <a href="#<?= e($anchor) ?>"><?= e(t($key)) ?></a>
+<?php endforeach; ?>
+        </nav>
+        <div class="settings-sections">
+
+        <form method="post" action="<?= e(Url::admin('settings')) ?>" class="settings-form">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
 
-            <div class="panel stack">
+            <?php /* A LEDGER: each setting a row, its name and what it does on the left, the
+                     control on the right, so the eye can run down the names alone. */ ?>
+            <div class="panel stack ledger" id="general">
+                <h2><?= e(t('settings.general')) ?></h2>
                 <div class="field">
                     <label for="site_name"><?= e(t('settings.site_name')) ?></label>
                     <input type="text" id="site_name" name="site_name" maxlength="120"
@@ -77,7 +92,7 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                 </div>
             </div>
 
-            <div class="panel stack" id="branding">
+            <div class="panel stack ledger" id="branding">
                 <h2><?= e(t('settings.branding')) ?></h2>
                 <p class="hint"><?= e(t('settings.branding_intro')) ?></p>
 
@@ -100,7 +115,12 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                 </div>
             </div>
 
-            <button type="submit" class="button"><?= e(t('settings.save')) ?></button>
+            <div class="form-actions settings-save">
+                <button type="submit" class="button"><?= e(t('settings.save')) ?></button>
+<?php if ($lastSaved !== null): ?>
+                <span class="hint"><?= e(t('settings.last_saved', ['when' => $lastSaved])) ?></span>
+<?php endif; ?>
+            </div>
         </form>
 
 <?php require dirname(__DIR__, 2) . '/Languages/views/panel.php'; ?>
@@ -116,7 +136,7 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                  to /admin/maintenance, which owns the flag file (D-021); the message is a
                  setting and saves with its own button. The state is said in words first:
                  "Turn on maintenance mode" alone does not say which way round the site is. */ ?>
-        <div class="panel stack">
+        <div class="panel stack" id="maintenance">
             <h2><?= e(t('maintenance.title')) ?></h2>
             <p class="hint"><?= e(t('settings.maintenance_intro')) ?></p>
             <p class="<?= $maintenanceOn ? 'notice notice-warning' : 'hint' ?>"<?= $maintenanceOn ? ' role="status"' : '' ?>>
@@ -144,4 +164,6 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                     <button type="submit" class="button button-secondary"><?= e(t('settings.maintenance_message_save')) ?></button>
                 </div>
             </form>
+        </div>
+        </div>
         </div>

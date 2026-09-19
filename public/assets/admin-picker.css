@@ -56,6 +56,11 @@
   object-fit: contain;
   padding: var(--ui-1);
   box-sizing: border-box;
+  /* On a light checkerboard, the sign of a transparent picture: a logo is usually drawn
+     for a light site, and on the dark admin (D-052) a dark one vanished into its box. */
+  background-color: var(--ui-ink);
+  background-image: conic-gradient(var(--ui-ink-muted) 25%, transparent 0 50%, var(--ui-ink-muted) 0 75%, transparent 0);
+  background-size: 0.5rem 0.5rem;
 }
 
 /* Truncated, never broken. With overflow-wrap: anywhere — which the old text-only button

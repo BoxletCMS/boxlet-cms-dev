@@ -18,6 +18,7 @@ use App\Modules\Stats\Geo;
 use App\Modules\Stats\PrivacyText;
 use App\Modules\Stats\Tracker;
 use App\Support\Bytes;
+use App\Support\Dates;
 use App\Support\Url;
 use DateTimeZone;
 
@@ -155,8 +156,8 @@ final class SettingsController
             'title' => t('settings.title'),
             'nav' => 'settings',
             // The picker's own stylesheets and script, the same set the page editor loads.
-            'styles' => ['admin-media.css', 'admin-picker.css', 'admin-two-step.css'],
-            'scripts' => ['media-picker.js', 'mail-settings.js'],
+            'styles' => ['admin-media.css', 'admin-picker.css', 'admin-two-step.css', 'admin-settings.css'],
+            'scripts' => ['media-picker.js', 'mail-settings.js', 'settings-nav.js'],
             'values' => $values,
             'errors' => $errors,
             'notice' => $notice,
@@ -166,6 +167,7 @@ final class SettingsController
             'languages' => Locales::all($this->db()),
             'addable' => Locales::addable($this->db()),
             'twoStep' => $this->twoStep(),
+            'lastSaved' => $this->lastSaved(),
             'stats' => $stats = Tracker::settings($this->db()),
             'geo' => $geo = Geo::status((string) $this->container->get('config')->get('app.storage_path')),
             'privacy' => PrivacyText::all($stats, $geo !== null),
@@ -219,6 +221,14 @@ final class SettingsController
         $id = (int) $this->container->get('session')->get('admin_id');
 
         return ['on' => $twoFactor->enabled($id), 'codesLeft' => $twoFactor->codesLeft($id)];
+    }
+
+    /** When the site settings were last saved, from the activity log (D-052); null if never. */
+    private function lastSaved(): ?string
+    {
+        $row = $this->db()->one("SELECT occurred_at FROM activity WHERE kind = 'settings' AND action = 'saved' ORDER BY occurred_at DESC LIMIT 1");
+
+        return $row === null ? null : Dates::local((string) $row['occurred_at'], Dates::zone($this->db()));
     }
 
     private function db(): Db

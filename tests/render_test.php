@@ -41,14 +41,8 @@ testBothDrivers('home pages resolve at / and at /hr/', function (string $driver)
     }
 });
 
-test('the locale switcher links each enabled locale to its home page', function () {
-    $db = installedSite(['en' => 'English', 'hr' => 'Hrvatski']);
-    createPage($db, 'en', 'about', 'About');
-    $body = dispatch('/about')->body;
-
-    assertContains('<a href="/" hreflang="en"', $body, 'English home');
-    assertContains('<a href="/hr/" hreflang="hr"', $body, 'Croatian home');
-});
+// The switcher's rule changed with D-043 (step 4): it leads to this page's translation,
+// not to every language's home. The cases are in tests/languages_front_test.php.
 
 // Lives here rather than with the other picture tests because it is a fact about a PAGE,
 // not about one picture: only a real render knows which section came first.

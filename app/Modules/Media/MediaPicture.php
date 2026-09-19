@@ -92,25 +92,30 @@ final class MediaPicture
             ];
         }
 
-        // Alt text in the page's own language. Where there is none the alt stays empty,
-        // which is itself a statement: this picture is decoration and a screen reader
-        // should pass over it.
+        // Alt text in the page's own language, else its fallback's (PLAN.md D-043): the
+        // language's `fallback`, which a language added from the admin sets to the main
+        // one, else the main language itself. For a picture that carries meaning an empty
+        // alt in a translation is worse than the source language's words.
         //
-        // A missing one does NOT fall back to another language, and that is decided rather
-        // than overlooked: SPEC lists a locales.fallback column but defines no chain, and
-        // nothing populates it. Slice 6 settles the chain with the rest of the locale work
-        // (PLAN.md O-12), including the point that for a picture carrying meaning, an empty
-        // alt in a translation is worse than the source language's. One locale is enabled
-        // today, so there is nothing for a chain to act on. It stays in this one method so
-        // adding it later is a change here and nowhere else.
+        // Only a MISSING row falls back. A row whose alt is empty is a decision — this
+        // picture is decoration, a screen reader passes over it — and is kept as it is.
+        $fallback = (string) ($db->one(
+            "SELECT COALESCE(l.fallback, p.code) AS code FROM locales l, locales p WHERE l.code = ? AND p.is_primary = 1",
+            [$locale],
+        )['code'] ?? '');
         $rows = $db->all(
-            "SELECT media_id, alt FROM media_meta WHERE locale = ? AND media_id IN ({$placeholders})",
-            array_merge([$locale], $ids),
+            "SELECT media_id, locale, alt FROM media_meta WHERE locale IN (?, ?) AND media_id IN ({$placeholders})",
+            array_merge([$locale, $fallback], $ids),
         );
+        $own = [];
         foreach ($rows as $row) {
             $id = (int) $row['media_id'];
-            if (isset($pictures[$id])) {
-                $pictures[$id]['alt'] = (string) $row['alt'];
+            if (!isset($pictures[$id]) || isset($own[$id])) {
+                continue;
+            }
+            $pictures[$id]['alt'] = (string) $row['alt'];
+            if ($row['locale'] === $locale) {
+                $own[$id] = true;
             }
         }
 

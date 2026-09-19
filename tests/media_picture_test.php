@@ -124,7 +124,7 @@ testBothDrivers('the focal point travels as a class, rounded, never as a style a
     assertTrue(!str_contains($html, 'style='), 'a style attribute in rendered output (SPEC §5.4)');
 });
 
-testBothDrivers('alt text is the page locale, and empty where there is none', function (string $driver) {
+testBothDrivers('alt text is the page locale, and the main language\'s where the page locale has none', function (string $driver) {
     $db = installedSite(['en' => 'English', 'hr' => 'Hrvatski'], $driver);
     $id = storedPicture($db, 'dawn', [
         'card' => ['width' => 600, 'height' => 400, 'formats' => ['jpg']],
@@ -136,10 +136,11 @@ testBothDrivers('alt text is the page locale, and empty where there is none', fu
 
     assertContains('alt="A harbour at dawn"', MediaPicture::tag(resolvedPicture($db, $id, 'en'), ['card']), 'the page locale');
 
-    // Croatian has no alt for this picture. It stays empty rather than borrowing the
-    // English one: no fallback chain is defined yet (O-12), and a wrong-language alt is
-    // worse than none.
-    assertContains('alt=""', MediaPicture::tag(resolvedPicture($db, $id, 'hr'), ['card']), 'a locale with no alt');
+    // Croatian has no alt for this picture: it takes the main language's (D-043). This
+    // said the opposite until the owner decided it — an empty alt on a picture that
+    // carries meaning is worse than the source language's words. An alt left empty ON
+    // PURPOSE is another matter, asserted in languages_front_test.php.
+    assertContains('alt="A harbour at dawn"', MediaPicture::tag(resolvedPicture($db, $id, 'hr'), ['card']), 'a locale with no alt');
 });
 
 testBothDrivers('alt text is escaped, not injected', function (string $driver) {

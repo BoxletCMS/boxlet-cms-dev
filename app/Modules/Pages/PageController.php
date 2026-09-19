@@ -70,7 +70,7 @@ final class PageController
             'blocksHtml' => $html,
             // The one address this page is indexed under, whatever variant reached it.
             'canonical' => Url::canonical($locale, $slug),
-        ], 200, Url::page($locale, $slug));
+        ], 200, Url::page($locale, $slug), $page);
     }
 
     /**
@@ -88,8 +88,9 @@ final class PageController
 
     /**
      * @param array<string, mixed> $data
+     * @param array<string, mixed>|null $page the page being drawn; null on an error page
      */
-    private function render(string $template, string $locale, array $data, int $status = 200, string $current = ''): Response
+    private function render(string $template, string $locale, array $data, int $status = 200, string $current = '', ?array $page = null): Response
     {
         // The error pages have no description of their own, and neither has anything
         // else that renders through this layout: defaulting it here is what keeps the
@@ -100,15 +101,25 @@ final class PageController
         // null when no favicon is chosen. A sharing picture is show()'s: a link preview of
         // an error page is not worth a row.
         $db = $this->container->get('db');
-        $locales = $this->container->get('locales');
+        // The languages as a visitor is offered them: this page in each, or that
+        // language's home where it is not translated (D-043, step 4). What the switcher
+        // draws, and what hreflang is made from.
+        $alternates = Alternates::for($db, $page, $this->container->get('locales'));
+        $primary = '';
+        foreach ($this->container->get('locales') as $each) {
+            if ((int) $each['is_primary'] === 1) {
+                $primary = (string) $each['code'];
+            }
+        }
 
         $data += [
             'canonical' => null,
             'description' => '',
             'icon' => SiteChrome::icon($db),
             'shareImage' => null,
-            'locales' => $locales,
-        ] + $this->chrome($locale, $locales, $current);
+            'locales' => $alternates,
+            'hreflang' => Alternates::hreflang($alternates, $primary),
+        ] + $this->chrome($locale, $alternates, $current);
 
         return Response::html((new View(__DIR__ . '/views'))->render($template, $locale, $data), $status);
     }

@@ -14,7 +14,8 @@ use App\Support\Url;
  * always had — a switcher offering one choice is a control with nothing to do.
  *
  * @var string $locale the locale being rendered
- * @var array<int, array<string, mixed>> $locales enabled locales, with code and label
+ * @var array<int, array<string, mixed>> $locales the languages offered: code, label, and url — this
+ *      page in that language, or its home where there is no translation (D-043)
  */
 if (count($locales) < 2) {
     return;
@@ -33,6 +34,6 @@ $label = ['en' => 'Languages', 'hr' => 'Jezici', 'de' => 'Sprachen'][$locale] ??
 ?>
 <nav class="locale-switcher" aria-label="<?= e($label) ?>">
 <?php foreach ($locales as $option): ?>
-    <a href="<?= e(Url::page((string) $option['code'])) ?>" hreflang="<?= e($option['code']) ?>" lang="<?= e($option['code']) ?>"<?= $option['code'] === $locale ? ' aria-current="true"' : '' ?>><?= e($option['label']) ?></a>
+    <a href="<?= e((string) ($option['url'] ?? Url::page((string) $option['code']))) ?>" hreflang="<?= e($option['code']) ?>" lang="<?= e($option['code']) ?>"<?= $option['code'] === $locale ? ' aria-current="true"' : '' ?>><?= e($option['label']) ?></a>
 <?php endforeach; ?>
 </nav>

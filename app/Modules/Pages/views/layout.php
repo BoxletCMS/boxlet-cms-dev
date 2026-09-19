@@ -10,6 +10,7 @@ use App\Support\Url;
  * @var string $content rendered HTML of the page template
  * @var array<int, array<string, mixed>> $locales enabled locales, with code and label
  * @var string|null $canonical absolute canonical URL; null on error pages
+ * @var list<array{hreflang: string, href: string}> $hreflang this page's alternates in other languages
  * @var string $description meta description; empty when the page gives none (D-004)
  * @var array{url: string, type: string}|null $icon the site's tab icon (D-028)
  * @var string|null $shareImage absolute URL of the default sharing picture (D-028)
@@ -33,6 +34,11 @@ use App\Support\Url;
 <?php if ($canonical !== null): ?>
     <link rel="canonical" href="<?= e($canonical) ?>">
 <?php endif; ?>
+<?php /* This page in each language it is published in (D-043, step 4); none for a page
+         that exists in one language only. */ ?>
+<?php foreach ($hreflang as $alternate): ?>
+    <link rel="alternate" hreflang="<?= e($alternate['hreflang']) ?>" href="<?= e($alternate['href']) ?>">
+<?php endforeach; ?>
 <?php /* One 200×200 file for both: a browser downscales it for the tab, and iOS takes the
          same picture for a home-screen icon. sizes="any" says it is not a fixed 16 or 32
          rather than claiming a size it is not (D-028). */ ?>

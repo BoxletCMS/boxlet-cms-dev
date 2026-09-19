@@ -143,6 +143,7 @@ final class DesignController
             'icon' => null,
             'shareImage' => null,
             'locales' => [],
+            'hreflang' => [],
             'headerHtml' => '',
             'footerHtml' => '',
         ]);

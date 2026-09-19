@@ -271,3 +271,78 @@ testBothDrivers('the Settings panel switches it off and on, and deletes every co
     assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM stats_seen')['n'] ?? -1), 'keys after erase');
     assertEquals(null, Settings::get($db, 'stats_salt'), 'the salt after erase');
 });
+
+testBothDrivers('totals, the change on the period before, and the share on a phone come from the counts', function (string $driver) {
+    $db = statsSite($driver);
+    $phone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+    // The week before: one visitor, two views.
+    statsView($db, '/about', [], '2026-09-10 10:00:00');
+    statsView($db, '/about', [], '2026-09-10 11:00:00');
+    // This week: three visitors (one of them twice), one on a phone, six views.
+    statsView($db, '/about', [], '2026-09-18 10:00:00');
+    statsView($db, '/about', [], '2026-09-19 10:00:00');
+    statsView($db, '/hr/kontakt', [], '2026-09-19 10:05:00');
+    statsView($db, '/about', ['user-agent' => $phone], '2026-09-19 12:00:00');
+    statsView($db, '/about', ['user-agent' => $phone], '2026-09-19 12:01:00');
+    statsView($db, '/about', ['referer' => 'https://news.example.org/'], '2026-09-19 13:00:00', '192.0.2.44');
+
+    $range = App\Modules\Stats\StatsQuery::range('7d', new DateTimeImmutable('2026-09-19'));
+    assertEquals(['from' => '2026-09-13', 'to' => '2026-09-19', 'prevFrom' => '2026-09-06', 'prevTo' => '2026-09-12'], $range, 'the range');
+    $query = new App\Modules\Stats\StatsQuery($db);
+    $now = $query->totals($range['from'], $range['to']);
+    $before = $query->totals($range['prevFrom'], $range['prevTo']);
+    // 18 Sep and 19 Sep are two days, so the same person is two visitors (SPEC §5.7).
+    assertEquals(['visitors' => 4, 'views' => 6, 'perVisitor' => 1.5, 'mobile' => 0.25], $now, 'this week');
+    assertEquals(3.0, App\Modules\Stats\StatsQuery::change($now['visitors'], $before['visitors']), 'one visitor to four: three times more');
+    assertEquals(null, App\Modules\Stats\StatsQuery::change(5, 0), 'nothing to compare with');
+
+    $series = $query->series($range['from'], $range['to']);
+    assertEquals(7, count($series), 'a point for every day, quiet ones too');
+    assertEquals(['day' => '2026-09-19', 'visitors' => 3, 'views' => 5], $series[6], 'the last day');
+    $weeks = $query->series('2026-09-07', '2026-09-19', true);
+    assertEquals(['2026-09-07', '2026-09-14'], array_column($weeks, 'day'), 'weeks start on Monday');
+    assertEquals([2, 6], array_column($weeks, 'views'), 'each week\'s views');
+
+    $pages = $query->top('pages', $range['from'], $range['to']);
+    assertEquals(['value' => '/about', 'visitors' => 4, 'views' => 5], $pages[0], 'the first page, with its own visitors');
+    $sources = $query->top('sources', $range['from'], $range['to']);
+    assertEquals([['value' => '', 'visitors' => 3, 'views' => 5], ['value' => 'news.example.org', 'visitors' => 1, 'views' => 1]], $sources, 'sources');
+    assertEquals(1, count($query->top('sources', $range['from'], $range['to'], 1)), 'a limit');
+});
+
+test('the chart\'s gridlines are whole numbers above the highest value', function () {
+    foreach ([0 => 1, 3 => 1, 4 => 2, 7 => 5, 16 => 10, 35 => 20, 61 => 50, 1234 => 500] as $max => $step) {
+        assertEquals($step, App\Modules\Stats\Chart::step($max), "the step for {$max}");
+    }
+});
+
+testBothDrivers('the Statistics screen shows the period\'s figures, its trend and its tables', function (string $driver) {
+    $db = statsSite($driver);
+    $today = (new DateTimeImmutable('now', new DateTimeZone('Europe/Zagreb')))->format('Y-m-d 10:00:00');
+    statsView($db, '/about', ['referer' => 'https://news.example.org/'], $today);
+
+    $screen = dispatch('/admin/statistics?period=30d');
+    assertEquals(200, $screen->status, 'the screen');
+    foreach (['stats-figure', 'stats-chart-lines', 'news.example.org', '/about', e(t('stats.device.desktop')), 'Chrome', 'Windows', e(t('stats.unknown'))] as $shown) {
+        assertContains($shown, $screen->body, $shown);
+    }
+    assertContains('aria-current="page">' . e(t('stats.period.30d')), $screen->body, 'the chosen period');
+    assertTrue(!str_contains($screen->body, 'style="'), 'a style attribute, which the admin CSP refuses');
+    assertContains(e(t('admin.nav.statistics')), $screen->body, 'the bar\'s link');
+
+    $all = dispatch('/admin/statistics?period=30d&all=sources');
+    assertContains(e(t('stats.table.sources')), $all->body, 'one table in full');
+    assertContains('news.example.org', $all->body, 'its rows');
+    assertEquals(200, dispatch('/admin/statistics?period=nonsense&all=nonsense')->status, 'nonsense in the address');
+});
+
+testBothDrivers('switched off, the screen, the bar\'s link and the dashboard card are gone', function (string $driver) {
+    $db = statsSite($driver);
+    assertContains('stats-card', dispatch('/admin')->body, 'the card while on');
+
+    Settings::set($db, 'stats_enabled', false);
+    assertRedirectedTo('/admin/settings#statistics', dispatch('/admin/statistics'));
+    $dashboard = dispatch('/admin')->body;
+    assertTrue(!str_contains($dashboard, 'stats-card'), 'the card while off');
+    assertTrue(!str_contains($dashboard, e(t('admin.nav.statistics'))), 'the bar\'s link while off');
+});

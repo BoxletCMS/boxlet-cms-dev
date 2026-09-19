@@ -7,6 +7,11 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Design\Composition;
+use App\Modules\Stats\StatsQuery;
+use App\Modules\Stats\Tracker;
+use App\Support\Dates;
+use DateTimeImmutable;
+use DateTimeZone;
 
 final class DashboardController
 {
@@ -44,7 +49,7 @@ final class DashboardController
             'title' => t('admin.dashboard.title'),
             'nav' => 'dashboard',
             'wide' => true,
-            'styles' => ['admin-dashboard.css'],
+            'styles' => ['admin-dashboard.css', 'admin-stats-chart.css'],
             'published' => $count("SELECT COUNT(*) AS n FROM pages WHERE status = 'published'"),
             'drafts' => $count("SELECT COUNT(*) AS n FROM pages WHERE status <> 'published'"),
             'pictures' => $count('SELECT COUNT(*) AS n FROM media'),
@@ -52,7 +57,31 @@ final class DashboardController
             'character' => Composition::active($db),
             'homeId' => $home === null ? null : (int) $home['id'],
             'maintenance' => $this->container->get('maintenance')->isOn(),
+            'stats' => $this->stats(),
         ]);
+    }
+
+    /**
+     * The statistics card (D-051): today's visitors, the week as a line, and the three
+     * countries most of them came from. Null while statistics are off, and the card is not
+     * drawn.
+     *
+     * @return array{today: int, week: list<array{day: string, visitors: int, views: int}>, countries: list<array{value: string, visitors: int, views: int}>}|null
+     */
+    private function stats(): ?array
+    {
+        $db = $this->db();
+        if (!Tracker::settings($db)['enabled']) {
+            return null;
+        }
+        $query = new StatsQuery($db);
+        $week = StatsQuery::range('7d', new DateTimeImmutable('now', new DateTimeZone(Dates::zone($db))));
+
+        return [
+            'today' => $query->totals($week['to'], $week['to'])['visitors'],
+            'week' => $query->series($week['from'], $week['to']),
+            'countries' => $query->top('countries', $week['from'], $week['to'], 3),
+        ];
     }
 
     private function db(): Db

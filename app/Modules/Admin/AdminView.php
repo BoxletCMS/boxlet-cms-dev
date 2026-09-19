@@ -46,6 +46,8 @@ final class AdminView
             'flash' => is_string($flash) ? $flash : null,
             'flashKind' => $kind === 'warning' ? 'warning' : 'success',
             'csrf' => $session->csrfToken(),
+            // Statistics has a place in the bar only while it counts (D-051).
+            'statsOn' => \App\Modules\Stats\Tracker::settings($container->get('db'))['enabled'],
         ];
         $html = (new View($directory, __DIR__ . '/views'))->render($template, 'en', $data);
 

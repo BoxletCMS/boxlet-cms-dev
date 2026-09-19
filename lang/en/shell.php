@@ -25,6 +25,7 @@ return [
     'admin.nav.design' => 'Design',
     'admin.nav.menus' => 'Menus',
     'admin.nav.forms' => 'Forms',
+    'admin.nav.statistics' => 'Statistics',
     // The longest item in the bar, and deliberately: "Chrome" is what the code calls it,
     // not what the owner does. They came looking for the thing at the top of the page.
     'admin.nav.chrome' => 'Header and footer',

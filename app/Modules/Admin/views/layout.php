@@ -14,7 +14,7 @@ use App\Support\Url;
  * @var string $title
  * @var string $content rendered HTML of the page template
  * @var string $siteName
- * @var string $nav current section: dashboard, pages, media, design, menus, forms or settings
+ * @var string $nav current section: dashboard, pages, media, design, menus, forms, statistics or settings
  * @var list<string> $styles extra stylesheets under public/assets
  * @var list<string> $scripts extra scripts under public/assets, in load order
  * @var bool $wide whether this screen wants the wide column
@@ -22,6 +22,7 @@ use App\Support\Url;
  * @var string|null $flash one-time message from the previous request
  * @var string $flashKind 'success' or 'warning'; a refusal must not be coloured as a win
  * @var string $csrf
+ * @var bool $statsOn whether statistics are counted, and so have a place in the bar
  */
 $current = static fn (string $section): string => $nav === $section ? ' aria-current="page"' : '';
 ?>
@@ -73,6 +74,9 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
                 </details>
                 <a href="<?= e(Url::admin('menus')) ?>"<?= $current('menus') ?>><?= e(t('admin.nav.menus')) ?></a>
                 <a href="<?= e(Url::admin('forms')) ?>"<?= $current('forms') ?>><?= e(t('admin.nav.forms')) ?></a>
+<?php if ($statsOn): ?>
+                <a href="<?= e(Url::admin('statistics')) ?>"<?= $current('statistics') ?>><?= e(t('admin.nav.statistics')) ?></a>
+<?php endif; ?>
             </nav>
             <div class="admin-bar-end">
                 <?php /* Icons alone, each named for a screen reader and on hover. */ ?>

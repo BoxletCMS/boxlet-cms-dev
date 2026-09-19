@@ -80,10 +80,17 @@
   }
 
   document.addEventListener('keydown', function (event) {
-    if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'k') {
-      event.preventDefault();
-      open();
+    if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'k') {
+      return;
     }
+    // Inside rich text, Ctrl+K is the editor's own: it makes a link (D-034), and a palette
+    // that took it would have taken a feature away. Everywhere else it opens the palette.
+    var target = event.target;
+    if (target && target.closest && target.closest('[contenteditable="true"], .ProseMirror')) {
+      return;
+    }
+    event.preventDefault();
+    open();
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('[data-palette-open]'), function (opener) {

@@ -60,9 +60,11 @@ export default {
       await clickAndWait(page, '.builder-bar button[value="save"]');
       await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
       await clickAndWait(page, `form[action$="/pages/${pageId}/status"] button`);
+      // The address cell is the path in words since D-052: opening the page on the site
+      // moved into the row's menu, so there is no link in the cell to read a href from.
       const address = await page.evaluate((id) => {
-        const row = document.querySelector(`tr[data-page-id="${id}"] .address a`);
-        return row ? row.getAttribute('href') : null;
+        const cell = document.querySelector(`tr[data-page-id="${id}"] .address`);
+        return cell ? cell.textContent.trim() : null;
       }, pageId);
 
       // ---- a visitor sends it ---------------------------------------------------------------
@@ -91,6 +93,9 @@ export default {
       await page.evaluate(() => { window.onbeforeunload = null; }).catch(() => {});
       if (pageId !== null) {
         await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
+        // Deleting moved into the row's menu (D-052), which is a closed <details> until
+        // something opens it — a click on a button inside one does nothing.
+        await page.$eval(`tr[data-page-id="${pageId}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
         await page.$eval(`form[action$="/pages/${pageId}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
         await clickAndWait(page, `form[action$="/pages/${pageId}/delete"] button`).catch(() => {});
       }

@@ -31,7 +31,7 @@ return [
     'mail.smtp_encryption.ssl' => 'SSL (port 465)',
     'mail.smtp_username' => 'Username',
     'mail.smtp_password' => 'Password',
-    'mail.secret_set' => 'Saved. Leave empty to keep it, or type a new one to replace it.',
+    'mail.secret_set' => 'Saved — shown above only in part. Leave empty to keep it, or type a new one to replace it.',
     'mail.secret_unset' => 'Stored encrypted, and never shown again once saved.',
     'mail.resend' => 'Resend',
     'mail.resend_key' => 'API key',

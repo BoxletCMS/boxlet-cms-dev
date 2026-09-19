@@ -11,7 +11,7 @@ use App\Support\Url;
  *
  * @var array<string, string> $mail
  * @var array<string, string> $mailErrors
- * @var array{smtp_password: bool, resend_key: bool} $mailSecrets
+ * @var array{smtp_password: string, resend_key: string} $mailSecrets what a saved secret shows in its empty field; '' when none is saved
  * @var string $csrf
  */
 $mailError = static fn (string $key): string => isset($mailErrors[$key])
@@ -68,13 +68,16 @@ $mailField = static function (string $key, string $type, string $label, string $
                     </div>
                     <div class="field-pair">
                         <?= $mailField('smtp_username', 'text', t('mail.smtp_username'), '', ' autocomplete="off" spellcheck="false"') ?>
-                        <?= $mailField('smtp_password', 'password', t('mail.smtp_password'), t($mailSecrets['smtp_password'] ? 'mail.secret_set' : 'mail.secret_unset'), ' autocomplete="new-password"') ?>
+                        <?= $mailField('smtp_password', 'password', t('mail.smtp_password'), t($mailSecrets['smtp_password'] !== '' ? 'mail.secret_set' : 'mail.secret_unset'), ' autocomplete="new-password"' . ($mailSecrets['smtp_password'] !== '' ? ' placeholder="' . e($mailSecrets['smtp_password']) . '"' : '')) ?>
                     </div>
                 </fieldset>
 
                 <fieldset class="fieldset mail-group" data-mail-group="resend">
                     <legend><?= e(t('mail.resend')) ?></legend>
-                    <?= $mailField('resend_key', 'password', t('mail.resend_key'), t($mailSecrets['resend_key'] ? 'mail.secret_set' : 'mail.resend_key_hint'), ' autocomplete="new-password" spellcheck="false"') ?>
+                    <?php /* A saved key shows a trace as the field's placeholder — its first
+                             three and last four characters — so the owner sees one is set and
+                             which; the field itself stays empty, and empty keeps the key. */ ?>
+                    <?= $mailField('resend_key', 'password', t('mail.resend_key'), t($mailSecrets['resend_key'] !== '' ? 'mail.secret_set' : 'mail.resend_key_hint'), ' autocomplete="new-password" spellcheck="false"' . ($mailSecrets['resend_key'] !== '' ? ' placeholder="' . e($mailSecrets['resend_key']) . '"' : '')) ?>
                 </fieldset>
 
                 <p class="hint mail-group" data-mail-group="sendmail"><?= e(t('mail.sendmail_hint')) ?></p>

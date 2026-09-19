@@ -70,7 +70,7 @@ return [
     'forms.saved' => 'The form was saved.',
     'forms.mail.subject' => 'New message: :form (:site)',
     'forms.mail.from_page' => 'Sent from the page ":page": :url',
-    'forms.mail.all_messages' => 'All messages sent through this form: :url',
+    'forms.mail.all_messages' => 'For you, the site\'s administrator — this and every other message sent through the form, once you are logged in: :url',
     'forms.mail.ticked' => 'Yes',
     'forms.mail.not_ticked' => 'No',
 ];

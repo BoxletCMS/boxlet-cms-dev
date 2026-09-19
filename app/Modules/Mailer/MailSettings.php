@@ -165,6 +165,25 @@ final class MailSettings
             : null;
     }
 
+    /**
+     * What a saved secret shows in its empty field, so a panel with a key set does not look
+     * like one without (the owner's report, 2026-09-19): an API key by its first three and
+     * last four characters — enough to tell which key it is, as Resend's own dashboard
+     * shows them — and a password as dots only. '' when nothing is saved.
+     */
+    public static function trace(string $sealed, string $appKey, bool $showEnds): string
+    {
+        $plain = Secret::open($sealed, $appKey);
+        if ($plain === '') {
+            return $sealed === '' ? '' : '••••••••';
+        }
+        if (!$showEnds || mb_strlen($plain) < 12) {
+            return '••••••••';
+        }
+
+        return mb_substr($plain, 0, 3) . '…' . mb_substr($plain, -4);
+    }
+
     /** Whether a way of sending is chosen at all. */
     public static function configured(Db $db): bool
     {

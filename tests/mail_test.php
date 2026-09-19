@@ -34,7 +34,9 @@ testBothDrivers('saving stores passwords sealed, keeps them when left empty, and
     assertRedirectedTo('/admin/settings#mail', adminPost('/admin/settings/mail', $form));
     $stored = (string) ($db->one("SELECT value_json FROM settings WHERE `key` = 'mail_smtp_password'")['value_json'] ?? '');
     assertTrue($stored !== '' && !str_contains($stored, 'hunter2-secret'), 'the password is stored as typed');
-    assertTrue(!str_contains(dispatch('/admin/settings')->body, 'hunter2-secret'), 'the password is shown on the screen');
+    $screen = dispatch('/admin/settings')->body;
+    assertTrue(!str_contains($screen, 'hunter2-secret'), 'the password is shown on the screen');
+    assertContains('id="mail_smtp_password" name="mail_smtp_password" value="" autocomplete="new-password" placeholder="••••••••"', $screen, 'a trace that a password is saved');
 
     // Saved again with the password field empty: the password stays.
     adminPost('/admin/settings/mail', ['mail_smtp_password' => '', 'mail_from_name' => 'Northwind Studio'] + $form);
@@ -69,6 +71,12 @@ testBothDrivers('the transport is the way chosen, with its details', function (s
     assertEquals(true, $stream instanceof Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream && $stream->isTLS(), 'from the first byte');
 
     MailSettings::save($db, ['transport' => 'resend', 'from_address' => 'a@example.com', 'resend_key' => 're_123'], MAIL_KEY);
+    // A saved key leaves a trace in its empty field, never the key: its ends, or dots when
+    // it is too short to show ends without showing most of it.
+    assertEquals('re_…WXYZ', MailSettings::trace(App\Modules\Mailer\Secret::seal('re_abcdefghWXYZ', MAIL_KEY), MAIL_KEY, true), 'a key');
+    assertEquals('••••••••', MailSettings::trace(App\Modules\Mailer\Secret::seal('re_123', MAIL_KEY), MAIL_KEY, true), 'a short key');
+    assertEquals('••••••••', MailSettings::trace(App\Modules\Mailer\Secret::seal('hunter2-secret', MAIL_KEY), MAIL_KEY, false), 'a password');
+    assertEquals('', MailSettings::trace('', MAIL_KEY, true), 'nothing saved');
     assertTrue(MailSettings::transport($db, MAIL_KEY) instanceof ResendTransport, 'resend');
     MailSettings::save($db, ['transport' => 'sendmail', 'from_address' => 'a@example.com'], MAIL_KEY);
     assertTrue(MailSettings::transport($db, MAIL_KEY) instanceof SendmailTransport, 'sendmail');

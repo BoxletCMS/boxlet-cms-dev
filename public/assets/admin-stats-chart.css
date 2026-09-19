@@ -1,7 +1,7 @@
-/* Visit statistics (PLAN.md D-051): the trend chart and the dashboard card with its
- * sparkline. The charts are SVG drawn by App\Modules\Stats\Chart; their colours are here,
- * by class, never in the markup. Split from admin-stats.css, which only the Statistics
- * screen needs. Admin tokens only (--ui-*), defined in admin.css. */
+/* Visit statistics (PLAN.md D-051): the trend chart, an SVG drawn by
+ * App\Modules\Stats\Chart; its colours are here, by class, never in the markup. Split from
+ * admin-stats.css when that passed the size limit. Admin tokens only (--ui-*), defined in
+ * admin.css. */
 
 /* The trend. */
 .stats-trend {
@@ -136,48 +136,4 @@
 .stats-numbers .stats-table {
   margin-top: var(--ui-3);
   max-inline-size: 28rem;
-}
-
-/* The dashboard card: today's visitors and the week beside the countries it came from. */
-.stats-card {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-  gap: var(--ui-5);
-  margin-bottom: var(--ui-5);
-}
-
-.stats-card h2 {
-  margin: 0 0 var(--ui-2);
-  font-size: var(--ui-text-lg);
-}
-
-.stats-card-today {
-  display: grid;
-  gap: var(--ui-2);
-}
-
-.stats-spark {
-  inline-size: 100%;
-  block-size: 4rem;
-  overflow: visible;
-}
-
-.stats-card-countries {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.stats-card-countries li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--ui-4);
-  padding: var(--ui-2) 0;
-  border-bottom: var(--ui-border) solid var(--ui-line);
-  font-variant-numeric: tabular-nums;
-}
-
-.stats-card-link {
-  margin: var(--ui-3) 0 0;
-  font-weight: 600;
 }

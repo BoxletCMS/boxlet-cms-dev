@@ -34,7 +34,7 @@ export default {
     // Today's visitors, as the screen shows them, before and after one visitor's view.
     const todayVisitors = async () => {
       await page.goto(`${BASE}/admin/statistics?period=today`, { waitUntil: 'networkidle2' });
-      return page.$eval('.stats-figure .stat-value', (el) => Number(el.textContent.replace(/[^0-9]/g, '')));
+      return page.$eval('.stats-figure .metric-value', (el) => Number(el.textContent.replace(/[^0-9]/g, '')));
     };
     const before = await todayVisitors();
     const visitor = await browser.createBrowserContext();
@@ -64,13 +64,11 @@ export default {
     }
     await page.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    const card = await page.$('.stats-card');
-    if (card) {
-      await card.scrollIntoView();
-    }
+    // The Overview's visitors tile, which leads to the screen (D-052).
+    const card = await page.$('.metric[href*="/admin/statistics"]');
     await report.shot(page, '05-dashboard', { fullPage: false });
-    report.verdict('the dashboard has the statistics card, and the bar a Statistics link',
-      card !== null && await page.$('.rail-nav a[href$="/admin/statistics"]') !== null, `card ${card !== null}`);
+    report.verdict('the Overview shows visitors, and the rail a Statistics link',
+      card !== null && await page.$('.rail-nav a[href$="/admin/statistics"]') !== null, `visitors tile ${card !== null}`);
 
     for (const [name, viewport] of [['01-desktop', { width: 1400, height: 1000 }], ['02-phone', { width: 390, height: 844 }]]) {
       await page.setViewport({ ...viewport, deviceScaleFactor: 2 });

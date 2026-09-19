@@ -6,12 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
-use App\Modules\Design\Composition;
-use App\Modules\Stats\StatsQuery;
-use App\Modules\Stats\Tracker;
 use App\Support\Dates;
-use DateTimeImmutable;
-use DateTimeZone;
 
 final class DashboardController
 {
@@ -20,11 +15,11 @@ final class DashboardController
     }
 
     /**
-     * Where the site stands, at a glance, and the four things an owner comes here to do.
+     * The Overview (PLAN.md D-052): the site's figures, each with its context; what changed
+     * lately; what is waiting on the owner; and what visitors read most.
      *
-     * Counts rather than lists: the screens behind each card already list everything, and
-     * a dashboard that repeats them is a second place to keep in step. Four small queries,
-     * each on an indexed or tiny table.
+     * Every figure is a count over a small table, and every one says what it means — a
+     * bare number makes the owner go and find out.
      *
      * @param array<string, string> $params
      */
@@ -34,7 +29,6 @@ final class DashboardController
         // to the message it shows visitors, because the two were edited in two places and
         // only ever make sense together.
         $db = $this->db();
-        $count = static fn (string $sql, array $bind = []): int => (int) ($db->one($sql, $bind)['n'] ?? 0);
         // A site installed before the sitemap existed, or one whose file was removed, gets
         // it on the owner's next visit here rather than on their next change (D-049). An
         // is_file() per dashboard view is the whole cost.
@@ -43,45 +37,21 @@ final class DashboardController
             \App\Modules\Pages\Sitemap::refresh($this->container);
         }
 
+        $zone = Dates::zone($db);
         $home = $db->one("SELECT id FROM pages WHERE slug = '' ORDER BY id LIMIT 1");
 
         return AdminView::render($this->container, __DIR__ . '/views', 'dashboard', [
-            'title' => t('admin.dashboard.title'),
+            'title' => t('admin.nav.dashboard'),
             'nav' => 'dashboard',
-            'wide' => true,
-            'styles' => ['admin-dashboard.css', 'admin-stats-chart.css'],
-            'published' => $count("SELECT COUNT(*) AS n FROM pages WHERE status = 'published'"),
-            'drafts' => $count("SELECT COUNT(*) AS n FROM pages WHERE status <> 'published'"),
-            'pictures' => $count('SELECT COUNT(*) AS n FROM media'),
-            'menus' => $count('SELECT COUNT(*) AS n FROM menus'),
-            'character' => Composition::active($db),
+            'styles' => ['admin-dashboard.css', 'admin-activity.css'],
+            'metrics' => Overview::metrics($db, $zone),
+            'rows' => Activity::recent($db, 6),
+            'zone' => $zone,
+            'issues' => Overview::attention($db, $this->container->get('blocks')),
+            'mostRead' => Overview::mostRead($db, $zone),
             'homeId' => $home === null ? null : (int) $home['id'],
             'maintenance' => $this->container->get('maintenance')->isOn(),
-            'stats' => $this->stats(),
         ]);
-    }
-
-    /**
-     * The statistics card (D-051): today's visitors, the week as a line, and the three
-     * countries most of them came from. Null while statistics are off, and the card is not
-     * drawn.
-     *
-     * @return array{today: int, week: list<array{day: string, visitors: int, views: int}>, countries: list<array{value: string, visitors: int, views: int}>}|null
-     */
-    private function stats(): ?array
-    {
-        $db = $this->db();
-        if (!Tracker::settings($db)['enabled']) {
-            return null;
-        }
-        $query = new StatsQuery($db);
-        $week = StatsQuery::range('7d', new DateTimeImmutable('now', new DateTimeZone(Dates::zone($db))));
-
-        return [
-            'today' => $query->totals($week['to'], $week['to'])['visitors'],
-            'week' => $query->series($week['from'], $week['to']),
-            'countries' => $query->top('countries', $week['from'], $week['to'], 3),
-        ];
     }
 
     private function db(): Db

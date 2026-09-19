@@ -63,10 +63,7 @@ return [
     'stats.note' => 'Counted on your own server, without cookies. A visitor is recognised for one day only, so someone who comes back tomorrow is counted again. You are not counted while logged in.',
     'stats.settings_link' => 'Statistics settings',
 
-    // The dashboard card.
-    'stats.card_title' => 'Visitors today',
-    'stats.card_week' => 'Last 7 days',
-    'stats.card_countries' => 'Top countries this week',
+    // The Overview's way to the screen.
     'stats.card_link' => 'All statistics',
     // The country database.
     'stats.geo_title' => 'Countries',

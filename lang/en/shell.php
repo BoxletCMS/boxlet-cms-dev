@@ -42,16 +42,6 @@ return [
     'admin.logout' => 'Log out',
     'admin.view_site' => 'View site',
 
-    'admin.dashboard.title' => 'Dashboard',
-    'admin.dashboard.intro' => 'Where your site stands, and the quickest ways back into it.',
-    'admin.dashboard.published' => 'published, :drafts not yet',
-    'admin.dashboard.pictures' => 'pictures in the library',
-    'admin.dashboard.character' => 'the character the site wears',
-    'admin.dashboard.menus' => 'menus built by hand',
-    'admin.dashboard.next' => 'Carry on',
-    'admin.dashboard.edit_home' => 'Edit the home page',
-    'admin.dashboard.change_design' => 'Change the design',
-    'admin.dashboard.add_pictures' => 'Add pictures',
     'admin.dashboard.maintenance' => 'Maintenance mode is on: visitors see a short message instead of the site.',
     'admin.dashboard.maintenance_link' => 'Switch it off in Settings',
 

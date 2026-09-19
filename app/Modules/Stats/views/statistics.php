@@ -34,8 +34,8 @@ $figures = [
         <ul class="stats-figures" role="list">
 <?php foreach ($figures as [$key, $value, $change]): ?>
             <li class="stats-figure">
-                <span class="stat-label"><?= e(t('stats.figure.' . $key)) ?></span>
-                <span class="stat-value"><?= e($value) ?></span>
+                <span class="metric-label"><?= e(t('stats.figure.' . $key)) ?></span>
+                <span class="metric-value"><?= e($value) ?></span>
                 <?= $change ?>
             </li>
 <?php endforeach; ?>

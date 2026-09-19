@@ -3,7 +3,7 @@
 namespace App\Modules\Stats;
 
 /**
- * The trend chart and the dashboard's sparkline, drawn on the server as SVG (PLAN.md D-051):
+ * The trend chart, drawn on the server as SVG (PLAN.md D-051):
  * no chart library, no script.
  *
  * The SVG holds only the lines, stretched to its box (preserveAspectRatio="none") with
@@ -64,25 +64,6 @@ final class Chart
         $days .= '</div>';
 
         return '<div class="stats-chart-plot">' . $axis . $svg . '</div>' . $days;
-    }
-
-    /**
-     * Visitors as a small line with no axes, for the dashboard.
-     *
-     * @param list<array{day: string, visitors: int, views: int}> $series
-     */
-    public static function spark(array $series): string
-    {
-        if ($series === []) {
-            return '';
-        }
-        $top = max(1, max(array_column($series, 'visitors')));
-        $points = self::points($series, 'visitors', $top);
-
-        return '<svg class="stats-spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">'
-            . '<path class="stats-area" d="M0,100 L' . implode(' L', $points) . ' L100,100 Z"/>'
-            . '<polyline class="stats-line-visitors" points="' . implode(' ', $points) . '" vector-effect="non-scaling-stroke"/>'
-            . '</svg>';
     }
 
     /**

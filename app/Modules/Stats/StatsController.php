@@ -47,8 +47,7 @@ final class StatsController
             'title' => t('stats.title'),
             'nav' => 'statistics',
             'wide' => true,
-            // The dashboard's figure classes (stat-label, stat-value) as well as its own.
-            'styles' => ['admin-dashboard.css', 'admin-stats.css', 'admin-stats-chart.css'],
+            'styles' => ['admin-stats.css', 'admin-stats-chart.css'],
             'period' => $period,
             'range' => $range,
             'totals' => $totals,

@@ -313,7 +313,7 @@
    a form directly inside it: a panel inside a grid or a .stack already has the grid's gap,
    and a margin there doubled it (measured on the Design screen). Adjacency rather than a
    margin on every panel, so the first thing on a screen keeps the title's spacing. */
-:is(.admin-main, .admin-main > form:not(.stack, .editor-form)) > :is(.panel, .fieldset, .table-wrap, form, .stat-grid)
+:is(.admin-main, .admin-main > form:not(.stack, .editor-form)) > :is(.panel, .fieldset, .table-wrap, form, .metrics)
   + :is(.panel, .fieldset, .table-wrap, form, .button, .form-actions) {
   margin-top: var(--ui-5);
 }

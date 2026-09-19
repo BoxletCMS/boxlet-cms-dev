@@ -28,7 +28,7 @@ testBothDrivers('login succeeds and opens the dashboard', function (string $driv
     assertTrue(is_int($_SESSION['admin_id'] ?? null), 'the session holds the admin id');
     $dashboard = dispatch('/admin');
     assertEquals(200, $dashboard->status, 'dashboard status');
-    assertContains('<h1>' . e(t('admin.dashboard.title')) . '</h1>', $dashboard->body, 'dashboard');
+    assertContains('<h1>' . e(t('admin.nav.dashboard')) . '</h1>', $dashboard->body, 'dashboard');
 });
 
 testBothDrivers('a wrong password and an unknown email fail with the same message', function (string $driver) {

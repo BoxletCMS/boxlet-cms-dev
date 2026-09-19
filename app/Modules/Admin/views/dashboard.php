@@ -3,85 +3,96 @@
 use App\Support\Url;
 
 /**
- * Where the site stands, and what to do next. Provided by View::render().
+ * The Overview (PLAN.md D-052). Provided by AdminView::render().
  *
  * @var string $title
- * @var int $published
- * @var int $drafts
- * @var int $pictures
- * @var int $menus
- * @var string $character the character the site was last given
+ * @var list<array{label: string, value: string, note: string, href: string, word: bool}> $metrics
+ * @var list<array{id: int, at: string, kind: string, action: string, subjectId: int|null, subject: string}> $rows
+ * @var string $zone
+ * @var list<array{title: string, where: string, href: string}> $issues
+ * @var list<array{path: string, views: int, share: float}> $mostRead empty while statistics are off
  * @var int|null $homeId the home page's id, null before there is one
  * @var bool $maintenance
- * @var array{today: int, week: list<array{day: string, visitors: int, views: int}>, countries: list<array{value: string, visitors: int, views: int}>}|null $stats null while statistics are off
  */
 ?>
         <div class="page-header">
             <h1><?= e($title) ?></h1>
+            <div class="form-actions">
+<?php if ($homeId !== null): ?>
+                <a class="button button-secondary" href="<?= e(Url::admin('pages', $homeId)) ?>"><?= e(t('overview.edit_home')) ?></a>
+<?php endif; ?>
+                <a class="button" href="<?= e(Url::admin('pages', 'new')) ?>"><?= e(t('pages.new')) ?></a>
+            </div>
         </div>
-        <p class="page-subtitle"><?= e(t('admin.dashboard.intro')) ?></p>
+        <p class="page-subtitle"><?= e(t('overview.intro')) ?></p>
 <?php if ($maintenance): ?>
         <p class="notice notice-warning"><?= e(t('admin.dashboard.maintenance')) ?>
             <a href="<?= e(Url::admin('settings')) ?>"><?= e(t('admin.dashboard.maintenance_link')) ?></a></p>
 <?php endif; ?>
 
-        <?php /* Each figure is a way in: the card is the link to the screen it counts. */ ?>
-        <ul class="stat-grid" role="list">
-            <li><a class="stat" href="<?= e(Url::admin('pages')) ?>">
-                <span class="stat-label"><?= e(t('admin.nav.pages')) ?></span>
-                <span class="stat-value"><?= e((string) $published) ?></span>
-                <span class="stat-note"><?= e(t('admin.dashboard.published', ['drafts' => $drafts])) ?></span>
+        <?php /* The figures: tiles on a hairline grid, each the way into the screen it counts,
+                 each with the note that says what the number means. */ ?>
+        <ul class="metrics" role="list">
+<?php foreach ($metrics as $metric): ?>
+            <li><a class="metric" href="<?= e($metric['href']) ?>">
+                <span class="metric-label"><?= e($metric['label']) ?></span>
+                <span class="metric-value<?= $metric['word'] ? ' metric-word' : '' ?>"><?= e($metric['value']) ?></span>
+                <span class="metric-note"><?= e($metric['note']) ?></span>
             </a></li>
-            <li><a class="stat" href="<?= e(Url::admin('media')) ?>">
-                <span class="stat-label"><?= e(t('admin.nav.media')) ?></span>
-                <span class="stat-value"><?= e((string) $pictures) ?></span>
-                <span class="stat-note"><?= e(t('admin.dashboard.pictures')) ?></span>
-            </a></li>
-            <li><a class="stat" href="<?= e(Url::admin('design')) ?>">
-                <span class="stat-label"><?= e(t('admin.nav.design')) ?></span>
-                <span class="stat-value stat-word"><?= e(t('design.preset.' . $character)) ?></span>
-                <span class="stat-note"><?= e(t('admin.dashboard.character')) ?></span>
-            </a></li>
-            <li><a class="stat" href="<?= e(Url::admin('menus')) ?>">
-                <span class="stat-label"><?= e(t('admin.nav.menus')) ?></span>
-                <span class="stat-value"><?= e((string) $menus) ?></span>
-                <span class="stat-note"><?= e(t('admin.dashboard.menus')) ?></span>
-            </a></li>
+<?php endforeach; ?>
         </ul>
 
-<?php if ($stats !== null): ?>
-        <?php /* Statistics (D-051): only while they are counted. */ ?>
-        <section class="panel stats-card" aria-label="<?= e(t('stats.title')) ?>">
-            <div class="stats-card-today">
-                <h2><?= e(t('stats.card_title')) ?></h2>
-                <span class="stat-value"><?= e(number_format($stats['today'])) ?></span>
-                <span class="stat-note"><?= e(t('stats.card_week')) ?></span>
-                <?= \App\Modules\Stats\Chart::spark($stats['week']) ?>
-            </div>
-            <div>
-                <h2><?= e(t('stats.card_countries')) ?></h2>
-<?php if ($stats['countries'] === []): ?>
-                <p class="hint"><?= e(t('stats.none')) ?></p>
-<?php else: ?>
-                <ul class="stats-card-countries" role="list">
-<?php foreach ($stats['countries'] as $country): ?>
-                    <li><span><?= e(\App\Modules\Stats\StatsView::label('countries', $country['value'])) ?></span> <span><?= e(number_format($country['visitors'])) ?></span></li>
-<?php endforeach; ?>
-                </ul>
-<?php endif; ?>
-                <p class="stats-card-link"><a href="<?= e(Url::admin('statistics')) ?>"><?= e(t('stats.card_link')) ?></a></p>
-            </div>
-        </section>
-<?php endif; ?>
+        <div class="overview-columns">
+            <section aria-labelledby="recent-heading">
+                <div class="overview-kicker">
+                    <h2 id="recent-heading"><?= e(t('activity.recent')) ?></h2>
+                    <a href="<?= e(Url::admin('activity')) ?>"><?= e(t('activity.full_log')) ?></a>
+                </div>
+<?php require __DIR__ . '/activity-rows.php'; ?>
+            </section>
 
-        <section class="panel" aria-labelledby="next-heading">
-            <h2 id="next-heading"><?= e(t('admin.dashboard.next')) ?></h2>
-            <div class="form-actions">
-<?php if ($homeId !== null): ?>
-                <a class="button" href="<?= e(Url::admin('pages', $homeId)) ?>"><?= e(t('admin.dashboard.edit_home')) ?></a>
+            <div class="overview-side">
+                <section aria-labelledby="attention-heading">
+                    <div class="overview-kicker">
+                        <h2 id="attention-heading"><?= e(t('overview.attention')) ?></h2>
+                    </div>
+<?php if ($issues === []): ?>
+                    <p class="overview-calm"><?= icon('check') ?> <?= e(t('overview.attention_none')) ?></p>
+<?php else: ?>
+                    <ul class="issues" role="list">
+<?php foreach ($issues as $issue): ?>
+                        <li><a class="issue" href="<?= e($issue['href']) ?>">
+                            <?= icon('circle-alert') ?>
+                            <span>
+                                <span class="issue-title"><?= e($issue['title']) ?></span>
+                                <span class="issue-where"><?= e($issue['where']) ?></span>
+                            </span>
+                        </a></li>
+<?php endforeach; ?>
+                    </ul>
 <?php endif; ?>
-                <a class="button<?= $homeId !== null ? ' button-secondary' : '' ?>" href="<?= e(Url::admin('pages', 'new')) ?>"><?= e(t('pages.new')) ?></a>
-                <a class="button button-secondary" href="<?= e(Url::admin('design')) ?>"><?= e(t('admin.dashboard.change_design')) ?></a>
-                <a class="button button-secondary" href="<?= e(Url::admin('media')) ?>"><?= e(t('admin.dashboard.add_pictures')) ?></a>
+                </section>
+
+<?php if ($mostRead !== []): ?>
+                <section aria-labelledby="read-heading">
+                    <div class="overview-kicker">
+                        <h2 id="read-heading"><?= e(t('overview.most_read')) ?></h2>
+                        <a href="<?= e(Url::admin('statistics') . '?period=30d') ?>"><?= e(t('stats.card_link')) ?></a>
+                    </div>
+                    <ol class="most-read" role="list">
+<?php foreach ($mostRead as $page): ?>
+                        <li>
+                            <span class="most-read-row">
+                                <span class="most-read-path"><?= e($page['path']) ?></span>
+                                <span class="most-read-views"><?= e(number_format($page['views'])) ?></span>
+                            </span>
+                            <?php /* The track: an SVG rect as long as the share, since a width in a
+                                     style attribute is refused by the admin's CSP. */ ?>
+                            <svg class="most-read-track" viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="most-read-ground" width="100" height="1"/><rect class="most-read-fill" width="<?= e(number_format($page['share'], 1, '.', '')) ?>" height="1"/></svg>
+                        </li>
+<?php endforeach; ?>
+                    </ol>
+                </section>
+<?php endif; ?>
             </div>
-        </section>
+        </div>

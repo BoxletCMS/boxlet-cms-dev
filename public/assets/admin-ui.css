@@ -307,3 +307,28 @@
   color: var(--ui-ink-faint);
   cursor: default;
 }
+
+/* A figure: small capitals over a number, and a note saying what the number means. The
+   Overview's strip and the Statistics screen's four both use it (D-052). Every number is
+   set in figures of one width, so a column of them lines up. */
+.metric-label {
+  color: var(--ui-ink-faint);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  color: var(--ui-ink);
+  font-size: var(--ui-text-2xl);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.metric-note {
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-xs);
+}

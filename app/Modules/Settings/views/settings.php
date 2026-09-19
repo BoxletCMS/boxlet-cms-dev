@@ -77,7 +77,7 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                 </div>
             </div>
 
-            <div class="panel stack">
+            <div class="panel stack" id="branding">
                 <h2><?= e(t('settings.branding')) ?></h2>
                 <p class="hint"><?= e(t('settings.branding_intro')) ?></p>
 

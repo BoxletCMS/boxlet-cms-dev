@@ -336,14 +336,14 @@ testBothDrivers('the Statistics screen shows the period\'s figures, its trend an
     assertEquals(200, dispatch('/admin/statistics?period=nonsense&all=nonsense')->status, 'nonsense in the address');
 });
 
-testBothDrivers('switched off, the screen, the bar\'s link and the dashboard card are gone', function (string $driver) {
+testBothDrivers('switched off, the screen, the rail\'s link and the Overview\'s visitors are gone', function (string $driver) {
     $db = statsSite($driver);
-    assertContains('stats-card', dispatch('/admin')->body, 'the card while on');
+    assertContains(e(t('overview.visitors')), dispatch('/admin')->body, 'visitors on the Overview while on');
 
     Settings::set($db, 'stats_enabled', false);
     assertRedirectedTo('/admin/settings#statistics', dispatch('/admin/statistics'));
     $dashboard = dispatch('/admin')->body;
-    assertTrue(!str_contains($dashboard, 'stats-card'), 'the card while off');
+    assertTrue(!str_contains($dashboard, e(t('overview.visitors'))), 'visitors on the Overview while off');
     assertTrue(!str_contains($dashboard, e(t('admin.nav.statistics'))), 'the bar\'s link while off');
 });
 

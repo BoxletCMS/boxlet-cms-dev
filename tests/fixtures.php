@@ -248,3 +248,27 @@ function cleanupTestState(): void
         freshDatabase('mysql');
     }
 }
+
+/**
+ * A mail transport that keeps what it is given instead of sending it (PLAN.md D-045), for
+ * tests that need to see a message: dispatch()'s container configurator puts one in place
+ * of the site's own.
+ */
+final class CapturingTransport extends Symfony\Component\Mailer\Transport\AbstractTransport
+{
+    /** @var list<Symfony\Component\Mime\Email> */
+    public array $sent = [];
+
+    public function __toString(): string
+    {
+        return 'capturing://';
+    }
+
+    protected function doSend(Symfony\Component\Mailer\SentMessage $message): void
+    {
+        $original = $message->getOriginalMessage();
+        if ($original instanceof Symfony\Component\Mime\Email) {
+            $this->sent[] = $original;
+        }
+    }
+}

@@ -275,3 +275,24 @@
 .js .button.js-only {
   display: inline-flex;
 }
+
+/* Two fields that belong together side by side, such as a server and its port; one above
+   the other on a phone. */
+.field-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-4);
+}
+
+@media (max-width: 40rem) {
+  .field-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.mail-test {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-3);
+}

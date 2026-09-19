@@ -9,6 +9,8 @@ use App\Core\Response;
 use App\Core\Settings;
 use App\Modules\Admin\AdminView;
 use App\Modules\Languages\Locales;
+use App\Modules\Mailer\MailController;
+use App\Modules\Mailer\MailSettings;
 use App\Modules\Media\MediaReference;
 use App\Support\Url;
 use DateTimeZone;
@@ -147,7 +149,7 @@ final class SettingsController
             'nav' => 'settings',
             // The picker's own stylesheets and script, the same set the page editor loads.
             'styles' => ['admin-media.css', 'admin-picker.css'],
-            'scripts' => ['media-picker.js'],
+            'scripts' => ['media-picker.js', 'mail-settings.js'],
             'values' => $values,
             'errors' => $errors,
             'notice' => $notice,
@@ -156,7 +158,37 @@ final class SettingsController
             'maintenanceOn' => $this->container->get('maintenance')->isOn(),
             'languages' => Locales::all($this->db()),
             'addable' => Locales::addable($this->db()),
-        ], $status);
+        ] + $this->mail(), $status);
+    }
+
+    /**
+     * The Mail panel's values (D-045): what is stored, or what was typed into a refused
+     * save, with its errors — shown once. Secrets never reach the screen, only whether
+     * one is set.
+     *
+     * @return array{mail: array<string, string>, mailErrors: array<string, string>, mailSecrets: array{smtp_password: bool, resend_key: bool}}
+     */
+    private function mail(): array
+    {
+        $stored = MailSettings::stored($this->db());
+        $session = $this->container->get('session');
+        $refused = $session->get('mail_form');
+        $session->remove('mail_form');
+        $old = is_array($refused) && is_array($refused['old'] ?? null) ? $refused['old'] : [];
+        $errors = is_array($refused) && is_array($refused['errors'] ?? null) ? $refused['errors'] : [];
+
+        $values = [];
+        foreach (MailController::FIELDS as $field) {
+            $values[$field] = in_array($field, ['smtp_password', 'resend_key'], true)
+                ? ''
+                : (is_string($old[$field] ?? null) ? $old[$field] : $stored[$field]);
+        }
+
+        return [
+            'mail' => $values,
+            'mailErrors' => array_filter($errors, 'is_string'),
+            'mailSecrets' => ['smtp_password' => $stored['smtp_password'] !== '', 'resend_key' => $stored['resend_key'] !== ''],
+        ];
     }
 
     private function db(): Db

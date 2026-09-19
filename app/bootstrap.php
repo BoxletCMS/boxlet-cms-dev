@@ -28,6 +28,8 @@ use App\Modules\Pages\PagesController;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Menus\MenusController;
 use App\Modules\Languages\LanguagesController;
+use App\Modules\Mailer\MailController;
+use App\Modules\Mailer\MailSettings;
 use App\Modules\Settings\ChromeController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Update\Maintenance;
@@ -82,6 +84,11 @@ $databasePath = (string) (($config->get('database', []))['path'] ?? '');
 // Maintenance mode (D-021): a file, not a settings row, so it still works when the
 // database is unavailable or mid-update.
 $container->set('maintenance', fn () => new Maintenance($storage));
+// How the site sends mail (D-045), built from its settings when first asked for. Tests
+// replace it with one that keeps what it is given.
+// The key is fetched as ['key'] rather than by the dotted 'app.key', for the reason
+// $databasePath gives above: the route guard reads any get('...') ending in an extension.
+$container->set('mail_transport', fn (Container $c) => MailSettings::transport($c->get('db'), (string) (($c->get('config')->get('app', []))['key'] ?? '')));
 // Media (SPEC §5.5). The encoder probes what this server can actually write, so a host
 // without a WebP delegate refuses clearly instead of writing files nobody can open.
 $container->set('media_encoder', fn () => new MediaEncoder());
@@ -185,6 +192,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
+    // Mail (D-045): how the site sends, and a test message to prove it does.
+    $router->post('/admin/settings/mail', [MailController::class, 'save'], $requireAdmin);
+    $router->post('/admin/settings/mail/test', [MailController::class, 'test'], $requireAdmin);
     // The site's languages (D-043), a panel on the Settings screen with its own forms. A
     // code is two letters, the ISO 639-1 list the installer offers.
     $router->post('/admin/languages', [LanguagesController::class, 'add'], $requireAdmin);

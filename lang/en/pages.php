@@ -155,7 +155,6 @@ return [
     'pages.device.phone' => 'Phone',
     'pages.device.tablet' => 'Tablet',
     'pages.device.desktop' => 'Desktop',
-    'pages.locale_later' => 'Translating a page arrives in a later release.',
     'pages.editor.fallback' => 'Plain editor',
     'pages.editor.fallback_hint' => 'A plain form holding every field of every block. It needs no JavaScript, so it is the way to fix a page when the visual editor will not load.',
     'pages.editor.visual' => 'Visual editor',

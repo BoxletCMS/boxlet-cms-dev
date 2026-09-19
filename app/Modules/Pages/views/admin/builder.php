@@ -23,6 +23,7 @@ use App\Support\Url;
  * @var list<array{type: string, label: string, preview: string}> $library
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
  * @var list<array{id: int, title: string, depth: int}> $parents
+ * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
  * @var string $csrf
  */
 $pageId = (int) $page['id'];
@@ -72,13 +73,7 @@ foreach ($errors as $key => $message) {
 <?php endforeach; ?>
                 </div>
 
-                <?php /* In place so the toolbar does not have to be rearranged for Slice 6. */ ?>
-                <label class="builder-locale">
-                    <span class="visually-hidden"><?= e(t('pages.field.locale')) ?></span>
-                    <select disabled title="<?= e(t('pages.locale_later')) ?>">
-                        <option><?= e((string) $page['locale']) ?></option>
-                    </select>
-                </label>
+<?php require __DIR__ . '/languages-menu.php'; ?>
 
                 <?php /* The plain editor is for when this one cannot run, so it is offered only
                          then: without a script, this is the way to the page's text (D-039). */ ?>
@@ -208,6 +203,16 @@ foreach ($errors as $key => $message) {
             <?php /* _end must stay the last field: PHP drops everything past max_input_vars. */ ?>
             <input type="hidden" name="_end" value="1">
         </form>
+<?php foreach ($languages as $language): ?>
+<?php if ($language['page'] === null): ?>
+        <?php /* Outside the builder's form, which HTML cannot nest a form inside; the
+                 language menu's buttons reach these by id. */ ?>
+        <form method="post" action="<?= e(Url::admin('pages', $pageId, 'translate')) ?>" id="translate-<?= e($language['code']) ?>" class="visually-hidden">
+            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+            <input type="hidden" name="locale" value="<?= e($language['code']) ?>">
+        </form>
+<?php endif; ?>
+<?php endforeach; ?>
 <?php /* One <template> per repeater, keyed type.field — the same set the fallback editor
          emits, and for the same reason: a <template>'s contents are not live nodes, so
          renumber() never reaches inside one and both indices must stay placeholders until

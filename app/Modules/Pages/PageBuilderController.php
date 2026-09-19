@@ -227,7 +227,31 @@ final class PageBuilderController
             // only place a cycle could be created, so the list already excludes this page
             // and everything under it (PageTree).
             'parents' => PageTree::parentOptions($this->db(), (string) $page['locale'], $id),
+            'languages' => $this->languages($id, (string) $page['locale']),
         ], $status);
+    }
+
+    /**
+     * The site's languages as the builder's language menu offers them: this page's
+     * version in each, or null where there is none yet (D-043).
+     *
+     * @return list<array{code: string, label: string, page: int|null, current: bool}>
+     */
+    private function languages(int $id, string $current): array
+    {
+        $versions = Translations::of($this->db(), $id);
+        $languages = [];
+        foreach ($this->container->get('locales') as $language) {
+            $code = (string) $language['code'];
+            $languages[] = [
+                'code' => $code,
+                'label' => (string) $language['label'],
+                'page' => $versions[$code] ?? null,
+                'current' => $code === $current,
+            ];
+        }
+
+        return $languages;
     }
 
     /**

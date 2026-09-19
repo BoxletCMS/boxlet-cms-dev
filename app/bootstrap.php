@@ -25,6 +25,7 @@ use App\Modules\Media\MediaUpload;
 use App\Modules\Media\MediaVariants;
 use App\Modules\Media\MediaWriter;
 use App\Modules\Pages\PagesController;
+use App\Modules\Pages\TranslationController;
 use App\Modules\Menus\MenusController;
 use App\Modules\Languages\LanguagesController;
 use App\Modules\Settings\ChromeController;
@@ -151,6 +152,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
     $router->post('/admin/pages/order', [PagesController::class, 'reorder'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/status', [PagesController::class, 'status'], $requireAdmin);
+    // A page's version in another language, made as a draft copy (D-043).
+    $router->post('/admin/pages/{id:\d+}/translate', [TranslationController::class, 'create'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/delete', [PagesController::class, 'delete'], $requireAdmin);
 
     // Pictures (SPEC §5.5). The generated variants live under /m/ and are served from

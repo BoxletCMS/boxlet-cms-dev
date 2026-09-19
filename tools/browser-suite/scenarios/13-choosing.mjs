@@ -43,7 +43,7 @@ export default {
     for (const photo of photos) {
       await uploadPhoto(page, photo);
     }
-    if (await page.$$eval('.media-card', (els) => els.length).catch(() => 0) < 2) {
+    if (await page.$$eval('tr.media-row', (els) => els.length).catch(() => 0) < 2) {
       report.fail('choosing: two pictures to choose between', 'fewer than two in the library');
       return;
     }

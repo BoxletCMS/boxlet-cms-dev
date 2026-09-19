@@ -61,6 +61,22 @@ test('no key is defined in two language files', function () {
     assertEquals([], $duplicates, 'the same key is defined in two files, so one of them is ignored');
 });
 
+// Inside ONE file, PHP keeps the last of two equal keys without a word, so a string added
+// near the top of a file was silently replaced by an older one lower down: "Upload" was
+// shown as "Upload pictures" (D-052). Read from the source, since the array has already
+// lost the first by the time anything can look at it.
+test('no key is defined twice in one language file', function () {
+    $duplicates = [];
+    foreach (glob(dirname(__DIR__) . '/lang/*/*.php') ?: [] as $file) {
+        preg_match_all("~^\\s*'([^']+)'\\s*=>~m", (string) file_get_contents($file), $keys);
+        foreach (array_unique(array_diff_assoc($keys[1], array_unique($keys[1]))) as $key) {
+            $duplicates[] = basename(dirname($file)) . '/' . basename($file) . ': ' . $key;
+        }
+    }
+
+    assertEquals([], $duplicates, 'a key is defined twice in one file, so the first is ignored');
+});
+
 test('every string is a string, and every placeholder is filled by someone', function () {
     foreach (langFiles() as $name => $strings) {
         assertTrue(is_array($strings), "{$name} does not return an array");

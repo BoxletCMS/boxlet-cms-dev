@@ -86,7 +86,7 @@ export default {
           : `"${card.name}" ${card.facts}, thumb ${card.src} decoded at ${card.naturalWidth}x${card.naturalHeight}`);
 
       // No "suggested" badge on the card any more (D-038).
-      const badge = await page.$$eval('.media-card .media-suggested', (els) => els.length).catch(() => 0);
+      const badge = await page.$$eval('tr.media-row .media-suggested', (els) => els.length).catch(() => 0);
       report.verdict('cards carry no "suggested" badge (D-038)', badge === 0, `${badge} badges`);
 
       mediaId = card && card.href ? Number((card.href.match(/\/admin\/media\/(\d+)/) || [])[1]) : null;
@@ -146,7 +146,7 @@ export default {
           await clearReferences(page, mediaId, await claimants(page));
           await page.goto(`${BASE}/admin/media/${mediaId}`, { waitUntil: 'networkidle2' });
           const gone = await attemptDelete(page);
-          const left = await page.$$eval('.media-card .media-name',
+          const left = await page.$$eval('tr.media-row .media-name',
             (els, wanted) => els.filter((el) => new RegExp(wanted).test(el.textContent)).length,
             MARKER).catch(() => -1);
 

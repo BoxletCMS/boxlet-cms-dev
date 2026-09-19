@@ -74,13 +74,42 @@ final class MediaController
             ], null));
         }
 
+        // The library's table (D-052): what uses each picture, whether it is described in
+        // the site's main language, and the filters those two answer.
+        $usage = $this->library()->usage();
+        // A guessed description counts as set: the owner took the "check it" mark off the
+        // library in D-038, and a table column is not the way to bring it back.
+        $described = [];
+        foreach ($this->container->get('db')->all('SELECT media_id, alt FROM media_meta WHERE locale = ?', [Url::primaryLocale()]) as $row) {
+            $described[(int) $row['media_id']] = (string) $row['alt'] === '' ? 'missing' : 'set';
+        }
+        $show = in_array($request->query['show'] ?? '', ['unused', 'undescribed'], true) ? (string) $request->query['show'] : '';
+        $bytes = 0;
+        $rows = [];
+        foreach ($pictures as $picture) {
+            $bytes += $picture['bytes'];
+            $row = $picture + [
+                'pages' => $usage[$picture['id']]['pages'] ?? 0,
+                'site' => $usage[$picture['id']]['site'] ?? false,
+                'described' => $described[$picture['id']] ?? 'missing',
+            ];
+            if (($show === 'unused' && ($row['pages'] > 0 || $row['site']))
+                || ($show === 'undescribed' && $row['described'] === 'set')) {
+                continue;
+            }
+            $rows[] = $row;
+        }
+
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/index', [
             'title' => t('media.title'),
             'nav' => 'media',
-            'styles' => ['admin-media.css'],
+            'styles' => ['admin-media.css', 'admin-media-table.css'],
             'scripts' => ['media.js', 'media-remake.js'],
             'wide' => true,
             'pictures' => $pictures,
+            'rows' => $rows,
+            'show' => $show,
+            'bytes' => $bytes,
             'remakeLeft' => $this->container->get('media_remake')->left(),
             'search' => $search,
             'limits' => Bytes::limits(),
@@ -180,7 +209,7 @@ final class MediaController
      * What a list entry shows for one picture, including the thumbnail to draw it with.
      *
      * @param array<string, mixed> $row
-     * @return array{id: int, filename: string, original: string, size: string, width: int, height: int, complete: bool, thumb: string|null}
+     * @return array{id: int, filename: string, original: string, ext: string, size: string, bytes: int, width: int, height: int, complete: bool, thumb: string|null}
      */
     public static function card(array $row): array
     {
@@ -188,7 +217,9 @@ final class MediaController
             'id' => (int) $row['id'],
             'filename' => (string) $row['filename'],
             'original' => (string) $row['original_name'],
+            'ext' => strtolower(pathinfo((string) $row['path'], PATHINFO_EXTENSION)),
             'size' => Bytes::human((int) $row['size']),
+            'bytes' => (int) $row['size'],
             'width' => (int) $row['width'],
             'height' => (int) $row['height'],
             'complete' => (string) $row['status'] === 'complete',

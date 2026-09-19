@@ -137,7 +137,7 @@ export default {
 
         await page.goto(`${BASE}/admin/media/${mediaId}`, { waitUntil: 'networkidle2' });
         const gone = await attemptDelete(page);
-        const left = await page.$$eval('.media-card .media-name',
+        const left = await page.$$eval('tr.media-row .media-name',
           (els, wanted) => els.filter((el) => new RegExp(wanted).test(el.textContent)).length,
           MARKER).catch(() => -1);
 

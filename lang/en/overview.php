@@ -25,7 +25,6 @@ return [
     'overview.attention' => 'Needs attention',
     'overview.attention_none' => 'Nothing needs attention.',
     'overview.issue.no_description' => 'Pictures with no description: :count',
-    'overview.issue.unchecked_description' => 'Descriptions nobody has checked: :count',
     'overview.issue.stale' => '“:page” needs its translation brought up to date',
     'overview.issue.no_favicon' => 'No icon for browser tabs',
     'overview.issue.no_mail' => 'Messages from your forms are not mailed to you',

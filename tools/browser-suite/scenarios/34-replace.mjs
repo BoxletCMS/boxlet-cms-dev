@@ -48,11 +48,11 @@ export default {
       await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
       const input = await page.$('input[name="files[]"]');
       await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 180000 }), input.uploadFile(`${PHOTOS}/replace-red.jpg`)]);
-      id = await page.$$eval('li.media-card', (cards) => {
+      id = await page.$$eval('tr.media-row', (cards) => {
         const card = cards.find((c) => /replace-red/.test(c.textContent));
-        return card ? Number(card.querySelector('a.media-card-link').getAttribute('href').match(/(\d+)$/)[1]) : null;
+        return card ? Number(card.querySelector('a.media-link').getAttribute('href').match(/(\d+)$/)[1]) : null;
       });
-      const thumb = `a.media-card-link[href$="/${id}"] img`;
+      const thumb = `tr.media-row[data-media-id="${id}"] img.media-thumb`;
       report.verdict('the picture is uploaded and shown red in the library', id !== null && await colourOf(page, thumb) === 'red', `media ${id}`);
 
       // ---- declined -----------------------------------------------------------------------
@@ -84,7 +84,7 @@ export default {
         });
         await page.waitForNavigation({ waitUntil: 'networkidle2' }).catch(() => {});
         await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
-        const left = await page.$(`a.media-card-link[href$="/${id}"]`);
+        const left = await page.$(`a.media-link[href$="/${id}"]`);
         report.verdict('the picture is gone again', left === null, `media ${id}`);
       }
     }

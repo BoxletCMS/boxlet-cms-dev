@@ -35,10 +35,10 @@ const human = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(2)} MB` : `${Math.
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** The library card for the photograph, with its id, or null. */
-const cardFor = (page) => page.$$eval('li.media-card', (els, wanted) => {
+const cardFor = (page) => page.$$eval('tr.media-row', (els, wanted) => {
   const found = els.find((el) => el.querySelector('.media-name')?.textContent.trim() === wanted);
   if (!found) return null;
-  const href = found.querySelector('a.media-card-link')?.getAttribute('href') || '';
+  const href = found.querySelector('a.media-link')?.getAttribute('href') || '';
   return { id: Number((href.match(/\/(\d+)$/) || [])[1]), facts: found.textContent.replace(/\s+/g, ' ').trim() };
 }, NAME);
 

@@ -74,20 +74,21 @@ export async function uploadPhoto(page, file) {
     page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
     input.uploadFile(file),
   ]);
-  return page.$$eval('.media-card', (els) => els.length).catch(() => 0);
+  return page.$$eval('tr.media-row', (els) => els.length).catch(() => 0);
 }
 
-/** The card for a named photograph, or null: never merely the first one, which a leftover
- *  from an earlier run would otherwise supply. */
-export const cardFor = (page, name) => page.$$eval('.media-card', (els, wanted) => {
+/** The library's row for a named photograph, or null: never merely the first one, which a
+ *  leftover from an earlier run would otherwise supply. A row of the table since D-052; the
+ *  name "card" stayed, as every scenario calls it that. */
+export const cardFor = (page, name) => page.$$eval('tr.media-row', (els, wanted) => {
   const el = els.find((c) => new RegExp(wanted).test((c.querySelector('.media-name') || {}).textContent || ''));
   if (!el) return null;
-  const link = el.querySelector('.media-card-link');
+  const link = el.querySelector('a.media-link');
   const img = el.querySelector('img.media-thumb');
   return {
     href: link ? link.getAttribute('href') : null,
     name: ((el.querySelector('.media-name') || {}).textContent || '').trim(),
-    facts: ((el.querySelector('.media-facts') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    facts: Array.from(el.querySelectorAll('.media-facts')).map((f) => f.textContent.replace(/\s+/g, ' ').trim()).join(' · '),
     src: img ? img.getAttribute('src') : null,
     naturalWidth: img ? img.naturalWidth : 0,
     naturalHeight: img ? img.naturalHeight : 0,

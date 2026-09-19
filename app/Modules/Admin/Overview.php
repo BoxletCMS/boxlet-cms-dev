@@ -125,19 +125,6 @@ final class Overview
             ];
         }
 
-        $unchecked = $db->all(
-            "SELECT m.id, m.filename FROM media m JOIN media_meta mm ON mm.media_id = m.id AND mm.locale = ?
-             WHERE mm.alt_suggested = 1 AND mm.alt <> '' ORDER BY m.id DESC",
-            [$primary],
-        );
-        if ($unchecked !== []) {
-            $issues[] = [
-                'title' => t('overview.issue.unchecked_description', ['count' => (string) count($unchecked)]),
-                'where' => t('overview.where.media', ['names' => self::names($unchecked)]),
-                'href' => count($unchecked) === 1 ? Url::admin('media', (int) $unchecked[0]['id']) : Url::admin('media'),
-            ];
-        }
-
         foreach (array_keys(TranslationStatus::counts($db, $registry)) as $pageId) {
             $page = $db->one('SELECT p.title, l.label FROM pages p JOIN locales l ON l.code = p.locale WHERE p.id = ?', [$pageId]);
             $issues[] = [

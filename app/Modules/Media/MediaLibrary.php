@@ -4,7 +4,9 @@ namespace App\Modules\Media;
 
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Core\Settings;
 use App\Modules\Design\SectionStyle;
+use App\Modules\Settings\SiteChrome;
 
 /**
  * The picture library: what there is, what uses it, and what happens when one goes.
@@ -92,6 +94,43 @@ final class MediaLibrary
         }
 
         return $used;
+    }
+
+    /**
+     * How many pages use each picture, and which the site itself uses as its logo, favicon
+     * or sharing picture — for the Media table's "Used on" and its Unused filter (D-052).
+     *
+     * One pass over every block, where usedBy() asks about one picture: a table of two
+     * hundred pictures asking one at a time would be two hundred scans. The same traversal
+     * as usedBy(), so the list and the refusal to delete can never disagree.
+     *
+     * @return array<int, array{pages: int, site: bool}> media id => its use; absent is unused
+     */
+    public function usage(): array
+    {
+        $pages = [];
+        foreach ($this->rows('SELECT page_id, block_type, content_json, style_json FROM page_blocks') as $row) {
+            $content = json_decode((string) $row['content_json'], true);
+            $ids = is_array($content) ? MediaReference::idsIn($this->registry, (string) $row['block_type'], $content) : [];
+            $style = json_decode((string) $row['style_json'], true);
+            if (is_array($style) && is_int($style[SectionStyle::IMAGE] ?? null)) {
+                $ids[] = $style[SectionStyle::IMAGE];
+            }
+            foreach ($ids as $id) {
+                $pages[$id][(int) $row['page_id']] = true;
+            }
+        }
+
+        $usage = [];
+        foreach ($pages as $id => $on) {
+            $usage[$id] = ['pages' => count($on), 'site' => false];
+        }
+        $site = [SiteChrome::logo($this->db), Settings::mediaId($this->db, 'site_favicon'), Settings::mediaId($this->db, 'site_share_image')];
+        foreach (array_filter($site) as $id) {
+            $usage[$id] = ['pages' => $usage[$id]['pages'] ?? 0, 'site' => true];
+        }
+
+        return $usage;
     }
 
     /**

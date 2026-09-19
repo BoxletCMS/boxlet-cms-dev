@@ -13,7 +13,7 @@ import { COPY_BASE as BASE, COPY_ADMIN as ADMIN, PHOTOS } from '../config.mjs';
 import { login, clickAndWait } from '../harness.mjs';
 import { uploadPhoto } from '../media-helpers.mjs';
 
-const thumbs = (page) => page.$$eval('li.media-card img.media-thumb', (imgs) => imgs.map((i) => ({ src: i.getAttribute('src'), ok: i.naturalWidth > 0 })));
+const thumbs = (page) => page.$$eval('tr.media-row img.media-thumb', (imgs) => imgs.map((i) => ({ src: i.getAttribute('src'), ok: i.naturalWidth > 0 })));
 
 export default {
   name: 'remake',

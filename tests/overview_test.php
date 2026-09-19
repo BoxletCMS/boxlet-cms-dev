@@ -46,9 +46,10 @@ testBothDrivers('what needs attention is found, and goes once it is fixed', func
 
     $db->query("INSERT INTO media_meta (media_id, locale, alt, caption, alt_suggested) VALUES (?, 'en', 'A photo', '', 1)", [$picture]);
     Settings::set($db, 'site_favicon', $picture);
+    // A guessed description counts as a description: the owner took the "check it" mark
+    // off the library in D-038.
     $titles = attentionTitles($db);
-    assertTrue(!in_array(t('overview.issue.no_description', ['count' => '1']), $titles, true), 'described');
-    assertTrue(in_array(t('overview.issue.unchecked_description', ['count' => '1']), $titles, true), 'but by a guess nobody checked');
+    assertTrue(!in_array(t('overview.issue.no_description', ['count' => '1']), $titles, true), 'described, by a guess');
     assertTrue(!in_array(t('overview.issue.no_favicon'), $titles, true), 'a favicon set');
 });
 

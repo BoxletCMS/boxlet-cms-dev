@@ -125,21 +125,26 @@
     // A replacement takes one file: a drop of several keeps the first rather than failing.
     var single = !input.multiple;
 
+    // The library takes a drop anywhere on its screen (D-052, data-drop-anywhere): the
+    // whole content column is the target and is tinted while something is over it. A
+    // picture's Replace takes one only on its own form.
+    var target = form.hasAttribute('data-drop-anywhere') ? (document.querySelector('.admin-main') || form) : form;
+
     ['dragenter', 'dragover'].forEach(function (name) {
-      form.addEventListener(name, function (event) {
+      target.addEventListener(name, function (event) {
         event.preventDefault();
-        form.classList.add('is-dropping');
+        target.classList.add('is-dropping');
       });
     });
     ['dragleave', 'drop'].forEach(function (name) {
-      form.addEventListener(name, function (event) {
-        if (name === 'dragleave' && form.contains(event.relatedTarget)) {
+      target.addEventListener(name, function (event) {
+        if (name === 'dragleave' && target.contains(event.relatedTarget)) {
           return;
         }
-        form.classList.remove('is-dropping');
+        target.classList.remove('is-dropping');
       });
     });
-    form.addEventListener('drop', function (event) {
+    target.addEventListener('drop', function (event) {
       event.preventDefault();
       if (!event.dataTransfer || !event.dataTransfer.files.length) {
         return;

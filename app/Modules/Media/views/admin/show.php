@@ -159,7 +159,7 @@ use App\Support\Url;
         </section>
 <?php endif; ?>
 
-        <form class="media-meta" method="post" action="<?= e(Url::admin('media', $picture['id'])) ?>">
+        <form class="media-meta" id="meta" method="post" action="<?= e(Url::admin('media', $picture['id'])) ?>">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <h2><?= e(t('media.meaning')) ?></h2>
 <?php foreach ($locales as $enabled): ?>

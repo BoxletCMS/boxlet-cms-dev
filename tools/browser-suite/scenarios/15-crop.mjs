@@ -97,7 +97,7 @@ export default {
       ]);
 
       await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
-      const afterNew = await page.$$eval('.media-card', (els) => els.length);
+      const afterNew = await page.$$eval('tr.media-row', (els) => els.length);
       const cropCard = await cardFor(page, 'crop');
       if (cropCard && cropCard.href) {
         const id = Number((cropCard.href.match(/\/admin\/media\/(\d+)/) || [])[1]);

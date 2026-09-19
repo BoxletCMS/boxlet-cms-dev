@@ -34,7 +34,7 @@ export default {
     for (const photo of photos) {
       await uploadPhoto(page, photo);
     }
-    const inLibrary = await page.$$eval('.media-card', (els) => els.length).catch(() => 0);
+    const inLibrary = await page.$$eval('tr.media-row', (els) => els.length).catch(() => 0);
     report.verdict('two pictures are in the library to choose between', inLibrary >= 2,
       `${inLibrary} card(s) in the library`);
     if (inLibrary < 2) {

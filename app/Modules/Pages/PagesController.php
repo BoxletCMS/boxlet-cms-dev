@@ -141,6 +141,7 @@ final class PagesController
         }
         $published = $request->input('status') === 'published';
         Page::setStatus($this->db(), $id, $published);
+        Sitemap::refresh($this->container);
         $this->container->get('session')->set('flash', t($published ? 'pages.published' : 'pages.unpublished'));
 
         return Response::redirect($request->input('return') === 'edit' ? Url::admin('pages', $id) : Url::admin('pages'));
@@ -156,6 +157,7 @@ final class PagesController
             return self::missing();
         }
         Page::delete($this->db(), $id);
+        Sitemap::refresh($this->container);
         $this->container->get('session')->set('flash', t('pages.deleted'));
 
         return Response::redirect(Url::admin('pages'));

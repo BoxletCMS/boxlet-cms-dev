@@ -117,6 +117,7 @@ final class PageEditorController
         }
 
         Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks);
+        Sitemap::refresh($this->container);
         $this->container->get('session')->set('flash', t('pages.saved'));
 
         return Response::redirect(Url::admin('pages', $id));

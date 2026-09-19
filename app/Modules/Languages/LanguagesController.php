@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Pages\Sitemap;
 use App\Support\Url;
 
 /**
@@ -38,6 +39,7 @@ final class LanguagesController
     {
         $on = $request->input('enabled') === '1';
         $error = Locales::setEnabled($this->db(), $params['code'], $on);
+        Sitemap::refresh($this->container);
 
         return $this->back($error, t($on ? 'languages.switched_on' : 'languages.switched_off', ['language' => $this->label($params['code'])]));
     }
@@ -59,6 +61,7 @@ final class LanguagesController
     {
         $label = $this->label($params['code']);
         $error = Locales::remove($this->db(), $params['code']);
+        Sitemap::refresh($this->container);
 
         return $this->back($error, t('languages.removed', ['language' => $label]));
     }

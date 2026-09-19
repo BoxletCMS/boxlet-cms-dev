@@ -129,6 +129,7 @@ function installedSite(array $locales = ['en' => 'English', 'hr' => 'Hrvatski'],
     TestSite::$env = $database + [
         'STORAGE_PATH' => $storage,
         'CACHE_PATH' => tmpPath('cache'),
+        'PUBLIC_PATH' => tmpPath('public-root'),
         'APP_KEY' => 'test-key-not-a-secret',
     ];
 

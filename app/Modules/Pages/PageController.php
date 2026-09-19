@@ -85,6 +85,17 @@ final class PageController
     }
 
     /**
+     * The sitemap as a route, for a host where public/sitemap.xml cannot be written
+     * (D-049). The file is what search engines are pointed at wherever it exists.
+     *
+     * @param array<string, string> $params
+     */
+    public function sitemap(Request $request, string $locale, array $params): Response
+    {
+        return new Response(Sitemap::xml($this->container->get('db')), 200, ['Content-Type' => 'application/xml; charset=utf-8']);
+    }
+
+    /**
      * @param array<string, string> $params
      */
     public function notFound(Request $request, string $locale, array $params): Response

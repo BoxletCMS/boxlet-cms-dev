@@ -30,6 +30,13 @@ final class DashboardController
         // only ever make sense together.
         $db = $this->db();
         $count = static fn (string $sql, array $bind = []): int => (int) ($db->one($sql, $bind)['n'] ?? 0);
+        // A site installed before the sitemap existed, or one whose file was removed, gets
+        // it on the owner's next visit here rather than on their next change (D-049). An
+        // is_file() per dashboard view is the whole cost.
+        $public = (string) (($this->container->get('config')->get('app', []))['public_path'] ?? '');
+        if ($public !== '' && !is_file($public . '/sitemap.xml')) {
+            \App\Modules\Pages\Sitemap::refresh($this->container);
+        }
 
         $home = $db->one("SELECT id FROM pages WHERE slug = '' ORDER BY id LIMIT 1");
 

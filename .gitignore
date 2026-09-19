@@ -16,6 +16,10 @@
 !/public/cache/.gitkeep
 /public/m/*
 !/public/m/.gitkeep
+# Written by the site itself whenever what they list changes (PLAN.md D-049); a
+# robots.txt of the owner's own is theirs, not the release's, either way.
+/public/sitemap.xml
+/public/robots.txt
 *.sqlite
 *.sqlite-journal
 .DS_Store

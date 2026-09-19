@@ -245,6 +245,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // Pages: the home page of a locale has the empty slug. Slugs are one path segment.
     // A visitor sending a form (D-046). Unprefixed: the form knows its own language.
     $router->visitorPost('/form/{id:\d+}', [FormSubmitController::class, 'submit']);
+    // The sitemap for a host where public/sitemap.xml cannot be written (D-049).
+    $router->get('/sitemap', [PageController::class, 'sitemap']);
     $router->get('/', [PageController::class, 'show']);
     $router->get('/{slug:[a-z0-9]+(?:-[a-z0-9]+)*}', [PageController::class, 'show']);
     $router->setNotFound([PageController::class, 'notFound']);

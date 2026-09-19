@@ -79,6 +79,7 @@ foreach ($rail as $entries) {
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-ui.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-forms.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-tables.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-parts.css')) ?>">
 <?php foreach ($styles as $style): ?>
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/' . $style)) ?>">
 <?php endforeach; ?>

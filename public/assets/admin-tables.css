@@ -10,13 +10,12 @@
    document at a 390px viewport on the page list. */
 .table-wrap {
   position: relative;
+  min-inline-size: 0;
   overflow-x: auto;
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-l);
-  box-shadow: var(--ui-shadow-s);
 }
 
+/* No box around a table (D-052): its rows sit on the page, each over a rule that fades out
+   at both ends, painted as a background image so a hover tint can sit under it. */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -24,19 +23,25 @@
 
 .table th,
 .table td {
-  padding: var(--ui-4) var(--ui-5);
+  padding: 0.5625rem var(--ui-2);
   text-align: left;
   vertical-align: middle;
-  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.table tbody tr {
+  background-image: linear-gradient(to right, transparent, var(--ui-line) 1.875rem, var(--ui-line) calc(100% - 1.875rem), transparent);
+  background-position: bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
 }
 
 .table thead th {
-  padding-block: var(--ui-3);
-  background: var(--ui-panel-sunken);
-  color: var(--ui-ink-muted);
-  font-size: var(--ui-text-xs);
-  font-weight: 650;
-  letter-spacing: 0.06em;
+  padding-block: var(--ui-2);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+  color: var(--ui-ink-faint);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -45,23 +50,18 @@
 .table .row-title a,
 .table .page-name a {
   color: var(--ui-ink);
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
 }
 
 .table .row-title a:hover,
 .table .page-name a:hover {
-  color: var(--ui-accent);
+  color: var(--ui-accent-dark);
   text-decoration: underline;
 }
 
-.table tbody tr:last-child th,
-.table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
 .table tbody tr:hover {
-  background: var(--ui-panel-sunken);
+  background-color: var(--ui-panel);
 }
 
 .row-actions {
@@ -107,11 +107,17 @@
   padding: 0.125rem var(--ui-3) 0.125rem var(--ui-2);
   border: var(--ui-border) solid transparent;
   border-radius: 999px;
-  background: var(--ui-success-soft);
-  color: var(--ui-success);
+  /* Published is the normal case and stays quiet (D-052): a neutral pill whose dot alone
+     carries the colour. A draft is where the tint earns its place. */
+  background: transparent;
+  color: var(--ui-ink-muted);
   font-size: var(--ui-text-xs);
-  font-weight: 650;
+  font-weight: 500;
   white-space: nowrap;
+}
+
+.status-published::before {
+  background: var(--ui-success);
 }
 
 .status::before {
@@ -123,30 +129,36 @@
 }
 
 .status-draft {
-  background: var(--ui-panel-sunken);
-  border: var(--ui-border) solid var(--ui-line-strong);
-  color: var(--ui-ink-muted);
+  background: var(--ui-warning-soft);
+  color: var(--ui-warning);
 }
 
-/* A date in a row: quieter than the row's name, and never broken across two lines. */
+/* A date in a row: set in the monospace every time is, quieter than the row's name, and
+   never broken across two lines. */
 .table .date {
   color: var(--ui-ink-muted);
-  font-size: var(--ui-text-sm);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
   white-space: nowrap;
 }
 
 /* The status as the switch that changes it (D-039): the same pill, with an edge and a
    pointer so it reads as something to press at rest, raised on hover. */
 .admin .status-toggle {
-  border-color: currentcolor;
+  border-color: var(--ui-line-strong);
   font: inherit;
   font-size: var(--ui-text-xs);
-  font-weight: 650;
+  font-weight: 500;
   cursor: pointer;
 }
 
 .admin .status-toggle:hover {
+  border-color: var(--ui-control-line);
   box-shadow: var(--ui-ring);
+}
+
+.admin .status-draft.status-toggle {
+  border-color: var(--ui-warning);
 }
 
 /* An action shown as its icon alone: square, the height of a small button. */
@@ -161,7 +173,7 @@
 }
 
 /* A quiet label beside a row's name, such as the site's main language: a fact about the
-   row, not something to press, so it has no edge. */
+   row, not something to press. */
 .badge {
   display: inline-block;
   margin-inline-start: var(--ui-2);
@@ -178,6 +190,18 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--ui-2);
+}
+
+/* A small-capital label with a hairline edge, such as Home on the home page. */
+.badge-edge {
+  padding: 0 var(--ui-1);
+  background: transparent;
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: 0.1875rem;
+  color: var(--ui-ink-muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .badge-warning {

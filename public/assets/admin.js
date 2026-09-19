@@ -19,6 +19,25 @@
     }
   });
 
+  // A row's menu (<details data-menu>, D-052) closes on a click anywhere else and on
+  // Escape, as a menu is expected to; without a script it closes by its own summary.
+  document.addEventListener('click', function (event) {
+    Array.prototype.forEach.call(document.querySelectorAll('details[data-menu][open]'), function (menu) {
+      if (!menu.contains(event.target)) {
+        menu.open = false;
+      }
+    });
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('details[data-menu][open]'), function (menu) {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+    });
+  });
+
   /*
    * CHOOSING A PAGE FILLS IN THE REST (PLAN.md D-038). Anywhere a link can point at one of
    * the site's pages — a block's link field, the header's button, a menu item — choosing the

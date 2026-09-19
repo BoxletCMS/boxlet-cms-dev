@@ -5,7 +5,11 @@ use App\Support\Url;
 /**
  * Provided by AdminView::render().
  *
- * @var list<array{id: int, locale: string, slug: string, title: string, status: string, updated: string, parent: int, depth: int, first: bool, last: bool}> $pages
+ * @var list<array{id: int, locale: string, slug: string, title: string, status: string, updated: string, parent: int, depth: int, first: bool, last: bool}> $pages the rows the filters leave
+ * @var int $total every page there is
+ * @var string $lang the language chosen, '' for all
+ * @var string $query the words searched for, '' for none
+ * @var list<string> $codes the site's languages
  * @var array<string, string> $localeLabels code => label
  * @var array<int, int> $stale translations with blocks behind their source: page id => how many
  * @var string $zone the site's time zone, for the Last edited column
@@ -16,13 +20,37 @@ use App\Support\Url;
             <h1><?= e(t('pages.title')) ?></h1>
             <a class="button" href="<?= e(Url::admin('pages', 'new')) ?>"><?= e(t('pages.new')) ?></a>
         </div>
-<?php if ($pages === []): ?>
+<?php if ($total === 0): ?>
         <div class="empty-state">
             <p><?= e(t('pages.empty')) ?></p>
             <a class="button" href="<?= e(Url::admin('pages', 'new')) ?>"><?= e(t('pages.new')) ?></a>
         </div>
 <?php else: ?>
-        <p class="hint"><?= e(t('pages.order_hint')) ?></p>
+        <p class="page-subtitle"><?= e(t('pages.order_hint')) ?></p>
+        <?php /* The filters: words in the title or address, and a language. A plain GET
+                 form and plain links, so each view has an address of its own. */ ?>
+        <div class="list-filters">
+            <form method="get" action="<?= e(Url::admin('pages')) ?>" class="list-search" role="search">
+<?php if ($lang !== ''): ?>
+                <input type="hidden" name="lang" value="<?= e($lang) ?>">
+<?php endif; ?>
+                <label for="pages-q" class="visually-hidden"><?= e(t('pages.filter')) ?></label>
+                <input type="search" id="pages-q" name="q" value="<?= e($query) ?>" placeholder="<?= e(t('pages.filter')) ?>">
+                <button type="submit" class="button button-secondary"><?= e(t('pages.filter_button')) ?></button>
+            </form>
+<?php if (count($codes) > 1): ?>
+            <nav class="segmented" aria-label="<?= e(t('pages.col.locale')) ?>">
+                <a href="<?= e(Url::admin('pages') . ($query !== '' ? '?' . http_build_query(['q' => $query]) : '')) ?>"<?= $lang === '' ? ' aria-current="page"' : '' ?>><?= e(t('pages.all_languages')) ?></a>
+<?php foreach ($codes as $code): ?>
+                <a href="<?= e(Url::admin('pages') . '?' . http_build_query(['lang' => $code] + ($query !== '' ? ['q' => $query] : []))) ?>"<?= $lang === $code ? ' aria-current="page"' : '' ?> title="<?= e($localeLabels[$code] ?? $code) ?>"><?= e(strtoupper($code)) ?></a>
+<?php endforeach; ?>
+            </nav>
+<?php endif; ?>
+            <span class="list-count"><?= e(t('pages.rows', ['count' => (string) count($pages), 'total' => (string) $total])) ?></span>
+        </div>
+<?php if ($pages === []): ?>
+        <p class="hint"><?= e(t('pages.none_match')) ?> <a href="<?= e(Url::admin('pages')) ?>"><?= e(t('pages.show_all')) ?></a></p>
+<?php else: ?>
         <?php /* The drag writes the new sibling order into this form and submits it, so
                  the same request the buttons make is the one a drag makes. No fetch, and
                  the router's CSRF check covers both. */ ?>
@@ -34,13 +62,13 @@ use App\Support\Url;
             <table class="table page-tree">
                 <thead>
                     <tr>
-                        <th scope="col"><span class="visually-hidden"><?= e(t('pages.col.order')) ?></span></th>
+                        <th scope="col" class="col-order"><span class="visually-hidden"><?= e(t('pages.col.order')) ?></span></th>
                         <th scope="col"><?= e(t('pages.col.title')) ?></th>
-                        <th scope="col"><?= e(t('pages.col.locale')) ?></th>
-                        <th scope="col"><?= e(t('pages.col.address')) ?></th>
-                        <th scope="col"><?= e(t('pages.col.status')) ?></th>
-                        <th scope="col"><?= e(t('pages.col.updated')) ?></th>
-                        <th scope="col"><span class="visually-hidden"><?= e(t('pages.col.actions')) ?></span></th>
+                        <th scope="col" class="col-address"><?= e(t('pages.col.address')) ?></th>
+                        <th scope="col" class="col-lang"><?= e(t('pages.col.lang')) ?></th>
+                        <th scope="col" class="col-status"><?= e(t('pages.col.status')) ?></th>
+                        <th scope="col" class="col-date"><?= e(t('pages.col.updated')) ?></th>
+                        <th scope="col" class="col-menu"><span class="visually-hidden"><?= e(t('pages.col.actions')) ?></span></th>
                     </tr>
                 </thead>
                 <tbody data-page-rows>
@@ -57,6 +85,7 @@ use App\Support\Url;
 ?>
                     <tr data-page-id="<?= $id ?>" data-page-group="<?= e($group) ?>">
                         <td class="page-order">
+<?php if ($query === ''): ?>
                             <span class="drag-handle" data-page-handle aria-hidden="true"><?= icon('grip-vertical') ?></span>
                             <button type="submit" form="page-move-<?= $id ?>" name="move" value="up" title="<?= e(t('pages.move_up')) ?>" class="button button-ghost move-button"<?= $page['first'] ? ' disabled' : '' ?>>
                                 <span class="visually-hidden"><?= e(t('pages.move_up')) ?></span><?= icon('arrow-up') ?>
@@ -64,6 +93,7 @@ use App\Support\Url;
                             <button type="submit" form="page-move-<?= $id ?>" name="move" value="down" title="<?= e(t('pages.move_down')) ?>" class="button button-ghost move-button"<?= $page['last'] ? ' disabled' : '' ?>>
                                 <span class="visually-hidden"><?= e(t('pages.move_down')) ?></span><?= icon('arrow-down') ?>
                             </button>
+<?php endif; ?>
                         </td>
                         <?php /* A class, not style="--depth: n": the admin sends
                                  default-src 'self' with no 'unsafe-inline', so a style
@@ -73,12 +103,15 @@ use App\Support\Url;
                                  marching off the column. */ ?>
                         <td class="page-name depth-<?= min($page['depth'], 6) ?>">
                             <a href="<?= e(Url::admin('pages', $id)) ?>"><?= e($page['title']) ?></a>
+<?php if ($page['slug'] === ''): ?>
+                            <span class="badge badge-edge"><?= e(t('pages.home_badge')) ?></span>
+<?php endif; ?>
 <?php if (isset($stale[$id])): ?>
                             <span class="badge badge-warning" title="<?= e(t('translations.stale_badge_hint')) ?>"><?= e(t('translations.stale_badge', ['count' => (string) $stale[$id]])) ?></span>
 <?php endif; ?>
                         </td>
-                        <td><?= e($localeLabels[$page['locale']] ?? $page['locale']) ?></td>
-                        <td class="address"><?php if ($published): ?><a href="<?= e($address) ?>"><?= e($address) ?></a><?php else: ?><?= e($address) ?><?php endif; ?></td>
+                        <td class="address"><?= e($address) ?></td>
+                        <td class="lang"><abbr title="<?= e($localeLabels[$page['locale']] ?? $page['locale']) ?>"><?= e(strtoupper($page['locale'])) ?></abbr></td>
                         <?php /* THE STATUS IS THE SWITCH (D-039): pressing "Published" makes
                                  the page a draft, pressing "Draft" publishes it. A pill with an
                                  edge, so it reads as something to press at rest; the title and
@@ -93,11 +126,22 @@ use App\Support\Url;
                             </form>
                         </td>
                         <td class="date"><?= e(\App\Support\Dates::local($page['updated'], $zone)) ?></td>
-                        <td class="row-actions">
-                            <form method="post" action="<?= e(Url::admin('pages', $id, 'delete')) ?>">
-                                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                                <button type="submit" class="button button-ghost button-danger button-icon" title="<?= e(t('pages.delete')) ?>" data-confirm="<?= e(t('pages.delete_confirm', ['title' => $page['title']])) ?>"><?= icon('trash-2') ?><span class="visually-hidden"><?= e(t('pages.delete')) ?></span></button>
-                            </form>
+                        <?php /* The rest behind a menu (D-052): a <details>, so it opens without a
+                                 script, and its button is a drawn shape at rest. Deleting is
+                                 still a real form, and still asks first. */ ?>
+                        <td class="row-menu-cell">
+                            <details class="row-menu" data-menu>
+                                <summary title="<?= e(t('pages.more', ['title' => $page['title']])) ?>"><?= icon('ellipsis-vertical') ?><span class="visually-hidden"><?= e(t('pages.more', ['title' => $page['title']])) ?></span></summary>
+                                <div class="row-menu-list">
+<?php if ($published): ?>
+                                    <a href="<?= e($address) ?>" target="_blank" rel="noopener"><?= icon('external-link') ?> <?= e(t('pages.view_on_site')) ?></a>
+<?php endif; ?>
+                                    <form method="post" action="<?= e(Url::admin('pages', $id, 'delete')) ?>">
+                                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                                        <button type="submit" class="row-menu-danger" data-confirm="<?= e(t('pages.delete_confirm', ['title' => $page['title']])) ?>"><?= icon('trash-2') ?> <?= e(t('pages.delete')) ?></button>
+                                    </form>
+                                </div>
+                            </details>
                         </td>
                     </tr>
 <?php endforeach; ?>
@@ -112,4 +156,5 @@ use App\Support\Url;
             <input type="hidden" name="id" value="<?= $page['id'] ?>">
         </form>
 <?php endforeach; ?>
+<?php endif; ?>
 <?php endif; ?>

@@ -27,6 +27,17 @@ final class PagesController
      */
     public function index(Request $request, string $locale, array $params): Response
     {
+        // Narrowed by language and by words in the title or address (D-052), both in the
+        // address so the view can be kept and shared. A search takes rows out of their tree,
+        // so it hides the ordering controls; a language keeps whole sibling groups, so the
+        // order can still be changed while one is chosen.
+        $codes = array_column($this->container->get('locales'), 'code');
+        $lang = is_string($request->query['lang'] ?? null) && in_array($request->query['lang'], $codes, true) ? $request->query['lang'] : '';
+        $query = is_string($request->query['q'] ?? null) ? mb_substr(trim($request->query['q']), 0, 100) : '';
+        $all = PageTree::listing($this->db());
+        $shown = array_values(array_filter($all, static fn (array $page): bool => ($lang === '' || $page['locale'] === $lang)
+            && ($query === '' || mb_stripos($page['title'], $query) !== false || mb_stripos('/' . $page['slug'], $query) !== false)));
+
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/index', [
             'title' => t('pages.title'),
             'nav' => 'pages',
@@ -36,7 +47,11 @@ final class PagesController
             // The drag is an addition: the Up and Down buttons work without either file,
             // and pages.js returns early when Sortable is not there.
             'scripts' => ['vendor/sortable.min.js', 'pages.js'],
-            'pages' => PageTree::listing($this->db()),
+            'pages' => $shown,
+            'total' => count($all),
+            'lang' => $lang,
+            'query' => $query,
+            'codes' => $codes,
             'zone' => Dates::zone($this->db()),
             'localeLabels' => array_column($this->container->get('locales'), 'label', 'code'),
             // Translations with blocks behind their source, by page id (D-043, step 3).

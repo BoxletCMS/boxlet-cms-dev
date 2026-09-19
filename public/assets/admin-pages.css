@@ -1,8 +1,49 @@
 /* The page list and the page editor. Admin tokens only (--ui-*). */
 
 .address {
+  color: var(--ui-accent-dark);
   font-family: var(--ui-mono);
-  font-size: var(--ui-text-sm);
+  font-size: var(--ui-text-xs);
+}
+
+/* The page list's columns (D-052). Fixed layout, so a long title is cut rather than pushing
+   the table past its column; the title takes what the others leave. */
+.page-tree {
+  table-layout: fixed;
+}
+
+.page-tree .col-order { inline-size: 6.5rem; }
+.page-tree .col-address { inline-size: 11rem; }
+.page-tree .col-lang { inline-size: 3.5rem; }
+.page-tree .col-status { inline-size: 7rem; }
+.page-tree .col-date { inline-size: 10rem; }
+.page-tree .col-menu { inline-size: 2.5rem; }
+
+.page-tree .page-name,
+.page-tree .address {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-tree .lang abbr {
+  color: var(--ui-ink-muted);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+  text-decoration: none;
+}
+
+/* On a phone the list keeps what a page is and whether it is live; the language and when it
+   was edited go, rather than making the table scroll. */
+@media (max-width: 47.5rem) {
+  .page-tree .col-lang,
+  .page-tree .lang,
+  .page-tree .col-date,
+  .page-tree .date,
+  .page-tree .col-address,
+  .page-tree .address {
+    display: none;
+  }
 }
 
 /* Editor */

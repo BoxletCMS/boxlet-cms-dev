@@ -154,6 +154,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/pages/{id:\d+}/status', [PagesController::class, 'status'], $requireAdmin);
     // A page's version in another language, made as a draft copy (D-043).
     $router->post('/admin/pages/{id:\d+}/translate', [TranslationController::class, 'create'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/blocks/{block:\d+}/current', [TranslationController::class, 'current'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/delete', [PagesController::class, 'delete'], $requireAdmin);
 
     // Pictures (SPEC §5.5). The generated variants live under /m/ and are served from

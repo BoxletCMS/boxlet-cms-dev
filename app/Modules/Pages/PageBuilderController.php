@@ -82,6 +82,11 @@ final class PageBuilderController
         // a link to a draft is missing here exactly as it will be on the site.
         $links = PageLinks::targets($this->db(), $registry, (string) $page['locale'], $blocks);
 
+        // A translation's blocks that have fallen behind their source are marked on the
+        // section itself (D-043, step 3); canvas.css draws the mark, builder-blocks.js keeps
+        // it through a redraw. Only stored blocks can be stale, so a pending canvas has none.
+        $stale = TranslationStatus::of($this->db(), $registry, (int) $page['id'])['stale'];
+
         $html = '';
         $first = true;
         foreach ($blocks as $block) {
@@ -92,7 +97,11 @@ final class PageBuilderController
                 continue;
             }
             $content = PageLinks::content($registry, $block['type'], $content, $links);
-            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first);
+            $drawn = $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first);
+            if ($block['id'] !== null && isset($stale[$block['id']])) {
+                $drawn = (string) preg_replace('~^(\s*<section)\b~', '$1 data-bx-stale', $drawn, 1);
+            }
+            $html .= $drawn;
             $first = false;
         }
 
@@ -228,7 +237,23 @@ final class PageBuilderController
             // and everything under it (PageTree).
             'parents' => PageTree::parentOptions($this->db(), (string) $page['locale'], $id),
             'languages' => $this->languages($id, (string) $page['locale']),
+            'translation' => $this->translation($id),
         ], $status);
+    }
+
+    /**
+     * This page's standing against its source, with the source's language named for the
+     * notices that say so.
+     *
+     * @return array{source: array<string, mixed>|null, stale: array<int, array{source: int, type: string, content: array<string, mixed>}>, missing: int, sourceLabel: string}
+     */
+    private function translation(int $id): array
+    {
+        $status = TranslationStatus::of($this->db(), $this->registry(), $id);
+        $code = (string) ($status['source']['locale'] ?? '');
+        $label = $code === '' ? '' : (string) ($this->db()->one('SELECT label FROM locales WHERE code = ?', [$code])['label'] ?? $code);
+
+        return $status + ['sourceLabel' => $label];
     }
 
     /**

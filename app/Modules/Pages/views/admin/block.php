@@ -17,6 +17,7 @@ use App\Modules\Design\Composition;
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
+ * @var array{source: array<string, mixed>|null, stale: array<int, array{source: int, type: string, content: array<string, mixed>}>, missing: int, sourceLabel: string}|null $translation set by the builder only; undefined elsewhere
  */
 $known = $registry->has($block['type']);
 $prefix = 'blocks[' . $index . ']';
@@ -40,6 +41,27 @@ $pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::p
                     <?= e($known ? t('block.' . $block['type']) : t('pages.block.unknown', ['type' => $block['type']])) ?>
                 </legend>
                 <div class="block-body">
+<?php
+// A translation's block whose source changed since it was translated (D-043, step 3):
+// said here, with the source's words, and a button that records it as current. The
+// button posts a form outside the builder's own, which HTML cannot nest.
+$staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale'][$block['id']] ?? null) : null;
+?>
+<?php if ($staleFrom !== null && $known): ?>
+                <div class="notice notice-warning stale-notice" role="status">
+                    <p><?= e(t('translations.stale', ['language' => $translation['sourceLabel']])) ?></p>
+                    <details class="stale-original">
+                        <summary><?= e(t('translations.show_original', ['language' => $translation['sourceLabel']])) ?></summary>
+                        <dl>
+<?php foreach (\App\Modules\Pages\TranslationStatus::words($registry, $staleFrom['type'], $staleFrom['content']) as $word): ?>
+                            <dt><?= e($word['label']) ?></dt>
+                            <dd><?= nl2br(e($word['text'])) ?></dd>
+<?php endforeach; ?>
+                        </dl>
+                    </details>
+                    <button type="submit" form="current-<?= e((string) $block['id']) ?>" class="button button-secondary"><?= e(t('translations.mark_current')) ?></button>
+                </div>
+<?php endif; ?>
                 <input type="hidden" name="<?= e($prefix) ?>[type]" value="<?= e($block['type']) ?>">
 <?php if ($block['id'] !== null): ?>
                 <input type="hidden" name="<?= e($prefix) ?>[id]" value="<?= e($block['id']) ?>">

@@ -158,6 +158,11 @@
         var fragment = doc.importNode(parts.canvas.content, true);
         var fresh = fragment.querySelector('section');
         fresh.setAttribute('data-bx-key', key);
+        // A stale mark belongs to the block, not to what was typed into it: only "Mark as
+        // up to date" clears it, so a redraw carries it over (D-043, step 3).
+        if (current.hasAttribute('data-bx-stale')) {
+          fresh.setAttribute('data-bx-stale', '');
+        }
         if (current.classList.contains('bx-selected')) {
           fresh.classList.add('bx-selected');
         }

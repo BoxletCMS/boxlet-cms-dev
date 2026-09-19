@@ -179,3 +179,8 @@
   flex-wrap: wrap;
   gap: var(--ui-2);
 }
+
+.badge-warning {
+  background: var(--ui-warning-soft);
+  color: var(--ui-warning);
+}

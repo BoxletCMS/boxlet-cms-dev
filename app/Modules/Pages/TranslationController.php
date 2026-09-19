@@ -45,6 +45,24 @@ final class TranslationController
         return Response::redirect(Url::admin('pages', $result));
     }
 
+    /**
+     * Records a translation's block as up to date with its source (D-043, step 3).
+     *
+     * @param array<string, string> $params
+     */
+    public function current(Request $request, string $locale, array $params): Response
+    {
+        $pageId = (int) $params['id'];
+        $done = TranslationStatus::markCurrent($this->db(), $this->container->get('blocks'), $pageId, (int) $params['block']);
+        $session = $this->container->get('session');
+        $session->set('flash', t($done ? 'translations.marked_current' : 'translations.not_a_block'));
+        if (!$done) {
+            $session->set('flash_kind', 'error');
+        }
+
+        return Response::redirect(Url::admin('pages', $pageId));
+    }
+
     private function db(): Db
     {
         return $this->container->get('db');

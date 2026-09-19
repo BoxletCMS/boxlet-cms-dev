@@ -233,3 +233,34 @@
     border-top: var(--ui-border) solid var(--ui-line);
   }
 }
+
+/* A stale block's notice (D-043, step 3): what changed in the original, folded, with the
+   button that records the block as current. */
+.stale-notice {
+  display: grid;
+  gap: var(--ui-2);
+  margin-block-end: var(--ui-3);
+}
+
+.stale-notice p {
+  margin: 0;
+}
+
+.stale-original dl {
+  display: grid;
+  gap: var(--ui-1) var(--ui-3);
+  margin: var(--ui-2) 0 0;
+}
+
+.stale-original dt {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+}
+
+.stale-original dd {
+  margin: 0 0 var(--ui-2);
+}
+
+.stale-notice .button {
+  justify-self: start;
+}

@@ -38,6 +38,8 @@ final class PagesController
             'pages' => PageTree::listing($this->db()),
             'zone' => Dates::zone($this->db()),
             'localeLabels' => array_column($this->container->get('locales'), 'label', 'code'),
+            // Translations with blocks behind their source, by page id (D-043, step 3).
+            'stale' => TranslationStatus::counts($this->db(), $this->container->get('blocks')),
         ]);
     }
 

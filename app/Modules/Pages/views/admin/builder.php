@@ -24,6 +24,7 @@ use App\Support\Url;
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
  * @var list<array{id: int, title: string, depth: int}> $parents
  * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
+ * @var array{source: array<string, mixed>|null, stale: array<int, array{source: int, type: string, content: array<string, mixed>}>, missing: int, sourceLabel: string} $translation
  * @var string $csrf
  */
 $pageId = (int) $page['id'];
@@ -93,6 +94,18 @@ foreach ($errors as $key => $message) {
 
                 <?php /* The scripts cannot call t(), so the strings they show come with them. */ ?>
                 <aside class="builder-panel" data-insert-url="<?= e($insertUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>">
+<?php if ($translation['stale'] !== [] || $translation['missing'] > 0): ?>
+                    <?php /* A translation behind its source says so before anything else
+                             (D-043, step 3); each stale block also carries its own mark. */ ?>
+                    <div class="notice notice-warning" role="status">
+<?php if ($translation['stale'] !== []): ?>
+                        <p><?= e(t('translations.stale_summary', ['count' => (string) count($translation['stale']), 'language' => $translation['sourceLabel']])) ?></p>
+<?php endif; ?>
+<?php if ($translation['missing'] > 0): ?>
+                        <p><?= e(t('translations.missing', ['count' => (string) $translation['missing'], 'language' => $translation['sourceLabel']])) ?></p>
+<?php endif; ?>
+                    </div>
+<?php endif; ?>
                     <?php /* Page settings sit above the library because they are short and
                              fixed, while the library is long and scrolls: a scrolling grid
                              above a four-field form would bury the form. Both belong to
@@ -203,6 +216,11 @@ foreach ($errors as $key => $message) {
             <?php /* _end must stay the last field: PHP drops everything past max_input_vars. */ ?>
             <input type="hidden" name="_end" value="1">
         </form>
+<?php foreach (array_keys($translation['stale']) as $staleId): ?>
+        <form method="post" action="<?= e(Url::admin('pages', $pageId, 'blocks', $staleId, 'current')) ?>" id="current-<?= e((string) $staleId) ?>" class="visually-hidden">
+            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+        </form>
+<?php endforeach; ?>
 <?php foreach ($languages as $language): ?>
 <?php if ($language['page'] === null): ?>
         <?php /* Outside the builder's form, which HTML cannot nest a form inside; the

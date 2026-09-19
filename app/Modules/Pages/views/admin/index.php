@@ -7,6 +7,7 @@ use App\Support\Url;
  *
  * @var list<array{id: int, locale: string, slug: string, title: string, status: string, updated: string, parent: int, depth: int, first: bool, last: bool}> $pages
  * @var array<string, string> $localeLabels code => label
+ * @var array<int, int> $stale translations with blocks behind their source: page id => how many
  * @var string $zone the site's time zone, for the Last edited column
  * @var string $csrf
  */
@@ -72,6 +73,9 @@ use App\Support\Url;
                                  marching off the column. */ ?>
                         <td class="page-name depth-<?= min($page['depth'], 6) ?>">
                             <a href="<?= e(Url::admin('pages', $id)) ?>"><?= e($page['title']) ?></a>
+<?php if (isset($stale[$id])): ?>
+                            <span class="badge badge-warning" title="<?= e(t('translations.stale_badge_hint')) ?>"><?= e(t('translations.stale_badge', ['count' => (string) $stale[$id]])) ?></span>
+<?php endif; ?>
                         </td>
                         <td><?= e($localeLabels[$page['locale']] ?? $page['locale']) ?></td>
                         <td class="address"><?php if ($published): ?><a href="<?= e($address) ?>"><?= e($address) ?></a><?php else: ?><?= e($address) ?><?php endif; ?></td>

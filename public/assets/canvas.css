@@ -186,3 +186,11 @@
   outline-offset: -2px;
   border-radius: 0.5rem;
 }
+
+/* A translation's block whose source changed after it was translated (D-043, step 3): an
+   amber edge down its left side, at rest, so a stale block is found by looking at the
+   page. Two tones like the insertion control — amber inside a dark line — so it reads
+   against a pale section and a dark one alike. The inspector says what it means. */
+.bx-canvas [data-bx-stale] {
+  box-shadow: inset 6px 0 0 #f0a020, inset 8px 0 0 #101a33;
+}

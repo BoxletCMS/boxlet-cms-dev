@@ -145,11 +145,16 @@ export default {
           // Reported below by what is left behind, rather than throwing out of cleanup.
         }
       }
-      await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
-      const left = await page.$$eval('.media-card .media-name',
-        (els, wanted) => els.filter((el) => new RegExp(`${wanted}|crop`).test(el.textContent)).length,
-        MARKER).catch(() => -1);
-      report.verdict('the scenario removes what it made', left === 0, `${left} card(s) left behind`);
+      // By the ids this run made, not by a name: a name pattern also caught a picture the
+      // owner had cropped days before ("buddhist-jpg-crop") and reported it as left behind.
+      let left = 0;
+      for (const id of created) {
+        const response = await page.goto(`${BASE}/admin/media/${id}`, { waitUntil: 'networkidle2' }).catch(() => null);
+        if (response === null || response.status() !== 404) {
+          left++;
+        }
+      }
+      report.verdict('the scenario removes what it made', left === 0, `${left} of ${created.length} picture(s) it made still there: ids ${created.join(', ')}`);
     }
   },
 };

@@ -11,7 +11,7 @@
  * development site nobody could put back (the owner's own colours are not a preset).
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, applyCharacter, clickAndWait } from '../harness.mjs';
+import { login, applyCharacter, clickAndWait, ensureHeaderMenu } from '../harness.mjs';
 
 const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
 const CHILD = 'Zz child';
@@ -20,8 +20,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** The first menu the chrome uses gets one child item, so there is a submenu to open. */
 async function ensureChild(page, report) {
-  await page.goto(`${BASE}/admin/chrome`, { waitUntil: 'networkidle2' });
-  const menuName = await page.$eval('#header_menu', (select) => select.value).catch(() => '');
+  const menuName = await ensureHeaderMenu(page, BASE);
   if (menuName === '') {
     report.fail('chrome look: its test data', 'the header shows no menu, so there is nothing to fold');
     return false;

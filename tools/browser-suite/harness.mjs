@@ -412,3 +412,46 @@ export async function applyCharacter(page, base, preset, action = 'save') {
   await clickAndWait(page, `form.design-form button[name="action"][value="${action}"]`);
   return alerts(page);
 }
+
+/**
+ * A menu in the header, on a COPY that has none: the demo seed ships no menu, so a freshly
+ * installed copy draws no header at all (an empty one is not drawn, D-032), and a check of
+ * the header's width or its submenu measured nothing. Made through the admin as the owner
+ * would, and only where the chrome names no menu yet; never call it against the
+ * development site, whose header is the owner's.
+ *
+ * Returns the menu's name, or '' when it could not be set up.
+ */
+export async function ensureHeaderMenu(page, base) {
+  await page.goto(`${base}/admin/chrome`, { waitUntil: 'networkidle2' });
+  const current = await page.$eval('#header_menu', (select) => select.value).catch(() => null);
+  if (current === null) {
+    return '';
+  }
+  if (current !== '') {
+    return current;
+  }
+
+  const name = 'Suite menu';
+  await page.goto(`${base}/admin/menus`, { waitUntil: 'networkidle2' });
+  const exists = await page.$$eval('.row-title a', (links, wanted) => links.some((a) => a.textContent.trim() === wanted), name);
+  if (!exists) {
+    await page.type('input[name="name"]', name, { delay: SLOW });
+    await submitVia(page, 'input[name="name"]', 40000);
+    const add = 'form[action$="/items"]';
+    for (const n of [2, 3]) {
+      const value = await page.$eval(`${add} select[name="page_id"] option:nth-child(${n})`, (o) => o.value).catch(() => '');
+      if (value === '') {
+        break;
+      }
+      await page.select(`${add} select[name="page_id"]`, value);
+      await submitVia(page, `${add} select[name="page_id"]`, 40000);
+    }
+  }
+
+  await page.goto(`${base}/admin/chrome`, { waitUntil: 'networkidle2' });
+  await page.select('#header_menu', name);
+  await clickAndWait(page, 'form[action$="/admin/chrome"] button[type="submit"]', 40000);
+
+  return page.$eval('#header_menu', (select) => select.value).catch(() => '');
+}

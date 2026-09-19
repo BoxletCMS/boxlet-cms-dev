@@ -37,12 +37,13 @@ export default {
 
     // ---- reachable from the navigation, not only by its address ---------------------------
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    const link = await page.$('.admin-nav a[href$="/admin/settings"]');
+    // The bar's own icon since D-038, beside Log out: not an entry in .admin-nav.
+    const link = await page.$('.admin-bar a[href$="/admin/settings"]');
     report.verdict('the navigation offers Settings', link !== null,
       link === null ? 'no link to /admin/settings in the admin bar' : 'the admin bar links to it');
 
     if (link === null) { return; }
-    await clickAndWait(page, '.admin-nav a[href$="/admin/settings"]');
+    await clickAndWait(page, '.admin-bar a[href$="/admin/settings"]');
     report.verdict('the link opens the settings screen', page.url().includes('/admin/settings'),
       `landed at ${page.url()}`);
 

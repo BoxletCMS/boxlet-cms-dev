@@ -165,7 +165,10 @@ export default {
     report.verdict('the rich text stores a page reference', stored.includes(`href="${option.value}"`),
       `stored: ${stored.slice(0, 160)}`);
     report.verdict('the canvas draws the rich text link with the page\'s address',
-      !before.includes('/services') && richHrefs.includes('/services') && !richHrefs.some((h) => h.startsWith('page:')),
+      // One more link to the page than before, rather than "none before": on the development
+      // site the owner's own text in this section already links to /services.
+      richHrefs.filter((h) => h === '/services').length === before.filter((h) => h === '/services').length + 1
+        && !richHrefs.some((h) => h.startsWith('page:')),
       `hrefs in the section before: ${JSON.stringify(before)}, after: ${JSON.stringify(richHrefs)}`);
 
     // Reopen on the link: the panel should come back on the page, not on "page:n" typed.

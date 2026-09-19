@@ -19,7 +19,7 @@
  * character is re-applied afterwards so later scenarios start from a sane design.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels } from '../harness.mjs';
+import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu } from '../harness.mjs';
 
 const STYLE_GUIDE = 4;
 
@@ -36,6 +36,10 @@ export default {
     if (!await login(page, BASE, ADMIN.email, ADMIN.password)) {
       report.fail('design: log in', `could not log in; at ${page.url()}`);
       return;
+    }
+    // The header's width is measured below, and a fresh copy has no header to measure.
+    if (await ensureHeaderMenu(page, BASE) === '') {
+      report.fail('design: its test data', 'no menu could be put in the header, so there is no header to measure');
     }
 
     const presets = await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' })

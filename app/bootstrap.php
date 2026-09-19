@@ -26,6 +26,7 @@ use App\Modules\Media\MediaVariants;
 use App\Modules\Media\MediaWriter;
 use App\Modules\Pages\PagesController;
 use App\Modules\Menus\MenusController;
+use App\Modules\Languages\LanguagesController;
 use App\Modules\Settings\ChromeController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Update\Maintenance;
@@ -180,6 +181,12 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
+    // The site's languages (D-043), a panel on the Settings screen with its own forms. A
+    // code is two letters, the ISO 639-1 list the installer offers.
+    $router->post('/admin/languages', [LanguagesController::class, 'add'], $requireAdmin);
+    $router->post('/admin/languages/{code:[a-z]{2}}/enabled', [LanguagesController::class, 'enabled'], $requireAdmin);
+    $router->post('/admin/languages/{code:[a-z]{2}}/move', [LanguagesController::class, 'move'], $requireAdmin);
+    $router->post('/admin/languages/{code:[a-z]{2}}/delete', [LanguagesController::class, 'remove'], $requireAdmin);
 
     // The site's header and footer (D-028, D-030). Its own screen rather than another
     // section of Settings: settings are what the installer wrote and the fallback

@@ -159,3 +159,23 @@
   inline-size: 1.125rem;
   block-size: 1.125rem;
 }
+
+/* A quiet label beside a row's name, such as the site's main language: a fact about the
+   row, not something to press, so it has no edge. */
+.badge {
+  display: inline-block;
+  margin-inline-start: var(--ui-2);
+  padding: 0.0625rem var(--ui-2);
+  border-radius: var(--ui-radius-s);
+  background: var(--ui-panel-sunken);
+  color: var(--ui-ink-muted);
+  font-size: 0.8125rem;
+  vertical-align: 0.0625rem;
+}
+
+/* The language list's add row: the choice and its button side by side, wrapping on a phone. */
+.language-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
+}

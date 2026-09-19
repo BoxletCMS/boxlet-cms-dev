@@ -12,6 +12,11 @@
 
 .media-picker {
   position: relative;
+  /* Allowed narrower than the chosen picture's whole name, which then truncates below.
+     As a grid item it otherwise sized itself to that name: on a phone the Branding logo
+     field, "logo-svejedobro-opt" beside a wide thumbnail, pushed the Settings screen two
+     pixels past the edge. */
+  min-inline-size: 0;
 }
 
 /* A legible resting state that reads as a CHOOSER, not as a text field somebody has typed

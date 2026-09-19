@@ -8,6 +8,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Settings;
 use App\Modules\Admin\AdminView;
+use App\Modules\Languages\Locales;
 use App\Modules\Media\MediaReference;
 use App\Support\Url;
 use DateTimeZone;
@@ -153,6 +154,8 @@ final class SettingsController
             'pictures' => MediaReference::choices($this->db()),
             'timezones' => DateTimeZone::listIdentifiers(),
             'maintenanceOn' => $this->container->get('maintenance')->isOn(),
+            'languages' => Locales::all($this->db()),
+            'addable' => Locales::addable($this->db()),
         ], $status);
     }
 

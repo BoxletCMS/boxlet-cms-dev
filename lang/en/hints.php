@@ -66,5 +66,6 @@ return [
     'hint.media.caption' => 'Optional words kept with the picture, for blocks that show a caption under it. None of today’s blocks does yet.',
 
     // Menus
+    'hint.forms.locale' => 'The language of the form\'s labels and replies. A page shows the forms of its own language, so each translation can have its own.',
     'hint.menus.locale' => 'The language this menu is for. Each language has its own menus, so every translation can name its items in its own words.',
 ];

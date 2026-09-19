@@ -146,14 +146,6 @@
   line-height: 1;
 }
 
-/* Disabled at the ends of a sibling group, where moving further would do nothing. It
-   still has to be legible: a control nobody can read is not explained by being
-   unavailable, and the 3:1 rule covers disabled controls too (PLAN.md D-012). */
-.move-button[disabled] {
-  color: var(--ui-ink-faint);
-  cursor: default;
-}
-
 .is-dragging {
   opacity: 0.5;
   outline: 2px dashed var(--ui-accent);

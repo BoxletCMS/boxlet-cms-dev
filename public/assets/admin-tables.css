@@ -184,3 +184,8 @@
   background: var(--ui-warning-soft);
   color: var(--ui-warning);
 }
+
+.badge-accent {
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+}

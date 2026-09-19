@@ -296,3 +296,14 @@
   align-items: center;
   gap: var(--ui-3);
 }
+
+/* A ghost button that is unavailable, such as Move up on the first of a list: fainter, and
+   still legible — a control nobody can read is not explained by being unavailable, and the
+   3:1 rule covers disabled controls too (PLAN.md D-012). Here rather than on the pages
+   list alone, where it began, so every list of movable things says the same. */
+.button-ghost[disabled],
+.button-ghost[disabled]:hover {
+  background: transparent;
+  color: var(--ui-ink-faint);
+  cursor: default;
+}

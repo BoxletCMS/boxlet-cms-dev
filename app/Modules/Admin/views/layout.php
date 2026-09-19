@@ -14,7 +14,7 @@ use App\Support\Url;
  * @var string $title
  * @var string $content rendered HTML of the page template
  * @var string $siteName
- * @var string $nav current section: dashboard, pages, media, design, menus or settings
+ * @var string $nav current section: dashboard, pages, media, design, menus, forms or settings
  * @var list<string> $styles extra stylesheets under public/assets
  * @var list<string> $scripts extra scripts under public/assets, in load order
  * @var bool $wide whether this screen wants the wide column
@@ -72,6 +72,7 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
                     </div>
                 </details>
                 <a href="<?= e(Url::admin('menus')) ?>"<?= $current('menus') ?>><?= e(t('admin.nav.menus')) ?></a>
+                <a href="<?= e(Url::admin('forms')) ?>"<?= $current('forms') ?>><?= e(t('admin.nav.forms')) ?></a>
             </nav>
             <div class="admin-bar-end">
                 <?php /* Icons alone, each named for a screen reader and on hover. */ ?>

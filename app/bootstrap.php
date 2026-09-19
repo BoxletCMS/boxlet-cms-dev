@@ -27,6 +27,7 @@ use App\Modules\Media\MediaWriter;
 use App\Modules\Pages\PagesController;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Menus\MenusController;
+use App\Modules\Forms\FormsController;
 use App\Modules\Languages\LanguagesController;
 use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
@@ -186,6 +187,13 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/menus/{id:\d+}/items/{item:\d+}', [MenusController::class, 'updateItem'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/items/{item:\d+}/delete', [MenusController::class, 'deleteItem'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/order', [MenusController::class, 'order'], $requireAdmin);
+
+    // Forms (D-046): the list, a new one, and its edit screen, where every button saves.
+    $router->get('/admin/forms', [FormsController::class, 'index'], $requireAdmin);
+    $router->post('/admin/forms', [FormsController::class, 'store'], $requireAdmin);
+    $router->get('/admin/forms/{id:\d+}', [FormsController::class, 'edit'], $requireAdmin);
+    $router->post('/admin/forms/{id:\d+}', [FormsController::class, 'update'], $requireAdmin);
+    $router->post('/admin/forms/{id:\d+}/delete', [FormsController::class, 'delete'], $requireAdmin);
 
     // Site settings (D-028): the one screen that edits what the installer wrote, plus the
     // maintenance message and its switch, which moved off the dashboard.

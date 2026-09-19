@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageController;
 use App\Support\Url;
@@ -67,6 +68,8 @@ final class FormSubmitController
             'INSERT INTO form_submissions (form_id, page_id, data_json, ip_hash, created_at) VALUES (?, ?, ?, ?, ?)',
             [$form['id'], $page === null ? null : (int) $page['id'], json_encode($answers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $ipHash, gmdate('Y-m-d H:i:s')],
         );
+        // A visitor's message, logged against its form: the owner's Overview says one came.
+        Activity::record($db, 'message', 'received', (int) $form['id'], (string) $form['name']);
         FormMail::send($this->container, $form, $answers, $page);
 
         return $thanks;

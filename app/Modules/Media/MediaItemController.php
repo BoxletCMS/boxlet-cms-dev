@@ -5,6 +5,7 @@ namespace App\Modules\Media;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Support\Dates;
 use App\Support\Url;
@@ -81,6 +82,7 @@ final class MediaItemController
                 trim($request->input('caption_' . $code)),
             );
         }
+        Activity::record($this->container->get('db'), 'media', 'described', $id, (string) ($library->find($id)['filename'] ?? ''));
         $this->container->get('session')->set('flash', t('media.meta_saved'));
 
         return Response::redirect(Url::admin('media', $id));
@@ -122,6 +124,7 @@ final class MediaItemController
         // The old files are of a picture that is no longer at this id.
         $this->library()->forgetVariants($was);
         $this->container->get('media_variants')->generate($id, MediaController::budget(microtime(true)));
+        Activity::record($this->container->get('db'), 'media', 'replaced', $id, (string) ($this->library()->find($id)['filename'] ?? ''));
 
         return $this->saying(t('media.replaced'), $id);
     }
@@ -135,6 +138,7 @@ final class MediaItemController
     public function delete(Request $request, string $locale, array $params): Response
     {
         $id = (int) $params['id'];
+        $name = (string) ($this->library()->find($id)['filename'] ?? '');
         $result = $this->library()->delete($id);
 
         // delete() reports the same "not deleted, nothing using it" for a row that was
@@ -149,6 +153,7 @@ final class MediaItemController
             return Response::redirect(Url::admin('media', $id));
         }
 
+        Activity::record($this->container->get('db'), 'media', 'deleted', $id, $name);
         $this->container->get('session')->set('flash', t('media.deleted'));
 
         return Response::redirect(Url::admin('media'));

@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
@@ -75,6 +76,7 @@ final class MenusController
         }
 
         $id = Menu::create($db, $wanted, $name);
+        Activity::record($db, 'menu', 'created', $id, $name);
         $this->flash(t('menus.created'));
 
         return Response::redirect(Url::admin('menus', $id));
@@ -123,6 +125,7 @@ final class MenusController
         // would take the menu off the site without a word (found in the owner's review,
         // D-038). Followed here, where the rename happens.
         SiteChrome::followRename($db, (string) $menu['name'], $name);
+        Activity::record($db, 'menu', 'renamed', $id, $name);
         $this->flash(t('menus.renamed'));
 
         return Response::redirect(Url::admin('menus', $id));
@@ -135,11 +138,13 @@ final class MenusController
     {
         $db = $this->db();
         $id = (int) $params['id'];
-        if (Menu::find($db, $id) === null) {
+        $menu = Menu::find($db, $id);
+        if ($menu === null) {
             return self::missing();
         }
 
         Menu::delete($db, $id);
+        Activity::record($db, 'menu', 'deleted', $id, (string) $menu['name']);
         $this->flash(t('menus.deleted'));
 
         return Response::redirect(Url::admin('menus'));
@@ -186,6 +191,7 @@ final class MenusController
         // The item is kept rather than thrown away — the owner typed a label for it and it
         // shows in the list, marked, exactly as one whose page was later deleted does. But
         // it is a refusal, so it is not coloured as a success.
+        $this->edited($id);
         $this->flash($refused ? t('menus.item.url_refused') : t('menus.item.added'), $refused ? 'warning' : 'success');
 
         return Response::redirect(Url::admin('menus', $id));
@@ -216,6 +222,7 @@ final class MenusController
         Menu::updateItem($db, (int) $item['id'], $pageId > 0 ? $pageId : null, $url === '' ? null : $url, $request->input('label'));
         $stored = Menu::findItem($db, (int) $item['id']);
         $refused = $url !== '' && $pageId <= 0 && ($stored['url'] ?? null) === null;
+        $this->edited((int) $item['menu_id']);
         $this->flash($refused ? t('menus.item.url_refused') : t('menus.item.saved'), $refused ? 'warning' : 'success');
 
         return Response::redirect(Url::admin('menus', (int) $item['menu_id']));
@@ -233,6 +240,7 @@ final class MenusController
         }
 
         Menu::deleteItem($db, (int) $item['id']);
+        $this->edited((int) $item['menu_id']);
         $this->flash(t('menus.item.deleted'));
 
         return Response::redirect(Url::admin('menus', (int) $item['menu_id']));
@@ -263,6 +271,9 @@ final class MenusController
             ? MenuTree::reorder($db, $ids)
             : MenuTree::move($db, (int) $request->input('item'), $request->input('move'));
 
+        if ($done) {
+            $this->edited($id);
+        }
         $this->flash(t($done ? 'menus.reordered' : 'menus.reorder_failed'));
 
         return Response::redirect(Url::admin('menus', $id));
@@ -294,6 +305,13 @@ final class MenusController
             'editing' => $editing,
             'errors' => $errors,
         ], $status);
+    }
+
+    /** A change to a menu's items, logged against the menu (D-052). */
+    private function edited(int $menuId): void
+    {
+        $name = (string) (Menu::find($this->db(), $menuId)['name'] ?? '');
+        Activity::record($this->db(), 'menu', 'edited', $menuId, $name);
     }
 
     private function flash(string $message, string $kind = 'success'): void

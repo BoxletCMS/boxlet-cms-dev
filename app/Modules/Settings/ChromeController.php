@@ -6,9 +6,10 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
-use App\Modules\Menus\Menu;
 use App\Modules\Design\Composition;
+use App\Modules\Menus\Menu;
 use App\Modules\Pages\PageLinks;
 use App\Support\SafeUrl;
 use App\Support\Url;
@@ -128,6 +129,7 @@ final class ChromeController
             SiteChrome::saveForLocale($db, $code, $entry);
         }
 
+        Activity::record($db, 'design', 'header_saved', null, '');
         $said = t('chrome.saved');
         if ($clearedMenu) {
             $said .= ' ' . t('chrome.menu_gone');

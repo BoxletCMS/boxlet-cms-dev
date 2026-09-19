@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Support\Url;
 
@@ -49,6 +50,7 @@ final class FormsController
             return $this->list($errors, 422);
         }
         $id = Form::create($this->db(), $wanted, mb_substr($name, 0, 190));
+        Activity::record($this->db(), 'form', 'created', $id, mb_substr($name, 0, 190));
         $this->container->get('session')->set('flash', t('forms.created'));
 
         return Response::redirect(Url::admin('forms', $id));
@@ -103,6 +105,7 @@ final class FormsController
             return $this->screen($candidate, $parsed['errors'], 422);
         }
         Form::update($db, $form['id'], $name, $parsed['fields'], $parsed['settings']);
+        Activity::record($db, 'form', 'saved', (int) $form['id'], $name);
         $this->container->get('session')->set('flash', t(match (true) {
             $action === 'add' => 'forms.field_added',
             str_starts_with($action, 'remove-') => 'forms.field_removed',
@@ -118,7 +121,11 @@ final class FormsController
      */
     public function delete(Request $request, string $locale, array $params): Response
     {
+        $form = Form::find($this->db(), (int) $params['id']);
         Form::delete($this->db(), (int) $params['id']);
+        if ($form !== null) {
+            Activity::record($this->db(), 'form', 'deleted', (int) $form['id'], (string) $form['name']);
+        }
         $this->container->get('session')->set('flash', t('forms.deleted'));
 
         return Response::redirect(Url::admin('forms'));

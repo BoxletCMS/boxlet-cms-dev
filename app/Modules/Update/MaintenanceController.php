@@ -5,6 +5,7 @@ namespace App\Modules\Update;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Support\Url;
 
 /**
@@ -36,6 +37,7 @@ final class MaintenanceController
             $maintenance->turnOff();
         }
 
+        Activity::record($this->container->get('db'), 'settings', $on ? 'maintenance_on' : 'maintenance_off', null, '');
         $this->container->get('session')->set('flash', $on ? t('maintenance.turned_on') : t('maintenance.turned_off'));
 
         // Back where they pressed it: site settings, or the site if they used the bar.

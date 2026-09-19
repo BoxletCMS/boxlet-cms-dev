@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Settings;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Modules\Auth\TwoFactor;
 use App\Modules\Languages\Locales;
@@ -87,6 +88,7 @@ final class SettingsController
         // The logo field shows the one the header draws, which may still be the header's
         // older setting; once saved here, this is the only one (D-038).
         SiteChrome::retireHeaderLogo($db);
+        Activity::record($db, 'settings', 'saved', null, '');
 
         $this->container->get('session')->set(
             'flash',

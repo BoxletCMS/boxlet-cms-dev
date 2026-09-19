@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Settings;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Support\Url;
 
@@ -59,8 +60,10 @@ final class TwoFactorController
             return $this->setupScreen($secret, t('twofactor.code_wrong'), 422);
         }
         $session->remove('totp_setup');
+        $codes = $twoFactor->enable($this->adminId(), $secret);
+        Activity::record($this->container->get('db'), 'settings', 'two_step_on', null, '');
 
-        return $this->codesScreen($twoFactor->enable($this->adminId(), $secret), t('twofactor.enabled'));
+        return $this->codesScreen($codes, t('twofactor.enabled'));
     }
 
     /**
@@ -92,6 +95,7 @@ final class TwoFactorController
             return $this->back(t('twofactor.password_wrong'), true);
         }
         $this->twoFactor()->disable($this->adminId());
+        Activity::record($db, 'settings', 'two_step_off', null, '');
 
         return $this->back(t('twofactor.disabled'), false);
     }

@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Settings;
+use App\Modules\Admin\Activity;
 use App\Support\Url;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\Address;
@@ -48,6 +49,7 @@ final class MailController
             $session->set('flash', t('mail.not_saved'));
             $session->set('flash_kind', 'error');
         } else {
+            Activity::record($this->db(), 'settings', 'mail_saved', null, '');
             $session->set('flash', t('mail.saved'));
         }
 

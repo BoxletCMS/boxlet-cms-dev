@@ -5,6 +5,7 @@ namespace App\Modules\Media;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Support\Url;
 use Throwable;
 
@@ -83,6 +84,7 @@ final class MediaCropController
             // row unfinished, so one call does both jobs.
             $this->library()->setFocalPoint($newId, $focal['x'], $focal['y']);
             $this->container->get('media_variants')->generate($newId, MediaController::budget(microtime(true)));
+            Activity::record($this->container->get('db'), 'media', 'cropped', $newId, (string) ($this->library()->find($newId)['filename'] ?? ''));
 
             return $this->saying(t($replacing ? 'media.cropped_replaced' : 'media.cropped_new'), $newId);
         } catch (Throwable $e) {

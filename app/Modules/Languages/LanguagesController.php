@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Pages\Sitemap;
 use App\Support\Url;
 
@@ -28,6 +29,9 @@ final class LanguagesController
     {
         $code = trim($request->input('code'));
         $error = Locales::add($this->db(), $code);
+        if ($error === null) {
+            Activity::record($this->db(), 'settings', 'language_added', null, Locales::known()[$code] ?? $code);
+        }
 
         return $this->back($error, t('languages.added', ['language' => Locales::known()[$code] ?? $code]));
     }
@@ -39,6 +43,9 @@ final class LanguagesController
     {
         $on = $request->input('enabled') === '1';
         $error = Locales::setEnabled($this->db(), $params['code'], $on);
+        if ($error === null) {
+            Activity::record($this->db(), 'settings', $on ? 'language_on' : 'language_off', null, $this->label($params['code']));
+        }
         Sitemap::refresh($this->container);
 
         return $this->back($error, t($on ? 'languages.switched_on' : 'languages.switched_off', ['language' => $this->label($params['code'])]));
@@ -61,6 +68,9 @@ final class LanguagesController
     {
         $label = $this->label($params['code']);
         $error = Locales::remove($this->db(), $params['code']);
+        if ($error === null) {
+            Activity::record($this->db(), 'settings', 'language_removed', null, $label);
+        }
         Sitemap::refresh($this->container);
 
         return $this->back($error, t('languages.removed', ['language' => $label]));

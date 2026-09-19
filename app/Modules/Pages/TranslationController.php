@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Support\Url;
 
 /**
@@ -39,6 +40,8 @@ final class TranslationController
         }
         if (!isset($before[$target])) {
             $label = (string) ($db->one('SELECT label FROM locales WHERE code = ?', [$target])['label'] ?? $target);
+            $title = (string) ($db->one('SELECT title FROM pages WHERE id = ?', [$result])['title'] ?? '');
+            Activity::record($db, 'page', 'translated', $result, $title . ' · ' . $label);
             $session->set('flash', t('translations.created', ['language' => $label]));
         }
 

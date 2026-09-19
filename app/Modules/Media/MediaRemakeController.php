@@ -5,6 +5,7 @@ namespace App\Modules\Media;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Support\Url;
 
 /**
@@ -25,6 +26,7 @@ final class MediaRemakeController
     public function start(Request $request, string $locale, array $params): Response
     {
         $count = $this->remake()->start();
+        Activity::record($this->container->get('db'), 'media', 'remade', null, (string) $count);
         $this->container->get('session')->set('flash', t('media.remake_started', ['count' => (string) $count]));
 
         return Response::redirect(Url::admin('media') . '#remake');

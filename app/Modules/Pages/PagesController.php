@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
 use App\Support\Dates;
@@ -64,6 +65,9 @@ final class PagesController
             ? PageTree::reorder($this->db(), $ids)
             : PageTree::move($this->db(), (int) $request->input('id'), $request->input('move'));
 
+        if ($done) {
+            Activity::record($this->db(), 'page', 'reordered', null, '');
+        }
         $this->container->get('session')->set('flash', t($done ? 'pages.reordered' : 'pages.reorder_failed'));
 
         return Response::redirect(Url::admin('pages'));
@@ -125,6 +129,7 @@ final class PagesController
             }
         }
         $id = Page::create($db, $registry, $pageLocale, $title, $slug, $template['id'] ?? null, $types, Composition::active($db));
+        Activity::record($db, 'page', 'created', $id, $title);
         $this->container->get('session')->set('flash', t('pages.created'));
 
         return Response::redirect(Url::admin('pages', $id));
@@ -136,11 +141,13 @@ final class PagesController
     public function status(Request $request, string $locale, array $params): Response
     {
         $id = (int) $params['id'];
-        if (Page::find($this->db(), $id) === null) {
+        $page = Page::find($this->db(), $id);
+        if ($page === null) {
             return self::missing();
         }
         $published = $request->input('status') === 'published';
         Page::setStatus($this->db(), $id, $published);
+        Activity::record($this->db(), 'page', $published ? 'published' : 'unpublished', $id, (string) $page['title']);
         Sitemap::refresh($this->container);
         $this->container->get('session')->set('flash', t($published ? 'pages.published' : 'pages.unpublished'));
 
@@ -153,10 +160,12 @@ final class PagesController
     public function delete(Request $request, string $locale, array $params): Response
     {
         $id = (int) $params['id'];
-        if (Page::find($this->db(), $id) === null) {
+        $page = Page::find($this->db(), $id);
+        if ($page === null) {
             return self::missing();
         }
         Page::delete($this->db(), $id);
+        Activity::record($this->db(), 'page', 'deleted', $id, (string) $page['title']);
         Sitemap::refresh($this->container);
         $this->container->get('session')->set('flash', t('pages.deleted'));
 

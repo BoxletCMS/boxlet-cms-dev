@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Modules\Pages\Page;
 use App\Support\Url;
@@ -75,6 +76,7 @@ final class DesignController
                 ]);
             }
         }
+        Activity::record($db, 'design', 'saved', null, $character !== '' ? t('design.preset.' . $character) : '');
         $this->container->get('session')->set('flash', $message);
 
         return Response::redirect(Url::admin('design'));

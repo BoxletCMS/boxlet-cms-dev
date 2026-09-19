@@ -6,6 +6,7 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Support\Bytes;
 use App\Support\Url;
@@ -136,6 +137,7 @@ final class MediaController
 
             $stored++;
             $this->container->get('media_variants')->generate($result['id'], self::budget($started));
+            Activity::record($this->container->get('db'), 'media', 'uploaded', (int) $result['id'], (string) ($this->library()->find((int) $result['id'])['filename'] ?? $file['name']));
         }
 
         if ($stored > 0) {

@@ -7,6 +7,7 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
 use App\Modules\Media\MediaReference;
@@ -117,6 +118,7 @@ final class PageEditorController
         }
 
         Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks);
+        Activity::record($db, 'page', 'saved', $id, $title);
         Sitemap::refresh($this->container);
         $this->container->get('session')->set('flash', t('pages.saved'));
 

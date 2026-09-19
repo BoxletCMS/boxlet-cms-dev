@@ -5,7 +5,7 @@
 # copy's revision does not match the checkout's HEAD, and a guard nobody can satisfy gets
 # switched off — so the sync that makes it true lives here, next to it.
 #
-# Only code moves: app/, lang/, public/assets and migrations/. Not storage, not the
+# Only code moves: app/, lang/, public/assets, migrations/ and public/index.php. Not storage, not the
 # database, not public/m or public/cache — those belong to the copy (D-013), and --delete is
 # never used for the same reason (08-update puts a migration of its own into the copy's
 # migrations/, which a --delete would remove under it). migrations/ was missing until the
@@ -33,10 +33,14 @@ fi
 for part in app lang public/assets migrations; do
   rsync -a "$checkout/$part/" "$target/$part/"
 done
+# The front controller too, since statistics (D-051) put code after send(): without it the
+# copy recorded HEAD while running an older index.php. Not install.php, which the copy's
+# own install deletes.
+rsync -a "$checkout/public/index.php" "$target/public/index.php"
 
 revision="$(git -C "$checkout" rev-parse HEAD)"
 mkdir -p "$target/storage"
 printf '%s\n' "$revision" > "$target/storage/checkout.rev"
 
-echo "Synced app, lang, public/assets and migrations into $target"
+echo "Synced app, lang, public/assets, migrations and public/index.php into $target"
 echo "Recorded revision ${revision:0:12}"

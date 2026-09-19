@@ -23,7 +23,7 @@ if (count($locales) < 2) {
 
 /*
  * NOT t(), which is the admin's language: site_t(), the few words the site itself says to
- * a visitor, in the page's language (lang/site/, D-044).
+ * a visitor, in the page's language (lang/{code}/site.php, D-044).
  */
 $label = site_t('site.languages', $locale);
 ?>

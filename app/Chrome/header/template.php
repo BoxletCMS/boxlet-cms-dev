@@ -32,7 +32,7 @@ $classes = 'site-header density-' . ($look['density'] ?? 'normal')
     . (($look['header_rule'] ?? 'off') === 'on' ? ' has-rule' : '');
 
 /* NOT t(), for the reason the language switcher gives: site_t() says the site's own few
-   words in the page's language (lang/site/, D-044). */
+   words in the page's language (lang/{code}/site.php, D-044). */
 $menuLabel = site_t('site.menu', (string) ($locale ?? ''));
 ?>
 <div class="<?= e($classes) ?>" data-site-header>

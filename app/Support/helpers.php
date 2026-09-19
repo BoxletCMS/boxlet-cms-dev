@@ -92,7 +92,7 @@ function field_hint(string $key, string $id = ''): string
  * a page that are not the owner's — "page not found", the name of the menu and of the
  * language switcher. Not t(), which is the admin's own language.
  *
- * In the page's language where lang/site/ has it, else the site's main language, else
+ * In the page's language where lang/{code}/site.php has it, else the site's main language, else
  * English: a language added from the admin that Boxlet has no words for falls back the way
  * a translation's missing alt text does (D-043), and English is the last resort because it
  * is the one set that is always complete.
@@ -105,7 +105,7 @@ function site_t(string $key, string $locale): string
             continue;
         }
         if (!array_key_exists($code, $loaded)) {
-            $file = dirname(__DIR__, 2) . '/lang/site/' . $code . '.php';
+            $file = dirname(__DIR__, 2) . '/lang/' . $code . '/site.php';
             $strings = is_file($file) ? require $file : [];
             $loaded[$code] = is_array($strings) ? $strings : [];
         }

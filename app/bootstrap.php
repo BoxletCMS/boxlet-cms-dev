@@ -10,6 +10,7 @@ use App\Core\Session;
 use App\Modules\Admin\ActivityController;
 use App\Modules\Admin\DashboardController;
 use App\Modules\Admin\RequireAdmin;
+use App\Modules\Admin\SearchController;
 use App\Modules\Auth\AuthController;
 use App\Modules\Auth\TwoFactorController;
 use App\Modules\Design\Design;
@@ -224,6 +225,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
 
     // Site settings (D-028): the one screen that edits what the installer wrote, plus the
     // maintenance message and its switch, which moved off the dashboard.
+    // Search across the admin (D-052): the screen, and the ⌘K palette's fragment of it.
+    $router->get('/admin/search', [SearchController::class, 'index'], $requireAdmin);
     // The activity log in full (D-052); the Overview shows its start.
     $router->get('/admin/activity', [ActivityController::class, 'index'], $requireAdmin);
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);

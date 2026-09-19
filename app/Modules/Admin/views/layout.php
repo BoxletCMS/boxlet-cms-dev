@@ -80,11 +80,13 @@ foreach ($rail as $entries) {
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-forms.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-tables.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-parts.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-palette.css')) ?>">
 <?php foreach ($styles as $style): ?>
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/' . $style)) ?>">
 <?php endforeach; ?>
     <script src="<?= e(Url::versioned('assets/admin.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-nav.js')) ?>" defer></script>
+    <script src="<?= e(Url::versioned('assets/admin-palette.js')) ?>" defer></script>
 <?php foreach ($scripts as $script): ?>
     <script src="<?= e(Url::versioned('assets/' . $script)) ?>" defer></script>
 <?php endforeach; ?>
@@ -103,6 +105,11 @@ foreach ($rail as $entries) {
                 <span class="rail-mark" aria-hidden="true"></span>
                 <span class="rail-name"><?= e($siteName !== '' ? $siteName : t('admin.brand')) ?></span>
             </div>
+            <?php /* Search: a link to the Search screen, which works without a script;
+                     admin-palette.js opens the ⌘K palette over the page instead. */ ?>
+            <a class="rail-search" href="<?= e(Url::admin('search')) ?>" title="<?= e(t('search.open')) ?>" data-palette-open>
+                <?= icon('search') ?><span class="rail-label"><?= e(t('search.open')) ?></span><kbd class="rail-count">⌘K</kbd>
+            </a>
             <nav class="rail-nav" aria-label="<?= e(t('admin.nav.label')) ?>">
 <?php foreach ($rail as $group => $entries): ?>
                 <p class="rail-group"><?= e(t('admin.nav.group.' . $group)) ?></p>
@@ -173,5 +180,18 @@ foreach ($rail as $entries) {
             </main>
         </div>
     </div>
+    <?php /* The ⌘K palette (D-052): a dialog admin-palette.js opens and fills from the Search
+             screen's fragment. Without a script it is never opened; the rail's Search is a
+             plain link to that screen. */ ?>
+    <dialog class="palette" aria-label="<?= e(t('search.title')) ?>" data-palette data-search-url="<?= e(Url::admin('search')) ?>">
+        <form class="palette-search" method="get" action="<?= e(Url::admin('search')) ?>" role="search">
+            <?= icon('search') ?>
+            <label for="palette-q" class="visually-hidden"><?= e(t('search.placeholder')) ?></label>
+            <input type="search" id="palette-q" name="q" placeholder="<?= e(t('search.placeholder')) ?>" autocomplete="off" spellcheck="false" data-palette-input>
+            <kbd class="palette-esc">esc</kbd>
+        </form>
+        <div class="palette-results" data-palette-results></div>
+        <p class="palette-keys"><?= e(t('search.keys')) ?></p>
+    </dialog>
 </body>
 </html>

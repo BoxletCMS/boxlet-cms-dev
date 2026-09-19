@@ -56,9 +56,14 @@
   }
 
   .admin .admin-frame.rail-compact .rail-nav a,
-  .admin .admin-frame.rail-compact .rail-user {
+  .admin .admin-frame.rail-compact .rail-user,
+  .admin .admin-frame.rail-compact .rail-search {
     justify-content: center;
     padding-inline: 0;
+  }
+
+  .admin .admin-frame.rail-compact .rail-search {
+    margin-inline: var(--ui-1);
   }
 
   /* Hidden to the eye, kept for a screen reader: the entry's name is still its name. */
@@ -101,9 +106,14 @@
   }
 
   .admin .admin-frame:not(.rail-wide) .rail-nav a,
-  .admin .admin-frame:not(.rail-wide) .rail-user {
+  .admin .admin-frame:not(.rail-wide) .rail-user,
+  .admin .admin-frame:not(.rail-wide) .rail-search {
     justify-content: center;
     padding-inline: 0;
+  }
+
+  .admin .admin-frame:not(.rail-wide) .rail-search {
+    margin-inline: var(--ui-1);
   }
 
   /* Hidden to the eye, kept for a screen reader: the entry's name is still its name. */

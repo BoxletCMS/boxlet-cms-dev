@@ -11,6 +11,7 @@ use App\Support\Url;
  * @var array{enabled: bool, dnt: bool, retention: int} $stats
  * @var array{built: string, type: string}|null $geo the country database in use
  * @var string $uploadLimit the largest file this server accepts, as php.ini says it
+ * @var array<string, array{language: string, text: string}> $privacy the suggested policy text, by language
  * @var string $csrf
  */
 ?>
@@ -57,6 +58,22 @@ use App\Support\Url;
                         <button type="submit" class="button button-secondary"><?= e(t('stats.geo_upload_button')) ?></button>
                     </div>
                 </form>
+            </fieldset>
+
+            <?php /* What to tell visitors (D-051): the text written for these settings, in
+                     each language there is one for, in a field that selects and copies easily. */ ?>
+            <fieldset class="fieldset stack">
+                <legend><?= e(t('stats.privacy_title')) ?></legend>
+                <p class="hint"><?= e(t('stats.privacy_intro')) ?></p>
+<?php foreach ($privacy as $code => $version): ?>
+                <details class="stats-privacy">
+                    <summary><?= e($version['language']) ?></summary>
+                    <div class="field">
+                        <label for="stats-privacy-<?= e($code) ?>" class="visually-hidden"><?= e(t('stats.privacy_title') . ' — ' . $version['language']) ?></label>
+                        <textarea id="stats-privacy-<?= e($code) ?>" rows="14" readonly lang="<?= e($code) ?>"><?= e($version['text']) ?></textarea>
+                    </div>
+                </details>
+<?php endforeach; ?>
             </fieldset>
 
             <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'erase')) ?>">

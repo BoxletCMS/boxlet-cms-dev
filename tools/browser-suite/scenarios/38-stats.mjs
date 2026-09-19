@@ -93,5 +93,13 @@ export default {
       }
     }
     await page.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
+
+    // The suggested privacy text, opened in Croatian.
+    await page.goto(`${BASE}/admin/settings#statistics`, { waitUntil: 'networkidle2' });
+    await page.$eval('details.stats-privacy:has(textarea[lang="hr"])', (el) => { el.open = true; el.scrollIntoView({ block: 'center' }); });
+    await report.shot(page, '06-privacy-hr', { fullPage: false });
+    const text = await page.$eval('textarea[lang="hr"]', (el) => el.value);
+    report.verdict('the Croatian privacy text names this site\'s retention and its country database',
+      /nakon 24 mjeseca/.test(text) && /DB-IP/.test(text), text.slice(0, 120));
   },
 };

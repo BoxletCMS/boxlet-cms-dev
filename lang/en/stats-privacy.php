@@ -1,0 +1,21 @@
+<?php
+
+// The suggested privacy-policy text for visit statistics (PLAN.md D-051), in English. The
+// owner copies it from Settings into their own privacy page; Boxlet never shows it to a
+// visitor. One file per language, lang/{code}/stats-privacy.php, so another language is a
+// new file. Paragraphs that depend on a setting are separate keys, left out when they do
+// not apply.
+return [
+    'privacy.language' => 'English',
+    'privacy.heading' => 'Visitor statistics',
+    'privacy.what' => 'We count visits to this website on our own server, to learn which pages are read and how visitors find us. We use no cookies, no tracking scripts and no third-party analytics service.',
+    'privacy.visitor' => 'When you open a page, our server reads your IP address and your browser\'s identification (User-Agent) only to recognise repeat visits on the same day. From them it makes a one-way code with a key that is replaced every day. The address itself is never stored, and the code is deleted at the end of the day, so you cannot be recognised from one day to the next.',
+    'privacy.country' => 'At the moment of your visit, your IP address is also used to look up your country in a database kept on our server (IP geolocation by DB-IP). Only the country is kept.',
+    'privacy.kept' => 'We keep only daily totals: the pages viewed, the website you came from (its domain only), the country, and the type of device, browser and operating system. None of this identifies you. The totals are deleted automatically after :period.',
+    'privacy.dnt' => 'If your browser sends a Do Not Track or Global Privacy Control signal, your visit is not counted.',
+    'privacy.basis' => 'Legal basis: our legitimate interest in understanding how our website is used (Article 6(1)(f) GDPR).',
+    'privacy.period.6' => '6 months',
+    'privacy.period.12' => '12 months',
+    'privacy.period.24' => '24 months',
+    'privacy.period.36' => '36 months',
+];

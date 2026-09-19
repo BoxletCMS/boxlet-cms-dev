@@ -86,4 +86,8 @@ return [
     'stats.geo_upload_too_big' => 'That file is larger than this server accepts (:limit). Upload the .mmdb.gz file, which is smaller.',
     'stats.geo_upload_none' => 'Choose the database file to upload first.',
     'stats.attribution' => 'IP geolocation by DB-IP',
+
+    // The suggested privacy-policy text.
+    'stats.privacy_title' => 'What to tell your visitors',
+    'stats.privacy_intro' => 'A suggested paragraph for your privacy policy, written for the settings above. Copy it into your own privacy page and adapt it. It is a starting point, not legal advice.',
 ];

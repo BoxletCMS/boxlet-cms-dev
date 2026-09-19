@@ -14,6 +14,7 @@ use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Media\MediaReference;
 use App\Modules\Stats\Geo;
+use App\Modules\Stats\PrivacyText;
 use App\Modules\Stats\Tracker;
 use App\Support\Bytes;
 use App\Support\Url;
@@ -163,8 +164,9 @@ final class SettingsController
             'languages' => Locales::all($this->db()),
             'addable' => Locales::addable($this->db()),
             'twoStep' => $this->twoStep(),
-            'stats' => Tracker::settings($this->db()),
-            'geo' => Geo::status((string) $this->container->get('config')->get('app.storage_path')),
+            'stats' => $stats = Tracker::settings($this->db()),
+            'geo' => $geo = Geo::status((string) $this->container->get('config')->get('app.storage_path')),
+            'privacy' => PrivacyText::all($stats, $geo !== null),
             'uploadLimit' => Bytes::limits()['fileLabel'],
         ] + $this->mail(), $status);
     }

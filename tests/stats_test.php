@@ -529,3 +529,28 @@ testBothDrivers('the screen credits DB-IP only while its database is in use, and
     assertContains('notice notice-error" role="status">' . e(t('stats.geo_upload_none')), dispatch('/admin/settings')->body, 'the refusal, coloured as one');
     removeTree($storage . '/geo');
 });
+
+test('the privacy text is written for the settings, in English and Croatian', function () {
+    $texts = App\Modules\Stats\PrivacyText::all(['enabled' => true, 'dnt' => true, 'retention' => 24], true);
+    assertEquals(['en', 'hr'], array_slice(array_keys($texts), 0, 2), 'English first, then Croatian');
+    assertContains('after 24 months', $texts['en']['text'], 'the retention in English');
+    assertContains('nakon 24 mjeseca', $texts['hr']['text'], 'the retention in Croatian, declined');
+    assertContains('DB-IP', $texts['en']['text'], 'the country paragraph');
+    assertContains('Do Not Track', $texts['hr']['text'], 'the DNT paragraph');
+
+    $plain = App\Modules\Stats\PrivacyText::all(['enabled' => true, 'dnt' => false, 'retention' => 6], false)['en']['text'];
+    assertContains('after 6 months', $plain, 'another retention');
+    assertTrue(!str_contains($plain, 'DB-IP') && !str_contains($plain, 'Do Not Track'), 'paragraphs that are not true of this site');
+    foreach ($texts as $code => $text) {
+        assertTrue(!str_contains($text['text'], ':period') && !str_contains($text['text'], 'privacy.'), "{$code}: a placeholder or key left in");
+    }
+});
+
+testBothDrivers('the Settings panel offers the privacy text', function (string $driver) {
+    statsSite($driver);
+    geoStorage();
+    $settings = dispatch('/admin/settings')->body;
+    assertContains(e(t('stats.privacy_title')), $settings, 'the section');
+    assertContains('lang="hr"', $settings, 'the Croatian version');
+    assertContains(e('We count visits to this website on our own server'), $settings, 'the English text');
+});

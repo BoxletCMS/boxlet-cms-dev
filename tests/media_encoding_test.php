@@ -85,11 +85,9 @@ testBothDrivers('a format recorded as unavailable no longer holds the picture ba
         static fn (string $made): bool => str_ends_with($made, '.avif'))), 'it retried the unavailable format');
 });
 
-// ASSERTED ON JPEG, DELIBERATELY, even though the caller that needs the parameter passes
-// AVIF. The point here is that the number reaches the encoder at all — and AVIF cannot
-// show that on an Imagick host, which ignores quality for it (see smallerAvif). JPEG is
-// honoured by both drivers, so this fails if the parameter is dropped on the way and
-// passes on every machine that can write a JPEG at all.
+// ASSERTED ON JPEG, so that the number is proven to reach an encoder on every machine
+// that can write a JPEG at all, including CI's, which cannot write AVIF. AVIF has its own
+// test below, skipped where it cannot run.
 test('the quality a caller asks for reaches the encoder', function () {
     $encoder = new MediaEncoder();
     if (!$encoder->supports('jpg')) {
@@ -108,11 +106,30 @@ test('the quality a caller asks for reaches the encoder', function () {
     );
 });
 
-// The retry (SPEC §8) through the only claims that hold on EVERY driver. It cannot be
-// asserted that the stored file got smaller: that depends on the delegate honouring
-// quality for AVIF, which ImageMagick 6.9.12 does not. What must hold regardless is that
-// a retry never makes things worse and never leaves its working file behind — the two
-// ways this could damage a library rather than merely fail to help it.
+// AVIF's own quality reaching its encoder (PLAN.md O-18). On ImageMagick 6.9.12 it was
+// dropped for years of this project's life because only the image-level setter was
+// called; the size guard below was a no-op on every Imagick host because of it.
+test('the quality asked for an AVIF reaches its encoder', function () {
+    $encoder = new MediaEncoder();
+    if (!$encoder->supports('avif')) {
+        skip('this machine cannot write avif, so there is no quality to observe', 'avif');
+    }
+    $writer = new MediaWriter($encoder);
+    $source = noiseFixture(tmpPath('avif-quality.jpg'), 800, 600);
+    $crop = MediaPresets::crop('card', 800, 600);
+
+    $high = $writer->encode($source, tmpPath('avif-quality-high.avif'), $crop, 'avif', 1, 70);
+    $low = $writer->encode($source, tmpPath('avif-quality-low.avif'), $crop, 'avif', 1, 20);
+
+    assertTrue(
+        $low['bytes'] < $high['bytes'],
+        sprintf('avif quality 20 gave %d bytes and quality 70 gave %d: the parameter is being dropped', $low['bytes'], $high['bytes']),
+    );
+});
+
+// The retry (SPEC §8) through the claims that hold on EVERY driver: a retry never makes
+// things worse and never leaves its working file behind — the two ways this could damage
+// a library rather than merely fail to help it. That it helps is the test above.
 testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves no working file', function (string $driver) {
     [$storage, $public] = mediaPaths();
     $db = installedSite(['en' => 'English'], $driver);
@@ -128,7 +145,7 @@ testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves
     $upload = new MediaUpload($db, $storage, $encoder);
     $variants = new MediaVariants($db, $encoder, new MediaWriter($encoder), $storage, $public);
 
-    // Noise, because the rule only engages over 250 KB and a flat fixture is a few KB.
+    // Noise, because the rule only engages over 200 KB and a flat fixture is a few KB.
     $source = noiseFixture(tmpPath('retry.jpg'), 2000, 1200);
     $direct = (new MediaWriter($encoder))->encode(
         $source,
@@ -141,7 +158,7 @@ testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves
     // encoder, and both claims below hold either way — trivially when it does not run.
     // The first version skipped here under the 'images' capability, which is not what
     // this condition is about at all.
-    $engaged = $direct['bytes'] > 250 * 1024;
+    $engaged = $direct['bytes'] > 200 * 1024;
 
     $id = $upload->store($source, 'retry.jpg')['id'];
     $variants->generate($id, null);

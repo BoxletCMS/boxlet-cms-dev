@@ -38,7 +38,7 @@ final class MediaVariants
     public const UNAVAILABLE = '_unavailable';
 
     /** Over this, a cropped AVIF is written once more at RETRY_QUALITY (SPEC §8). */
-    private const RETRY_OVER = 250 * 1024;
+    private const RETRY_OVER = 200 * 1024;
 
     private const RETRY_QUALITY = 40;
 
@@ -157,24 +157,14 @@ final class MediaVariants
      * The 200 KB in SPEC §8 is a budget for a typical photograph, not a contract: over the
      * ten demo photographs at `hero`, nine landed between 18 KB and 83 KB and one — a flat
      * wood-plank texture, which is the worst case for any codec — came out at 234 KB. A
-     * site should not ship that silently, so anything over 250 KB is written once more at
-     * quality 40 and the smaller file wins.
+     * site should not ship that silently, so anything over 200 KB, the figure §8 names, is
+     * written once more at quality 40 and the smaller file wins.
      *
-     * WHERE THIS ACTUALLY DOES ANYTHING, measured rather than assumed. GD passes quality
-     * to libavif, so the retry works there. ImageMagick 6.9.12-98 — this machine, and CI —
-     * IGNORES quality for AVIF and WebP: the same 1920×1080 source came out at 418,673 B
-     * at q50, q40 and q10 alike, through setImageCompressionQuality before and after
-     * setImageFormat and through setOption('quality') and setOption('heic:quality'). The
-     * same build honours it for JPEG (1,397,189 B at q82 down to 268,531 B at q10), which
-     * is how we know the value reaches the encoder and the delegate drops it.
-     *
-     * So on Imagick this costs one extra encode that produces an identical file, which the
-     * smaller-wins test below discards. That is the bounded cost of a rule that works on
-     * the other driver; it is NOT a measured improvement everywhere, and saying so here
-     * would be a comment that explains a thing the code does not do.
-     *
-     * Giving AVIF real size control on such hosts is PLAN.md O-18, open and deliberately
-     * not decided from this one machine.
+     * On ImageMagick this did nothing until 2026-09-19: the quality went through
+     * setImageCompressionQuality, which the AVIF writer on 6.9.12 ignores, so the retry
+     * produced an identical file. MediaWriter now sets the wand's quality too, which it
+     * honours, and the retry works on both drivers. Measured on §8's 4 MB photograph at
+     * `hero`: 279 KB at the default, 139 KB on the retry (PLAN.md O-18).
      *
      * ONCE, never a loop, and only where it applies: AVIF, because it is already the
      * smallest of the three and the one the page serves, and cropped presets, because

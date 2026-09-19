@@ -89,7 +89,13 @@ final class MediaWriter
         // the right way up, so a tag would turn them a second time.
         $image->stripImage();
         $image->setImageFormat($format === 'jpg' ? 'jpeg' : $format);
-        $image->setImageCompressionQuality($quality ?? ($format === 'avif' ? 50 : 82));
+        $level = $quality ?? ($format === 'avif' ? 50 : 82);
+        // BOTH setters. The image's own quality is what JPEG reads; the AVIF writer on
+        // ImageMagick 6.9.12 reads the wand's instead and ignored the first alone — the
+        // same 1920×1080 photograph came out at 285,806 B at every quality asked through
+        // it, and at 49,086 B at quality 30 through this one (PLAN.md O-18).
+        $image->setImageCompressionQuality($level);
+        $image->setCompressionQuality($level);
         $image->writeImage($target);
         $image->clear();
     }

@@ -4,29 +4,43 @@
  *   "upload a 4 MB photo, place it in a hero, confirm the served file is WebP and under
  *    200 KB, confirm a second request does not hit PHP."
  *
- * Two notes on reading it honestly.
- *
  * WEBP OR AVIF. The encoder generates both (MediaEncoder::FORMATS) and a browser that
- * accepts AVIF is served AVIF, which §5.1 intends. §8's wording predates that. So this
- * records what is ACTUALLY served and reports it against both readings rather than
- * quietly calling AVIF a pass.
+ * accepts AVIF is served AVIF, which §5.1 intends. §8's wording predates that, so what is
+ * ACTUALLY served is recorded against both readings.
  *
- * "DOES NOT HIT PHP" IS NOT TESTABLE HERE, and saying otherwise would be the easiest
- * false pass in this suite. The copy runs under `php -S`, where every request is PHP by
- * definition — dev-router.php only returns false so the same PHP process serves the file.
- * How a real server does it on nginx and Apache is PLAN.md O-2, still open. What can be
- * shown is that the variant is a real file on disk under public/m/, which is what a web
- * server would serve without PHP. That is reported as NOT CHECKABLE with the reason, not
- * as a pass.
+ * NOTHING IS LEFT BEHIND on the development site (D-033). The photograph is placed in the
+ * home page's hero IN THE EDITOR, never saved: the canvas draws a picture exactly as the
+ * page does (MediaPicture), so what it asks for is what a visitor would be served. At the
+ * end the photograph is deleted from the library by its own id — and only when this run
+ * uploaded it.
+ *
+ * "DOES NOT HIT PHP" IS MEASURED, on the development site's real web server (D-020). A
+ * variant is a file on disk; a server that answers it from disk says so in its ETag, which
+ * nginx builds from the file's modification time and size, in hex. PHP never sends one
+ * for a page here. So the second request's ETag is compared with the file itself: equal
+ * means the web server read the file, and Boxlet's PHP was never asked.
  */
-import { BASE, ADMIN } from '../config.mjs';
-import { login, submitVia, alerts } from '../harness.mjs';
+import { statSync } from 'node:fs';
+import { BASE, ADMIN, PHOTOS, CHECKOUT } from '../config.mjs';
+import { login } from '../harness.mjs';
+import { attemptDelete } from '../media-helpers.mjs';
 
-const PHOTO = '/tmp/claude-1018/-home-svejedobro-boxlet-htdocs-boxlet-svejedobro-hr/146e0567-aeae-48ea-b763-f667b4ed0792/scratchpad/big-photo.jpg';
+const PHOTO = `${PHOTOS}/big-photo.jpg`;
 const NAME = 'big-photo';
 const LIMIT = 200 * 1024;
+const PAGE = 1;
+const SETTLE = 2000;
 
 const human = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(2)} MB` : `${Math.round(n / 1024)} KB`);
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The library card for the photograph, with its id, or null. */
+const cardFor = (page) => page.$$eval('li.media-card', (els, wanted) => {
+  const found = els.find((el) => el.querySelector('.media-name')?.textContent.trim() === wanted);
+  if (!found) return null;
+  const href = found.querySelector('a.media-card-link')?.getAttribute('href') || '';
+  return { id: Number((href.match(/\/(\d+)$/) || [])[1]), facts: found.textContent.replace(/\s+/g, ' ').trim() };
+}, NAME);
 
 export default {
   name: 'slice5-accept',
@@ -36,95 +50,97 @@ export default {
       report.fail('slice5: log in', `could not log in; at ${page.url()}`);
       return;
     }
+    const size = statSync(PHOTO).size;
 
     // ---- upload the photograph -----------------------------------------------------------
     await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
-    const already = await page.$$eval('li.media-card .media-name', (els) => els.map((e) => e.textContent.trim()));
-    if (!already.includes(NAME)) {
+    const uploadedHere = (await cardFor(page)) === null;
+    if (uploadedHere) {
       const input = await page.$('input[name="files[]"]');
       if (input === null) { report.fail('slice5: upload a 4 MB photo', 'no file input on the library'); return; }
       // Choosing a file uploads it at once (D-038): the navigation is the upload.
       await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 }),
+        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 180000 }),
         input.uploadFile(PHOTO),
       ]);
     }
-
-    const card = await page.$$eval('li.media-card', (els, wanted) => {
-      const found = els.find((el) => el.querySelector('.media-name')?.textContent.trim() === wanted);
-      if (!found) return null;
-      const href = found.querySelector('a.media-card-link')?.getAttribute('href') || '';
-      return { id: Number((href.match(/\/(\d+)$/) || [])[1]), facts: found.textContent.replace(/\s+/g, ' ').trim() };
-    }, NAME);
-
+    const card = await cardFor(page);
     if (card === null || !Number.isInteger(card.id)) {
       report.fail('slice5: upload a 4 MB photo', `no library card named ${NAME} after uploading`);
       return;
     }
-    report.pass('upload a 4 MB photo', `media ${card.id}; the library says: ${card.facts.slice(0, 110)}`);
+    report.verdict('upload a 4 MB photo', size > 4 * 1000 * 1000,
+      `${human(size)}, media ${card.id}${uploadedHere ? '' : ' (already in the library)'}; ${card.facts.slice(0, 90)}`);
 
-    // ---- place it in a hero ---------------------------------------------------------------
-    await page.goto(`${BASE}/admin/pages/1/form`, { waitUntil: 'networkidle2' });
-    const types = await page.$$eval('[data-block] input[name$="[type]"]', (els) => els.map((e) => e.value));
-    const index = types.indexOf('hero');
-    if (index === -1) { report.fail('place it in a hero', `page 1 has no hero block: ${types.join(', ')}`); return; }
+    try {
+      // ---- place it in the hero, in the editor ---------------------------------------------
+      await page.setViewport({ width: 1920, height: 1100, deviceScaleFactor: 2 });
+      await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+      await page.waitForFunction(() => {
+        const frame = document.querySelector('iframe[data-canvas]');
+        return frame && frame.contentDocument
+          && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
+      }, { timeout: 20000 });
+      const index = await page.$$eval('[data-block-group]', (groups) => {
+        const hero = groups.find((g) => g.querySelector('input[name$="[type]"]')?.value === 'hero');
+        return hero ? hero.getAttribute('data-block-group') : null;
+      });
+      if (index === null) { report.fail('place it in a hero', `page ${PAGE} has no hero`); return; }
+      // Chosen on the canvas first, as a person does: only the selected block is redrawn.
+      const frame = page.frames().find((f) => f.url().includes('/canvas'));
+      await (await frame.$(`[data-bx-index="${index}"]`)).click();
+      await page.waitForFunction((i) => !document.querySelector(`[data-block-group="${i}"]`).hidden, { timeout: 8000 }, index);
+      await page.select(`[data-block-group="${index}"] select[name="blocks[${index}][image]"]`, String(card.id));
+      // The canvas redraws the block from the server: wait for the picture, not a clock.
+      await page.waitForFunction((i, wanted) => {
+        const frame = document.querySelector('iframe[data-canvas]');
+        return frame.contentDocument.querySelector(`[data-bx-index="${i}"] img[src*="${wanted}"]`) !== null;
+      }, { timeout: 20000 }, index, NAME).catch(() => {});
+      await wait(SETTLE);
 
-    await page.select(`select[name="blocks[${index}][image]"]`, String(card.id));
-    await submitVia(page, `select[name="blocks[${index}][image]"]`, 60000);
-    const refused = await alerts(page);
+      const drawn = await page.evaluate((i, wanted) => {
+        const frame = document.querySelector('iframe[data-canvas]');
+        const img = frame.contentDocument.querySelector(`[data-bx-index="${i}"] img[src*="${wanted}"]`);
+        return img ? { current: img.currentSrc, largest: img.src, width: img.naturalWidth } : null;
+      }, index, NAME);
+      await report.shot(page, '01-hero-with-4mb-photo', { fullPage: false });
+      report.verdict('place it in a hero', drawn !== null,
+        drawn ? `the hero draws it at ${drawn.width} across` : 'no <img> for it in the hero');
+      if (drawn === null) return;
 
-    await page.goto(`${BASE}/admin/pages/1/form`, { waitUntil: 'networkidle2' });
-    const stored = await page.$eval(`select[name="blocks[${index}][image]"]`,
-      (s) => s.options[s.selectedIndex]?.textContent.trim() || '(none)');
-    report.verdict('place it in a hero', stored === NAME,
-      `hero is block ${index}; stored picture is ${stored}`
-      + (refused.length ? `; the save was REFUSED: ${JSON.stringify(refused)}` : ''));
-    if (stored !== NAME) { return; }
+      // ---- what is served ------------------------------------------------------------------
+      const fetchOf = (url) => page.evaluate(async (u) => {
+        const response = await fetch(u, { cache: 'reload' });
+        const blob = await response.blob();
+        return { status: response.status, type: response.headers.get('content-type'), bytes: blob.size, etag: response.headers.get('etag') };
+      }, url);
+      const chosen = await fetchOf(drawn.current);
+      const largest = await fetchOf(drawn.largest);
+      const preset = (drawn.current.match(/\/m\/([a-z]+)\//) || [])[1] || '?';
+      const isWebp = (chosen.type || '').includes('webp');
+      const isAvif = (chosen.type || '').includes('avif');
 
-    // ---- what the front end actually serves -----------------------------------------------
-    await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
-    const chosen = await page.$eval(`img[src*="${NAME}"], picture img`, (img) => ({
-      current: img.currentSrc || img.src,
-      width: img.naturalWidth,
-      height: img.naturalHeight,
-    })).catch(() => null);
+      report.verdict('the served file is WebP (SPEC §8) or AVIF (§5.1)', isWebp || isAvif,
+        `a 1920-wide window at 2x chose ${preset}: ${chosen.type}, ${human(chosen.bytes)}`);
+      report.verdict('the served file is under 200 KB', chosen.bytes < LIMIT,
+        `${human(chosen.bytes)} of ${human(size)}; the largest candidate, ${drawn.largest.split('/m/')[1]}, is ${human(largest.bytes)}`);
 
-    if (chosen === null) { report.fail('the hero renders the picture', 'no <img> for it on the home page'); return; }
-
-    const measured = await page.evaluate(async (url) => {
-      const response = await fetch(url, { cache: 'reload' });
-      const blob = await response.blob();
-      return { status: response.status, type: response.headers.get('content-type'), bytes: blob.size, server: response.headers.get('server') };
-    }, chosen.current);
-
-    const preset = (chosen.current.match(/\/m\/([a-z]+)\//) || [])[1] || '?';
-    const isWebp = (measured.type || '').includes('webp');
-    const isAvif = (measured.type || '').includes('avif');
-
-    report.verdict('the served file is WebP (SPEC §8) or AVIF (§5.1)', isWebp || isAvif,
-      `preset ${preset}, ${chosen.width}x${chosen.height}, ${measured.type}, ${human(measured.bytes)}`
-      + (isAvif && !isWebp ? ' — AVIF, which §8 does not name but §5.1 intends' : ''));
-
-    report.verdict('the served file is under 200 KB', measured.bytes < LIMIT,
-      `${human(measured.bytes)} of the 4 MB original (${Math.round((measured.bytes / (4.16 * 1048576)) * 100)}% of it)`);
-
-    // ---- the half this server cannot answer ------------------------------------------------
-    const second = await page.evaluate(async (url) => {
-      const response = await fetch(url, { cache: 'reload' });
-      return { status: response.status, server: response.headers.get('server'), powered: response.headers.get('x-powered-by') };
-    }, chosen.current);
-
-    report.skip('a second request does not hit PHP',
-      `not answerable here: this copy runs under \`php -S\`, where every request is PHP by `
-      + `definition — the second request answered ${second.status} with Server: `
-      + `${second.server || '(none)'}${second.powered ? `, X-Powered-By: ${second.powered}` : ''}, `
-      + `and dev-router.php only returns false so the same PHP process serves the file. `
-      + `Measured against the live demo instead, where nginx serves it: the variant comes back `
-      + `with etag and last-modified, which the PHP-rendered pages there do not carry. That is `
-      + `consistent with a file served from disk but is NOT proof — the same nginx sends no `
-      + `X-Powered-By for either, so the absence of a PHP header distinguishes nothing. Proving `
-      + `it needs the server config, which is PLAN.md O-2 and still open.`);
-
-    await report.shot(page, '01-hero-with-4mb-photo');
+      // ---- a second request, answered from disk --------------------------------------------
+      const second = await fetchOf(drawn.current);
+      const path = decodeURIComponent(new URL(drawn.current).pathname);
+      const onDisk = statSync(`${CHECKOUT}/public${path}`);
+      const expected = `"${Math.floor(onDisk.mtimeMs / 1000).toString(16)}-${onDisk.size.toString(16)}"`;
+      report.verdict('a second request does not hit PHP', second.etag === expected,
+        `ETag ${second.etag}; the file on disk gives ${expected} (mtime and size in hex, which only the web server reading the file can send)`);
+    } finally {
+      // Leave the editor unsaved, then take the photograph out again if this run put it in.
+      await page.evaluate(() => { window.onbeforeunload = null; });
+      if (uploadedHere) {
+        await page.goto(`${BASE}/admin/media/${card.id}`, { waitUntil: 'networkidle2' });
+        const said = await attemptDelete(page);
+        await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
+        report.verdict('the photograph is removed again', (await cardFor(page)) === null, said || '(no message)');
+      }
+    }
   },
 };

@@ -47,10 +47,11 @@ $rail = [
         ['nav' => 'design', 'href' => Url::admin('design'), 'icon' => 'palette', 'label' => t('admin.nav.design'), 'count' => null],
         ['nav' => 'chrome', 'href' => Url::admin('chrome'), 'icon' => 'panels-top-left', 'label' => t('admin.nav.chrome'), 'count' => null],
     ],
-    'administration' => array_values(array_filter([
+    // Statistics last, so dropping it leaves the others where they were.
+    'administration' => array_filter([
         ['nav' => 'settings', 'href' => Url::admin('settings'), 'icon' => 'settings', 'label' => t('admin.nav.settings'), 'count' => null],
         $statsOn ? ['nav' => 'statistics', 'href' => Url::admin('statistics'), 'icon' => 'chart-column', 'label' => t('admin.nav.statistics'), 'count' => null] : null,
-    ])),
+    ]),
 ];
 
 /* The screen's name in the strip: the rail entry that is current, else the page's title. */

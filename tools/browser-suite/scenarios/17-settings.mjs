@@ -37,13 +37,13 @@ export default {
 
     // ---- reachable from the navigation, not only by its address ---------------------------
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    // The bar's own icon since D-038, beside Log out: not an entry in .admin-nav.
-    const link = await page.$('.admin-bar a[href$="/admin/settings"]');
+    // An entry in the rail's Administration group since D-052.
+    const link = await page.$('.rail-nav a[href$="/admin/settings"]');
     report.verdict('the navigation offers Settings', link !== null,
       link === null ? 'no link to /admin/settings in the admin bar' : 'the admin bar links to it');
 
     if (link === null) { return; }
-    await clickAndWait(page, '.admin-bar a[href$="/admin/settings"]');
+    await clickAndWait(page, '.rail-nav a[href$="/admin/settings"]');
     report.verdict('the link opens the settings screen', page.url().includes('/admin/settings'),
       `landed at ${page.url()}`);
 
@@ -80,7 +80,7 @@ export default {
     await submitVia(page, 'input[name="site_name"]', 40000);
 
     const said = await alerts(page);
-    const brand = await page.$eval('.admin-brand', (el) => el.textContent.trim()).catch(() => '(none)');
+    const brand = await page.$eval('.rail-name', (el) => el.textContent.trim()).catch(() => '(none)');
     report.verdict('saving the site name changes the admin bar', brand === marker,
       `the bar says ${JSON.stringify(brand)}`
       + (said.length ? `; the save was REFUSED: ${JSON.stringify(said)}` : ''));
@@ -95,7 +95,7 @@ export default {
     // passed while the name was left as the old one with the marker stuck on the end:
     // a restore check that cannot see a mangled value is worse than none, because it
     // reports the copy as clean.
-    const restored = await page.$eval('.admin-brand', (el) => el.textContent.trim()).catch(() => '');
+    const restored = await page.$eval('.rail-name', (el) => el.textContent.trim()).catch(() => '');
     report.verdict('the scenario puts the site name back', restored === (was ?? ''),
       `the bar says ${JSON.stringify(restored)}, it was ${JSON.stringify(was)}`);
 

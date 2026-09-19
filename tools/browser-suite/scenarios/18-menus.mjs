@@ -28,12 +28,12 @@ export default {
 
     // ---- reachable from the navigation -----------------------------------------------------
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    const link = await page.$('.admin-nav a[href$="/admin/menus"]');
+    const link = await page.$('.rail-nav a[href$="/admin/menus"]');
     report.verdict('the navigation offers Menus', link !== null,
       link === null ? 'no link to /admin/menus in the admin bar' : 'the admin bar links to it');
     if (link === null) { return; }
 
-    await clickAndWait(page, '.admin-nav a[href$="/admin/menus"]');
+    await clickAndWait(page, '.rail-nav a[href$="/admin/menus"]');
 
     // ---- create one --------------------------------------------------------------------
     const name = `Zz Menu ${Date.now().toString(36).slice(-5)}`;

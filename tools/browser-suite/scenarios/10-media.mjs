@@ -47,7 +47,7 @@ export default {
       // because it will later hold documents to download (PLAN.md O-17), and a check that
       // matched the old word would have to be edited again for every rename — while a link
       // that stopped pointing at the library is the failure actually worth catching.
-      const navLink = await page.$eval('.admin-nav', (nav) => {
+      const navLink = await page.$eval('.rail-nav', (nav) => {
         const link = Array.from(nav.querySelectorAll('a')).find((a) => /\/admin\/media$/.test(a.getAttribute('href') || ''));
         return link ? { label: link.textContent.trim(), href: link.getAttribute('href') } : null;
       }).catch(() => null);

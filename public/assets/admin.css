@@ -141,10 +141,13 @@
   /* What dims the page behind a dialog. */
   --ui-scrim: rgb(9 10 17 / 0.6);
 
-  /* Comfortable to read, never edge to edge; the Design screen opts into the wide one. */
-  --ui-content: 64rem;
+  /* The content column, left-aligned beside the rail with the spare width on the right
+     (D-052); the Design screen opts into the wide one. */
+  --ui-content: 77.5rem;
   --ui-content-wide: 106rem;
-  --ui-bar-height: 4rem;
+  /* The strip across the top of the content (admin-shell.css): the builder fills the
+     window below it. */
+  --ui-bar-height: 2.875rem;
 
   margin: 0;
   /* The browser's own parts — scrollbars, a select's list, a date picker, a checkbox —
@@ -239,8 +242,7 @@
 
 .admin-main {
   max-width: var(--ui-content);
-  margin-inline: auto;
-  padding: var(--ui-7) var(--ui-5) var(--ui-8);
+  padding: var(--ui-5) var(--ui-5) var(--ui-7);
 }
 
 .admin-main-wide {
@@ -355,10 +357,6 @@
 @media (max-width: 40rem) {
   .admin-main {
     padding-inline: var(--ui-4);
-  }
-
-  .admin-main {
-    padding-top: var(--ui-6);
   }
 
   .panel {

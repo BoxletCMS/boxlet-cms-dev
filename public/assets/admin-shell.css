@@ -1,175 +1,291 @@
-/* The admin's frame: the dark bar, the site's name beside the mark, the navigation, and
- * View site and Log out. Admin tokens only (--ui-*), defined in admin.css. Loaded by the
- * admin shell alone: the login screen and the installer have no bar. */
+/* The admin's frame (PLAN.md D-052, "Workbench"): a rail down the left with every screen in
+ * four groups, and a strip across the top of the content saying where you are. Admin tokens
+ * only (--ui-*), defined in admin.css. Loaded by the admin shell alone: the login screen and
+ * the installer have no frame.
+ *
+ * Three widths. Wide: the rail with its words. Under 1000px: the rail keeps only its icons,
+ * each named on hover and for a screen reader. On a phone: the rail folds behind a menu
+ * button (admin-nav.js), or, without a script, sits above the content as a plain list. */
 
-.admin-bar {
+.admin-frame {
+  display: grid;
+  grid-template-columns: 13.5rem minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---- the rail ---------------------------------------------------------------------- */
+
+.admin-rail {
   position: sticky;
   top: 0;
-  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  block-size: 100vh;
+  overflow-y: auto;
   background: var(--ui-bar);
   color: var(--ui-bar-ink);
+  /* An edge, not a border: a border would take a pixel from the rail's own width. */
+  box-shadow: inset -1px 0 0 var(--ui-line);
 }
 
-.admin-bar-inner {
+.rail-brand {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ui-2) var(--ui-5);
-  box-sizing: border-box;
-  min-height: var(--ui-bar-height);
-  max-width: var(--ui-content-wide);
-  margin-inline: auto;
-  padding: var(--ui-2) var(--ui-5);
-}
-
-.admin-brand {
-  display: inline-flex;
+  flex: none;
   align-items: center;
   gap: var(--ui-3);
-  font-family: var(--ui-font-display);
-  font-size: var(--ui-text-lg);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
+  block-size: 2.875rem;
+  padding-inline: var(--ui-4);
+  box-shadow: inset -1px -1px 0 var(--ui-line);
+  font-size: var(--ui-text-base);
+  font-weight: 500;
 }
 
-/* A box inside a box: the mark. Drawn by CSS, so there is no image to ship or theme. */
-.admin-brand::before {
-  content: "";
+/* A box inside a box: the mark, the one warm pixel in the admin. Drawn by CSS, so there is
+   no image to ship or theme. */
+.rail-mark {
   flex: none;
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
+  inline-size: 1rem;
+  block-size: 1rem;
   box-sizing: border-box;
-  border: 0.3125rem solid var(--ui-mark);
+  border: 0.25rem solid var(--ui-mark);
   border-radius: var(--ui-radius-s);
 }
 
-.admin-nav {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: var(--ui-1);
+.rail-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Legible at rest on the dark bar, raised on hover, and the current section marked by
-   both a lighter ink and a ground, never by colour alone. */
-.admin .admin-nav a {
-  padding: var(--ui-2) var(--ui-3);
+.rail-nav {
+  flex: 1;
+  padding: var(--ui-2) var(--ui-2) var(--ui-4);
+}
+
+.rail-nav ul {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A group's name: small capitals over its entries. */
+.rail-group {
+  margin: var(--ui-4) var(--ui-2) var(--ui-1);
+  color: var(--ui-ink-faint);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rail-group:first-child {
+  margin-top: var(--ui-2);
+}
+
+/* An entry: legible at rest in the rail's own muted ink, raised on hover. The current one is
+   marked by a lighter ink, a tint and a bar down its left edge — never by colour alone. */
+.admin .rail-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem var(--ui-2);
   border-radius: var(--ui-radius-m);
   color: var(--ui-bar-ink-muted);
-  font-weight: 550;
+  font-size: var(--ui-text-base);
   text-decoration: none;
 }
 
-.admin .admin-nav a:hover {
+.admin .rail-nav a:hover {
   background: var(--ui-bar-raised);
   color: var(--ui-bar-ink);
 }
 
-.admin .admin-nav [aria-current] {
-  background: var(--ui-bar-raised);
+.admin .rail-nav a[aria-current] {
+  background: var(--ui-accent-soft);
   color: var(--ui-bar-ink);
-  box-shadow: inset 0 -2px 0 var(--ui-mark);
+  box-shadow: inset 2px 0 0 var(--ui-accent);
 }
 
+.rail-nav .icon {
+  inline-size: 0.9375rem;
+  block-size: 0.9375rem;
+}
 
-.admin-bar-end {
+.rail-label {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-count {
+  color: var(--ui-ink-faint);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Who is logged in, at the foot of the rail; it opens their login's settings. */
+.admin .rail-user {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ui-2);
+  padding: var(--ui-3) var(--ui-4);
+  box-shadow: inset -1px 1px 0 var(--ui-line);
+  color: var(--ui-bar-ink);
+  text-decoration: none;
+}
+
+.admin .rail-user:hover {
+  background: var(--ui-bar-raised);
+}
+
+.rail-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  background: var(--ui-bar-raised);
+  border-radius: var(--ui-radius-s);
+  font-size: var(--ui-text-xs);
+  font-weight: 500;
+}
+
+.rail-who {
+  display: grid;
+  min-inline-size: 0;
+  line-height: 1.3;
+}
+
+.rail-email {
+  overflow: hidden;
+  font-size: var(--ui-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-role {
+  color: var(--ui-ink-faint);
+  font-size: 0.625rem;
+}
+
+/* ---- the strip ----------------------------------------------------------------------- */
+
+.admin-column {
+  min-inline-size: 0;
+}
+
+.admin-strip {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--ui-3);
+  block-size: 2.875rem;
+  box-sizing: border-box;
+  padding-inline: var(--ui-5) var(--ui-4);
+  background: var(--ui-bg);
+  box-shadow: inset 0 -1px 0 var(--ui-line);
+}
+
+.admin-where {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--ui-2);
+  min-inline-size: 0;
+  margin: 0;
+  font-size: var(--ui-text-base);
+  white-space: nowrap;
+}
+
+.admin .admin-host {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-2);
+  min-inline-size: 0;
+  margin-inline-start: calc(-1 * var(--ui-2));
+  padding: 0.3125rem var(--ui-2);
+  overflow: hidden;
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font-weight: 500;
+  text-decoration: none;
+  text-overflow: ellipsis;
+}
+
+.admin .admin-host:hover {
+  background: var(--ui-panel);
+}
+
+/* The site is live: a small green dot, the one place success colour sits at rest. */
+.admin-live {
+  flex: none;
+  inline-size: 0.3125rem;
+  block-size: 0.3125rem;
+  background: var(--ui-success);
+  border-radius: 50%;
+}
+
+.admin-where-slash {
+  color: var(--ui-line-strong);
+}
+
+.admin-where-screen {
+  overflow: hidden;
+  color: var(--ui-ink-faint);
+  text-overflow: ellipsis;
+}
+
+.admin-strip-end {
   display: flex;
   align-items: center;
   gap: var(--ui-1);
+}
+
+.admin-clock {
+  margin-inline-end: var(--ui-2);
+  color: var(--ui-ink-faint);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+  white-space: nowrap;
 }
 
 .admin-logout {
   margin: 0;
 }
 
-/* Settings, View site and Log out: icons alone, each named for a screen reader and on
-   hover. Legible at rest in the bar's own ink and raised on hover; the current screen
-   keeps its ground, as a navigation entry does. Not a .button variant, because they live
-   on the one dark surface and are measured against it (contrast_test). */
-.admin .admin-bar-icon {
+/* View site, Log out and the phone's menu button: icons alone, each named for a screen
+   reader and on hover. Legible at rest in the muted ink, raised on hover. */
+.admin .admin-strip-icon {
   display: inline-grid;
   place-items: center;
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
   padding: 0;
   background: transparent;
   border: 0;
   border-radius: var(--ui-radius-m);
-  color: var(--ui-bar-ink);
+  color: var(--ui-ink-muted);
   cursor: pointer;
 }
 
-.admin .admin-bar-icon .icon {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
-}
-
-.admin .admin-bar-icon:hover,
-.admin .admin-bar-icon[aria-current] {
-  background: var(--ui-bar-raised);
-}
-
-.admin .admin-bar :focus-visible {
-  outline-color: var(--ui-bar-ink);
-}
-
-/* The Design group: a <details> whose summary is an entry like the others, with a chevron
-   saying it opens. Marked current when either of its screens is. */
-.admin-nav-group {
-  position: relative;
-}
-
-.admin-nav-group > summary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ui-1);
-  padding: var(--ui-2) var(--ui-3);
-  border-radius: var(--ui-radius-m);
-  color: var(--ui-bar-ink-muted);
-  font-weight: 550;
-  list-style: none;
-  cursor: pointer;
-}
-
-.admin-nav-group > summary::-webkit-details-marker {
-  display: none;
-}
-
-.admin-nav-group > summary .icon {
+.admin .admin-strip-icon .icon {
   inline-size: 1rem;
   block-size: 1rem;
 }
 
-.admin-nav-group > summary:hover,
-.admin-nav-group[open] > summary {
-  background: var(--ui-bar-raised);
-  color: var(--ui-bar-ink);
-}
-
-.admin-nav-group[data-current] > summary {
-  background: var(--ui-bar-raised);
-  color: var(--ui-bar-ink);
-  box-shadow: inset 0 -2px 0 var(--ui-mark);
-}
-
-.admin-nav-group[open] > summary .icon {
-  transform: rotate(180deg);
-}
-
-.admin-nav-sub {
-  position: absolute;
-  top: calc(100% + var(--ui-1));
-  inset-inline-start: 0;
-  z-index: 2;
-  display: grid;
-  gap: var(--ui-1);
-  min-inline-size: 13rem;
-  padding: var(--ui-2);
-  background: var(--ui-bar);
-  border: var(--ui-border) solid var(--ui-bar-raised);
-  border-radius: var(--ui-radius-m);
-  box-shadow: var(--ui-shadow-m);
+.admin .admin-strip-icon:hover {
+  background: var(--ui-panel);
+  color: var(--ui-ink);
 }
 
 /* The menu button exists only on a phone, and only once admin-nav.js has shown it. */
@@ -177,57 +293,93 @@
   display: none;
 }
 
-@media (max-width: 48rem) {
-  .admin-bar-inner {
-    padding-inline: var(--ui-4);
+/* ---- under 1000px: the rail keeps its icons -------------------------------------------- */
+
+@media (min-width: 47.5625rem) and (max-width: 62.5rem) {
+  .admin-frame {
+    grid-template-columns: 3.25rem minmax(0, 1fr);
   }
 
-  /* On a phone: the name, the menu button and the three icons on one line; the
-     navigation folded under the button, a column of full-width entries when open. */
+  .rail-brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .rail-nav {
+    padding-inline: var(--ui-1);
+  }
+
+  .admin .rail-nav a {
+    justify-content: center;
+  }
+
+  /* Hidden to the eye, kept for a screen reader: the entry's name is still its name. */
+  .rail-name,
+  .rail-label,
+  .rail-count,
+  .rail-who {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* A group's name becomes the rule between groups. */
+  .rail-group {
+    block-size: 1px;
+    margin: var(--ui-3) var(--ui-2);
+    overflow: hidden;
+    background: var(--ui-line);
+    color: transparent;
+  }
+
+  .admin .rail-user {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
+
+/* ---- a phone: the rail folds behind a button ------------------------------------------- */
+
+@media (max-width: 47.5rem) {
+  .admin-frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Without a script: the rail is a plain list above the content. */
+  .admin-rail {
+    position: static;
+    block-size: auto;
+    box-shadow: inset 0 -1px 0 var(--ui-line);
+  }
+
+  .admin-strip {
+    padding-inline: var(--ui-2) var(--ui-3);
+  }
+
+  .admin-clock {
+    display: none;
+  }
+
+  /* With one: the button shows, and the rail is a drawer over the page until it is used. */
   .admin .nav-ready .admin-nav-toggle {
     display: inline-grid;
-    order: 2;
   }
 
-  .admin-brand {
-    flex: 1;
-    min-inline-size: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .admin-bar-end {
-    order: 3;
-  }
-
-  .admin-nav {
-    order: 4;
-    flex: 1 0 100%;
-  }
-
-  .nav-ready .admin-nav {
+  .nav-ready .admin-rail {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 3;
     display: none;
-    flex-direction: column;
-    gap: var(--ui-1);
-    padding-block: var(--ui-2) var(--ui-3);
+    inline-size: min(17rem, 85vw);
+    block-size: 100vh;
+    box-shadow: var(--ui-shadow-m);
   }
 
-  .nav-ready.nav-open .admin-nav {
-    display: flex;
-  }
-
-  /* In the folded column the Design group is open ground, not a dropdown. */
-  .nav-ready .admin-nav-sub {
-    position: static;
-    min-inline-size: 0;
-    margin-block-start: var(--ui-1);
-    padding: 0 0 0 var(--ui-4);
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-  }
-
-  .nav-ready .admin-nav-group > summary {
+  .nav-ready.nav-open .admin-rail {
     display: flex;
   }
 }

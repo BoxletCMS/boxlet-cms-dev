@@ -20,6 +20,9 @@ const ICONS = [
     'arrow-down', 'arrow-up', 'chevron-down', 'cloud-upload', 'copy', 'crop', 'external-link',
     'grip-vertical', 'image-up', 'languages', 'log-out', 'menu', 'monitor', 'smartphone', 'tablet', 'pencil', 'plus', 'replace', 'search', 'settings',
     'trash-2', 'x',
+    // The rail and the Workbench screens (D-052).
+    'chart-column', 'check', 'circle-alert', 'clock', 'ellipsis-vertical', 'file-text', 'gauge', 'history',
+    'image', 'list', 'list-checks', 'palette', 'panels-top-left',
 ];
 
 if (PHP_SAPI !== 'cli') {

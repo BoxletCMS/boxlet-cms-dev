@@ -14,7 +14,7 @@ use App\Support\Url;
  * @var string $title
  * @var string $content rendered HTML of the page template
  * @var string $siteName
- * @var string $nav current section: dashboard, pages, media, design, menus, forms, statistics or settings
+ * @var string $nav current section: dashboard, pages, media, menus, forms, design, chrome, settings or statistics
  * @var list<string> $styles extra stylesheets under public/assets
  * @var list<string> $scripts extra scripts under public/assets, in load order
  * @var bool $wide whether this screen wants the wide column
@@ -22,9 +22,46 @@ use App\Support\Url;
  * @var string|null $flash one-time message from the previous request
  * @var string $flashKind 'success', 'warning' or 'error'; a refusal must not be coloured as a win
  * @var string $csrf
- * @var bool $statsOn whether statistics are counted, and so have a place in the bar
+ * @var bool $statsOn whether statistics are counted, and so have a place in the rail
+ * @var array{pages: int, media: int, menus: int, forms: int} $counts how many of each, beside its rail entry
+ * @var string $host the site's own host name
+ * @var string $zone the site's time zone
+ * @var string $time the time there now, H:i
+ * @var string $adminEmail who is logged in
  */
 $current = static fn (string $section): string => $nav === $section ? ' aria-current="page"' : '';
+
+/* The rail's groups and entries, in order. A count where the screen lists things; the
+   Statistics entry only while statistics are counted (D-051). */
+$rail = [
+    'site' => [
+        ['nav' => 'dashboard', 'href' => Url::admin(), 'icon' => 'gauge', 'label' => t('admin.nav.dashboard'), 'count' => null],
+    ],
+    'content' => [
+        ['nav' => 'pages', 'href' => Url::admin('pages'), 'icon' => 'file-text', 'label' => t('admin.nav.pages'), 'count' => $counts['pages']],
+        ['nav' => 'media', 'href' => Url::admin('media'), 'icon' => 'image', 'label' => t('admin.nav.media'), 'count' => $counts['media']],
+        ['nav' => 'menus', 'href' => Url::admin('menus'), 'icon' => 'list', 'label' => t('admin.nav.menus'), 'count' => $counts['menus']],
+        ['nav' => 'forms', 'href' => Url::admin('forms'), 'icon' => 'list-checks', 'label' => t('admin.nav.forms'), 'count' => $counts['forms']],
+    ],
+    'presentation' => [
+        ['nav' => 'design', 'href' => Url::admin('design'), 'icon' => 'palette', 'label' => t('admin.nav.design'), 'count' => null],
+        ['nav' => 'chrome', 'href' => Url::admin('chrome'), 'icon' => 'panels-top-left', 'label' => t('admin.nav.chrome'), 'count' => null],
+    ],
+    'administration' => array_values(array_filter([
+        ['nav' => 'settings', 'href' => Url::admin('settings'), 'icon' => 'settings', 'label' => t('admin.nav.settings'), 'count' => null],
+        $statsOn ? ['nav' => 'statistics', 'href' => Url::admin('statistics'), 'icon' => 'chart-column', 'label' => t('admin.nav.statistics'), 'count' => null] : null,
+    ])),
+];
+
+/* The screen's name in the strip: the rail entry that is current, else the page's title. */
+$section = $title;
+foreach ($rail as $entries) {
+    foreach ($entries as $entry) {
+        if ($entry['nav'] === $nav) {
+            $section = $entry['label'];
+        }
+    }
+}
 ?>
 <!doctype html>
 <html lang="<?= e($locale) ?>">
@@ -49,59 +86,79 @@ $current = static fn (string $section): string => $nav === $section ? ' aria-cur
 </head>
 <body class="admin">
     <a class="skip-link" href="#admin-content"><?= e(t('admin.skip')) ?></a>
-    <header class="admin-bar" data-admin-bar>
-        <div class="admin-bar-inner">
-            <span class="admin-brand"><?= e($siteName !== '' ? $siteName : t('admin.brand')) ?></span>
-            <?php /* The phone's menu button, born hidden: admin-nav.js shows it and folds the
-                     navigation under it. Without a script the navigation simply wraps. */ ?>
-            <button type="button" class="admin-bar-icon admin-nav-toggle" aria-expanded="false" aria-controls="admin-nav" hidden data-admin-nav-toggle>
-                <?= icon('menu') ?><span class="visually-hidden"><?= e(t('admin.nav.open')) ?></span>
-            </button>
-            <nav class="admin-nav" id="admin-nav" aria-label="<?= e(t('admin.nav.label')) ?>">
-                <a href="<?= e(Url::admin()) ?>"<?= $current('dashboard') ?>><?= e(t('admin.nav.dashboard')) ?></a>
-                <a href="<?= e(Url::admin('pages')) ?>"<?= $current('pages') ?>><?= e(t('admin.nav.pages')) ?></a>
-                <a href="<?= e(Url::admin('media')) ?>"<?= $current('media') ?>><?= e(t('admin.nav.media')) ?></a>
-                <?php /* The site's look and its header and footer are one subject, so they are
-                         one entry with two screens under it. A <details>, so it opens and
-                         closes without a script; admin-nav.js only closes it on a click
-                         elsewhere. */ ?>
-                <details class="admin-nav-group"<?= in_array($nav, ['design', 'chrome'], true) ? ' data-current' : '' ?>>
-                    <summary><?= e(t('admin.nav.design')) ?><?= icon('chevron-down') ?></summary>
-                    <div class="admin-nav-sub">
-                        <a href="<?= e(Url::admin('design')) ?>"<?= $current('design') ?>><?= e(t('admin.nav.design_style')) ?></a>
-                        <a href="<?= e(Url::admin('chrome')) ?>"<?= $current('chrome') ?>><?= e(t('admin.nav.chrome')) ?></a>
-                    </div>
-                </details>
-                <a href="<?= e(Url::admin('menus')) ?>"<?= $current('menus') ?>><?= e(t('admin.nav.menus')) ?></a>
-                <a href="<?= e(Url::admin('forms')) ?>"<?= $current('forms') ?>><?= e(t('admin.nav.forms')) ?></a>
-<?php if ($statsOn): ?>
-                <a href="<?= e(Url::admin('statistics')) ?>"<?= $current('statistics') ?>><?= e(t('admin.nav.statistics')) ?></a>
-<?php endif; ?>
-            </nav>
-            <div class="admin-bar-end">
-                <?php /* Icons alone, each named for a screen reader and on hover. */ ?>
-                <a class="admin-bar-icon" href="<?= e(Url::admin('settings')) ?>" title="<?= e(t('admin.nav.settings')) ?>"<?= $current('settings') ?>>
-                    <?= icon('settings') ?><span class="visually-hidden"><?= e(t('admin.nav.settings')) ?></span>
-                </a>
-                <?php /* The site's home in a new tab: leaving the admin mid-edit would lose
-                         whatever is unsaved. */ ?>
-                <a class="admin-bar-icon" href="<?= e(Url::asset('')) ?>" target="_blank" rel="noopener" title="<?= e(t('admin.view_site')) ?>">
-                    <?= icon('external-link') ?><span class="visually-hidden"><?= e(t('admin.view_site')) ?></span>
-                </a>
-                <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
-                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                    <button type="submit" class="admin-bar-icon" title="<?= e(t('admin.logout')) ?>">
-                        <?= icon('log-out') ?><span class="visually-hidden"><?= e(t('admin.logout')) ?></span>
-                    </button>
-                </form>
+    <div class="admin-frame" data-admin-frame>
+        <?php /* THE RAIL (D-052): the site's name, then every screen in four groups, each entry
+                 with its icon and, where it has one, how many there are. Grouped because it
+                 has to hold a dozen screens, which a bar across the top could not. Without a
+                 script it is simply there — beside the content, or above it on a phone. */ ?>
+        <aside class="admin-rail" id="admin-rail" data-admin-rail>
+            <div class="rail-brand">
+                <span class="rail-mark" aria-hidden="true"></span>
+                <span class="rail-name"><?= e($siteName !== '' ? $siteName : t('admin.brand')) ?></span>
             </div>
-        </div>
-    </header>
-    <main class="admin-main<?= $wide ? ' admin-main-wide' : '' ?><?= $bare ? ' admin-main-bare' : '' ?>" id="admin-content">
+            <nav class="rail-nav" aria-label="<?= e(t('admin.nav.label')) ?>">
+<?php foreach ($rail as $group => $entries): ?>
+                <p class="rail-group"><?= e(t('admin.nav.group.' . $group)) ?></p>
+                <ul role="list">
+<?php foreach ($entries as $entry): ?>
+                    <li><a href="<?= e($entry['href']) ?>"<?= $current($entry['nav']) ?> title="<?= e($entry['label']) ?>">
+                        <?= icon($entry['icon']) ?>
+                        <span class="rail-label"><?= e($entry['label']) ?></span>
+<?php if ($entry['count'] !== null): ?>
+                        <span class="rail-count"><?= e((string) $entry['count']) ?></span>
+<?php endif; ?>
+                    </a></li>
+<?php endforeach; ?>
+                </ul>
+<?php endforeach; ?>
+            </nav>
+<?php if ($adminEmail !== ''): ?>
+            <a class="rail-user" href="<?= e(Url::admin('settings') . '#two-step') ?>" title="<?= e(t('admin.your_login')) ?>">
+                <span class="rail-avatar" aria-hidden="true"><?= e(strtoupper(mb_substr($adminEmail, 0, 1))) ?></span>
+                <span class="rail-who">
+                    <span class="rail-email"><?= e($adminEmail) ?></span>
+                    <span class="rail-role"><?= e(t('admin.your_login')) ?></span>
+                </span>
+            </a>
+<?php endif; ?>
+        </aside>
+
+        <div class="admin-column">
+            <?php /* THE STRIP: where you are — the site's host, then the screen — and, on the
+                     right, the site's own time and zone, the site in a new tab, and Log out. */ ?>
+            <header class="admin-strip" data-admin-bar>
+                <?php /* The phone's menu button, born hidden: admin-nav.js shows it and folds
+                         the rail behind it. */ ?>
+                <button type="button" class="admin-strip-icon admin-nav-toggle" aria-expanded="false" aria-controls="admin-rail" hidden data-admin-nav-toggle>
+                    <?= icon('menu') ?><span class="visually-hidden"><?= e(t('admin.nav.open')) ?></span>
+                </button>
+                <p class="admin-where">
+                    <a class="admin-host" href="<?= e(Url::asset('')) ?>" target="_blank" rel="noopener"><span class="admin-live" aria-hidden="true"></span><?= e($host) ?></a>
+                    <span class="admin-where-slash" aria-hidden="true">/</span>
+                    <span class="admin-where-screen"><?= e($section) ?></span>
+                </p>
+                <div class="admin-strip-end">
+                    <span class="admin-clock" title="<?= e(t('admin.site_time')) ?>"><?= e($zone) ?> · <?= e($time) ?></span>
+                    <?php /* The site's home in a new tab: leaving the admin mid-edit would lose
+                             whatever is unsaved. */ ?>
+                    <a class="admin-strip-icon" href="<?= e(Url::asset('')) ?>" target="_blank" rel="noopener" title="<?= e(t('admin.view_site')) ?>">
+                        <?= icon('external-link') ?><span class="visually-hidden"><?= e(t('admin.view_site')) ?></span>
+                    </a>
+                    <form class="admin-logout" method="post" action="<?= e(Url::admin('logout')) ?>">
+                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                        <button type="submit" class="admin-strip-icon" title="<?= e(t('admin.logout')) ?>">
+                            <?= icon('log-out') ?><span class="visually-hidden"><?= e(t('admin.logout')) ?></span>
+                        </button>
+                    </form>
+                </div>
+            </header>
+            <main class="admin-main<?= $wide ? ' admin-main-wide' : '' ?><?= $bare ? ' admin-main-bare' : '' ?>" id="admin-content">
 <?php if ($flash !== null): ?>
-        <p class="notice notice-<?= e($flashKind) ?>" role="status"><?= e($flash) ?></p>
+                <p class="notice notice-<?= e($flashKind) ?>" role="status"><?= e($flash) ?></p>
 <?php endif; ?>
 <?= $content ?>
-    </main>
+            </main>
+        </div>
+    </div>
 </body>
 </html>

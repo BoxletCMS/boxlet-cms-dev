@@ -43,20 +43,19 @@ export default {
 
     // ---- reachable from the navigation -------------------------------------------------
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    const link = await page.$('.admin-nav a[href$="/admin/chrome"]');
+    const link = await page.$('.rail-nav a[href$="/admin/chrome"]');
     report.verdict('the navigation offers the header and footer screen', link !== null,
       link === null ? 'no link to /admin/chrome in the admin bar' : 'the admin bar links to it');
     if (link === null) { return; }
 
-    // Inside the Design group since D-038: open it, then follow the link, as a person does.
-    await page.click('.admin-nav-group > summary');
-    await clickAndWait(page, '.admin-nav a[href$="/admin/chrome"]');
+    // An entry of its own in the rail's Presentation group since D-052.
+    await clickAndWait(page, '.rail-nav a[href$="/admin/chrome"]');
 
     // ---- the screen itself ---------------------------------------------------------------
     const shape = await page.evaluate(() => ({
       panels: document.querySelectorAll('.panel').length,
       headings: Array.from(document.querySelectorAll('.panel h2')).map((h) => h.textContent.trim()),
-      logoNote: !!document.querySelector('a[href$="/admin/settings"]:not(.admin-bar-icon)'),
+      logoNote: !!document.querySelector('main a[href$="/admin/settings"]'),
       menuSelect: !!document.querySelector('[name="header_menu"]'),
       bareKeys: (document.body.textContent.match(/chrome\.[a-z_]+/g) || []).slice(0, 3),
     }));

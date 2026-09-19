@@ -70,7 +70,7 @@ export default {
     }
     await report.shot(page, '05-dashboard', { fullPage: false });
     report.verdict('the dashboard has the statistics card, and the bar a Statistics link',
-      card !== null && await page.$('.admin-nav a[href$="/admin/statistics"]') !== null, `card ${card !== null}`);
+      card !== null && await page.$('.rail-nav a[href$="/admin/statistics"]') !== null, `card ${card !== null}`);
 
     for (const [name, viewport] of [['01-desktop', { width: 1400, height: 1000 }], ['02-phone', { width: 390, height: 844 }]]) {
       await page.setViewport({ ...viewport, deviceScaleFactor: 2 });

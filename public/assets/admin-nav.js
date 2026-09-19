@@ -1,46 +1,43 @@
 /*
- * The admin bar on a phone, and the Design group's closing (PLAN.md D-038).
+ * The rail on a phone (PLAN.md D-052): folded behind the strip's menu button, and opened as
+ * a drawer over the page.
  *
- * Optional, like everything the admin's scripts do. Without it the navigation wraps under
- * the site's name and the Design group opens and closes as the <details> it is.
+ * Optional, like everything the admin's scripts do. Without it the rail is a plain list
+ * above the content, and every screen is still one link away.
  */
 (function () {
   'use strict';
 
-  var bar = document.querySelector('[data-admin-bar]');
-  if (!bar) {
+  var frame = document.querySelector('[data-admin-frame]');
+  var toggle = frame && frame.querySelector('[data-admin-nav-toggle]');
+  if (!toggle) {
     return;
   }
 
-  var toggle = bar.querySelector('[data-admin-nav-toggle]');
-  if (toggle) {
-    bar.classList.add('nav-ready');
-    toggle.hidden = false;
-    toggle.addEventListener('click', function () {
-      var open = toggle.getAttribute('aria-expanded') !== 'true';
-      toggle.setAttribute('aria-expanded', String(open));
-      bar.classList.toggle('nav-open', open);
-    });
+  var rail = frame.querySelector('[data-admin-rail]');
+  frame.classList.add('nav-ready');
+  toggle.hidden = false;
+
+  function set(open) {
+    toggle.setAttribute('aria-expanded', String(open));
+    frame.classList.toggle('nav-open', open);
   }
 
-  // An open group closes on a click anywhere else, or on Escape, as a menu is expected to.
-  var groups = bar.querySelectorAll('.admin-nav-group');
+  toggle.addEventListener('click', function (event) {
+    event.stopPropagation();
+    set(toggle.getAttribute('aria-expanded') !== 'true');
+  });
+
+  // Closed by a click outside it, or by Escape, as a drawer is expected to be.
   document.addEventListener('click', function (event) {
-    Array.prototype.forEach.call(groups, function (group) {
-      if (group.open && !group.contains(event.target)) {
-        group.open = false;
-      }
-    });
+    if (frame.classList.contains('nav-open') && rail && !rail.contains(event.target)) {
+      set(false);
+    }
   });
   document.addEventListener('keydown', function (event) {
-    if (event.key !== 'Escape') {
-      return;
+    if (event.key === 'Escape' && frame.classList.contains('nav-open')) {
+      set(false);
+      toggle.focus();
     }
-    Array.prototype.forEach.call(groups, function (group) {
-      if (group.open) {
-        group.open = false;
-        group.querySelector('summary').focus();
-      }
-    });
   });
 })();

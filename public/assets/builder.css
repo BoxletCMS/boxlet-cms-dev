@@ -2,20 +2,20 @@
  * defined in admin.css. The canvas is an iframe, so the site's own CSS is sealed inside
  * it and cannot reach any of this. */
 
-/* The builder fills the window below the admin bar rather than sitting in the usual
-   reading column: the canvas is the screen. */
+/* The builder fills the window below the strip rather than sitting in the usual reading
+   column: the canvas is the screen. */
 .admin-main-bare {
   max-width: none;
   padding: 0;
 }
 
-/* 4rem is the admin bar's height. It is safe as a constant because the bar only grows
-   when it wraps, and below 64rem the breakpoint at the end of this file gives the
-   builder its natural height instead. dvh so mobile browser chrome cannot add a scroll. */
+/* --ui-bar-height is the strip's height (D-052), which never wraps, and below 64rem the
+   breakpoint at the end of this file gives the builder its natural height instead. dvh so
+   mobile browser chrome cannot add a scroll. */
 .builder {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 4rem);
+  height: calc(100dvh - var(--ui-bar-height));
   min-height: 34rem;
 }
 

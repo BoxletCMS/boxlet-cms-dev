@@ -8,6 +8,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Settings;
 use App\Modules\Admin\AdminView;
+use App\Modules\Auth\TwoFactor;
 use App\Modules\Languages\Locales;
 use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
@@ -148,7 +149,7 @@ final class SettingsController
             'title' => t('settings.title'),
             'nav' => 'settings',
             // The picker's own stylesheets and script, the same set the page editor loads.
-            'styles' => ['admin-media.css', 'admin-picker.css'],
+            'styles' => ['admin-media.css', 'admin-picker.css', 'admin-two-step.css'],
             'scripts' => ['media-picker.js', 'mail-settings.js'],
             'values' => $values,
             'errors' => $errors,
@@ -158,6 +159,7 @@ final class SettingsController
             'maintenanceOn' => $this->container->get('maintenance')->isOn(),
             'languages' => Locales::all($this->db()),
             'addable' => Locales::addable($this->db()),
+            'twoStep' => $this->twoStep(),
         ] + $this->mail(), $status);
     }
 
@@ -194,6 +196,19 @@ final class SettingsController
                 'resend_key' => MailSettings::trace($stored['resend_key'], $appKey, true),
             ],
         ];
+    }
+
+    /**
+     * Whether two-step login is on for the admin looking at the screen (D-050).
+     *
+     * @return array{on: bool, codesLeft: int}
+     */
+    private function twoStep(): array
+    {
+        $twoFactor = new TwoFactor($this->db(), (string) $this->container->get('config')->get('app.key'));
+        $id = (int) $this->container->get('session')->get('admin_id');
+
+        return ['on' => $twoFactor->enabled($id), 'codesLeft' => $twoFactor->codesLeft($id)];
     }
 
     private function db(): Db

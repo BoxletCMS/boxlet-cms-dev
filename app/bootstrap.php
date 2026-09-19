@@ -10,6 +10,7 @@ use App\Core\Session;
 use App\Modules\Admin\DashboardController;
 use App\Modules\Admin\RequireAdmin;
 use App\Modules\Auth\AuthController;
+use App\Modules\Auth\TwoFactorController;
 use App\Modules\Design\Design;
 use App\Modules\Design\DesignController;
 use App\Modules\Pages\PageBlockController;
@@ -149,6 +150,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $requireAdmin = [[RequireAdmin::class, 'handle']];
     $router->get('/admin/login', [AuthController::class, 'showLogin']);
     $router->post('/admin/login', [AuthController::class, 'login']);
+    // The second step of logging in, when two-step login is on (D-050).
+    $router->get('/admin/login/code', [AuthController::class, 'showCode']);
+    $router->post('/admin/login/code', [AuthController::class, 'code']);
     $router->post('/admin/logout', [AuthController::class, 'logout'], $requireAdmin);
     $router->get('/admin', [DashboardController::class, 'index'], $requireAdmin);
     // The only route that applies a migration, and the only admin screen the update gate
@@ -223,6 +227,11 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // Mail (D-045): how the site sends, and a test message to prove it does.
     $router->post('/admin/settings/mail', [MailController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/mail/test', [MailController::class, 'test'], $requireAdmin);
+    // Two-step login (D-050): set up, confirm, new recovery codes, off.
+    $router->get('/admin/two-step', [TwoFactorController::class, 'setup'], $requireAdmin);
+    $router->post('/admin/two-step', [TwoFactorController::class, 'confirm'], $requireAdmin);
+    $router->post('/admin/two-step/codes', [TwoFactorController::class, 'renew'], $requireAdmin);
+    $router->post('/admin/two-step/off', [TwoFactorController::class, 'off'], $requireAdmin);
     // The site's languages (D-043), a panel on the Settings screen with its own forms. A
     // code is two letters, the ISO 639-1 list the installer offers.
     $router->post('/admin/languages', [LanguagesController::class, 'add'], $requireAdmin);

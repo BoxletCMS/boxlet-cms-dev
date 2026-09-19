@@ -8,10 +8,14 @@ use App\Support\Url;
  * @var string $title
  * @var string $email
  * @var string|null $error
+ * @var string|null $notice what the FTP reset of two-step login did, when it ran (D-050)
  * @var string $csrf
  */
 ?>
         <h1><?= e($title) ?></h1>
+<?php if ($notice !== null): ?>
+        <p class="notice notice-warning" role="status"><?= e($notice) ?></p>
+<?php endif; ?>
 <?php if ($error !== null): ?>
         <p class="notice notice-error" role="alert"><?= e($error) ?></p>
 <?php endif; ?>

@@ -13,7 +13,9 @@ use App\Modules\Languages\Locales;
 use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Media\MediaReference;
+use App\Modules\Stats\Geo;
 use App\Modules\Stats\Tracker;
+use App\Support\Bytes;
 use App\Support\Url;
 use DateTimeZone;
 
@@ -162,6 +164,8 @@ final class SettingsController
             'addable' => Locales::addable($this->db()),
             'twoStep' => $this->twoStep(),
             'stats' => Tracker::settings($this->db()),
+            'geo' => Geo::status((string) $this->container->get('config')->get('app.storage_path')),
+            'uploadLimit' => Bytes::limits()['fileLabel'],
         ] + $this->mail(), $status);
     }
 

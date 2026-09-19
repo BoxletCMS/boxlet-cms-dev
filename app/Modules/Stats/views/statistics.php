@@ -16,6 +16,7 @@ use App\Support\Url;
  * @var list<array{day: string, visitors: int, views: int}> $series
  * @var bool $chartWeek whether the chart shows the week the period ends, not the period
  * @var array<string, list<array{value: string, visitors: int, views: int}>> $tables
+ * @var bool $geo whether countries come from DB-IP's database, which asks to be credited
  */
 $all = null;
 $figures = [
@@ -79,3 +80,6 @@ $figures = [
         </div>
 
         <p class="hint stats-note"><?= e(t('stats.note')) ?> <a href="<?= e(Url::admin('settings') . '#statistics') ?>"><?= e(t('stats.settings_link')) ?></a></p>
+<?php if ($geo): ?>
+        <p class="hint stats-note"><a href="https://db-ip.com" target="_blank" rel="noopener"><?= e(t('stats.attribution')) ?></a></p>
+<?php endif; ?>

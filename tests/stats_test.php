@@ -346,3 +346,186 @@ testBothDrivers('switched off, the screen, the bar\'s link and the dashboard car
     assertTrue(!str_contains($dashboard, 'stats-card'), 'the card while off');
     assertTrue(!str_contains($dashboard, e(t('admin.nav.statistics'))), 'the bar\'s link while off');
 });
+
+/**
+ * Writes a small MaxMind DB file, so the reader is tested against the format rather than
+ * against itself: a tree built from $networks (CIDR => country code), records of
+ * $recordSize bits, and the data and metadata sections as the specification lays them out.
+ *
+ * @param array<string, string> $networks
+ */
+function writeMmdb(string $path, array $networks, int $ipVersion = 6, int $recordSize = 24): void
+{
+    $string = static fn (string $s): string => chr((2 << 5) | strlen($s)) . $s;
+    $uint = static function (int $type, int $value, int $bytes): string {
+        $encoded = substr(pack('J', $value), 8 - $bytes);
+
+        return $type <= 7 ? chr(($type << 5) | $bytes) . $encoded : chr($bytes) . chr($type - 7) . $encoded;
+    };
+    $map = static function (array $pairs) use ($string): string {
+        $out = chr((7 << 5) | count($pairs));
+        foreach ($pairs as $key => $value) {
+            $out .= $string((string) $key) . $value;
+        }
+
+        return $out;
+    };
+
+    // The tree: each node is two children, an int (a node), ['data', offset], or null.
+    $nodes = [[null, null]];
+    $data = '';
+    foreach ($networks as $cidr => $code) {
+        [$address, $length] = explode('/', $cidr);
+        $packed = (string) inet_pton($address);
+        $length = (int) $length;
+        if (strlen($packed) === 4 && $ipVersion === 6) {
+            $packed = str_repeat("\0", 12) . $packed;
+            $length += 96;
+        }
+        $offset = strlen($data);
+        $data .= $map(['country' => $map(['iso_code' => $string($code)])]);
+        $node = 0;
+        for ($i = 0; $i < $length; $i++) {
+            $bit = (ord($packed[$i >> 3]) >> (7 - ($i & 7))) & 1;
+            if ($i === $length - 1) {
+                $nodes[$node][$bit] = ['data', $offset];
+                break;
+            }
+            if (!is_int($nodes[$node][$bit])) {
+                $nodes[] = [null, null];
+                $nodes[$node][$bit] = count($nodes) - 1;
+            }
+            $node = $nodes[$node][$bit];
+        }
+    }
+
+    $count = count($nodes);
+    $value = static fn ($child): int => $child === null ? $count : (is_int($child) ? $child : $count + 16 + $child[1]);
+    $tree = '';
+    foreach ($nodes as [$left, $right]) {
+        [$l, $r] = [$value($left), $value($right)];
+        $tree .= match ($recordSize) {
+            24 => substr(pack('N', $l), 1) . substr(pack('N', $r), 1),
+            28 => substr(pack('N', $l), 1) . chr((($l >> 24) << 4) | ($r >> 24)) . substr(pack('N', $r), 1),
+            default => pack('N', $l) . pack('N', $r),
+        };
+    }
+
+    $metadata = $map([
+        'binary_format_major_version' => $uint(5, 2, 1),
+        'binary_format_minor_version' => $uint(5, 0, 0),
+        'build_epoch' => $uint(9, 1788220800, 4),
+        'database_type' => $string('Test-Country'),
+        'description' => $map([]),
+        'ip_version' => $uint(5, $ipVersion, 1),
+        'languages' => chr(0) . chr(11 - 7),
+        'node_count' => $uint(6, $count, 4),
+        'record_size' => $uint(5, $recordSize, 1),
+    ]);
+    if (!is_dir(dirname($path))) {
+        mkdir(dirname($path), 0700, true);
+    }
+    file_put_contents($path, $tree . str_repeat("\0", 16) . $data . "\xAB\xCD\xEFMaxMind.com" . $metadata);
+}
+
+const STATS_NETWORKS = ['8.8.8.0/24' => 'US', '198.51.100.0/24' => 'HR', '2001:db8::/32' => 'DE'];
+
+/** The test's storage directory, with no country database in it. */
+function geoStorage(): string
+{
+    // A test outside testBothDrivers() has no site, and so no storage path of its own.
+    $storage = (string) (TestSite::$env['STORAGE_PATH'] ?? '');
+    $storage = $storage !== '' ? $storage : tmpPath('storage');
+    removeTree($storage . '/geo');
+
+    return $storage;
+}
+
+test('the MaxMind DB reader finds a country for IPv4 and IPv6, with every record size', function () {
+    foreach ([24, 28, 32] as $size) {
+        $path = tmpPath("geo-{$size}.mmdb");
+        writeMmdb($path, STATS_NETWORKS, 6, $size);
+        $reader = new App\Modules\Stats\Mmdb($path);
+        $country = static fn (string $ip): mixed => ($reader->get($ip) ?? [])['country']['iso_code'] ?? null;
+
+        assertEquals('US', $country('8.8.8.8'), "{$size}: 8.8.8.8");
+        assertEquals('HR', $country('198.51.100.73'), "{$size}: an address in a /24");
+        assertEquals('DE', $country('2001:db8:1::5'), "{$size}: IPv6");
+        assertEquals(null, $reader->get('203.0.113.9'), "{$size}: an address the file does not know");
+        assertEquals(null, $reader->get('not an address'), "{$size}: not an address");
+        assertEquals('Test-Country', $reader->metadata()['database_type'] ?? null, "{$size}: metadata");
+    }
+
+    $v4 = tmpPath('geo-v4.mmdb');
+    writeMmdb($v4, ['8.8.8.0/24' => 'US'], 4);
+    assertEquals('US', ((new App\Modules\Stats\Mmdb($v4))->get('8.8.8.8') ?? [])['country']['iso_code'] ?? null, 'an IPv4 file');
+    assertEquals(null, (new App\Modules\Stats\Mmdb($v4))->get('2001:db8::1'), 'IPv6 in an IPv4 file');
+
+    file_put_contents(tmpPath('not.mmdb'), str_repeat('x', 1000));
+    assertThrows(fn () => new App\Modules\Stats\Mmdb(tmpPath('not.mmdb')), 'no metadata');
+});
+
+testBothDrivers('with a country database, a view is counted under its country', function (string $driver) {
+    $db = statsSite($driver);
+    $storage = geoStorage();
+    writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
+    App\Modules\Stats\Geo::install($storage, tmpPath('geo.mmdb'));
+
+    Tracker::record($db, new Request('GET', '/about', '', [], [], ['user-agent' => STATS_CHROME, 'host' => 'example.test'], '198.51.100.73'), Response::html('x'), new DateTimeImmutable('2026-09-19 10:00:00'), $storage);
+    Tracker::record($db, new Request('GET', '/about', '', [], [], ['user-agent' => STATS_CHROME, 'host' => 'example.test'], '203.0.113.9'), Response::html('x'), new DateTimeImmutable('2026-09-19 10:00:00'), $storage);
+    $countries = array_map(static fn (array $row): string => (string) $row['country'], $db->all('SELECT country FROM stats_views ORDER BY country'));
+    assertEquals(['', 'HR'], $countries, 'countries');
+    removeTree($storage . '/geo');
+});
+
+test('a country database is installed gzipped or not, and a file that is not one never replaces it', function () {
+    $storage = geoStorage();
+    writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
+    file_put_contents(tmpPath('geo.mmdb.gz'), (string) gzencode((string) file_get_contents(tmpPath('geo.mmdb'))));
+
+    App\Modules\Stats\Geo::install($storage, tmpPath('geo.mmdb.gz'));
+    assertEquals('HR', App\Modules\Stats\Geo::country($storage, '198.51.100.73'), 'from the gzipped file');
+    assertEquals(['built' => '2026-09-01', 'type' => 'Test-Country'], App\Modules\Stats\Geo::status($storage), 'the status');
+
+    file_put_contents(tmpPath('junk.mmdb'), 'not a database');
+    assertThrows(fn () => App\Modules\Stats\Geo::install($storage, tmpPath('junk.mmdb')), t('stats.geo_not_a_database'));
+    writeMmdb(tmpPath('empty.mmdb'), ['203.0.113.0/24' => 'FR']);
+    assertThrows(fn () => App\Modules\Stats\Geo::install($storage, tmpPath('empty.mmdb')), t('stats.geo_not_a_database'));
+    assertEquals('HR', App\Modules\Stats\Geo::country($storage, '198.51.100.73'), 'the file in use after two refusals');
+    assertEquals(['dbip-country-lite.mmdb'], array_values(array_diff((array) scandir($storage . '/geo'), ['.', '..'])), 'files left behind');
+    removeTree($storage . '/geo');
+});
+
+test('downloading takes this month\'s file, or last month\'s when this one is not out yet', function () {
+    $storage = geoStorage();
+    writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
+    $gz = (string) gzencode((string) file_get_contents(tmpPath('geo.mmdb')));
+    if (!is_dir(tmpPath('dbip'))) {
+        mkdir(tmpPath('dbip'), 0700, true);
+    }
+    file_put_contents(tmpPath('dbip/lite-2026-08.mmdb.gz'), $gz);
+    $source = 'file://' . tmpPath('dbip') . '/lite-%s.mmdb.gz';
+
+    App\Modules\Stats\Geo::download($storage, new DateTimeImmutable('2026-09-01 00:10:00'), $source);
+    assertEquals('US', App\Modules\Stats\Geo::country($storage, '8.8.8.8'), 'last month\'s file');
+
+    removeTree($storage . '/geo');
+    assertThrows(fn () => App\Modules\Stats\Geo::download($storage, new DateTimeImmutable('2026-12-05'), $source), 'could not be downloaded');
+    assertEquals(null, App\Modules\Stats\Geo::status($storage), 'a database after a failed download');
+});
+
+testBothDrivers('the screen credits DB-IP only while its database is in use, and a refused upload is shown as a refusal', function (string $driver) {
+    statsSite($driver);
+    $storage = geoStorage();
+    assertTrue(!str_contains(dispatch('/admin/statistics')->body, e(t('stats.attribution'))), 'credited with no database');
+    assertContains(e(t('stats.geo_none')), dispatch('/admin/settings')->body, 'the panel without one');
+
+    writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
+    App\Modules\Stats\Geo::install($storage, tmpPath('geo.mmdb'));
+    assertContains(e(t('stats.attribution')), dispatch('/admin/statistics')->body, 'the credit');
+    assertContains(e(t('stats.geo_in_use', ['date' => '2026-09-01'])), dispatch('/admin/settings')->body, 'the panel with one');
+
+    assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics/countries/upload', []));
+    assertContains('notice notice-error" role="status">' . e(t('stats.geo_upload_none')), dispatch('/admin/settings')->body, 'the refusal, coloured as one');
+    removeTree($storage . '/geo');
+});

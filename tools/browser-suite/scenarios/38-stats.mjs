@@ -4,12 +4,13 @@
  *
  * It writes one thing, the way a visitor would: one view of the home page, from a browser
  * no one else uses, so it is a new visitor. That adds one to today's counts, which is what
- * the check reads. Nothing is saved in Settings and "Delete all statistics" is never
- * pressed — the counts on the development site are real views, and removing them is the
- * owner's choice.
+ * the check reads. The country database is downloaded only when the site has none, as the
+ * owner would with the button. Nothing is saved in Settings and "Delete all statistics" is
+ * never pressed — the counts on the development site are real views, and removing them is
+ * the owner's choice.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login } from '../harness.mjs';
+import { login, clickAndWait } from '../harness.mjs';
 
 export default {
   name: 'stats',
@@ -19,6 +20,16 @@ export default {
       report.fail('stats: log in', `could not log in as ${ADMIN.email || '(no admin configured)'}`);
       return;
     }
+
+    // The country database, fetched from DB-IP with the button when the site has none.
+    await page.goto(`${BASE}/admin/settings#statistics`, { waitUntil: 'networkidle2' });
+    const hadDatabase = await page.$eval('#statistics', (el) => /Country database in use/.test(el.textContent));
+    if (!hadDatabase) {
+      await clickAndWait(page, 'form[action$="/statistics/countries"] button', 180000);
+    }
+    const geo = await page.$eval('#statistics', (el) => el.textContent.replace(/\s+/g, ' ').match(/Country database in use, from [0-9-]+\./)?.[0] ?? '');
+    const said = await page.$$eval('.notice', (els) => els.map((e) => e.textContent.trim()).join(' | '));
+    report.verdict(hadDatabase ? 'the country database is in use' : 'the download button puts the country database in use', geo !== '', `${geo} ${said}`);
 
     // Today's visitors, as the screen shows them, before and after one visitor's view.
     const todayVisitors = async () => {
@@ -40,6 +51,9 @@ export default {
     report.verdict('one visitor\'s view adds one visitor to today', after === before + 1, `before ${before}, after ${after}`);
     const own = await todayVisitors();
     report.verdict('the admin looking at the screen is not counted', own === after, `after ${after}, then ${own}`);
+
+    const credit = await page.$eval('body', (el) => el.textContent.includes('IP geolocation by DB-IP'));
+    report.verdict('the screen credits DB-IP', credit, `credit ${credit}`);
 
     for (const [name, viewport] of [['03-screen-desktop', { width: 1400, height: 1000 }], ['04-screen-phone', { width: 390, height: 844 }]]) {
       await page.setViewport({ ...viewport, deviceScaleFactor: 2 });

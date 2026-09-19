@@ -44,7 +44,9 @@ final class AdminView
             'bare' => false,
             'siteName' => $siteName,
             'flash' => is_string($flash) ? $flash : null,
-            'flashKind' => $kind === 'warning' ? 'warning' : 'success',
+            // 'error' as well: five controllers set it for a refusal, and until D-051 found
+            // it here it was drawn as 'success' — the very thing the comment above forbids.
+            'flashKind' => in_array($kind, ['warning', 'error'], true) ? $kind : 'success',
             'csrf' => $session->csrfToken(),
             // Statistics has a place in the bar only while it counts (D-051).
             'statsOn' => \App\Modules\Stats\Tracker::settings($container->get('db'))['enabled'],

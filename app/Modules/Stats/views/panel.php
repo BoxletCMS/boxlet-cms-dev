@@ -9,6 +9,8 @@ use App\Support\Url;
  * and a way to delete them all. Its forms are its own, outside the settings form.
  *
  * @var array{enabled: bool, dnt: bool, retention: int} $stats
+ * @var array{built: string, type: string}|null $geo the country database in use
+ * @var string $uploadLimit the largest file this server accepts, as php.ini says it
  * @var string $csrf
  */
 ?>
@@ -34,6 +36,28 @@ use App\Support\Url;
                     <button type="submit" class="button button-secondary"><?= e(t('stats.save')) ?></button>
                 </div>
             </form>
+
+            <?php /* The country database (D-051): optional, fetched only when asked. */ ?>
+            <fieldset class="fieldset stack">
+                <legend><?= e(t('stats.geo_title')) ?></legend>
+                <p class="hint"><?= e(t('stats.geo_intro')) ?></p>
+                <p><?= e($geo === null ? t('stats.geo_none') : t('stats.geo_in_use', ['date' => $geo['built']])) ?></p>
+                <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'countries')) ?>">
+                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                    <button type="submit" class="button button-secondary"><?= e(t($geo === null ? 'stats.geo_download' : 'stats.geo_update')) ?></button>
+                </form>
+                <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'countries', 'upload')) ?>" enctype="multipart/form-data" class="stack">
+                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                    <div class="field">
+                        <label for="geo_file"><?= e(t('stats.geo_upload')) ?></label>
+                        <input type="file" id="geo_file" name="geo_file" accept=".mmdb,.gz" aria-describedby="geo_file-hint">
+                        <span class="hint" id="geo_file-hint"><?= e(t('stats.geo_upload_hint', ['limit' => $uploadLimit])) ?></span>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="button button-secondary"><?= e(t('stats.geo_upload_button')) ?></button>
+                    </div>
+                </form>
+            </fieldset>
 
             <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'erase')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

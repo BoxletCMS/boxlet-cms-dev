@@ -20,7 +20,7 @@ use App\Support\Url;
  * @var bool $wide whether this screen wants the wide column
  * @var bool $bare whether this screen fills the window instead of the reading column
  * @var string|null $flash one-time message from the previous request
- * @var string $flashKind 'success' or 'warning'; a refusal must not be coloured as a win
+ * @var string $flashKind 'success', 'warning' or 'error'; a refusal must not be coloured as a win
  * @var string $csrf
  * @var bool $statsOn whether statistics are counted, and so have a place in the bar
  */

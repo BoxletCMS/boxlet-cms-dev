@@ -101,7 +101,7 @@ if (Tracker::wanted($request, $response)) {
         fastcgi_finish_request();
     }
     try {
-        Tracker::record($container->get('db'), $request, $response);
+        Tracker::record($container->get('db'), $request, $response, null, (string) $container->get('config')->get('app.storage_path'));
     } catch (Throwable $e) {
         error_log('Statistics: ' . get_class($e) . ': ' . $e->getMessage());
     }

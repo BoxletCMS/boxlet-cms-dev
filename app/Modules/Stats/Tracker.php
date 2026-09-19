@@ -74,9 +74,10 @@ final class Tracker
     }
 
     /**
-     * Counts the view if it is one to count. Returns whether it did.
+     * Counts the view if it is one to count. Returns whether it did. $storagePath is where
+     * the country database is looked for (Geo); '' counts every country as unknown.
      */
-    public static function record(Db $db, Request $request, Response $response, ?DateTimeImmutable $now = null): bool
+    public static function record(Db $db, Request $request, Response $response, ?DateTimeImmutable $now = null, string $storagePath = ''): bool
     {
         if (!self::wanted($request, $response)) {
             return false;
@@ -109,7 +110,7 @@ final class Tracker
                 'day' => $day,
                 'path' => $path,
                 'source' => self::source($request->header('referer') ?? '', $host),
-                'country' => '',
+                'country' => $storagePath === '' ? '' : Geo::country($storagePath, $request->ip),
                 'device' => $agent['device'],
                 'browser' => $agent['browser'],
                 'os' => $agent['os'],

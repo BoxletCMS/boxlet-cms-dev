@@ -239,6 +239,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/statistics', [StatsController::class, 'index'], $requireAdmin);
     $router->post('/admin/settings/statistics', [StatsSettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/statistics/erase', [StatsSettingsController::class, 'erase'], $requireAdmin);
+    $router->post('/admin/settings/statistics/countries', [StatsSettingsController::class, 'geoDownload'], $requireAdmin);
+    $router->post('/admin/settings/statistics/countries/upload', [StatsSettingsController::class, 'geoUpload'], $requireAdmin);
     // The site's languages (D-043), a panel on the Settings screen with its own forms. A
     // code is two letters, the ISO 639-1 list the installer offers.
     $router->post('/admin/languages', [LanguagesController::class, 'add'], $requireAdmin);

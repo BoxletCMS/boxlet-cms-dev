@@ -52,6 +52,8 @@ final class StatsController
             'period' => $period,
             'range' => $range,
             'totals' => $totals,
+            // DB-IP's licence asks for credit where its countries are shown (CC BY 4.0).
+            'geo' => Geo::status((string) $this->container->get('config')->get('app.storage_path')) !== null,
         ];
 
         if ($all !== null) {

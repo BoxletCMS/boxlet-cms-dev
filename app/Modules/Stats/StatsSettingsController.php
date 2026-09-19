@@ -6,11 +6,15 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Settings;
+use App\Support\Bytes;
 use App\Support\Url;
+use DateTimeImmutable;
+use RuntimeException;
 
 /**
- * The Statistics panel's two actions (PLAN.md D-051): its settings, and deleting every
- * count. Switching the module off keeps what was counted; only erase deletes it.
+ * The Statistics panel's actions (PLAN.md D-051): its settings, deleting every count, and
+ * the country database. Switching the module off keeps what was counted; only erase
+ * deletes it.
  */
 final class StatsSettingsController
 {
@@ -42,9 +46,64 @@ final class StatsSettingsController
         return $this->back(t('stats.erased'));
     }
 
-    private function back(string $message): Response
+    /**
+     * Fetches the country database from DB-IP (D-051): the one request statistics make to
+     * anyone, made only when the owner presses the button.
+     *
+     * @param array<string, string> $params
+     */
+    public function geoDownload(Request $request, string $locale, array $params): Response
+    {
+        try {
+            Geo::download($this->storage(), new DateTimeImmutable());
+        } catch (RuntimeException $e) {
+            return $this->back($e->getMessage(), true);
+        }
+
+        return $this->back(t('stats.geo_installed'));
+    }
+
+    /**
+     * The country database uploaded by hand, for a server that cannot reach DB-IP: the
+     * .mmdb file, or the .mmdb.gz DB-IP offers.
+     *
+     * @param array<string, string> $params
+     */
+    public function geoUpload(Request $request, string $locale, array $params): Response
+    {
+        $file = $request->files['geo_file'] ?? null;
+        $error = is_array($file) ? (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) : UPLOAD_ERR_NO_FILE;
+        $temporary = is_array($file) ? (string) ($file['tmp_name'] ?? '') : '';
+        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
+            return $this->back(t('stats.geo_upload_too_big', ['limit' => Bytes::limits()['fileLabel']]), true);
+        }
+        if ($error !== UPLOAD_ERR_OK || $temporary === '' || !is_uploaded_file($temporary)) {
+            return $this->back(t('stats.geo_upload_none'), true);
+        }
+        try {
+            Geo::install($this->storage(), $temporary);
+        } catch (RuntimeException $e) {
+            return $this->back($e->getMessage(), true);
+        } finally {
+            if (is_file($temporary)) {
+                unlink($temporary);
+            }
+        }
+
+        return $this->back(t('stats.geo_installed'));
+    }
+
+    private function storage(): string
+    {
+        return (string) $this->container->get('config')->get('app.storage_path');
+    }
+
+    private function back(string $message, bool $error = false): Response
     {
         $this->container->get('session')->set('flash', $message);
+        if ($error) {
+            $this->container->get('session')->set('flash_kind', 'error');
+        }
 
         return Response::redirect(Url::admin('settings') . '#statistics');
     }

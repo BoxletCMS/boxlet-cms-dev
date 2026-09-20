@@ -5,15 +5,18 @@ namespace App\Modules\Stats;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
-use App\Support\Bytes;
 use App\Support\Dates;
 use App\Support\Url;
 use DateTimeImmutable;
 use DateTimeZone;
 
 /**
- * Taking the counts out and putting them back (PLAN.md O-20): a CSV of one table as the
- * screen shows it, a JSON file of everything, and the import that reads one back.
+ * Taking the counts out (PLAN.md O-20): a CSV of one table as the screen is showing it,
+ * and a JSON file of everything.
+ *
+ * OUT ONLY. There is no way to put counts back in, at the owner's decision (2026-09-20):
+ * a file of numbers that adds to what a site has counted is a way to make a site's own
+ * statistics say something that never happened, and nobody had asked for it.
  */
 final class StatsDataController
 {
@@ -50,35 +53,6 @@ final class StatsDataController
         );
     }
 
-    /**
-     * @param array<string, string> $params
-     */
-    public function import(Request $request, string $locale, array $params): Response
-    {
-        $file = $request->files['stats_file'] ?? null;
-        $error = is_array($file) ? (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) : UPLOAD_ERR_NO_FILE;
-        $temporary = is_array($file) ? (string) ($file['tmp_name'] ?? '') : '';
-        $session = $this->container->get('session');
-
-        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
-            return $this->back(t('stats.import_too_big', ['limit' => Bytes::limits()['fileLabel']]), true);
-        }
-        if ($error !== UPLOAD_ERR_OK || $temporary === '' || !is_uploaded_file($temporary)) {
-            return $this->back(t('stats.import_none'), true);
-        }
-
-        $result = StatsExport::import($this->container->get('db'), $temporary);
-        if (is_file($temporary)) {
-            unlink($temporary);
-        }
-        if ($result['error'] !== '') {
-            return $this->back($result['error'], true);
-        }
-        $session->set('flash', t('stats.import_done', ['rows' => number_format($result['rows'])]));
-
-        return Response::redirect(Url::admin('statistics'));
-    }
-
     private static function file(string $body, string $type, string $name): Response
     {
         return new Response($body, 200, [
@@ -87,16 +61,5 @@ final class StatsDataController
             'Cache-Control' => 'no-store',
             'X-Content-Type-Options' => 'nosniff',
         ]);
-    }
-
-    private function back(string $message, bool $error): Response
-    {
-        $session = $this->container->get('session');
-        $session->set('flash', $message);
-        if ($error) {
-            $session->set('flash_kind', 'error');
-        }
-
-        return Response::redirect(Url::admin('statistics'));
     }
 }

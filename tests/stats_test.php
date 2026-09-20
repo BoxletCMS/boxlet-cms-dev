@@ -791,7 +791,7 @@ testBothDrivers('a table comes out as the CSV the screen is showing', function (
     assertEquals(302, dispatch('/admin/statistics/export?period=7d&table=nonsense')->status, 'a table nobody has');
 });
 
-testBothDrivers('everything comes out as one file, and goes back in by adding to what is there', function (string $driver) {
+testBothDrivers('everything comes out as one file', function (string $driver) {
     $db = statsSite($driver);
     Settings::set($db, 'stats_missing', true);
     statsView($db, '/about');
@@ -803,31 +803,18 @@ testBothDrivers('everything comes out as one file, and goes back in by adding to
     assertEquals('statistics', $data['boxlet'] ?? null, 'whose file it is');
     assertEquals(1, count($data['tables']['stats_views'] ?? []), 'the views in it');
     assertEquals(1, count($data['tables']['stats_missing'] ?? []), 'the addresses that are not there');
-
-    // Imported into a site of its own: the same counts arrive.
-    $other = statsSite($driver);
-    $path = tmpPath('stats-export.json');
-    file_put_contents($path, $file->body);
-    assertEquals(['rows' => 3, 'error' => ''], App\Modules\Stats\StatsExport::import($other, $path), 'rows taken');
-    assertEquals(['views' => 1, 'visitors' => 1], statsTotals($other), 'the counts');
-
-    // And again: importing adds, which is what the screen says it does.
-    App\Modules\Stats\StatsExport::import($other, $path);
-    assertEquals(['views' => 2, 'visitors' => 2], statsTotals($other), 'the same file twice');
-
-    file_put_contents($path, '{"boxlet":"something else"}');
-    assertEquals(t('stats.import_not_ours'), App\Modules\Stats\StatsExport::import($other, $path)['error'], 'a file from elsewhere');
-    file_put_contents($path, 'not json at all');
-    assertEquals(t('stats.import_not_json'), App\Modules\Stats\StatsExport::import($other, $path)['error'], 'not a file at all');
+    assertTrue(array_key_exists('stats_places', $data['tables'] ?? []), 'and where visitors were');
 });
 
-testBothDrivers('the screen offers the file, and says so when nothing was chosen', function (string $driver) {
+testBothDrivers('the screen offers the file, and takes none', function (string $driver) {
     statsSite($driver);
     $screen = dispatch('/admin/statistics?period=7d')->body;
     assertContains(e(t('stats.data')), $screen, 'the section');
     assertContains('table=everything', $screen, 'the whole file');
     assertContains('table=pages', $screen, 'one table as CSV');
 
-    assertRedirectedTo('/admin/statistics', adminPost('/admin/statistics/import', []));
-    assertContains(e(t('stats.import_none')), dispatch('/admin/statistics')->body, 'said');
+    // OUT ONLY (the owner, 2026-09-20). Nothing but a visit writes a count, so there is no
+    // file to put back and no address that would take one.
+    assertTrue(!str_contains($screen, 'stats_file'), 'a field for putting counts back');
+    assertEquals(404, dispatch('/admin/statistics/import', method: 'POST')->status, 'an address for putting counts back');
 });

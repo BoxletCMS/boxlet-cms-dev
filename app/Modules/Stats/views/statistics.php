@@ -131,24 +131,14 @@ $figures = [
         </section>
 
 <?php endif; ?>
-        <?php /* The counts themselves (O-20): one file out, one file in. */ ?>
+        <?php /* The counts themselves (O-20): a file out, and no way back in — the owner
+                 took the import out, so nothing but a visit can write a count. */ ?>
         <section class="panel stats-data" id="data" aria-labelledby="stats-data-heading">
             <h2 id="stats-data-heading"><?= e(t('stats.data')) ?></h2>
             <p class="hint"><?= e(t('stats.data_intro')) ?></p>
             <div class="form-actions">
                 <a class="button button-secondary" href="<?= e(Url::admin('statistics', 'export') . '?' . http_build_query(['table' => 'everything'])) ?>"><?= e(t('stats.download_all')) ?></a>
             </div>
-            <form method="post" action="<?= e(Url::admin('statistics', 'import')) ?>" enctype="multipart/form-data" class="stack">
-                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                <div class="field">
-                    <label for="stats_file"><?= e(t('stats.import')) ?></label>
-                    <input type="file" id="stats_file" name="stats_file" accept=".json,application/json" aria-describedby="stats_file-hint">
-                    <span class="hint" id="stats_file-hint"><?= e(t('stats.import_hint', ['limit' => \App\Support\Bytes::limits()['fileLabel']])) ?></span>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="button button-secondary"><?= e(t('stats.import_button')) ?></button>
-                </div>
-            </form>
         </section>
 
         <p class="hint stats-note"><?= e(t('stats.note')) ?> <a href="<?= e(Url::admin('settings') . '#statistics') ?>"><?= e(t('stats.settings_link')) ?></a></p>

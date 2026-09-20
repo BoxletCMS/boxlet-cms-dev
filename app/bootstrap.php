@@ -249,7 +249,6 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/statistics', [StatsController::class, 'index'], $requireAdmin);
     // Taking the counts out and putting them back (O-20).
     $router->get('/admin/statistics/export', [StatsDataController::class, 'export'], $requireAdmin);
-    $router->post('/admin/statistics/import', [StatsDataController::class, 'import'], $requireAdmin);
     $router->post('/admin/settings/statistics', [StatsSettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/statistics/erase', [StatsSettingsController::class, 'erase'], $requireAdmin);
     $router->post('/admin/settings/statistics/countries', [StatsSettingsController::class, 'geoDownload'], $requireAdmin);

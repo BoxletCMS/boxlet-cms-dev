@@ -243,8 +243,8 @@ final class Tracker
     /**
      * Adds to a row's counts, making the row if there is none (SPEC §5.0 has no upsert
      * that both databases accept). A row made at the same moment by another view is found
-     * by the second UPDATE. Public because importing a file of counts (StatsExport) adds to
-     * exactly the same rows in exactly the same way.
+     * by the second UPDATE. Public because the day's housekeeping (NewDay) writes into the
+     * same rows in the same way when it collapses a place's city into its region.
      *
      * @param array<string, string> $key
      * @param array<string, int|float|null> $first what a new row carries besides its key:

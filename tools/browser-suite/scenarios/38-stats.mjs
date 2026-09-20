@@ -117,6 +117,10 @@ export default {
         boxes: [...el.querySelectorAll('input[type=checkbox]')].map((c) => c.name + '=' + c.checked),
         retention: el.querySelector('#stats_retention')?.value,
         erase: !!el.querySelector('button[data-confirm]'),
+        // How much of where a visitor is, and the two databases (D-055). The big one is
+        // never pressed here: it would fetch 57 MB on every run of the suite.
+        levels: [...el.querySelectorAll('input[name="stats_location"]')].map((r) => r.value + (r.checked ? '*' : '')),
+        cityButton: [...el.querySelectorAll('form')].some((f) => /statistics\/cities$/.test(f.getAttribute('action') || '')),
       }));
       await page.$eval('#statistics', (el) => el.scrollIntoView({ block: 'start' }));
       await report.shot(page, name, { fullPage: false });
@@ -127,6 +131,9 @@ export default {
       report.verdict('the panel says statistics are on, with its switches, the retention and the delete button',
           /Statistics are on\./.test(panel.text) && named && panel.retention !== undefined && panel.erase,
           JSON.stringify(panel));
+      report.verdict('the panel offers the three location levels and the city database',
+          panel.levels.length === 3 && panel.levels.some((l) => l.endsWith('*')) && panel.cityButton,
+          JSON.stringify({ levels: panel.levels, cityButton: panel.cityButton }));
       } else {
         const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
         report.verdict('on a phone the panel does not push the page sideways', !sideways, `scrollWidth > width: ${sideways}`);

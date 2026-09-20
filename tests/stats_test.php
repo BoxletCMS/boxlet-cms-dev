@@ -270,11 +270,18 @@ testBothDrivers('the Settings panel switches it off and on, and deletes every co
     assertContains(e(t('stats.on_now')), dispatch('/admin/settings')->body, 'on by default');
 
     assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics', ['stats_retention' => '12']));
-    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false], Tracker::settings($db), 'saved');
+    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country'], Tracker::settings($db), 'saved');
     assertContains(e(t('stats.off_now')), dispatch('/admin/settings')->body, 'said to be off');
 
     adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_dnt' => '1', 'stats_retention' => '99']);
-    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false], Tracker::settings($db), 'a retention not offered');
+    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country'], Tracker::settings($db), 'a retention not offered');
+
+    // How much of where a visitor is (D-055): one of three, and anything else is the
+    // country — the level that says least.
+    adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_retention' => '12', 'stats_location' => 'city']);
+    assertEquals('city', Tracker::settings($db)['location'], 'the city level');
+    adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_retention' => '12', 'stats_location' => 'street']);
+    assertEquals('country', Tracker::settings($db)['location'], 'a level nobody offers');
 
     adminPost('/admin/settings/statistics/erase', []);
     assertEquals(0, statsTotals($db)['views'], 'counts after erase');
@@ -360,12 +367,17 @@ testBothDrivers('switched off, the screen, the rail\'s link and the Overview\'s 
 
 /**
  * Writes a small MaxMind DB file, so the reader is tested against the format rather than
- * against itself: a tree built from $networks (CIDR => country code), records of
- * $recordSize bits, and the data and metadata sections as the specification lays them out.
+ * against itself: a tree built from $networks, records of $recordSize bits, and the data
+ * and metadata sections as the specification lays them out.
  *
- * @param array<string, string> $networks
+ * A network's value is a country code, or a map of one for a city database (D-055):
+ * ['country' => 'HR', 'region' => 'City of Zagreb', 'city' => 'Zagreb (Trešnjevka)',
+ * 'lat' => 45.8131, 'lon' => 15.9775]. The shape is DB-IP's own, nesting and all, so a
+ * test of the reading is a test of the reading.
+ *
+ * @param array<string, string|array{country: string, region?: string, city?: string, lat?: float, lon?: float}> $networks
  */
-function writeMmdb(string $path, array $networks, int $ipVersion = 6, int $recordSize = 24): void
+function writeMmdb(string $path, array $networks, int $ipVersion = 6, int $recordSize = 24, string $type = 'Test-Country'): void
 {
     $string = static fn (string $s): string => chr((2 << 5) | strlen($s)) . $s;
     $uint = static function (int $type, int $value, int $bytes): string {
@@ -382,6 +394,29 @@ function writeMmdb(string $path, array $networks, int $ipVersion = 6, int $recor
         return $out;
     };
 
+    $list = static function (array $items): string {
+        // An array is an extended type: the control byte's type bits are zero and the byte
+        // after it says which type it really is, 11 - 7 for an array.
+        return chr(count($items)) . chr(11 - 7) . implode('', $items);
+    };
+    $double = static fn (float $value): string => chr((3 << 5) | 8) . pack('E', $value);
+    /** One database record, in DB-IP's own shape. */
+    $record = static function (array $place) use ($map, $string, $list, $double): string {
+        $pairs = ['country' => $map(['iso_code' => $string($place['country'])])];
+        if (($place['region'] ?? '') !== '') {
+            $pairs['subdivisions'] = $list([$map(['names' => $map(['en' => $string($place['region'])])])]);
+        }
+        if (($place['city'] ?? '') !== '') {
+            $pairs['city'] = $map(['names' => $map(['en' => $string($place['city'])])]);
+        }
+        if (isset($place['lat'], $place['lon'])) {
+            $pairs['location'] = $map(['latitude' => $double($place['lat']), 'longitude' => $double($place['lon'])]);
+        }
+        // The specification wants a map's keys in no particular order, and the reader reads
+        // them as they come; this order is DB-IP's.
+        return $map($pairs);
+    };
+
     // The tree: each node is two children, an int (a node), ['data', offset], or null.
     $nodes = [[null, null]];
     $data = '';
@@ -394,7 +429,7 @@ function writeMmdb(string $path, array $networks, int $ipVersion = 6, int $recor
             $length += 96;
         }
         $offset = strlen($data);
-        $data .= $map(['country' => $map(['iso_code' => $string($code)])]);
+        $data .= $record(is_array($code) ? $code : ['country' => $code]);
         $node = 0;
         for ($i = 0; $i < $length; $i++) {
             $bit = (ord($packed[$i >> 3]) >> (7 - ($i & 7))) & 1;
@@ -426,7 +461,7 @@ function writeMmdb(string $path, array $networks, int $ipVersion = 6, int $recor
         'binary_format_major_version' => $uint(5, 2, 1),
         'binary_format_minor_version' => $uint(5, 0, 0),
         'build_epoch' => $uint(9, 1788220800, 4),
-        'database_type' => $string('Test-Country'),
+        'database_type' => $string($type),
         'description' => $map([]),
         'ip_version' => $uint(5, $ipVersion, 1),
         'languages' => chr(0) . chr(11 - 7),
@@ -495,14 +530,14 @@ test('a country database is installed gzipped or not, and a file that is not one
     file_put_contents(tmpPath('geo.mmdb.gz'), (string) gzencode((string) file_get_contents(tmpPath('geo.mmdb'))));
 
     App\Modules\Stats\Geo::install($storage, tmpPath('geo.mmdb.gz'));
-    assertEquals('HR', App\Modules\Stats\Geo::country($storage, '198.51.100.73'), 'from the gzipped file');
-    assertEquals(['built' => '2026-09-01', 'type' => 'Test-Country'], App\Modules\Stats\Geo::status($storage), 'the status');
+    assertEquals('HR', App\Modules\Stats\Geo::place($storage, '198.51.100.73')->country, 'from the gzipped file');
+    assertEquals(['built' => '2026-09-01', 'type' => 'Test-Country', 'cities' => false], App\Modules\Stats\Geo::status($storage), 'the status');
 
     file_put_contents(tmpPath('junk.mmdb'), 'not a database');
     assertThrows(fn () => App\Modules\Stats\Geo::install($storage, tmpPath('junk.mmdb')), t('stats.geo_not_a_database'));
     writeMmdb(tmpPath('empty.mmdb'), ['203.0.113.0/24' => 'FR']);
     assertThrows(fn () => App\Modules\Stats\Geo::install($storage, tmpPath('empty.mmdb')), t('stats.geo_not_a_database'));
-    assertEquals('HR', App\Modules\Stats\Geo::country($storage, '198.51.100.73'), 'the file in use after two refusals');
+    assertEquals('HR', App\Modules\Stats\Geo::place($storage, '198.51.100.73')->country, 'the file in use after two refusals');
     assertEquals(['dbip-country-lite.mmdb'], array_values(array_diff((array) scandir($storage . '/geo'), ['.', '..'])), 'files left behind');
     removeTree($storage . '/geo');
 });
@@ -518,7 +553,7 @@ test('downloading takes this month\'s file, or last month\'s when this one is no
     $source = 'file://' . tmpPath('dbip') . '/lite-%s.mmdb.gz';
 
     App\Modules\Stats\Geo::download($storage, new DateTimeImmutable('2026-09-01 00:10:00'), $source);
-    assertEquals('US', App\Modules\Stats\Geo::country($storage, '8.8.8.8'), 'last month\'s file');
+    assertEquals('US', App\Modules\Stats\Geo::place($storage, '8.8.8.8')->country, 'last month\'s file');
 
     removeTree($storage . '/geo');
     assertThrows(fn () => App\Modules\Stats\Geo::download($storage, new DateTimeImmutable('2026-12-05'), $source), 'could not be downloaded');

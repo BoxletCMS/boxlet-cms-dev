@@ -81,12 +81,12 @@ testBothDrivers('the Media screen starts a pass and continues it until nothing i
     assertContains('action="/admin/media/remake"', dispatch('/admin/media')->body, 'the start button');
     assertRedirectedTo('/admin/media#remake', adminPost('/admin/media/remake', []));
     $body = dispatch('/admin/media')->body;
-    assertContains('data-remake-continue', $body, 'Continue, while work is owed');
+    assertContains('data-auto-continue', $body, 'Continue, while work is owed');
     assertContains(e(t('media.remake_left', ['left' => '1'])), $body, 'how much is left');
 
     // The fixture has no original on disk, so the step clears it without making anything.
     adminPost('/admin/media/remake/step', []);
     $body = dispatch('/admin/media')->body;
     assertContains(e(t('media.remake_done')), $body, 'done');
-    assertTrue(!str_contains($body, 'data-remake-continue'), 'Continue once nothing is left');
+    assertTrue(!str_contains($body, 'data-auto-continue'), 'Continue once nothing is left');
 });

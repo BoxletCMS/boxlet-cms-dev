@@ -254,6 +254,10 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/settings/statistics/erase', [StatsSettingsController::class, 'erase'], $requireAdmin);
     $router->post('/admin/settings/statistics/countries', [StatsSettingsController::class, 'geoDownload'], $requireAdmin);
     $router->post('/admin/settings/statistics/countries/upload', [StatsSettingsController::class, 'geoUpload'], $requireAdmin);
+    // The city database, which comes down in pieces (D-055): begin, carry on, give up.
+    $router->post('/admin/settings/statistics/cities', [StatsSettingsController::class, 'cityStart'], $requireAdmin);
+    $router->post('/admin/settings/statistics/cities/step', [StatsSettingsController::class, 'cityStep'], $requireAdmin);
+    $router->post('/admin/settings/statistics/cities/cancel', [StatsSettingsController::class, 'cityCancel'], $requireAdmin);
     // The site's languages (D-043), a panel on the Settings screen with its own forms. A
     // code is two letters, the ISO 639-1 list the installer offers.
     $router->post('/admin/languages', [LanguagesController::class, 'add'], $requireAdmin);

@@ -15,6 +15,7 @@ use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Media\MediaReference;
 use App\Modules\Stats\Geo;
+use App\Modules\Stats\GeoDownload;
 use App\Modules\Stats\PrivacyText;
 use App\Modules\Stats\Tracker;
 use App\Support\Bytes;
@@ -157,7 +158,7 @@ final class SettingsController
             'nav' => 'settings',
             // The picker's own stylesheets and script, the same set the page editor loads.
             'styles' => ['admin-media.css', 'admin-picker.css', 'admin-two-step.css', 'admin-settings.css'],
-            'scripts' => ['media-picker.js', 'mail-settings.js', 'settings-nav.js'],
+            'scripts' => ['media-picker.js', 'mail-settings.js', 'settings-nav.js', 'auto-continue.js'],
             'values' => $values,
             'errors' => $errors,
             'notice' => $notice,
@@ -170,7 +171,10 @@ final class SettingsController
             'lastSaved' => $this->lastSaved(),
             'trustedProxies' => Settings::text($this->db(), 'trusted_proxies'),
             'stats' => $stats = Tracker::settings($this->db()),
-            'geo' => $geo = Geo::status((string) $this->container->get('config')->get('app.storage_path')),
+            'geo' => $geo = Geo::status($storage = (string) $this->container->get('config')->get('app.storage_path')),
+            // A city database that is part-way down (D-055): the panel draws how far it got
+            // and a Continue, which a script presses by itself.
+            'geoDownload' => GeoDownload::progress($storage),
             'privacy' => PrivacyText::all($stats, $geo !== null),
             'uploadLimit' => Bytes::limits()['fileLabel'],
         ] + $this->mail(), $status);

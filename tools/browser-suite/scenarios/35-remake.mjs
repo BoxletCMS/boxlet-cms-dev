@@ -35,8 +35,8 @@ export default {
     // The first batch is made before the page answers; with the pictures earlier scenarios
     // leave on the copy, that measured past the default 25 seconds in a full run.
     await clickAndWait(page, 'form[action$="/admin/media/remake"] button', 180000);
-    // media-remake.js presses Continue by itself; wait for the page that says it is done.
-    await page.waitForFunction(() => !document.querySelector('[data-remake-continue]'), { timeout: 300000, polling: 1000 }).catch(() => {});
+    // auto-continue.js presses Continue by itself; wait for the page that says it is done.
+    await page.waitForFunction(() => !document.querySelector('[data-auto-continue]'), { timeout: 300000, polling: 1000 }).catch(() => {});
     await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
     const said = await page.$$eval('[role="status"], .flash, .notice', (els) => els.map((e) => e.textContent.trim()).join(' | '));
     const after = await thumbs(page);

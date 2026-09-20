@@ -103,6 +103,14 @@ return [
     'stats.other_small' => 'Other (fewer than :count)',
     'stats.proxies' => 'Addresses of your proxies',
     'stats.proxies_hint' => 'Leave this empty unless your site sits behind Cloudflare, a load balancer or a caching proxy. Then every visit arrives from that machine, and the visitor\'s own address comes in a header that anyone could fake — so it is believed only from the addresses listed here. One address or range per line, such as 173.245.48.0/20. This is also what keeps the limits on sending a form and on logging in from counting everyone as one person.',
+    // Where visitors are, past the country (D-055): the level, and the bigger database
+    // the region and the city need.
+    'stats.location' => 'How much of a visitor\'s location is counted',
+    'stats.location_country' => 'The country',
+    'stats.location_region' => 'The country and the region',
+    'stats.location_city' => 'The country, the region and the city',
+    'stats.location_hint' => 'A site that serves one country learns nothing from a map saying everybody is in it. The region and the city need the city database below, which is larger. Changing this counts differently from now on; what is already counted stays as it was.',
+    'stats.location_needs_city' => 'The database in use knows countries only, so the counts will keep saying the country until the city database is fetched.',
     'stats.geo_title' => 'Countries',
     'stats.geo_intro' => 'To tell which country a visit came from, Boxlet uses DB-IP\'s free country database, kept on your server. Fetching it is the only time statistics contact anyone, and nothing about your visitors is sent. DB-IP publishes a new one each month.',
     'stats.geo_none' => 'No country database yet: every country shows as unknown.',
@@ -119,6 +127,17 @@ return [
     'stats.geo_too_big' => 'That file is too large to be a country database.',
     'stats.geo_upload_too_big' => 'That file is larger than this server accepts (:limit). Upload the .mmdb.gz file, which is smaller.',
     'stats.geo_upload_none' => 'Choose the database file to upload first.',
+    'stats.geo_kind_country' => 'It knows countries.',
+    'stats.geo_kind_city' => 'It knows cities.',
+    'stats.geo_city_download' => 'Fetch the city database',
+    'stats.geo_city_hint' => 'About 60 MB to fetch and 120 MB once unpacked. It comes in pieces, so it finishes even where a host stops a long request, and it can be stopped and carried on.',
+    'stats.geo_downloading' => 'Fetching the city database: :done of :total.',
+    'stats.geo_continue' => 'Continue',
+    'stats.geo_cancel' => 'Stop fetching',
+    'stats.geo_cancelled' => 'The download was stopped. Nothing was changed.',
+    'stats.geo_started' => 'The download has begun. Leave this page open, or press Continue.',
+    'stats.geo_download_none' => 'There is no download to carry on.',
+    'stats.geo_download_no_size' => 'the server did not say how large the file is',
     'stats.attribution' => 'IP geolocation by DB-IP',
 
     // The suggested privacy-policy text.

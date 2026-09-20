@@ -36,14 +36,16 @@ final class Tracker
     private const SKIPPED = ['admin', 'form', 'sitemap', 'install', 'install.php', '_boxlet'];
 
     /**
-     * The module's settings, with their defaults: on, honouring DNT and GPC, two years.
+     * The module's settings, with their defaults: on, honouring DNT and GPC, two years,
+     * and the country as the only thing said about where a visitor is.
      *
-     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool}
+     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string}
      */
     public static function settings(Db $db): array
     {
-        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing', 'stats_group']);
+        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing', 'stats_group', 'stats_location']);
         $retention = $stored['stats_retention'];
+        $location = $stored['stats_location'];
 
         return [
             'enabled' => $stored['stats_enabled'] !== false,
@@ -56,6 +58,9 @@ final class Tracker
             // table is otherwise a list of ones, and one visitor from one country on one
             // page is close to naming somebody.
             'group' => $stored['stats_group'] === true,
+            // How much of where a visitor is (D-055). The country unless asked otherwise:
+            // the city is the point at which a count starts to be about a person.
+            'location' => is_string($location) && in_array($location, Place::LEVELS, true) ? $location : 'country',
         ];
     }
 
@@ -126,6 +131,10 @@ final class Tracker
             return $settings['missing'];
         }
 
+        // Where the visitor is, as far as the owner asked (D-055). The address itself is
+        // gone by the end of this method; what stays is a country, and at most a city.
+        $place = $storagePath === '' ? new Place() : Geo::place($storagePath, $ip, $settings['location']);
+
         $salt = self::salt($db, $day, $today, $settings['retention']);
         $visitor = bin2hex(substr(hash_hmac('sha256', $ip . "\n" . $userAgent . "\n" . $host, $salt, true), 0, 16));
         $agent = Agent::parse($userAgent);
@@ -141,7 +150,7 @@ final class Tracker
                 'day' => $day,
                 'path' => $path,
                 'source' => self::source($request->header('referer') ?? '', $host),
-                'country' => $storagePath === '' ? '' : Geo::country($storagePath, $ip),
+                'country' => $place->country,
                 'device' => $agent['device'],
                 'browser' => $agent['browser'],
                 'os' => $agent['os'],

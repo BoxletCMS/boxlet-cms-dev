@@ -7,11 +7,17 @@ use RuntimeException;
 use Throwable;
 
 /**
- * The country a visitor's address belongs to (PLAN.md D-051), from DB-IP's IP-to-Country
- * Lite database: CC BY 4.0, attributed on the Statistics screen, updated monthly by DB-IP.
+ * Where a visitor's address is (PLAN.md D-051, D-055), from one of DB-IP's Lite databases:
+ * CC BY 4.0, attributed on the Statistics screen, updated monthly by DB-IP.
+ *
+ * Two files, and the owner chooses: IP-to-Country, 3.9 MB to fetch and 9.6 on disk, or
+ * IP-to-City, 57.5 MB to fetch and 121.4 on disk — measured, where the specification said
+ * 19. The big one is what makes the region and the city possible, and it is not a thing to
+ * put on a shared host without being asked; GeoDownload fetches it a few megabytes at a
+ * time.
  *
  * The database lives in storage/geo/, outside the web root, and is optional: without it
- * every country is unknown and nothing else changes. The owner fetches it from Settings,
+ * every place is unknown and nothing else changes. The owner fetches it from Settings,
  * which is the only request Boxlet makes to anyone for statistics, and carries nothing
  * about a visitor; or uploads the file where the server cannot reach DB-IP.
  *
@@ -21,13 +27,17 @@ use Throwable;
  */
 final class Geo
 {
-    /** DB-IP's monthly file; %s is the year and month. */
+    /** DB-IP's monthly country file; %s is the year and month. */
     public const SOURCE = 'https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz';
+
+    /** And the city one, which GeoDownload fetches in pieces. */
+    public const CITY_SOURCE = 'https://download.db-ip.com/free/dbip-city-lite-%s.mmdb.gz';
 
     private const FILE = 'geo/dbip-country-lite.mmdb';
 
-    /** Refused above this, uncompressed: the country file is about 8 MB, a city file 130. */
-    private const MAX_BYTES = 64 * 1024 * 1024;
+    /** Refused above this, uncompressed: the city file is 121 MB, and nothing DB-IP
+        publishes is anywhere near this. */
+    private const MAX_BYTES = 256 * 1024 * 1024;
 
     /** An address every country database places, to prove a file works before it is used. */
     private const KNOWN_ADDRESS = '8.8.8.8';
@@ -37,17 +47,21 @@ final class Geo
         return $storagePath . '/' . self::FILE;
     }
 
-    /** The country code for an address, as ISO writes it (HR); '' when unknown or there is no file. */
-    public static function country(string $storagePath, string $ip): string
+    /**
+     * Where an address is, at most as far as $level asks: the country as ISO writes it
+     * (HR), and with a city database the region and the city too. Everything empty when
+     * the address is unknown, or there is no database.
+     */
+    public static function place(string $storagePath, string $ip, string $level = 'country'): Place
     {
         $path = self::path($storagePath);
         if ($ip === '' || !is_file($path)) {
-            return '';
+            return new Place();
         }
         try {
-            return self::code((new Mmdb($path))->get($ip));
+            return Place::of((new Mmdb($path))->get($ip), $level);
         } catch (Throwable) {
-            return '';
+            return new Place();
         }
     }
 
@@ -55,7 +69,11 @@ final class Geo
      * The database in use, for the Settings panel: when it was built and by whom. Null
      * when there is none, or it cannot be read.
      *
-     * @return array{built: string, type: string}|null
+     * Whether it holds cities is asked of the file first — does the address every database
+     * knows come back with a city — and of its name only as a fallback, for the file whose
+     * one known row happens to have none. A name alone would be no promise at all.
+     *
+     * @return array{built: string, type: string, cities: bool}|null
      */
     public static function status(string $storagePath): ?array
     {
@@ -73,6 +91,8 @@ final class Geo
         return [
             'built' => is_int($epoch) ? gmdate('Y-m-d', $epoch) : '',
             'type' => is_string($metadata['database_type'] ?? null) ? $metadata['database_type'] : '',
+            'cities' => self::place($storagePath, self::KNOWN_ADDRESS, 'city')->city !== ''
+                || stripos(is_string($metadata['database_type'] ?? null) ? $metadata['database_type'] : '', 'city') !== false,
         ];
     }
 
@@ -117,7 +137,7 @@ final class Geo
         try {
             self::unpack($source, $unpacked);
             try {
-                $known = self::code((new Mmdb($unpacked))->get(self::KNOWN_ADDRESS));
+                $known = Place::of((new Mmdb($unpacked))->get(self::KNOWN_ADDRESS))->country;
             } catch (Throwable) {
                 $known = '';
             }
@@ -222,13 +242,5 @@ final class Geo
         }
 
         return $directory;
-    }
-
-    /** The country code in a looked-up value, upper case, or ''. */
-    private static function code(mixed $value): string
-    {
-        $code = is_array($value) && is_array($value['country'] ?? null) ? ($value['country']['iso_code'] ?? '') : '';
-
-        return is_string($code) && preg_match('~^[A-Za-z]{2}$~', $code) === 1 ? strtoupper($code) : '';
     }
 }

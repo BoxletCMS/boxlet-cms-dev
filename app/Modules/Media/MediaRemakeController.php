@@ -11,7 +11,7 @@ use App\Support\Url;
 /**
  * Making every picture's sizes again, from the Media screen (PLAN.md D-048): Start owes
  * every picture a remake; each Continue does what fits in one request and comes back with
- * how many are left. media-remake.js presses Continue by itself while any are left, so with
+ * how many are left. auto-continue.js presses Continue by itself while any are left, so with
  * a script it runs to the end on its own; without one the owner presses it.
  */
 final class MediaRemakeController

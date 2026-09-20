@@ -33,6 +33,8 @@ final class StatsSettingsController
         Settings::set($db, 'stats_dnt', $request->input('stats_dnt') === '1');
         Settings::set($db, 'stats_missing', $request->input('stats_missing') === '1');
         Settings::set($db, 'stats_group', $request->input('stats_group') === '1');
+        $location = $request->input('stats_location');
+        Settings::set($db, 'stats_location', in_array($location, Place::LEVELS, true) ? $location : 'country');
         // Not stats_*: the addresses that may speak for a visitor are read by the form and
         // login limits too (O-20).
         Settings::set($db, 'trusted_proxies', mb_substr(trim($request->input('trusted_proxies')), 0, 2000));
@@ -96,6 +98,53 @@ final class StatsSettingsController
         }
 
         return $this->back(t('stats.geo_installed'));
+    }
+
+    /**
+     * Begins fetching the city database (D-055). It arrives in pieces, so this button only
+     * finds out which month DB-IP has published and how big it is.
+     *
+     * @param array<string, string> $params
+     */
+    public function cityStart(Request $request, string $locale, array $params): Response
+    {
+        try {
+            GeoDownload::start($this->storage(), new DateTimeImmutable());
+        } catch (RuntimeException $e) {
+            return $this->back($e->getMessage(), true);
+        }
+
+        return $this->back(t('stats.geo_started'));
+    }
+
+    /**
+     * One more piece. geo-download.js presses this by itself while any are left; without a
+     * script the owner presses Continue, which is why it is a form and not a fetch.
+     *
+     * @param array<string, string> $params
+     */
+    public function cityStep(Request $request, string $locale, array $params): Response
+    {
+        try {
+            $progress = GeoDownload::step($this->storage());
+        } catch (RuntimeException $e) {
+            return $this->back($e->getMessage(), true);
+        }
+
+        return $this->back($progress['finished'] ? t('stats.geo_installed') : t('stats.geo_downloading', [
+            'done' => Bytes::human($progress['done']),
+            'total' => Bytes::human($progress['total']),
+        ]));
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    public function cityCancel(Request $request, string $locale, array $params): Response
+    {
+        GeoDownload::cancel($this->storage());
+
+        return $this->back(t('stats.geo_cancelled'));
     }
 
     private function storage(): string

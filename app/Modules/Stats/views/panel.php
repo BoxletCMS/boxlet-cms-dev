@@ -8,8 +8,9 @@ use App\Support\Url;
  * browser's Do Not Track or Global Privacy Control is honoured, how long counts are kept,
  * and a way to delete them all. Its forms are its own, outside the settings form.
  *
- * @var array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool} $stats
- * @var array{built: string, type: string}|null $geo the country database in use
+ * @var array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string} $stats
+ * @var array{built: string, type: string, cities: bool}|null $geo the location database in use
+ * @var array{done: int, total: int}|null $geoDownload a city database part-way down (D-055)
  * @var string $uploadLimit the largest file this server accepts, as php.ini says it
  * @var string $trustedProxies the addresses that may speak for a visitor, one per line
  * @var array<string, array{language: string, text: string}> $privacy the suggested policy text, by language
@@ -27,6 +28,18 @@ use App\Support\Url;
                 <label class="checkbox"><input type="checkbox" name="stats_dnt" value="1"<?= $stats['dnt'] ? ' checked' : '' ?>> <span><?= e(t('stats.dnt')) ?></span></label>
                 <label class="checkbox"><input type="checkbox" name="stats_group" value="1"<?= $stats['group'] ? ' checked' : '' ?>> <span><?= e(t('stats.group_small', ['count' => (string) \App\Modules\Stats\StatsQuery::SMALL])) ?></span></label>
                 <label class="checkbox"><input type="checkbox" name="stats_missing" value="1"<?= $stats['missing'] ? ' checked' : '' ?>> <span><?= e(t('stats.missing_count')) ?></span></label>
+                <?php /* How much of where a visitor is (D-055). A radio group, because the
+                         three are one choice and each has to say what it means. */ ?>
+                <fieldset class="fieldset stack">
+                    <legend><?= e(t('stats.location')) ?></legend>
+<?php foreach (App\Modules\Stats\Place::LEVELS as $level): ?>
+                    <label class="checkbox"><input type="radio" name="stats_location" value="<?= e($level) ?>"<?= $stats['location'] === $level ? ' checked' : '' ?>> <span><?= e(t('stats.location_' . $level)) ?></span></label>
+<?php endforeach; ?>
+                    <span class="hint"><?= e(t('stats.location_hint')) ?></span>
+<?php if ($stats['location'] !== 'country' && ($geo === null || !$geo['cities'])): ?>
+                    <p class="notice notice-warning"><?= e(t('stats.location_needs_city')) ?></p>
+<?php endif; ?>
+                </fieldset>
                 <div class="field">
                     <label for="stats_retention"><?= e(t('stats.retention')) ?></label>
                     <select id="stats_retention" name="stats_retention" aria-describedby="stats_retention-hint">
@@ -54,11 +67,38 @@ use App\Support\Url;
             <fieldset class="fieldset stack">
                 <legend><?= e(t('stats.geo_title')) ?></legend>
                 <p class="hint"><?= e(t('stats.geo_intro')) ?></p>
-                <p><?= e($geo === null ? t('stats.geo_none') : t('stats.geo_in_use', ['date' => $geo['built']])) ?></p>
-                <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'countries')) ?>">
-                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                    <button type="submit" class="button button-secondary"><?= e(t($geo === null ? 'stats.geo_download' : 'stats.geo_update')) ?></button>
-                </form>
+                <p><?= e($geo === null ? t('stats.geo_none') : t('stats.geo_in_use', ['date' => $geo['built']]) . ' ' . t($geo['cities'] ? 'stats.geo_kind_city' : 'stats.geo_kind_country')) ?></p>
+<?php if ($geoDownload !== null): ?>
+                <?php /* A city database part-way down (D-055): how far it got, and the button
+                         that fetches the next piece. auto-continue.js presses it by itself,
+                         so with a script the whole file arrives on its own. */ ?>
+                <p><?= e(t('stats.geo_downloading', [
+                    'done' => App\Support\Bytes::human($geoDownload['done']),
+                    'total' => App\Support\Bytes::human($geoDownload['total']),
+                ])) ?></p>
+                <div class="form-actions">
+                    <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'cities', 'step')) ?>" data-auto-continue>
+                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                        <button type="submit" class="button button-secondary"><?= e(t('stats.geo_continue')) ?></button>
+                    </form>
+                    <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'cities', 'cancel')) ?>">
+                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                        <button type="submit" class="button button-ghost"><?= e(t('stats.geo_cancel')) ?></button>
+                    </form>
+                </div>
+<?php else: ?>
+                <div class="form-actions">
+                    <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'countries')) ?>">
+                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                        <button type="submit" class="button button-secondary"><?= e(t($geo === null ? 'stats.geo_download' : 'stats.geo_update')) ?></button>
+                    </form>
+                    <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'cities')) ?>">
+                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                        <button type="submit" class="button button-secondary"><?= e(t('stats.geo_city_download')) ?></button>
+                    </form>
+                </div>
+                <p class="hint"><?= e(t('stats.geo_city_hint')) ?></p>
+<?php endif; ?>
                 <form method="post" action="<?= e(Url::admin('settings', 'statistics', 'countries', 'upload')) ?>" enctype="multipart/form-data" class="stack">
                     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                     <div class="field">

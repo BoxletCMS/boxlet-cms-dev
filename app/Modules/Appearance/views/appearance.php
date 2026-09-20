@@ -141,19 +141,74 @@ $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
                              is always in view. Below a frame this tall, a button sits past the
                              bottom of the window and stays there however far the page is
                              scrolled. The buttons submit the form by name, not by containment. */ ?>
+                    <?php /* TWO ROWS, NOT ONE WRAPPING ONE. Everything here — a label, three
+                             widths, a zoom, Compare, what state the screen is in, and two
+                             actions — does not fit across a column this wide, and left to
+                             wrap it landed in a different arrangement at every width. So the
+                             rows are declared: what this is and what to do with it, then the
+                             tools for looking at it. */ ?>
+                    <?php /* TWO ROWS, NOT ONE WRAPPING ONE. A label, three widths, a zoom,
+                             Compare, what state the screen is in and two actions do not fit
+                             across a column this wide, and left to wrap they landed in a
+                             different arrangement at every width. So the rows are declared:
+                             what this is and what to do with it, then the tools for looking
+                             at it. */ ?>
                     <div class="preview-bar">
-                        <span><?= e(t('design.preview.title')) ?></span>
-                        <div class="preview-actions">
+                        <div class="preview-bar-row">
+                            <span class="preview-label"><?= e(t('design.preview.title')) ?></span>
+
+                            <?php /* What the owner is looking at: their own unpublished work, or
+                                     the site as it stands. It starts as "published", because on
+                                     arrival the screen IS the site. */ ?>
+                            <span class="preview-state" data-state role="status"
+                                  data-published="<?= e(t('appearance.state.published')) ?>"
+                                  data-unpublished="<?= e(t('appearance.state.unpublished')) ?>"
+                                  data-problem="<?= e(t('appearance.state.problem')) ?>"><?= e(t('appearance.state.published')) ?></span>
+
+                            <div class="preview-actions">
+                                <button type="submit" form="design-preview-form" class="button button-quiet" data-preview-button><?= e(t('design.update_preview')) ?></button>
+                                <a class="button button-quiet" href="<?= e(Url::admin('appearance')) ?>" data-revert hidden><?= e(t('appearance.revert')) ?></a>
 <?php if ($character !== '' && $hasBlocks): ?>
-                            <button type="submit" form="design-form" name="action" value="save" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
-                            <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
+                                <button type="submit" form="design-form" name="action" value="save" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
+                                <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
 <?php else: ?>
-                            <button type="submit" form="design-form" name="action" value="save" class="button"><?= e(t('appearance.publish')) ?></button>
+                                <button type="submit" form="design-form" name="action" value="save" class="button"><?= e(t('appearance.publish')) ?></button>
 <?php endif; ?>
+                            </div>
                         </div>
-                        <button type="submit" form="design-preview-form" class="button button-quiet" data-preview-button><?= e(t('design.update_preview')) ?></button>
+
+                        <?php /* THE TOOLS (D-060). Three widths, a zoom, and Compare. Each is a
+                                 button or a select with a visible resting state; none of them
+                                 appears on hover. Without JavaScript they are not there at all,
+                                 and the frame is what it always was — the column's width, at
+                                 full size. */ ?>
+                        <div class="preview-tools" data-preview-tools hidden>
+                            <div class="viewports" role="group" aria-label="<?= e(t('appearance.width')) ?>">
+<?php foreach (['desktop' => 1280, 'tablet' => 834, 'phone' => 390] as $name => $width): ?>
+                                <button type="button" class="viewport" data-viewport="<?= e((string) $width) ?>" aria-pressed="<?= $name === 'desktop' ? 'true' : 'false' ?>"><?= e(t('appearance.width.' . $name)) ?></button>
+<?php endforeach; ?>
+                            </div>
+                            <label class="zoom">
+                                <span class="visually-hidden"><?= e(t('appearance.zoom')) ?></span>
+                                <select data-zoom>
+                                    <option value="fit"><?= e(t('appearance.zoom.fit')) ?></option>
+                                    <option value="1">100%</option>
+                                    <option value="0.75">75%</option>
+                                    <option value="0.5">50%</option>
+                                </select>
+                            </label>
+                            <?php /* Held, not toggled: a comparison you have to keep holding is
+                                     one you cannot walk away from and mistake for the site. */ ?>
+                            <button type="button" class="viewport viewport-compare" data-compare aria-pressed="false" title="<?= e(t('appearance.compare_hint')) ?>"><?= e(t('appearance.compare')) ?></button>
+                        </div>
                     </div>
-                    <iframe name="design-preview" src="<?= e($previewUrl) ?>" title="<?= e(t('design.preview')) ?>" data-design-preview></iframe>
+                    <?php /* THE ZOOM SCALES THE STAGE, NEVER THE FRAME'S WIDTH. A page judged
+                             at 1280 has to lay itself out at 1280; shrinking the frame instead
+                             would hand it a narrower window and it would answer with the phone
+                             layout, which is a different question entirely. */ ?>
+                    <div class="preview-stage" data-stage>
+                        <iframe name="design-preview" src="<?= e($previewUrl) ?>" title="<?= e(t('design.preview')) ?>" data-design-preview></iframe>
+                    </div>
                 </div>
 <?php if ($character !== ''): ?>
                 <p class="preview-note"><?= e(t('design.preview.composition_note', ['character' => t('design.preset.' . $character)])) ?></p>
@@ -173,6 +228,7 @@ $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
 
         <?php /* Without JavaScript this form sends the current values to the preview frame. */ ?>
         <form id="design-preview-form" method="get" action="<?= e(Url::admin('appearance', 'preview')) ?>" target="design-preview" class="visually-hidden"></form>
-        <script src="<?= e(Url::versioned('assets/design.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance.js')) ?>" defer></script>
         <?php /* The link field (page or address) is admin.js's, as everywhere else. */ ?>
         <script src="<?= e(Url::versioned('assets/appearance-tabs.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-stage.js')) ?>" defer></script>

@@ -111,12 +111,68 @@ export default {
       `left column ${loop.columnHeight}px tall; ${loop.actions} action(s) ${loop.saveInView ? 'visible' : 'OFF SCREEN'}`);
     await page.evaluate(() => window.scrollTo(0, 0));
 
+    /*
+     * ---- the toolbar over the picture (PLAN.md D-060) ----------------------------------
+     *
+     * The one thing worth measuring rather than looking at: the frame must be LAID OUT at
+     * the width being judged and then scaled. A frame simply made narrower would hand the
+     * page a smaller window, and the page would answer with its phone layout.
+     */
+    const stage = async () => page.evaluate(() => {
+      const frame = document.querySelector('iframe[data-design-preview]');
+      const box = frame.getBoundingClientRect();
+      const inside = document.querySelector('[data-stage]');
+      return {
+        laidOutAt: frame.style.width,
+        onScreen: Math.round(box.width),
+        scaled: frame.style.transform,
+        fitsTheStage: Math.round(box.width) <= inside.clientWidth + 1,
+        state: document.querySelector('[data-state]').textContent.trim(),
+        src: frame.getAttribute('src'),
+      };
+    });
+
+    const desktop = await stage();
+    report.verdict('the desktop width is laid out at 1280 and scaled to fit',
+      desktop.laidOutAt === '1280px' && desktop.fitsTheStage && /scale\(0\./.test(desktop.scaled),
+      JSON.stringify(desktop));
+
+    await page.click('[data-viewport="390"]');
+    await new Promise((resolve) => { setTimeout(resolve, 300); });
+    const phone = await stage();
+    report.verdict('the phone width really is 390 across', phone.laidOutAt === '390px' && phone.onScreen === 390,
+      JSON.stringify(phone));
+    await report.shot(page, 'stage-phone');
+    await page.click('[data-viewport="1280"]');
+
+    // Compare is HELD: the frame shows the published design while the button is down, and
+    // the owner's unsaved work the moment it comes up.
+    const mine = (await stage()).src;
+    await page.hover('[data-compare]');
+    await page.mouse.down();
+    await new Promise((resolve) => { setTimeout(resolve, 250); });
+    const holding = (await stage()).src;
+    await page.mouse.up();
+    await new Promise((resolve) => { setTimeout(resolve, 250); });
+    const released = (await stage()).src;
+    report.verdict('Compare shows the published site while it is held',
+      !holding.includes('?') && released === mine,
+      `held ${holding.slice(-40)}, released ${released.slice(-40)}`);
+
     // A choice is immediate: no click on anything called "update", and no waiting.
     const framedBefore = await page.$eval('iframe[data-design-preview]', (el) => el.src);
     await openTab(page, 'shape');
     await page.select('#design-container', 'narrow');
     await page.waitForFunction((was) => document.querySelector('iframe[data-design-preview]').src !== was, {}, framedBefore);
     report.pass('choosing a value refreshes the preview by itself', 'the frame followed the select with no button pressed');
+
+    // And the screen says what it now is, rather than leaving the owner to remember.
+    const said = await page.evaluate(() => ({
+      state: document.querySelector('[data-state]').textContent.trim(),
+      revert: !document.querySelector('[data-revert]').hidden,
+    }));
+    report.verdict('an unpublished change says so, and offers a way back', said.revert && said.state.length > 0,
+      `the bar says ${JSON.stringify(said.state)}, Discard changes shown: ${said.revert}`);
 
     // ---- each character, seen on the home page and in the admin ------------------------
     const adminFingerprints = [];

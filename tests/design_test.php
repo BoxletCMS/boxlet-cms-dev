@@ -392,3 +392,26 @@ test('the preview draws the words being typed, before anything is published', fu
     assertContains('Press me', $body, 'the button label being typed');
     assertEquals('', SiteChrome::footer($db, 'en')['text'], 'and nothing was written');
 });
+
+test('the picture has a toolbar, and it is not there for anyone without a script', function () {
+    adminSite('sqlite');
+    $body = dispatch('/admin/appearance')->body;
+
+    foreach (['1280', '834', '390'] as $width) {
+        assertContains('data-viewport="' . $width . '"', $body, 'the ' . $width . ' width');
+    }
+    assertContains('data-zoom', $body, 'the zoom');
+    assertContains('data-compare', $body, 'Compare');
+    assertContains('data-stage', $body, 'the stage the frame is scaled inside');
+
+    // Hidden in the markup, shown by the script that makes it work: a row of controls that
+    // did nothing would be worse than none (D-060).
+    assertContains('data-preview-tools hidden', $body, 'the tools start hidden');
+    assertContains('data-revert hidden', $body, 'so does Discard changes');
+
+    // The three words the state can say, carried on the element rather than in the script,
+    // because they are translated and it is not.
+    foreach (['published', 'unpublished', 'problem'] as $state) {
+        assertContains('data-' . $state . '="', $body, 'the wording for ' . $state);
+    }
+});

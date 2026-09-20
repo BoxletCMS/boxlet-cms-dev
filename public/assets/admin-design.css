@@ -274,13 +274,7 @@
   }
 }
 
-.preview-frame iframe {
-  display: block;
-  inline-size: 100%;
-  block-size: 78vh;
-  min-block-size: 32rem;
-  border: 0;
-}
+/* The frame's own size belongs to the stage it sits in (admin-appearance.css, D-060). */
 
 .preview-note {
   margin: 0;
@@ -297,7 +291,4 @@
     position: static;
   }
 
-  .preview-frame iframe {
-    block-size: 60vh;
-  }
 }

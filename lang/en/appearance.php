@@ -19,4 +19,18 @@ return [
     'appearance.publish' => 'Publish',
     'appearance.published' => 'Published. The site looks like this from now on.',
     'appearance.words_previewed' => 'The preview shows this language.',
+
+    // The toolbar over the picture.
+    'appearance.width' => 'Width',
+    'appearance.width.desktop' => 'Desktop',
+    'appearance.width.tablet' => 'Tablet',
+    'appearance.width.phone' => 'Phone',
+    'appearance.zoom' => 'Zoom',
+    'appearance.zoom.fit' => 'Fit',
+    'appearance.compare' => 'Compare',
+    'appearance.compare_hint' => 'Hold to see the published site.',
+    'appearance.state.published' => 'Published',
+    'appearance.state.unpublished' => 'Not published yet',
+    'appearance.state.problem' => 'Fix the contrast to publish',
+    'appearance.revert' => 'Discard changes',
 ];

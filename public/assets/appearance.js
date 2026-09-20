@@ -1,6 +1,6 @@
 /*
- * Design screen. Optional: without JavaScript, "Update preview" submits the separate
- * preview form into the preview frame and Save posts normally. With it, the preview,
+ * The Appearance screen's form. Optional: without JavaScript, "Update preview" submits the
+ * separate preview form into the preview frame and Publish posts normally. With it, the preview,
  * the colour readouts, the contrast gauge and the inline messages follow every change.
  * All derivation and validation stays on the server; this only asks for it.
  *
@@ -82,6 +82,15 @@
     });
   }
 
+  /**
+   * What the screen is in one word, for the toolbar over the picture (D-060). An event
+   * rather than a reach into another file's elements: this one knows, because it is the one
+   * asking the server.
+   */
+  function announce(name) {
+    document.dispatchEvent(new CustomEvent('appearance:state', { detail: { state: name } }));
+  }
+
   function refresh() {
     window.clearTimeout(timer);
     var params = query();
@@ -98,6 +107,9 @@
           showErrors(result.errors);
           showColors(result.colors);
           showPairs(result.pairs || []);
+          // A palette that would be refused is not "not published yet" — it is something to
+          // fix, and the screen says which of the two it is.
+          announce(Object.keys(result.errors || {}).length > 0 ? 'problem' : 'unpublished');
         }
       })
       .catch(function () {
@@ -117,6 +129,7 @@
   function changed(event) {
     dirty = true;
     showColourValues();
+    announce('unpublished');
     if (event.type === 'change' && isDiscrete(event.target)) {
       refresh();
       return;

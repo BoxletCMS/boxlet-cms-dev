@@ -6,6 +6,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Settings;
+use App\Support\ClientIp;
 use App\Support\Dates;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -99,6 +100,9 @@ final class Tracker
         $userAgent = $request->header('user-agent') ?? '';
         $host = self::host($request->header('host') ?? '');
         $path = mb_substr($request->path, 0, 255);
+        // The visitor's own address where the site sits behind a proxy (O-20); the server's
+        // own report of it otherwise. Read for the day's key and the country, never stored.
+        $ip = ClientIp::of($request, Settings::text($db, 'trusted_proxies'));
 
         // An address that is not there is not a page view: it goes in its own table, and
         // only while the owner wants it counted (O-20). Before the salt and the visitor's
@@ -119,7 +123,7 @@ final class Tracker
         }
 
         $salt = self::salt($db, $day, $today, $settings['retention']);
-        $visitor = bin2hex(substr(hash_hmac('sha256', $request->ip . "\n" . $userAgent . "\n" . $host, $salt, true), 0, 16));
+        $visitor = bin2hex(substr(hash_hmac('sha256', $ip . "\n" . $userAgent . "\n" . $host, $salt, true), 0, 16));
         $agent = Agent::parse($userAgent);
 
         $newToSite = self::firstSeen($db, $day, $visitor, '');
@@ -133,7 +137,7 @@ final class Tracker
                 'day' => $day,
                 'path' => $path,
                 'source' => self::source($request->header('referer') ?? '', $host),
-                'country' => $storagePath === '' ? '' : Geo::country($storagePath, $request->ip),
+                'country' => $storagePath === '' ? '' : Geo::country($storagePath, $ip),
                 'device' => $agent['device'],
                 'browser' => $agent['browser'],
                 'os' => $agent['os'],

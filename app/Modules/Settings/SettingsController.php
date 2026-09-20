@@ -168,6 +168,7 @@ final class SettingsController
             'addable' => Locales::addable($this->db()),
             'twoStep' => $this->twoStep(),
             'lastSaved' => $this->lastSaved(),
+            'trustedProxies' => Settings::text($this->db(), 'trusted_proxies'),
             'stats' => $stats = Tracker::settings($this->db()),
             'geo' => $geo = Geo::status((string) $this->container->get('config')->get('app.storage_path')),
             'privacy' => PrivacyText::all($stats, $geo !== null),

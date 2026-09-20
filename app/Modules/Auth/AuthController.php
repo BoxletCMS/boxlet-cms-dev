@@ -6,7 +6,9 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Core\Settings;
 use App\Core\View;
+use App\Support\ClientIp;
 use App\Support\Url;
 use RuntimeException;
 
@@ -45,10 +47,12 @@ final class AuthController
         if ($key === '') {
             throw new RuntimeException('APP_KEY is not set. The installer writes it to .env.');
         }
-        $ipHash = hash_hmac('sha256', $request->ip, $key);
         $emailHash = hash_hmac('sha256', $email, $key);
 
         $db = $this->container->get('db');
+        // Behind a proxy every attempt would share one address, and one stranger guessing
+        // would lock the owner out with them (O-20).
+        $ipHash = hash_hmac('sha256', ClientIp::of($request, Settings::text($db, 'trusted_proxies')), $key);
         // The FTP way back in (SPEC §6): storage/disable-2fa switches two-step login off
         // before anything else, so the owner who put it there can log in with the password.
         $reset = (new TwoFactor($db, $key))->resetFromFile($this->storage());
@@ -118,7 +122,7 @@ final class AuthController
         }
         $key = (string) $this->container->get('config')->get('app.key');
         $db = $this->container->get('db');
-        $ipHash = hash_hmac('sha256', $request->ip, $key);
+        $ipHash = hash_hmac('sha256', ClientIp::of($request, Settings::text($db, 'trusted_proxies')), $key);
         $emailHash = hash_hmac('sha256', $pending['email'], $key);
         $throttle = new LoginThrottle($db);
         $now = time();

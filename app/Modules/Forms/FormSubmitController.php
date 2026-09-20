@@ -6,9 +6,11 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Settings;
 use App\Modules\Admin\Activity;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageController;
+use App\Support\ClientIp;
 use App\Support\Url;
 
 /**
@@ -51,7 +53,8 @@ final class FormSubmitController
             return $thanks;
         }
 
-        $ipHash = hash_hmac('sha256', $request->ip, $appKey);
+        // Behind a proxy, every sender would otherwise share one address and one limit (O-20).
+        $ipHash = hash_hmac('sha256', ClientIp::of($request, Settings::text($db, 'trusted_proxies')), $appKey);
         $since = gmdate('Y-m-d H:i:s', time() - self::WINDOW_MINUTES * 60);
         $recent = (int) ($db->one('SELECT COUNT(*) AS n FROM form_submissions WHERE ip_hash = ? AND created_at >= ?', [$ipHash, $since])['n'] ?? 0);
 

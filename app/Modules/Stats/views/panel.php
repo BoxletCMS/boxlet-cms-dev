@@ -11,6 +11,7 @@ use App\Support\Url;
  * @var array{enabled: bool, dnt: bool, retention: int, missing: bool} $stats
  * @var array{built: string, type: string}|null $geo the country database in use
  * @var string $uploadLimit the largest file this server accepts, as php.ini says it
+ * @var string $trustedProxies the addresses that may speak for a visitor, one per line
  * @var array<string, array{language: string, text: string}> $privacy the suggested policy text, by language
  * @var string $csrf
  */
@@ -38,6 +39,15 @@ use App\Support\Url;
                     <button type="submit" class="button button-secondary"><?= e(t('stats.save')) ?></button>
                 </div>
             </form>
+
+            <?php /* Behind a proxy (O-20): the field that says which machines may speak for a
+                     visitor. Here, because this is where the owner reads about addresses —
+                     and the hint says it is not only statistics that use it. */ ?>
+            <div class="field">
+                <label for="trusted_proxies"><?= e(t('stats.proxies')) ?></label>
+                <textarea id="trusted_proxies" name="trusted_proxies" rows="2" spellcheck="false" aria-describedby="trusted_proxies-hint"><?= e($trustedProxies) ?></textarea>
+                <span class="hint" id="trusted_proxies-hint"><?= e(t('stats.proxies_hint')) ?></span>
+            </div>
 
             <?php /* The country database (D-051): optional, fetched only when asked. */ ?>
             <fieldset class="fieldset stack">

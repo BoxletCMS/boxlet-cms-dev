@@ -100,7 +100,7 @@ final class StatsFilter
      *
      * @return array{string, list<string>}
      */
-    public function where(string $fromDay = null, string $toDay = null): array
+    public function where(?string $fromDay = null, ?string $toDay = null): array
     {
         $sql = 'day >= ? AND day <= ?';
         $params = [$fromDay ?? $this->from, $toDay ?? $this->to];

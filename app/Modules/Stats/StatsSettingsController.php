@@ -32,6 +32,9 @@ final class StatsSettingsController
         Settings::set($db, 'stats_enabled', $request->input('stats_enabled') === '1');
         Settings::set($db, 'stats_dnt', $request->input('stats_dnt') === '1');
         Settings::set($db, 'stats_missing', $request->input('stats_missing') === '1');
+        // Not stats_*: the addresses that may speak for a visitor are read by the form and
+        // login limits too (O-20).
+        Settings::set($db, 'trusted_proxies', mb_substr(trim($request->input('trusted_proxies')), 0, 2000));
         Settings::set($db, 'stats_retention', in_array($retention, Tracker::RETENTION, true) ? $retention : Tracker::settings($db)['retention']);
 
         return $this->back(t('stats.saved'));

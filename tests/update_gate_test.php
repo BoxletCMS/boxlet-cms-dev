@@ -87,7 +87,7 @@ testBothDrivers('while an update is pending the public site answers 503, not a p
 testBothDrivers('while an update is pending every admin screen becomes the update screen', function (string $driver) {
     adminSite($driver);
 
-    foreach (['/admin', '/admin/pages', '/admin/design'] as $path) {
+    foreach (['/admin', '/admin/pages', '/admin/appearance'] as $path) {
         $response = dispatchConfigured($path, pendingUpdate(PENDING_SQL));
         assertEquals(302, $response->status, "{$path}: status");
         assertEquals('/admin/update', $response->headers['Location'] ?? null, "{$path}: where it goes");

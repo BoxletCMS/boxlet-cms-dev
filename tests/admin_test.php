@@ -62,7 +62,7 @@ test('no admin screen links the site stylesheet', function () {
     $db = adminSite('sqlite');
     $id = createPage($db, 'en', 'about', 'About');
 
-    foreach (['/admin', '/admin/pages', '/admin/pages/new', "/admin/pages/{$id}", '/admin/design'] as $path) {
+    foreach (['/admin', '/admin/pages', '/admin/pages/new', "/admin/pages/{$id}", '/admin/appearance'] as $path) {
         $body = dispatch($path)->body;
         assertTrue(!str_contains($body, '/cache/tokens.'), "{$path} links the site stylesheet");
         assertContains('assets/admin.css', $body, $path);
@@ -84,16 +84,16 @@ test('the admin renders identically whatever the site design is', function () {
         return (string) preg_replace('~\?v=[0-9a-f]+~', '', $body);
     };
 
-    adminPost('/admin/design', designFields(\App\Modules\Design\Presets::get('editorial')) + ['action' => 'save']);
+    adminPost('/admin/appearance', designFields(\App\Modules\Design\Presets::get('editorial')) + ['action' => 'save']);
     $underEditorial = $chrome();
-    adminPost('/admin/design', designFields(\App\Modules\Design\Presets::get('brutalist')) + ['action' => 'save']);
+    adminPost('/admin/appearance', designFields(\App\Modules\Design\Presets::get('brutalist')) + ['action' => 'save']);
 
     assertEquals($underEditorial, $chrome(), 'the admin changed with the site design');
 });
 
 test('a colour input is a real swatch carrying its value, not an empty box', function () {
     adminSite('sqlite');
-    $body = dispatch('/admin/design')->body;
+    $body = dispatch('/admin/appearance')->body;
 
     assertContains('<input type="color" class="colour-input" id="design-seed" name="seed" value="#', $body, 'seed input');
     assertContains('data-colour-for="design-seed"', $body, 'the readable hex beside it');
@@ -145,8 +145,8 @@ testBothDrivers('every admin screen draws', function (string $driver) {
 
     foreach ([
         '/admin', '/admin/pages', '/admin/pages/new', '/admin/pages/' . $page, '/admin/pages/' . $page . '/form',
-        '/admin/media', '/admin/media/' . $picture, '/admin/design', '/admin/menus', '/admin/menus/' . $menu,
-        '/admin/chrome', '/admin/settings',
+        '/admin/media', '/admin/media/' . $picture, '/admin/appearance', '/admin/menus', '/admin/menus/' . $menu,
+        '/admin/appearance', '/admin/settings',
     ] as $path) {
         $response = dispatch($path);
         assertEquals(200, $response->status, $path);

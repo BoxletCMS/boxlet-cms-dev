@@ -49,14 +49,14 @@ export default {
     await page.select('select[name="blocks[1][style][surface]"]', 'contrast');
     await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
 
-    const presets = await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' })
+    const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',
         (els) => els.map((e) => e.value.slice('preset:'.length))));
 
     const measured = [];
 
     for (const preset of presets) {
-      await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
       await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
       await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
 

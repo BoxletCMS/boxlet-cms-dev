@@ -1,0 +1,172 @@
+<?php
+
+namespace App\Modules\Appearance;
+
+use App\Core\Container;
+use App\Core\Db;
+use App\Core\Request;
+use App\Core\Response;
+use App\Core\View;
+use App\Modules\Design\Composition;
+use App\Modules\Design\Design;
+use App\Modules\Design\Palette;
+use App\Modules\Design\Presets;
+use App\Modules\Design\TokenCompiler;
+use App\Modules\Design\Tokens;
+use App\Modules\Design\Typography;
+use App\Modules\Pages\Page;
+use App\Modules\Pages\PageLayoutData;
+use App\Support\Url;
+
+/**
+ * The three endpoints behind the Appearance screen's picture (PLAN.md D-059): the page
+ * itself, the stylesheet it links, and the contrast check the gauge reads.
+ *
+ * Their own class because they answer a MACHINE — an iframe and a fetch — while
+ * AppearanceController answers a person, and because the screen and its publish were
+ * already at the size where a file stops being readable.
+ *
+ * Every one of them reads the whole submitted screen and writes nothing.
+ */
+final class AppearancePreview
+{
+    public function __construct(private readonly Container $container)
+    {
+    }
+
+    /**
+     * The site as the screen would leave it: the primary home page if there is one, else a
+     * specimen of every surface. With a character named, blocks are composed as that
+     * character composes them, so the preview shows the shape the page would take and not
+     * only its colours.
+     *
+     * @param array<string, string> $params
+     */
+    public function page(Request $request, string $locale, array $params): Response
+    {
+        $decisions = $this->decisions($request->query);
+        Url::useStylesheet(Url::withQuery(Url::admin('appearance', 'stylesheet'), $request->query));
+
+        $character = is_string($request->query['character'] ?? null) ? $request->query['character'] : '';
+        $character = Presets::exists($character) ? $character : '';
+        $registry = $this->container->get('blocks');
+        $home = ($request->query['specimen'] ?? '') === '1' ? null : $this->db()->one(
+            'SELECT p.id FROM pages p JOIN locales l ON l.code = p.locale WHERE p.slug = ? AND l.is_primary = 1',
+            [''],
+        );
+
+        $blocks = [];
+        if ($home !== null) {
+            foreach (Page::blocks($this->db(), (int) $home['id']) as $block) {
+                if ($registry->has($block['type'])) {
+                    $blocks[] = [$block['type'], $block['content'], $block['style'], $block['layout']];
+                }
+            }
+        } else {
+            $blocks = self::specimen();
+        }
+
+        $html = '';
+        foreach ($blocks as [$type, $content, $style, $layout]) {
+            if ($character !== '') {
+                $style = Composition::style($character, $type);
+                $layout = Composition::layout($registry, $character, $type);
+            }
+            $html .= $registry->render($type, $content, $style, $layout);
+        }
+
+        // The site's own language, not 'en': the chrome's words and its menu are per locale,
+        // so a site whose main language is Croatian would judge its design under an empty
+        // English footer.
+        $shown = Url::primaryLocale() !== '' ? Url::primaryLocale() : 'en';
+        // Every variable the layout reads comes from ONE place (D-057), and everything the
+        // owner is trying comes from the query, validated and never written.
+        $body = (new View(dirname(__DIR__) . '/Pages/views'))->render('page', $shown, [
+            'blocksHtml' => $html,
+        ] + PageLayoutData::forPreview(
+            $this->container,
+            $shown,
+            t('design.preview'),
+            AppearanceForm::trying($request->query, $shown, $character),
+        ));
+        $response = Response::admin($body);
+        // The one admin page that may be framed, and only by the admin itself.
+        $response->headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data:; form-action 'none'; frame-ancestors 'self'; base-uri 'none'";
+        $response->headers['X-Frame-Options'] = 'SAMEORIGIN';
+
+        return $response;
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    public function stylesheet(Request $request, string $locale, array $params): Response
+    {
+        $decisions = $this->decisions($request->query);
+        $fonts = Typography::fontFaces($decisions['typography'], Url::asset('assets/fonts'));
+        $css = (new TokenCompiler())->css(Tokens::derive($decisions), $fonts);
+
+        return new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'no-store']);
+    }
+
+    /**
+     * What the gauge and the inline messages read while values change: every contrast pair
+     * with its ratio, the derived palette, and the errors Save would refuse on. The same
+     * validation Save runs — this endpoint is not a second opinion.
+     *
+     * @param array<string, string> $params
+     */
+    public function check(Request $request, string $locale, array $params): Response
+    {
+        $result = Tokens::validate(AppearanceForm::decisions($request->query));
+        $decisions = $result['decisions'];
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+        $body = json_encode([
+            'errors' => (object) $result['errors'],
+            'colors' => $colors,
+            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== ''),
+        ], JSON_THROW_ON_ERROR);
+
+        return new Response($body, 200, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);
+    }
+
+    /**
+     * @param array<mixed> $query
+     * @return array<string, string>
+     */
+    private function decisions(array $query): array
+    {
+        $preset = $query['preset'] ?? null;
+        if (is_string($preset) && Presets::exists($preset)) {
+            return Presets::get($preset);
+        }
+        if (!isset($query['seed'])) {
+            return Design::load($this->db());
+        }
+
+        return Tokens::validate(AppearanceForm::decisions($query))['decisions'];
+    }
+
+    /**
+     * A page of nothing but surfaces, for a site with no home page yet: every band the
+     * design can draw, in one scroll.
+     *
+     * @return list<array{string, array<string, mixed>, array<string, string>, string}>
+     */
+    private static function specimen(): array
+    {
+        $paragraph = static fn (string $key): string => '<p>' . e(t($key)) . ' <a href="#">' . e(t('design.specimen.link')) . '</a>.</p>';
+
+        return [
+            ['hero', ['heading' => t('design.specimen.hero'), 'subheading' => t('design.specimen.hero_sub'), 'cta' => ['label' => t('design.specimen.button'), 'url' => '#']], ['surface' => 'gradient', 'rhythm' => 'airy', 'align' => 'center'], 'center'],
+            ['text', ['heading' => t('design.specimen.text_heading'), 'body' => $paragraph('design.specimen.text_body')], [], 'single'],
+            ['image_text', ['heading' => t('design.specimen.tinted_heading'), 'body' => $paragraph('design.specimen.tinted_body'), 'image' => 1, 'link' => ['label' => t('design.specimen.button'), 'url' => '#']], ['surface' => 'tinted', 'divider' => 'line'], 'image-left'],
+            ['hero', ['heading' => t('design.specimen.contrast_heading'), 'subheading' => t('design.specimen.contrast_body'), 'cta' => ['label' => t('design.specimen.button'), 'url' => '#']], ['surface' => 'contrast', 'divider' => 'slant'], 'left'],
+        ];
+    }
+
+    private function db(): Db
+    {
+        return $this->container->get('db');
+    }
+}

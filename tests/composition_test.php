@@ -101,7 +101,7 @@ test('a character composes every block type, including ones it never names', fun
 
 testBothDrivers('new blocks are composed by the active character', function (string $driver) {
     $db = adminSite($driver);
-    adminPost('/admin/design', designFields(Presets::get('brutalist')) + ['character' => 'brutalist', 'action' => 'save']);
+    adminPost('/admin/appearance', designFields(Presets::get('brutalist')) + ['character' => 'brutalist', 'action' => 'save']);
 
     assertEquals('brutalist', Composition::active($db), 'active character');
     adminPost('/admin/pages', ['title' => 'Landing', 'locale' => 'en', 'template' => templateId($db, 'landing')]);
@@ -125,13 +125,13 @@ testBothDrivers('applying a character resets sections only when that is what was
     $chosen = $styleOf();
 
     // Design only: the section keeps what its author chose.
-    adminPost('/admin/design', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save']);
+    adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save']);
     assertEquals($chosen, $styleOf(), 'saving the design alone changed a section style');
     assertEquals('editorial', Composition::active($db), 'active character');
 
     // Design and composition: every section takes the character's shape.
-    $response = adminPost('/admin/design', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save_composition']);
-    assertRedirectedTo('/admin/design', $response);
+    $response = adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save_composition']);
+    assertRedirectedTo('/admin/appearance', $response);
     assertEquals(Composition::style('editorial', 'hero'), $styleOf(), 'the section was not reset');
     assertEquals('left', (string) ($db->one('SELECT layout FROM page_blocks')['layout'] ?? ''), 'the layout was not reset');
     assertContains('rhythm-airy', dispatch('/about')->body, 'the rendered section');
@@ -142,12 +142,12 @@ test('the choice between design and composition is offered, never taken silently
     $db = adminSite('sqlite');
 
     // No blocks yet: nothing to overwrite, so there is one plain Save.
-    $empty = adminPost('/admin/design', ['action' => 'preset:soft']);
+    $empty = adminPost('/admin/appearance', ['action' => 'preset:soft']);
     assertContains('value="save"', $empty->body, 'save button');
     assertTrue(!str_contains($empty->body, 'value="save_composition"'), 'a site with no blocks was offered a reset');
 
     createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
-    $loaded = adminPost('/admin/design', ['action' => 'preset:soft']);
+    $loaded = adminPost('/admin/appearance', ['action' => 'preset:soft']);
     assertContains('name="character" value="soft"', $loaded->body, 'the loaded character');
     assertContains(e(t('design.apply.design_only')), $loaded->body, 'design-only button');
     assertContains(e(t('design.apply.with_composition')), $loaded->body, 'composition button');
@@ -158,10 +158,10 @@ test('the preview shows the character composition, not only its palette', functi
     $db = adminSite('sqlite');
     createPage($db, 'en', '', 'Home', true, [['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['width' => 'narrow'], 'layout' => 'center']]);
 
-    $plain = dispatch('/admin/design/preview')->body;
+    $plain = dispatch('/admin/appearance/preview')->body;
     assertContains('width-narrow', $plain, 'the stored section style');
 
-    $composed = dispatch('/admin/design/preview?preset=brutalist&character=brutalist')->body;
+    $composed = dispatch('/admin/appearance/preview?preset=brutalist&character=brutalist')->body;
     assertContains('width-full', $composed, 'the character measure');
     assertContains('layout-split', $composed, 'the character hero layout');
     assertTrue(!str_contains($composed, 'width-narrow'), 'the stored width survived the composed preview');

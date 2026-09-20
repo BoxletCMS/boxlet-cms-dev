@@ -78,7 +78,7 @@ final class PageLayoutData
             // A link preview of an error page is not worth a row, so this is the caller's.
             'shareImage' => $head['shareImage'] ?? null,
             'hreflang' => Alternates::hreflang($alternates, self::primary($container->get('locales'))),
-        ] + self::chrome($container, $locale, $alternates, $current, [], '');
+        ] + self::chrome($container, $locale, $alternates, $current, []);
     }
 
     /**
@@ -90,15 +90,18 @@ final class PageLayoutData
      * screen this is being built for, the header and footer are among the things being
      * judged, so the reason went with the old screen (PLAN.md D-057).
      *
-     * $look carries chrome choices the owner is making and has not saved. $character is the
-     * one being previewed, so a choice left at "follow the character" follows the character
-     * on the screen rather than the one the site is published with.
+     * $trying is WHAT THE OWNER IS DOING AND HAS NOT SAVED, and every part of it is
+     * optional: the character being previewed, the look choices, which menu, and the words.
+     * One array rather than four parameters, because the screen that fills it grows: they
+     * all mean the same thing — draw the site as it WOULD be, not as it is.
      *
-     * @param array<string, string> $look chrome choice => value, from the request
-     * @param string $character the character being previewed; '' for the site's own
+     * A choice left at "follow the character" follows the character being PREVIEWED, so
+     * Bold's sections never stand under Minimal's header.
+     *
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>} $trying
      * @return LayoutData
      */
-    public static function forPreview(Container $container, string $locale, string $title, array $look = [], string $character = ''): array
+    public static function forPreview(Container $container, string $locale, string $title, array $trying = []): array
     {
         $db = $container->get('db');
 
@@ -112,7 +115,7 @@ final class PageLayoutData
             'shareImage' => null,
             // An admin address must never announce itself as a translation of anything.
             'hreflang' => [],
-        ] + self::chrome($container, $locale, Alternates::for($db, null, $container->get('locales')), '', $look, $character);
+        ] + self::chrome($container, $locale, Alternates::for($db, null, $container->get('locales')), '', $trying);
     }
 
     /**
@@ -134,16 +137,20 @@ final class PageLayoutData
      * other, and the templates stay free of URL arithmetic (PLAN.md D-032).
      *
      * @param array<int, array<string, mixed>> $locales the languages, as the switcher shows them
-     * @param array<string, string> $look unsaved chrome choices; empty for a visitor's page
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>} $trying
+     *        what an admin preview is showing unsaved; empty for a visitor's page
      * @return array{headerHtml: string, footerHtml: string}
      */
-    private static function chrome(Container $container, string $locale, array $locales, string $current, array $look, string $character): array
+    private static function chrome(Container $container, string $locale, array $locales, string $current, array $trying): array
     {
         $db = $container->get('db');
         $registry = $container->get('chrome');
 
+        // Which menu: the one being TRIED on the screen, else the one the site shows. A
+        // request naming no menu is not a request for no menu — only a choice of '' is.
+        $menuName = array_key_exists('menu', $trying) && $trying['menu'] !== null ? $trying['menu'] : SiteChrome::menuName($db);
         $menu = [];
-        foreach (MenuTree::forVisitors($db, $locale, SiteChrome::menuName($db)) as $item) {
+        foreach (MenuTree::forVisitors($db, $locale, $menuName) as $item) {
             $children = [];
             $below = false;
             foreach ($item['children'] as $child) {
@@ -154,15 +161,22 @@ final class PageLayoutData
         }
         // Colour, arrangement and size: what the request is trying, else the owner's choice,
         // else the character's.
-        $resolved = ChromeLook::resolve($db, $look, $character);
+        $resolved = ChromeLook::resolve($db, $trying['look'] ?? [], $trying['character'] ?? '');
         // The header's button can point at a page like any link field (D-034); followed
         // here, before the check below asks whether it leads anywhere.
         $header = SiteChrome::header($db, $locale);
+        $footer = SiteChrome::footer($db, $locale);
+        // The owner's own words, as they are being typed. Only for the locale on screen:
+        // the preview draws one page in one language, and the others are not on it.
+        $words = $trying['words'] ?? [];
+        $header['button']['label'] = $words['button_label'] ?? $header['button']['label'];
+        $header['button']['url'] = $words['button_url'] ?? $header['button']['url'];
+        $footer['text'] = $words['text'] ?? $footer['text'];
+        $footer['small_print'] = $words['small_print'] ?? $footer['small_print'];
         $header['button'] = PageLinks::link(
             $header['button'],
             PageLinks::targets($db, $registry, $locale, [['type' => 'header', 'content' => $header]]),
         );
-        $footer = SiteChrome::footer($db, $locale);
 
         // The logo is a picture like any other and has to be RESOLVED before the template
         // sees it, exactly as a block's pictures are. Handing the header an empty lookup

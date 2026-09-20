@@ -174,7 +174,7 @@ export default {
       }
     });
 
-    const characters = await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' })
+    const characters = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',
         (els) => els.map((e) => e.value.slice('preset:'.length))));
 

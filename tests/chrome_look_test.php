@@ -106,20 +106,20 @@ testBothDrivers('the mobile menu is a script that adds buttons, never a page tha
     assertTrue(!str_contains(dispatch('/')->body, 'site-nav.js'), 'the script loaded with no menu to fold');
 });
 
-testBothDrivers('the chrome screen saves the look', function (string $driver) {
+testBothDrivers('the Appearance screen saves the look', function (string $driver) {
     $db = adminSite($driver);
 
-    assertRedirectedTo('/admin/chrome', adminPost('/admin/chrome', [
+    assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', appearanceFields([
         'look_header_layout' => 'centred',
         'look_density' => '',
         'look_logo_size' => 'small',
-    ]));
+    ])));
     $stored = ChromeLook::stored($db);
     assertEquals('centred', $stored['header_layout'], 'the arrangement');
     assertEquals('', $stored['density'], 'a choice left to the character');
     assertEquals('small', $stored['logo_size'], 'the logo size');
 
-    assertContains('<option value="centred" selected>', dispatch('/admin/chrome')->body, 'the screen shows it');
+    assertContains('<option value="centred" selected>', dispatch('/admin/appearance')->body, 'the screen shows it');
 });
 
 testBothDrivers('the site can say what made it, and says nothing unless asked', function (string $driver) {

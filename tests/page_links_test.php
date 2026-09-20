@@ -168,12 +168,12 @@ testBothDrivers('the header screen saves a page as the button\'s target', functi
     $db = adminSite($driver);
     $contact = createPage($db, 'en', 'contact', 'Contact');
 
-    assertRedirectedTo('/admin/chrome', adminPost('/admin/chrome', [
+    assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', appearanceFields([
         'header_button_page_en' => (string) $contact,
         // What the read-only address still holds is ignored while a page is chosen.
         'header_button_url_en' => '/stale',
         'header_button_label_en' => 'Write to us',
-    ]));
+    ])));
     assertEquals(PageLinks::to($contact), SiteChrome::header($db, 'en')['button']['url'], 'the stored target');
 });
 

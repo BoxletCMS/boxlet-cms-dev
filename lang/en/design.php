@@ -5,7 +5,7 @@
 return [
     'design.title' => 'Design',
     'design.presets' => 'Start from a character',
-    'design.presets_hint' => 'A character sets every decision below at once. Using one only fills in the form: the site changes when you press Save design.',
+    'design.presets_hint' => 'A character sets every decision below at once. Using one only fills in the form: the site changes when you press Publish.',
     'design.load_preset' => 'Use this character',
     'design.preset.editorial' => 'Editorial',
     'design.preset.editorial_hint' => 'Serif type on a wide scale, a narrow reading column, generous air, quiet surfaces.',

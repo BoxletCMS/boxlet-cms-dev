@@ -97,8 +97,7 @@ final class Search
             [t('admin.nav.media'), Url::admin('media'), 'pictures images photos library'],
             [t('admin.nav.menus'), Url::admin('menus'), 'navigation'],
             [t('admin.nav.forms'), Url::admin('forms'), 'contact messages'],
-            [t('admin.nav.design'), Url::admin('design'), 'character colours colors fonts type'],
-            [t('admin.nav.chrome'), Url::admin('chrome'), 'header footer'],
+            [t('admin.nav.appearance'), Url::admin('appearance'), 'design character colours colors fonts type header footer chrome'],
             [t('admin.nav.settings'), Url::admin('settings'), ''],
             [t('activity.title'), Url::admin('activity'), 'log history changes'],
         ];

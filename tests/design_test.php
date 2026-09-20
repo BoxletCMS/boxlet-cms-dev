@@ -2,6 +2,8 @@
 
 use App\Core\Response;
 use App\Modules\Design\Color;
+use App\Modules\Menus\Menu;
+use App\Modules\Settings\SiteChrome;
 use App\Modules\Design\Design;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
@@ -139,7 +141,7 @@ testBothDrivers('saving the design recompiles, and pages link the new stylesheet
     createPage($db, 'en', 'about', 'About');
     $before = linkedStylesheet(dispatch('/about'));
 
-    assertRedirectedTo('/admin/design', adminPost('/admin/design', designFields(Presets::get('editorial')) + ['action' => 'save']));
+    assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['action' => 'save']));
     $after = linkedStylesheet(dispatch('/about'));
     assertTrue($after !== $before, 'the page still links the old stylesheet');
     assertTrue(is_file(tmpPath('cache') . '/' . basename($after)), 'the linked stylesheet does not exist');
@@ -151,7 +153,7 @@ testBothDrivers('a design that fails contrast is refused and changes nothing', f
     createPage($db, 'en', 'about', 'About');
     $before = linkedStylesheet(dispatch('/about'));
 
-    $response = adminPost('/admin/design', designFields(['seed' => '#ffe600'] + Presets::get('minimal')) + ['action' => 'save']);
+    $response = adminPost('/admin/appearance', designFields(['seed' => '#ffe600'] + Presets::get('minimal')) + ['action' => 'save']);
     assertEquals(422, $response->status, 'status');
     assertContains('data-error-for="seed" role="alert">' . e(t('design.pair.links_on_background')), $response->body, 'error at the seed field');
     assertEquals($before, linkedStylesheet(dispatch('/about')), 'stylesheet');
@@ -160,7 +162,7 @@ testBothDrivers('a design that fails contrast is refused and changes nothing', f
 
 test('using a preset fills the form and saves nothing', function () {
     $db = adminSite('sqlite');
-    $response = adminPost('/admin/design', ['action' => 'preset:brutalist']);
+    $response = adminPost('/admin/appearance', ['action' => 'preset:brutalist']);
 
     assertEquals(200, $response->status, 'status');
     assertContains('name="seed" value="#1f1fd1"', $response->body, 'brutalist seed in the form');
@@ -169,13 +171,17 @@ test('using a preset fills the form and saves nothing', function () {
 
 test('the preview reflects submitted values and may only be framed by the site', function () {
     adminSite('sqlite');
-    $preview = dispatch('/admin/design/preview?preset=bold&specimen=1');
+    $preview = dispatch('/admin/appearance/preview?preset=bold&specimen=1');
 
     assertEquals(200, $preview->status, 'status');
     assertContains("frame-ancestors 'self'", $preview->headers['Content-Security-Policy'] ?? '', 'CSP');
-    assertContains('/admin/design/stylesheet?seed=%236d28d9', $preview->body, 'preview stylesheet link');
+    // The stylesheet is asked the SAME QUESTION the preview was asked, whatever form it
+    // came in: a preset by name stays a preset by name, rather than being expanded here and
+    // expanded again there.
+    assertContains('/admin/appearance/stylesheet?preset=bold', $preview->body, 'preview stylesheet link');
     assertContains('surface-gradient', $preview->body, 'specimen sections');
-    $css = dispatch('/admin/design/stylesheet?seed=%236d28d9&secondary=%231e1045&use_secondary=1&typography=grotesk&scale=1.5&spacing=normal&radius=round&shadow=layered&container=wide&surface_contrast=high');
+    assertContains('--color-accent: #6d28d9;', dispatch('/admin/appearance/stylesheet?preset=bold')->body, 'that stylesheet is Bold\'s');
+    $css = dispatch('/admin/appearance/stylesheet?seed=%236d28d9&secondary=%231e1045&use_secondary=1&typography=grotesk&scale=1.5&spacing=normal&radius=round&shadow=layered&container=wide&surface_contrast=high');
     assertContains('--color-accent: #6d28d9;', $css->body, 'preview tokens');
     assertEquals('text/css; charset=utf-8', $css->headers['Content-Type'] ?? null, 'content type');
 });
@@ -183,7 +189,7 @@ test('the preview reflects submitted values and may only be framed by the site',
 test('the check endpoint returns contrast errors keyed by decision', function () {
     adminSite('sqlite');
     $query = http_build_query(designFields(['seed' => '#ffe600'] + Presets::get('minimal')));
-    $result = json_decode(dispatch('/admin/design/check?' . $query)->body, true);
+    $result = json_decode(dispatch('/admin/appearance/check?' . $query)->body, true);
 
     assertContains(t('design.pair.links_on_background'), (string) ($result['errors']['seed'] ?? ''), 'seed error');
     assertEquals('#ffe600', $result['colors']['accent'] ?? null, 'derived accent');
@@ -192,7 +198,7 @@ test('the check endpoint returns contrast errors keyed by decision', function ()
 test('the design screen and its endpoints require an admin session', function () {
     installedSite(['en' => 'English']);
 
-    foreach (['/admin/design', '/admin/design/preview', '/admin/design/stylesheet', '/admin/design/check'] as $path) {
+    foreach (['/admin/appearance', '/admin/appearance/preview', '/admin/appearance/stylesheet', '/admin/appearance/check'] as $path) {
         assertEquals('/admin/login', dispatch($path)->headers['Location'] ?? null, $path);
     }
 });
@@ -232,7 +238,7 @@ test('every pair is measured, and the failures are exactly the ones that do not 
 test('the check endpoint carries every pair, not only the failures', function () {
     adminSite('sqlite');
     $query = http_build_query(designFields(Presets::get('minimal')));
-    $result = json_decode(dispatch('/admin/design/check?' . $query)->body, true);
+    $result = json_decode(dispatch('/admin/appearance/check?' . $query)->body, true);
 
     assertEquals(11, count($result['pairs'] ?? []), 'pairs in the response');
     assertEquals([], $result['errors'] ?? null, 'minimal passes, so no errors');
@@ -243,7 +249,7 @@ test('the check endpoint carries every pair, not only the failures', function ()
 
 test('the screen shows the gauge, and never folds away a pair that fails', function () {
     adminSite('sqlite');
-    $body = dispatch('/admin/design')->body;
+    $body = dispatch('/admin/appearance')->body;
 
     // Six open, five folded, while everything passes.
     preg_match('~<ul class="gauge-list" data-gauge-open>(.*?)</ul>~s', $body, $open);
@@ -254,7 +260,7 @@ test('the screen shows the gauge, and never folds away a pair that fails', funct
     // A grey seed fails three pairs, and one of them — text on the start of the gradient —
     // is the tenth of eleven, which is inside the part that folds away. Measured, not
     // assumed: a failure the screen hides is the one thing this must never do.
-    $failing = adminPost('/admin/design', designFields(['seed' => '#7f7f7f'] + Presets::get('minimal')) + ['action' => 'save']);
+    $failing = adminPost('/admin/appearance', designFields(['seed' => '#7f7f7f'] + Presets::get('minimal')) + ['action' => 'save']);
     preg_match('~<ul class="gauge-list" data-gauge-open>(.*?)</ul>~s', $failing->body, $openAgain);
     $folded = '';
     if (preg_match('~<ul class="gauge-list" data-gauge-folded>(.*?)</ul>~s', $failing->body, $hidden) === 1) {
@@ -268,7 +274,7 @@ test('the screen shows the gauge, and never folds away a pair that fails', funct
 
 test('the decisions are shown as numbers a person reads, never as CSS', function () {
     adminSite('sqlite');
-    $body = dispatch('/admin/design')->body;
+    $body = dispatch('/admin/appearance')->body;
     preg_match_all('~<p class="derived">(.*?)</p>~s', $body, $lines);
     $derived = implode(' ', $lines[1]);
 
@@ -282,7 +288,7 @@ test('the decisions are shown as numbers a person reads, never as CSS', function
 
 test('Save stands beside the preview and still submits the form', function () {
     adminSite('sqlite');
-    $body = dispatch('/admin/design')->body;
+    $body = dispatch('/admin/appearance')->body;
 
     // In the preview's own bar, which is the one part of a sticky column that is always in
     // view: below a frame 78vh tall, a button never comes back into reach however far the
@@ -298,6 +304,91 @@ test('Save stands beside the preview and still submits the form', function () {
 
     // And it still saves: the button is outside the form element, so this is not a detail
     // the markup alone can settle.
-    $saved = adminPost('/admin/design', designFields(Presets::get('bold')) + ['action' => 'save']);
-    assertRedirectedTo('/admin/design', $saved);
+    $saved = adminPost('/admin/appearance', designFields(Presets::get('bold')) + ['action' => 'save']);
+    assertRedirectedTo('/admin/appearance', $saved);
+});
+
+// ---- Round 3: one screen (PLAN.md D-059) ----------------------------------------------
+
+testBothDrivers('loading a character keeps the header and footer the owner has typed', function (string $driver) {
+    $db = adminSite($driver);
+    Menu::create($db, 'en', 'Main');
+
+    // What the owner has on the screen: a menu, a footer line, and their own words.
+    adminPost('/admin/appearance', appearanceFields([
+        'header_menu' => 'Main',
+        'footer_text_en' => 'Made in Zagreb',
+        'header_button_label_en' => 'Write to us',
+        'action' => 'save',
+    ]));
+
+    // Now they try a character. The whole screen is posted, because the card's button names
+    // the one form — it used to be a form of its own carrying only the character's name,
+    // which read back as "every chrome field is empty" and cleared them.
+    $loaded = adminPost('/admin/appearance', appearanceFields([
+        'header_menu' => 'Main',
+        'footer_text_en' => 'Made in Zagreb',
+        'header_button_label_en' => 'Write to us',
+        'action' => 'preset:bold',
+    ]));
+
+    assertEquals(200, $loaded->status, 'the character loads');
+    // In the textarea it was typed into, not merely somewhere on the page.
+    assertContains('>Made in Zagreb</textarea>', $loaded->body, 'the footer line is still on the screen');
+    assertContains('value="Write to us"', $loaded->body, 'the button label is still on the screen');
+    assertContains('<option value="Main" selected>', $loaded->body, 'the menu is still chosen');
+    assertEquals('Main', SiteChrome::menuName($db), 'and nothing was written');
+    assertEquals('Made in Zagreb', SiteChrome::footer($db, 'en')['text'], 'the stored footer line');
+});
+
+test('the merged screen carries both halves, and the old addresses lead to it', function () {
+    $db = adminSite('sqlite');
+    $body = dispatch('/admin/appearance')->body;
+
+    foreach (['colour', 'type', 'shape', 'page', 'chrome'] as $tab) {
+        assertContains('data-panel="' . $tab . '"', $body, 'the ' . $tab . ' tab');
+    }
+    assertContains('name="seed"', $body, 'the design half');
+    assertContains('name="header_menu"', $body, 'the chrome half');
+    assertContains('name="footer_text_en"', $body, 'the words');
+
+    foreach (['/admin/design', '/admin/chrome'] as $old) {
+        assertEquals('/admin/appearance', dispatch($old)->headers['Location'] ?? null, $old . ' leads here');
+    }
+});
+
+testBothDrivers('one publish writes the design and the header together', function (string $driver) {
+    $db = adminSite($driver);
+    Menu::create($db, 'en', 'Main');
+
+    $response = adminPost('/admin/appearance', appearanceFields([
+        'seed' => '#1f1fd1',
+        'header_menu' => 'Main',
+        'look_header_surface' => 'contrast',
+        'footer_small_print_en' => '© Northwind',
+        'action' => 'save',
+    ]));
+
+    assertRedirectedTo('/admin/appearance', $response);
+    assertEquals('#1f1fd1', Design::load($db)['seed'], 'the design');
+    assertEquals('Main', SiteChrome::menuName($db), 'the menu');
+    assertEquals('contrast', App\Modules\Settings\ChromeLook::stored($db)['header_surface'], 'the look');
+    assertEquals('© Northwind', SiteChrome::footer($db, 'en')['small_print'], 'the words');
+});
+
+test('the preview draws the words being typed, before anything is published', function () {
+    $db = adminSite('sqlite');
+    lookSite($db);
+
+    $query = http_build_query(appearanceFields([
+        'header_menu' => 'Main',
+        'footer_text_en' => 'A line nobody has published',
+        'header_button_label_en' => 'Press me',
+        'header_button_url_en' => '/about',
+    ]));
+    $body = dispatch('/admin/appearance/preview?' . $query)->body;
+
+    assertContains('A line nobody has published', $body, 'the footer line being typed');
+    assertContains('Press me', $body, 'the button label being typed');
+    assertEquals('', SiteChrome::footer($db, 'en')['text'], 'and nothing was written');
 });

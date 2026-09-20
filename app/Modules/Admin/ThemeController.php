@@ -7,7 +7,12 @@ use App\Core\Response;
 use App\Support\Url;
 
 /**
- * Light, dark, or whichever the machine is set to (PLAN.md D-054).
+ * The ADMIN's own light, dark, or whichever the machine is set to (PLAN.md D-054).
+ *
+ * Named for the theme rather than for "appearance", and posting to /admin/theme: Appearance
+ * is now the screen where the SITE's look is decided (D-059), and one word meaning both the
+ * tool's palette and the site's design is the kind of collision that ends with somebody
+ * changing the wrong one.
  *
  * A form post rather than a script: the switch works with JavaScript off, which is what
  * CLAUDE.md asks of every control, and the page it returns to is already painted in the new
@@ -17,7 +22,7 @@ use App\Support\Url;
  * argument a class has no constructor for. This one needs nothing beyond the request it is
  * handed, and a container held and never read is a field the next reader has to check.
  */
-final class AppearanceController
+final class ThemeController
 {
     /**
      * @param array<string, string> $params

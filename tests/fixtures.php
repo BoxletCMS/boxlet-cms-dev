@@ -221,6 +221,28 @@ function storedPicture(Db $db, string $filename, array $variants, int $focalX = 
     return (int) $db->lastInsertId();
 }
 
+/**
+ * The WHOLE Appearance screen as the browser posts it (PLAN.md D-059): the ten design
+ * decisions, plus whatever this test is actually about.
+ *
+ * Design and Header & footer became one form, so a post that carries only half of it is
+ * refused — every decision is validated, and one that is missing is not one to be guessed.
+ * A test that means to change the header still has to send the design, exactly as a browser
+ * does, and this is that boilerplate in one place.
+ *
+ * @param array<string, mixed> $fields
+ * @return array<string, mixed>
+ */
+function appearanceFields(array $fields = []): array
+{
+    $decisions = App\Modules\Design\Presets::get(App\Modules\Design\Presets::DEFAULT);
+
+    return $fields + [
+        'use_secondary' => $decisions['secondary'] !== '' ? '1' : '0',
+        'secondary' => $decisions['secondary'] !== '' ? $decisions['secondary'] : '#000000',
+    ] + $decisions;
+}
+
 function removeTree(string $path): void
 {
     if (is_file($path) || is_link($path)) {

@@ -1,0 +1,65 @@
+/* The Appearance screen's tabs (PLAN.md D-059), on top of admin-design.css, which still
+   holds the characters, the gauge and the preview. Admin tokens only (--ui-*): the site's
+   own design appears in one place on this screen, inside the preview frame, which is a
+   separate document. */
+
+.tabs {
+  display: grid;
+  gap: var(--ui-4);
+}
+
+/* The strip reads as a row of tabs at rest — each one has its own edge, not only the
+   selected one, because a control that appears on hover is a control nobody knew was
+   there. */
+.tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-1);
+  padding: var(--ui-1);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+}
+
+/* The strip's own colour wins over the admin's link colour: these are tabs, and a tab that
+   is painted like a link reads as somewhere else to go rather than as this screen's parts. */
+.tab-strip .tab {
+  color: var(--ui-ink-muted);
+}
+
+.tab-strip .tab:hover,
+.tab-strip .tab-current,
+.tab-strip .tab[aria-selected="true"] {
+  color: var(--ui-ink);
+}
+
+.tab {
+  flex: 1 1 auto;
+  padding: var(--ui-2) var(--ui-3);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--ui-panel);
+  color: var(--ui-ink);
+}
+
+.tab-current,
+.tab[aria-selected="true"] {
+  background: var(--ui-panel);
+  color: var(--ui-ink);
+  box-shadow: var(--ui-shadow-s);
+}
+
+.tab-panel {
+  display: grid;
+  gap: var(--ui-4);
+}
+
+/* Focus is the admin's own one rule (admin.css), not a second one here. */

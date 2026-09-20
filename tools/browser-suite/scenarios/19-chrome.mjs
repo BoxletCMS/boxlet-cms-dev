@@ -15,7 +15,7 @@
  * screenshot would otherwise carry this one's words.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait, controlsOnPanels, retype } from '../harness.mjs';
+import { login, clickAndWait, controlsOnPanels, retype, openTab } from '../harness.mjs';
 
 const MARKER = 'Zz chrome';
 
@@ -43,25 +43,30 @@ export default {
 
     // ---- reachable from the navigation -------------------------------------------------
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    const link = await page.$('.rail-nav a[href$="/admin/chrome"]');
+    const link = await page.$('.rail-nav a[href$="/admin/appearance"]');
     report.verdict('the navigation offers the header and footer screen', link !== null,
-      link === null ? 'no link to /admin/chrome in the admin bar' : 'the admin bar links to it');
+      link === null ? 'no link to /admin/appearance in the admin bar' : 'the admin bar links to it');
     if (link === null) { return; }
 
-    // An entry of its own in the rail's Presentation group since D-052.
-    await clickAndWait(page, '.rail-nav a[href$="/admin/chrome"]');
+    // One entry in the rail's Presentation group since the screens merged (D-059); it was
+    // two, and the header and footer are now the fifth tab of this one.
+    await clickAndWait(page, '.rail-nav a[href$="/admin/appearance"]');
 
-    // ---- the screen itself ---------------------------------------------------------------
+    // ---- the tab that used to be a screen of its own (D-059) ---------------------------
+    if (!await openTab(page, 'chrome')) {
+      report.fail('chrome: the header and footer tab', 'the Appearance screen has no tabs');
+      return;
+    }
     const shape = await page.evaluate(() => ({
-      panels: document.querySelectorAll('.panel').length,
-      headings: Array.from(document.querySelectorAll('.panel h2')).map((h) => h.textContent.trim()),
-      logoNote: !!document.querySelector('main a[href$="/admin/settings"]'),
+      panels: document.querySelectorAll('[data-panel="chrome"] fieldset').length,
+      headings: Array.from(document.querySelectorAll('[data-panel="chrome"] legend')).map((h) => h.textContent.trim()),
+      logoNote: !!document.querySelector('[data-panel="chrome"] a[href$="/admin/settings"]'),
       menuSelect: !!document.querySelector('[name="header_menu"]'),
       bareKeys: (document.body.textContent.match(/chrome\.[a-z_]+/g) || []).slice(0, 3),
     }));
 
-    // One shared panel plus one per enabled locale. Two locales here, so three.
-    report.verdict('the screen groups the shared choices and then the words per language',
+    // One group for the choices, plus one per enabled locale for the words.
+    report.verdict('the tab groups the shared choices and then the words per language',
       shape.panels >= 2 && shape.headings.length >= 2,
       `${shape.panels} panels: ${JSON.stringify(shape.headings)}`);
     // The logo moved to Settings → Branding (D-038); this screen says where it went.
@@ -74,7 +79,7 @@ export default {
     report.verdict('no untranslated key is showing', shape.bareKeys.length === 0,
       shape.bareKeys.length === 0 ? 'every string came from a language file' : JSON.stringify(shape.bareKeys));
 
-    await controlsOnPanels(page, report, 'chrome');
+    await controlsOnPanels(page, report, 'chrome tab');
     await report.shot(page, '01-chrome-screen');
 
     const before = await readChrome(page);
@@ -86,8 +91,9 @@ export default {
       // An address of its own, so the page chooser first goes back to "another address".
       await page.select('[name="header_button_page_en"]', '');
       await retype(page, '[name="header_button_url_en"]', '/contact');
-      await clickAndWait(page, 'form[action$="/admin/chrome"] button[type="submit"]', 40000);
+      await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
+      await openTab(page, 'chrome');
       const after = await readChrome(page);
       report.verdict('what was typed is saved and comes back',
         after.text === `${MARKER} footer` && after.label === `${MARKER} button`,
@@ -133,7 +139,8 @@ export default {
       await report.shot(page, '02-site-with-chrome');
     } finally {
       // Put every word back, whatever happened above.
-      await page.goto(`${BASE}/admin/chrome`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+      await openTab(page, 'chrome');
       await retype(page, '[name="footer_text_en"]', before.text);
       // A page the button pointed at is put back as that page, not as its address. The
       // label goes last: choosing a page may offer its title in place of the text.
@@ -142,8 +149,9 @@ export default {
         await retype(page, '[name="header_button_url_en"]', before.url);
       }
       await retype(page, '[name="header_button_label_en"]', before.label);
-      await clickAndWait(page, 'form[action$="/admin/chrome"] button[type="submit"]', 40000);
+      await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
+      await openTab(page, 'chrome');
       const restored = await readChrome(page);
       report.verdict('the scenario puts the chrome back',
         restored.text === before.text && restored.label === before.label,

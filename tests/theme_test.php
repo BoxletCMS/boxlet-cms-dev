@@ -58,12 +58,12 @@ testBothDrivers('the admin is drawn in the palette the cookie asks for', functio
 testBothDrivers('pressing a choice remembers it and comes back to the same screen', function (string $driver) {
     adminSite($driver);
 
-    $response = adminPost('/admin/appearance', ['theme' => 'light', 'back' => '/admin/pages?q=x']);
+    $response = adminPost('/admin/theme', ['theme' => 'light', 'back' => '/admin/pages?q=x']);
     assertEquals(302, $response->status, 'it redirects');
     assertEquals('/admin/pages?q=x', $response->headers['Location'] ?? null, 'back to where it was pressed');
     assertContains('boxlet_theme=light', $response->headers['Set-Cookie'] ?? '', 'the choice is kept');
 
-    $system = adminPost('/admin/appearance', ['theme' => 'system', 'back' => Url::admin()]);
+    $system = adminPost('/admin/theme', ['theme' => 'system', 'back' => Url::admin()]);
     assertContains('boxlet_theme=system', $system->headers['Set-Cookie'] ?? '', 'match the system is a choice too');
 });
 
@@ -74,11 +74,11 @@ testBothDrivers('the switch cannot be made to send anyone anywhere else', functi
     // browser is the one saying where to return to, and a browser can be told to say
     // anything.
     foreach (['https://example.com/', '//example.com/', '/admin//example.com', '/pages', "/admin\r\nX: 1"] as $back) {
-        $response = adminPost('/admin/appearance', ['theme' => 'dark', 'back' => $back]);
+        $response = adminPost('/admin/theme', ['theme' => 'dark', 'back' => $back]);
         assertEquals(Url::admin(), $response->headers['Location'] ?? null, "back={$back} must land on the dashboard");
     }
 
     // And a palette nobody offers is simply the default, not a value written into a header.
-    $odd = adminPost('/admin/appearance', ['theme' => 'magenta; Domain=example.com', 'back' => Url::admin()]);
+    $odd = adminPost('/admin/theme', ['theme' => 'magenta; Domain=example.com', 'back' => Url::admin()]);
     assertContains('boxlet_theme=dark', $odd->headers['Set-Cookie'] ?? '', 'an unknown palette falls back');
 });

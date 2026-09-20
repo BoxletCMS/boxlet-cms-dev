@@ -388,8 +388,36 @@ export async function controlsOnPanels(page, report, where) {
 }
 
 /**
+ * Opens one of the Appearance screen's five tabs (PLAN.md D-059) and waits for its panel.
+ *
+ * WITHOUT THIS A SCENARIO JUDGES A SCREEN IT CANNOT SEE. Four panels in five are hidden, so
+ * a control in a closed tab has no box: page.type refuses it, and controlsOnPanels counts it
+ * as unrendered rather than judging it. Anything that reads or fills a tab opens it first,
+ * and a guard that means to cover the whole screen runs once per tab.
+ *
+ * Returns false when there are no tabs — a screen without JavaScript shows every panel, and
+ * the caller can carry on.
+ */
+export async function openTab(page, name) {
+  const tab = await page.$(`[data-tab="${name}"]`);
+  if (tab === null) {
+    return false;
+  }
+  await tab.click();
+  await page.waitForFunction(
+    (which) => {
+      const panel = document.querySelector(`[data-panel="${which}"]`);
+      return panel !== null && !panel.hidden;
+    },
+    { timeout: 10000 },
+    name,
+  );
+  return true;
+}
+
+/**
  * Applies a design character, in the two clicks the admin deliberately requires:
- * `preset:<name>` only LOADS the preset into the form (DesignController: "Save is the
+ * `preset:<name>` only LOADS the preset into the form (AppearanceController: "Publish is the
  * confirmation"), and `action=save` writes it. `save_composition` is the second,
  * destructive action that also rewrites every block's layer 2 and 3.
  *
@@ -407,7 +435,7 @@ export async function controlsOnPanels(page, report, where) {
  * calls this without running against the copy.
  */
 export async function applyCharacter(page, base, preset, action = 'save') {
-  await page.goto(`${base}/admin/design`, { waitUntil: 'networkidle2' });
+  await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
   await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
   // BY THE FORM IT NAMES, not by the form it sits in: Save moved out of the controls and
   // beside the preview, where the sticky column keeps it in reach (D-058). It still submits
@@ -428,7 +456,7 @@ export async function applyCharacter(page, base, preset, action = 'save') {
  * Returns the menu's name, or '' when it could not be set up.
  */
 export async function ensureHeaderMenu(page, base) {
-  await page.goto(`${base}/admin/chrome`, { waitUntil: 'networkidle2' });
+  await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
   const current = await page.$eval('#header_menu', (select) => select.value).catch(() => null);
   if (current === null) {
     return '';
@@ -454,9 +482,12 @@ export async function ensureHeaderMenu(page, base) {
     }
   }
 
-  await page.goto(`${base}/admin/chrome`, { waitUntil: 'networkidle2' });
+  await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
+  // The menu lives in the fifth tab now, and page.select refuses a control with no box.
+  await openTab(page, 'chrome');
   await page.select('#header_menu', name);
-  await clickAndWait(page, 'form[action$="/admin/chrome"] button[type="submit"]', 40000);
+  await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
+  await openTab(page, 'chrome');
   return page.$eval('#header_menu', (select) => select.value).catch(() => '');
 }

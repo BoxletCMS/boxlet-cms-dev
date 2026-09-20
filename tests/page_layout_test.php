@@ -96,7 +96,7 @@ testBothDrivers('both factories answer with the whole set, for a page and for a 
 test('the preview draws the site header and footer, its icon, and no description', function () {
     $db = adminSite('sqlite');
     lookSite($db);
-    $body = dispatch('/admin/design/preview')->body;
+    $body = dispatch('/admin/appearance/preview')->body;
 
     assertContains('<header class="', $body, 'the header the old preview left out');
     assertContains('<footer class="', $body, 'the footer');
@@ -111,7 +111,7 @@ test('the preview and a real page agree about the tab icon', function () {
     Settings::set($db, 'site_favicon', chromePicture($db, $storage, $public, 'icon'));
 
     assertContains('rel="icon"', dispatch('/')->body, 'a real page');
-    assertContains('rel="icon"', dispatch('/admin/design/preview')->body, 'the preview');
+    assertContains('rel="icon"', dispatch('/admin/appearance/preview')->body, 'the preview');
 });
 
 test('the preview draws chrome choices the request is trying and writes none of them', function () {
@@ -120,7 +120,7 @@ test('the preview draws chrome choices the request is trying and writes none of 
     Composition::remember($db, 'minimal');
     $before = ChromeLook::stored($db);
 
-    $body = dispatch('/admin/design/preview?look_header_surface=contrast&look_density=roomy')->body;
+    $body = dispatch('/admin/appearance/preview?look_header_surface=contrast&look_density=roomy')->body;
 
     assertContains('surface-contrast', headerTag($body), 'the surface being tried');
     assertContains('density-roomy', $body, 'the density being tried');
@@ -132,7 +132,7 @@ test('a look value outside its closed set is not drawn', function () {
     lookSite($db);
     Composition::remember($db, 'minimal');
 
-    $body = dispatch('/admin/design/preview?look_header_surface=neon')->body;
+    $body = dispatch('/admin/appearance/preview?look_header_surface=neon')->body;
 
     assertTrue(!str_contains($body, 'surface-neon'), 'an invented surface was drawn');
     assertContains('surface-plain', headerTag($body), 'Minimal\'s own, which it falls back to');
@@ -143,7 +143,7 @@ test('the chrome follows the character being previewed, not the one the site is 
     lookSite($db);
     Composition::remember($db, 'minimal');
 
-    $body = dispatch('/admin/design/preview?character=brutalist')->body;
+    $body = dispatch('/admin/appearance/preview?character=brutalist')->body;
 
     assertContains('layout-left', headerTag($body), 'Brutalist\'s arrangement');
     assertContains('density-compact', $body, 'Brutalist\'s density');
@@ -155,7 +155,7 @@ test('a choice the owner saved survives a preview that says nothing about it', f
     Composition::remember($db, 'minimal');
     ChromeLook::save($db, ['header_surface' => 'tinted']);
 
-    $body = dispatch('/admin/design/preview')->body;
+    $body = dispatch('/admin/appearance/preview')->body;
 
     assertContains('surface-tinted', headerTag($body), 'the owner\'s saved surface');
 });

@@ -8,14 +8,15 @@ use App\Core\Request;
 use App\Core\Router;
 use App\Core\Session;
 use App\Modules\Admin\ActivityController;
-use App\Modules\Admin\AppearanceController;
+use App\Modules\Admin\ThemeController;
 use App\Modules\Admin\DashboardController;
 use App\Modules\Admin\RequireAdmin;
 use App\Modules\Admin\SearchController;
 use App\Modules\Auth\AuthController;
 use App\Modules\Auth\TwoFactorController;
+use App\Modules\Appearance\AppearanceController;
+use App\Modules\Appearance\AppearancePreview;
 use App\Modules\Design\Design;
-use App\Modules\Design\DesignController;
 use App\Modules\Forms\FormsController;
 use App\Modules\Forms\FormSubmitController;
 use App\Modules\Forms\MessagesController;
@@ -39,7 +40,6 @@ use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageEditorController;
 use App\Modules\Pages\PagesController;
 use App\Modules\Pages\TranslationController;
-use App\Modules\Settings\ChromeController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Stats\StatsController;
 use App\Modules\Stats\StatsDataController;
@@ -232,7 +232,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // The activity log in full (D-052); the Overview shows its start.
     $router->get('/admin/activity', [ActivityController::class, 'index'], $requireAdmin);
     // Light, dark or the machine's own (D-054): the switch in the strip posts here.
-    $router->post('/admin/appearance', [AppearanceController::class, 'save'], $requireAdmin);
+    $router->post('/admin/theme', [ThemeController::class, 'save'], $requireAdmin);
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
@@ -264,17 +264,21 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/languages/{code:[a-z]{2}}/move', [LanguagesController::class, 'move'], $requireAdmin);
     $router->post('/admin/languages/{code:[a-z]{2}}/delete', [LanguagesController::class, 'remove'], $requireAdmin);
 
-    // The site's header and footer (D-028, D-030). Its own screen rather than another
-    // section of Settings: settings are what the installer wrote and the fallback
-    // pictures, while this is what a visitor sees at the top and bottom of every page.
-    $router->get('/admin/chrome', [ChromeController::class, 'show'], $requireAdmin);
-    $router->post('/admin/chrome', [ChromeController::class, 'save'], $requireAdmin);
+    // HOW THE SITE LOOKS, ON ONE SCREEN (D-059): the character, the ten decisions, the
+    // header and the footer, with a picture of all of it. Design and Header & footer were
+    // one screen cut in half — one had the choices and no picture, the other a picture that
+    // deliberately drew no chrome.
+    $router->get('/admin/appearance', [AppearanceController::class, 'show'], $requireAdmin);
+    $router->post('/admin/appearance', [AppearanceController::class, 'save'], $requireAdmin);
+    $router->get('/admin/appearance/preview', [AppearancePreview::class, 'page'], $requireAdmin);
+    $router->get('/admin/appearance/stylesheet', [AppearancePreview::class, 'stylesheet'], $requireAdmin);
+    $router->get('/admin/appearance/check', [AppearancePreview::class, 'check'], $requireAdmin);
 
-    $router->get('/admin/design', [DesignController::class, 'show'], $requireAdmin);
-    $router->post('/admin/design', [DesignController::class, 'save'], $requireAdmin);
-    $router->get('/admin/design/preview', [DesignController::class, 'preview'], $requireAdmin);
-    $router->get('/admin/design/stylesheet', [DesignController::class, 'previewCss'], $requireAdmin);
-    $router->get('/admin/design/check', [DesignController::class, 'check'], $requireAdmin);
+    // The two addresses that led here, while bookmarks and habits catch up. They are a
+    // redirect and nothing else: neither screen exists any more. Taking them away entirely
+    // is an open item (O-22), along with the ⌘K entries that still name them.
+    $router->get('/admin/design', [AppearanceController::class, 'moved'], $requireAdmin);
+    $router->get('/admin/chrome', [AppearanceController::class, 'moved'], $requireAdmin);
 
     // Pages: the home page of a locale has the empty slug. Slugs are one path segment.
     // A visitor sending a form (D-046). Unprefixed: the form knows its own language.

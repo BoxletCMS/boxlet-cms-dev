@@ -1,102 +1,87 @@
 <?php
 
-use App\Modules\Settings\ChromeController;
+use App\Modules\Settings\ChromeLook;
+use App\Modules\Settings\ChromeWords;
 use App\Support\Url;
 
 /**
- * The site's header and footer (PLAN.md D-028, D-030). Provided by AdminView::render().
+ * The header and footer tab (PLAN.md D-059). Everything that used to be its own screen at
+ * /admin/chrome: which menu the header shows, the seven look choices, and the owner's own
+ * words in each language.
  *
- * ONE FORM. Everything here is a setting, unlike the settings screen where the maintenance
- * switch has to post elsewhere because it writes a file.
+ * THE WORDS ARE HERE RATHER THAN ON A SCREEN OF THEIR OWN. They were the only reason that
+ * screen would have survived the merge, and a second address for one half of a thing is the
+ * arrangement this whole rebuild exists to end. The owner asked the question directly and
+ * that was the answer.
  *
- * The shared choices come first and the words follow, grouped by language, because that is
- * the order the questions arrive in: which picture and which menu is one decision for the
- * site, and then the same four fields are answered once per language.
+ * The preview draws the words of the language it renders, which is the site's main one; the
+ * others are edited here and seen on the site.
  *
- * @var array{menu: string, locales: array<string, array<string, string>>, look: array<string, string>} $values
- * @var array<string, string> $errors
- * @var list<string> $menus
- * @var array<string, string> $characterLook what the active character gives each look choice
+ * @var array<string, string> $look the seven choices, '' for "follow the character"
+ * @var string $menu the menu the header shows, by name
+ * @var list<string> $menus every menu name on offer
+ * @var array<string, array<string, string>> $words the owner's words, per locale
  * @var array<string, array<int, array{title: string, depth: int, published: bool, url: string}>> $linkPages
- *      per locale, page group => what the button may point at (PLAN.md D-034)
  * @var array<int, array<string, mixed>> $locales
- * @var string $title
- * @var string $csrf
+ * @var string $shownLocale the language the preview draws
+ * @var array<string, string> $characterLook what the character gives each choice
+ * @var array<string, string> $errors
+ * @var callable(string): string $error
  */
-$error = static fn (string $key): string => isset($errors[$key])
-    ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>'
+$word = static fn (string $code, string $field): string => is_string($words[$code][$field] ?? null)
+    ? $words[$code][$field]
     : '';
-
-$word = static fn (string $code, string $field): string => is_string($values['locales'][$code][$field] ?? null)
-    ? $values['locales'][$code][$field]
-    : '';
-
 ?>
-        <div class="page-header">
-            <h1><?= e($title) ?></h1>
-        </div>
-        <p class="page-subtitle"><?= e(t('chrome.intro')) ?></p>
-
-        <form method="post" action="<?= e(Url::admin('chrome')) ?>">
-            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-
-            <div class="panel stack">
-                <h2><?= e(t('chrome.shared')) ?></h2>
-
-                <?php /* The posted names are header_* and footer_*, not chrome_*: a settings
-                         key and a form field are different namespaces, and giving them one
-                         prefix meant neither a reader nor chrome_test.php could tell them
-                         apart. The key shape stays SiteChrome's alone. */ ?>
-                <?php /* The logo is the site's, not the header's: one setting, under Settings →
-                         Branding, with the favicon and the sharing picture (D-038). */ ?>
+            <fieldset class="fieldset">
+                <?php /* The logo is the site's, not the header's: one setting, under
+                         Settings → Branding, with the favicon and the sharing picture
+                         (D-038). */ ?>
                 <p class="hint"><?= e(t('chrome.logo_where')) ?> <a href="<?= e(Url::admin('settings')) ?>"><?= e(t('chrome.logo_where_link')) ?></a></p>
 
-                <?php /* By NAME, not by id: the same name is each language's own menu, so this
-                         is one choice rather than one per translation (D-030). A menu made
-                         and deleted and made again under that name simply works. */ ?>
+                <?php /* By NAME, not by id: the same name is each language's own menu, so
+                         this is one choice rather than one per translation (D-030). */ ?>
                 <div class="field">
                     <label for="header_menu"><?= e(t('chrome.menu')) ?></label>
                     <select id="header_menu" name="header_menu" aria-describedby="header_menu-hint">
                         <option value=""><?= e(t('chrome.menu_none')) ?></option>
 <?php foreach ($menus as $name): ?>
-                        <option value="<?= e($name) ?>"<?= $values['menu'] === $name ? ' selected' : '' ?>><?= e($name) ?></option>
+                        <option value="<?= e($name) ?>"<?= $menu === $name ? ' selected' : '' ?>><?= e($name) ?></option>
 <?php endforeach; ?>
                     </select>
                     <span class="hint" id="header_menu-hint">
                         <?= e($menus === [] ? t('chrome.no_menus') : t('chrome.menu_hint')) ?>
                     </span>
                 </div>
-            </div>
 
-            <?php /* How the chrome looks (D-032, D-036). Every choice starts "as the
-                     character has it", which names what that currently is, so leaving it
-                     alone is a choice the owner can read rather than a blank. */ ?>
-            <div class="panel stack">
-                <h2><?= e(t('chrome.look')) ?></h2>
-                <p class="hint"><?= e(t('chrome.look_intro')) ?></p>
+                <?php /* How the chrome looks (D-032, D-036). Every choice starts "as the
+                         character has it", which names what that currently is, so leaving it
+                         alone is a choice the owner can read rather than a blank. */ ?>
                 <div class="look-grid">
-<?php foreach (\App\Modules\Settings\ChromeLook::OPTIONS as $choice => $options): ?>
-<?php $field = \App\Modules\Settings\ChromeLook::field($choice); ?>
+<?php foreach (ChromeLook::OPTIONS as $choice => $options): ?>
+<?php $field = ChromeLook::field($choice); ?>
                     <div class="field">
                         <label for="<?= e($field) ?>"><?= e(t('chrome.look.' . $choice)) ?></label>
                         <select id="<?= e($field) ?>" name="<?= e($field) ?>">
                             <option value=""><?= e(t('chrome.look.follow', ['value' => t('chrome.look.' . $choice . '.' . ($characterLook[$choice] ?? ''))])) ?></option>
 <?php foreach ($options as $option): ?>
-                            <option value="<?= e($option) ?>"<?= ($values['look'][$choice] ?? '') === $option ? ' selected' : '' ?>><?= e(t('chrome.look.' . $choice . '.' . $option)) ?></option>
+                            <option value="<?= e($option) ?>"<?= ($look[$choice] ?? '') === $option ? ' selected' : '' ?>><?= e(t('chrome.look.' . $choice . '.' . $option)) ?></option>
 <?php endforeach; ?>
                         </select>
                         <?= field_hint('hint.look.' . $choice) ?>
                     </div>
 <?php endforeach; ?>
                 </div>
-            </div>
+            </fieldset>
 
 <?php foreach ($locales as $locale): ?>
 <?php $code = (string) $locale['code']; ?>
-            <div class="panel stack">
-                <h2><?= e(t('chrome.words')) ?>: <?= e((string) $locale['label']) ?></h2>
+            <fieldset class="fieldset">
+                <legend><?= e(t('chrome.words')) ?><?= count($locales) > 1 ? ': ' . e((string) $locale['label']) : '' ?></legend>
+<?php if (count($locales) > 1 && $code === $shownLocale): ?>
+                <p class="hint"><?= e(t('appearance.words_previewed')) ?></p>
+<?php endif; ?>
 
-<?php $field = static fn (string $name): string => ChromeController::field($name, $code); ?>
+<?php $field = static fn (string $name): string => ChromeWords::field($name, $code); ?>
 <?php
     // A page first, an address second (PLAN.md D-034), exactly as in a block's link field:
     // choosing a page shows its address and offers its title as the label (D-038).
@@ -154,8 +139,5 @@ $word = static fn (string $code, string $field): string => is_string($values['lo
                            aria-describedby="<?= e($field('small_print')) ?>-hint">
                     <span class="hint" id="<?= e($field('small_print')) ?>-hint"><?= e(t('chrome.small_print_hint')) ?></span>
                 </div>
-            </div>
+            </fieldset>
 <?php endforeach; ?>
-
-            <button type="submit" class="button"><?= e(t('chrome.save')) ?></button>
-        </form>

@@ -47,8 +47,9 @@ $rail = [
         ['nav' => 'forms', 'href' => Url::admin('forms'), 'icon' => 'list-checks', 'label' => t('admin.nav.forms'), 'count' => $counts['forms']],
     ],
     'presentation' => [
-        ['nav' => 'design', 'href' => Url::admin('design'), 'icon' => 'palette', 'label' => t('admin.nav.design'), 'count' => null],
-        ['nav' => 'chrome', 'href' => Url::admin('chrome'), 'icon' => 'panels-top-left', 'label' => t('admin.nav.chrome'), 'count' => null],
+        // One item where there were two (D-059): Design and Header & footer were one screen
+        // cut in half, and the rail said so twice.
+        ['nav' => 'appearance', 'href' => Url::admin('appearance'), 'icon' => 'palette', 'label' => t('admin.nav.appearance'), 'count' => null],
     ],
     // Statistics last, so dropping it leaves the others where they were.
     'administration' => array_filter([
@@ -166,7 +167,7 @@ foreach ($rail as $entries) {
                              would have to mean the state one moment and the action the next.
                              A form, so it works with no script at all; the page comes back
                              already painted in the chosen palette. */ ?>
-                    <form class="theme-switch" method="post" action="<?= e(Url::admin('appearance')) ?>"
+                    <form class="theme-switch" method="post" action="<?= e(Url::admin('theme')) ?>"
                           aria-label="<?= e(t('admin.appearance')) ?>" title="<?= e(t('admin.appearance_hint')) ?>">
                         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                         <input type="hidden" name="back" value="<?= e($here) ?>">

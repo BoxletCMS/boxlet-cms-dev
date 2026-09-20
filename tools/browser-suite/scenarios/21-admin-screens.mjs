@@ -30,10 +30,9 @@ const SCREENS = [
   ['/admin/pages/1/form', 'page-form'],
   ['/admin/media', 'media'],
   ['first:/admin/media', 'media-item'],
-  ['/admin/design', 'design'],
+  ['/admin/appearance', 'appearance'],
   ['/admin/menus', 'menus'],
   ['first:/admin/menus', 'menu'],
-  ['/admin/chrome', 'chrome'],
   ['/admin/settings', 'settings'],
   ['/admin/update', 'update'],
 ];

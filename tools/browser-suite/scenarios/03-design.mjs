@@ -19,7 +19,7 @@
  * character is re-applied afterwards so later scenarios start from a sane design.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu } from '../harness.mjs';
+import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openTab } from '../harness.mjs';
 
 const STYLE_GUIDE = 4;
 
@@ -42,7 +42,7 @@ export default {
       report.fail('design: its test data', 'no menu could be put in the header, so there is no header to measure');
     }
 
-    const presets = await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' })
+    const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',
         (els) => els.map((e) => e.value.slice('preset:'.length))));
     report.verdict('the Design screen offers five characters', presets.length === 5, presets.join(', '));
@@ -50,7 +50,16 @@ export default {
     // The richest form in the admin, and judged before the loop below starts changing the
     // site's own colours — the guard reads computed backgrounds, and this screen is the one
     // place where a character could plausibly leak into the tool (SPEC §5.4 says it must not).
-    await controlsOnPanels(page, report, 'design');
+    //
+    // ONCE PER TAB. Four panels in five are hidden, and a hidden control is one this guard
+    // counts as unrendered rather than judging: called once, it would have covered a fifth
+    // of the screen and said nothing about the rest (D-059).
+    for (const tab of ['colour', 'type', 'shape', 'page', 'chrome']) {
+      if (await openTab(page, tab)) {
+        await controlsOnPanels(page, report, `appearance: ${tab}`);
+      }
+    }
+    await openTab(page, 'colour');
 
     /*
      * ---- the preview draws the real header and footer (PLAN.md D-057) -------------------
@@ -104,6 +113,7 @@ export default {
 
     // A choice is immediate: no click on anything called "update", and no waiting.
     const framedBefore = await page.$eval('iframe[data-design-preview]', (el) => el.src);
+    await openTab(page, 'shape');
     await page.select('#design-container', 'narrow');
     await page.waitForFunction((was) => document.querySelector('iframe[data-design-preview]').src !== was, {}, framedBefore);
     report.pass('choosing a value refreshes the preview by itself', 'the frame followed the select with no button pressed');
@@ -247,7 +257,7 @@ export default {
       `section ${target}: "${handTuned}" -> "${afterReset[target]}"`);
 
     // ---- a palette that fails contrast ---------------------------------------------------
-    await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     await page.$eval('input[name="seed"]', (el) => {
       el.value = '#ffff00';
       el.dispatchEvent(new Event('input', { bubbles: true }));

@@ -8,7 +8,7 @@
  *     remembered in the browser for the other screens.
  *
  * The same rules twice, once for each way the state arrives: a media query cannot be put
- * in a selector list. Admin tokens only (--ui-*), defined in admin.css. */
+ * in a selector list. Admin tokens only (--ui-*), defined in admin-tokens.css. */
 
 /* The toggle: a small round button on the rail's edge, in the strip so that it stays where
    it is as the page scrolls. Born hidden and shown by the script that makes it work. Not on

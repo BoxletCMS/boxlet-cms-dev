@@ -29,6 +29,13 @@ return [
     'admin.rail.fold' => 'Fold the menu to its icons',
     'admin.rail.open' => 'Open the menu',
     'admin.site_time' => 'The site\'s time zone, and the time there now',
+    // The theme switch in the strip (D-054). The hint answers the fear the control raises:
+    // a button in the admin that changes colours could be changing the site's.
+    'admin.appearance' => 'Appearance',
+    'admin.appearance_light' => 'Light',
+    'admin.appearance_dark' => 'Dark',
+    'admin.appearance_system' => 'Match the system',
+    'admin.appearance_hint' => 'Light or dark. Only changes how the admin looks to you, never the site.',
     'admin.nav.pages' => 'Pages',
     'admin.nav.media' => 'Media',
     'admin.nav.design' => 'Design',

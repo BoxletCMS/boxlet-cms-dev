@@ -1,7 +1,7 @@
 /* The world map on the Statistics screen (PLAN.md O-20), drawn by App\Modules\Stats\Map from
- * public/assets/vendor/world-map.svg. Admin tokens only (--ui-*), defined in admin.css: the
- * five steps are the accent mixed into the page, so the busiest country is the accent itself
- * and the quietest is barely a tint. */
+ * public/assets/vendor/world-map.svg. Admin tokens only (--ui-*), defined in
+ * admin-tokens.css: the five steps are the accent mixed into the page, so the busiest
+ * country is the accent itself and the quietest is barely a tint. */
 
 .stats-map {
   margin-bottom: var(--ui-5);

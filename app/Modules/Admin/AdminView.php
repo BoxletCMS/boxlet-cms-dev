@@ -74,11 +74,16 @@ final class AdminView
      * rail never opens and then folds as a page loads. Only the admin ever gets it: it is
      * set by the admin's own script, on /admin.
      *
-     * @return array{counts: array{pages: int, media: int, menus: int, forms: int}, host: string, zone: string, time: string, adminEmail: string, railState: string}
+     * The palette comes from the boxlet_theme cookie the same way (D-054), and `here` is
+     * the address of this very page, which the theme switch posts back so that pressing it
+     * returns to the screen it was pressed on.
+     *
+     * @return array{counts: array{pages: int, media: int, menus: int, forms: int}, host: string, zone: string, time: string, adminEmail: string, railState: string, theme: string, here: string}
      */
     private static function frame(Container $container): array
     {
         $db = $container->get('db');
+        $request = $container->get('request');
         $row = $db->one('SELECT (SELECT COUNT(*) FROM pages) AS pages, (SELECT COUNT(*) FROM media) AS media,
             (SELECT COUNT(*) FROM menus) AS menus, (SELECT COUNT(*) FROM forms) AS forms') ?? [];
         $zone = Dates::zone($db);
@@ -96,7 +101,9 @@ final class AdminView
             'zone' => $zone,
             'time' => (new DateTimeImmutable('now', new DateTimeZone($zone)))->format('H:i'),
             'adminEmail' => (string) ($admin['email'] ?? ''),
-            'railState' => preg_match('~(?:^|;)\s*boxlet_rail=(compact|wide)~', (string) $container->get('request')->header('cookie'), $rail) === 1 ? $rail[1] : '',
+            'railState' => preg_match('~(?:^|;)\s*boxlet_rail=(compact|wide)~', (string) $request->header('cookie'), $rail) === 1 ? $rail[1] : '',
+            'theme' => Theme::of($request),
+            'here' => Url::withQuery($request->basePath . $request->path, array_map('strval', array_filter($request->query, 'is_scalar'))),
         ];
     }
 }

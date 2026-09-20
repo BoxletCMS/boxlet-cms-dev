@@ -1,7 +1,7 @@
 /* Visit statistics (PLAN.md D-051): the trend chart, an SVG drawn by
  * App\Modules\Stats\Chart; its colours are here, by class, never in the markup. Split from
  * admin-stats.css when that passed the size limit. Admin tokens only (--ui-*), defined in
- * admin.css. */
+ * admin-tokens.css. */
 
 /* The trend. */
 .stats-trend {

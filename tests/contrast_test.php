@@ -30,22 +30,56 @@ const ADMIN_SURFACE = [
 ];
 
 /**
- * The admin's colour tokens, without the `--ui-` prefix.
+ * Every palette block in admin-tokens.css, as the declarations it holds (D-054).
+ *
+ * Keyed by the theme in its selector: '' for the plain `.admin` default, then 'light' and
+ * 'system'. Comments go first, so the selectors listed in the file's own header cannot look
+ * like blocks; a block ends at a closing brace indented exactly as its selector was, which
+ * is what lets the one inside the @media be found without a CSS parser.
+ *
+ * @return array<string, string> theme => the declarations between its braces
+ */
+function adminThemeBlocks(): array
+{
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/admin-tokens.css');
+    $css = (string) preg_replace('~/\*.*?\*/~s', '', $css);
+    preg_match_all('~^([ ]*)\.admin(?:\[data-ui-theme="([a-z]+)"\])?\s*\{(.*?)^\1\}~ms', $css, $matches, PREG_SET_ORDER);
+
+    $blocks = [];
+    foreach ($matches as $match) {
+        $blocks[$match[2]] = $match[3];
+    }
+
+    return $blocks;
+}
+
+/**
+ * One palette's colour tokens, without the `--ui-` prefix.
+ *
+ * A theme other than the default is a block of OVERRIDES, so it is read on top of the
+ * default: a token it does not restate keeps the value it has there, exactly as the
+ * cascade gives it to the browser.
  *
  * @return array<string, string> name => #rrggbb
  */
-function adminTokens(): array
+function adminTokens(string $theme = ''): array
 {
-    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/admin.css');
-    preg_match_all('~--ui-([a-z-]+)\s*:\s*(#[0-9a-f]{6})\s*;~', $css, $matches, PREG_SET_ORDER);
+    $blocks = adminThemeBlocks();
+    $read = static function (string $body): array {
+        preg_match_all('~--ui-([a-z-]+)\s*:\s*(#[0-9a-f]{6})\s*;~', $body, $matches, PREG_SET_ORDER);
+        $tokens = [];
+        foreach ($matches as $match) {
+            $tokens[$match[1]] = $match[2];
+        }
 
-    $tokens = [];
-    foreach ($matches as $match) {
-        $tokens[$match[1]] = $match[2];
-    }
+        return $tokens;
+    };
 
-    return $tokens;
+    return $read($blocks[$theme] ?? '') + $read($blocks[''] ?? '');
 }
+
+/** The palettes every colour test runs twice over: the dark default, and warm paper. */
+const ADMIN_THEMES = ['', 'light'];
 
 /**
  * Every rule in a stylesheet, as selector => declaration text. Not a parser: it splits on
@@ -72,17 +106,122 @@ function cssRules(string $file): array
 }
 
 test('every admin ink is readable on every admin surface', function () {
-    $tokens = adminTokens();
+    foreach (ADMIN_THEMES as $theme) {
+        $tokens = adminTokens($theme);
+        $where = $theme === '' ? 'the default palette' : "the {$theme} palette";
 
-    foreach (ADMIN_INK as $ink) {
-        assertTrue(isset($tokens[$ink]), "--ui-{$ink} is gone from admin.css");
-        foreach (ADMIN_SURFACE as $surface) {
-            assertTrue(isset($tokens[$surface]), "--ui-{$surface} is gone from admin.css");
-            $ratio = Color::contrast($tokens[$ink], $tokens[$surface]);
-            assertTrue($ratio >= 4.5, sprintf(
-                '--ui-%s (%s) on --ui-%s (%s) is %.2f:1, under the 4.5:1 text rule',
-                $ink,
-                $tokens[$ink],
+        foreach (ADMIN_INK as $ink) {
+            assertTrue(isset($tokens[$ink]), "--ui-{$ink} is gone from {$where}");
+            foreach (ADMIN_SURFACE as $surface) {
+                assertTrue(isset($tokens[$surface]), "--ui-{$surface} is gone from {$where}");
+                $ratio = Color::contrast($tokens[$ink], $tokens[$surface]);
+                assertTrue($ratio >= 4.5, sprintf(
+                    '%s: --ui-%s (%s) on --ui-%s (%s) is %.2f:1, under the 4.5:1 text rule',
+                    $where,
+                    $ink,
+                    $tokens[$ink],
+                    $surface,
+                    $tokens[$surface],
+                    $ratio,
+                ));
+            }
+        }
+    }
+});
+
+// The two palettes are one admin. A token declared in one and not the other is a screen
+// that falls back to the dark value on paper — which is how a theme rots silently.
+test('both palettes declare the same colour tokens', function () {
+    $blocks = adminThemeBlocks();
+    assertTrue(isset($blocks[''], $blocks['light'], $blocks['system']), 'a palette block is missing from admin-tokens.css');
+
+    $names = static function (string $body): array {
+        preg_match_all('~--ui-([a-z-]+)\s*:~', $body, $found);
+        $list = $found[1];
+        sort($list);
+
+        return $list;
+    };
+    assertEquals($names($blocks['']), $names($blocks['light']), 'the light palette and the default do not declare the same tokens');
+});
+
+// The light values are written out twice — once for the person who chose light, once for
+// the person who chose "match the system" on a light machine — because plain CSS cannot
+// give one block two selectors across a media query and Boxlet has no build step. The
+// duplication is honest only while the two copies are the same.
+test('the two light palettes are the same palette', function () {
+    $blocks = adminThemeBlocks();
+    $lines = static function (string $body): array {
+        $out = [];
+        foreach (explode("\n", $body) as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $out[] = $line;
+            }
+        }
+
+        return $out;
+    };
+
+    assertEquals(
+        $lines($blocks['light'] ?? ''),
+        $lines($blocks['system'] ?? ''),
+        'the "light" and the "match the system" blocks in admin-tokens.css have drifted apart',
+    );
+});
+
+// The rail and the palette dialog are the frame, painted a step away from the page in
+// whichever direction the palette runs, so their inks are measured against them alone: the
+// matrix above pairs inks with the page's own surfaces. --ui-ink-faint joins them because
+// the rail's counts are drawn in it, and the accent tint joins the surfaces because it is
+// what marks the rail's current entry.
+test('the frame\'s inks are readable on the frame', function () {
+    foreach (ADMIN_THEMES as $theme) {
+        $tokens = adminTokens($theme);
+        $where = $theme === '' ? 'the default palette' : "the {$theme} palette";
+
+        foreach (['bar', 'bar-ink', 'bar-ink-muted', 'bar-raised', 'current', 'mark'] as $name) {
+            assertTrue(isset($tokens[$name]), "--ui-{$name} is gone from {$where}");
+        }
+        foreach (['bar-ink', 'bar-ink-muted'] as $ink) {
+            foreach (['bar', 'bar-raised', 'accent-soft', 'current'] as $surface) {
+                $ratio = Color::contrast($tokens[$ink], $tokens[$surface]);
+                assertTrue($ratio >= 4.5, sprintf('%s: --ui-%s on --ui-%s is %.2f:1, under the 4.5:1 text rule', $where, $ink, $surface, $ratio));
+            }
+        }
+        // The faint ink draws the rail's counts, so it is measured where they actually sit.
+        // Not on --ui-current: that is the deepest ground in the rail, where it measured
+        // 4.09:1, and the count in the current row is drawn in the muted ink instead
+        // (admin-shell.css). If that rule ever goes, this list is the thing to widen.
+        foreach (['bar', 'bar-raised', 'accent-soft'] as $surface) {
+            $ratio = Color::contrast($tokens['ink-faint'], $tokens[$surface]);
+            assertTrue($ratio >= 4.5, sprintf('%s: --ui-ink-faint on --ui-%s is %.2f:1, under the 4.5:1 text rule', $where, $surface, $ratio));
+        }
+        // The bar down the left of the current entry is what the accent is spent on there,
+        // and it is a shape rather than words.
+        $bar = Color::contrast($tokens['accent'], $tokens['current']);
+        assertTrue($bar >= 3.0, sprintf('%s: --ui-accent on --ui-current is %.2f:1, under the 3:1 rule for a shape', $where, $bar));
+    }
+});
+
+// The mark is decoration and carries no text, so it is held to the 3:1 of a shape rather
+// than the 4.5:1 of words — but it is a shape you must be able to SEE, on the rail where
+// it is the brand and on a panel where it opens the login card.
+//
+// Measured, against the handoff's advice that the orange never needs re-tuning: #ff6b3d
+// on warm paper's rail is 2.27:1. Orange on ink and orange on paper are not the same
+// colour. The light palette carries its own, deeper value.
+test('the brand mark is a shape you can see', function () {
+    foreach (ADMIN_THEMES as $theme) {
+        $tokens = adminTokens($theme);
+        $where = $theme === '' ? 'the default palette' : "the {$theme} palette";
+
+        foreach (['bar', 'panel', 'bg'] as $surface) {
+            $ratio = Color::contrast($tokens['mark'], $tokens[$surface]);
+            assertTrue($ratio >= 3.0, sprintf(
+                '%s: --ui-mark (%s) on --ui-%s (%s) is %.2f:1, under the 3:1 rule for a shape',
+                $where,
+                $tokens['mark'],
                 $surface,
                 $tokens[$surface],
                 $ratio,
@@ -91,40 +230,24 @@ test('every admin ink is readable on every admin surface', function () {
     }
 });
 
-// The bar across the top is the admin's one dark surface, so its inks are measured
-// against it alone: the matrix above pairs inks with pale surfaces, where these light
-// inks would fail by design. The mark is decoration and carries no text, so it is held to
-// the 3:1 of a shape rather than the 4.5:1 of words.
-test('the bar\'s inks are readable on the bar', function () {
-    $tokens = adminTokens();
-
-    foreach (['bar', 'bar-ink', 'bar-ink-muted', 'bar-raised', 'mark'] as $name) {
-        assertTrue(isset($tokens[$name]), "--ui-{$name} is gone from admin.css");
-    }
-    foreach (['bar-ink', 'bar-ink-muted'] as $ink) {
-        foreach (['bar', 'bar-raised'] as $surface) {
-            $ratio = Color::contrast($tokens[$ink], $tokens[$surface]);
-            assertTrue($ratio >= 4.5, sprintf('--ui-%s on --ui-%s is %.2f:1, under the 4.5:1 text rule', $ink, $surface, $ratio));
-        }
-    }
-    $ratio = Color::contrast($tokens['mark'], $tokens['bar']);
-    assertTrue($ratio >= 3.0, sprintf('--ui-mark on --ui-bar is %.2f:1, under the 3:1 rule for a shape', $ratio));
-});
-
 test('the ink on a filled accent surface is readable', function () {
-    $tokens = adminTokens();
+    foreach (ADMIN_THEMES as $theme) {
+        $tokens = adminTokens($theme);
+        $where = $theme === '' ? 'the default palette' : "the {$theme} palette";
 
-    // --ui-on-accent is the one ink that never meets a pale surface: it exists for the
-    // primary button and its hover, which are the accent colours themselves.
-    foreach (['accent', 'accent-dark'] as $surface) {
-        $ratio = Color::contrast($tokens['on-accent'], $tokens[$surface]);
-        assertTrue($ratio >= 4.5, sprintf(
-            '--ui-on-accent (%s) on --ui-%s (%s) is %.2f:1, under the 4.5:1 text rule',
-            $tokens['on-accent'],
-            $surface,
-            $tokens[$surface],
-            $ratio,
-        ));
+        // --ui-on-accent is the one ink that never meets a page surface: it exists for the
+        // primary button and its hover, which are the accent colours themselves.
+        foreach (['accent', 'accent-dark'] as $surface) {
+            $ratio = Color::contrast($tokens['on-accent'], $tokens[$surface]);
+            assertTrue($ratio >= 4.5, sprintf(
+                '%s: --ui-on-accent (%s) on --ui-%s (%s) is %.2f:1, under the 4.5:1 text rule',
+                $where,
+                $tokens['on-accent'],
+                $surface,
+                $tokens[$surface],
+                $ratio,
+            ));
+        }
     }
 });
 
@@ -200,51 +323,60 @@ test('a button variant that changes the ink brings its own background', function
 });
 
 test('a button variant is readable on the ground it declares', function () {
-    $tokens = adminTokens();
     // Where a button can sit when its own background lets the page through.
     $grounds = ['bg', 'panel', 'panel-sunken'];
 
-    foreach (buttonVariants() as $selector => $rule) {
-        if ($rule['color'] === null || $rule['background'] === null) {
-            continue;
-        }
+    foreach (ADMIN_THEMES as $theme) {
+        $tokens = adminTokens($theme);
+        $where = $theme === '' ? 'the default palette' : "the {$theme} palette";
 
-        assertTrue(isset($tokens[$rule['color']]), "{$selector}: --ui-{$rule['color']} is not a token");
-        $ink = $tokens[$rule['color']];
+        foreach (buttonVariants() as $selector => $rule) {
+            if ($rule['color'] === null || $rule['background'] === null) {
+                continue;
+            }
 
-        // transparent is not a colour to measure against: the page shows through, so the
-        // ink has to read on every ground a button can be placed on.
-        $against = $rule['background'] === 'transparent' ? $grounds : [$rule['background']];
+            assertTrue(isset($tokens[$rule['color']]), "{$selector}: --ui-{$rule['color']} is not a token");
+            $ink = $tokens[$rule['color']];
 
-        foreach ($against as $name) {
-            assertTrue(isset($tokens[$name]), "{$selector}: --ui-{$name} is not a token");
-            $ratio = Color::contrast($ink, $tokens[$name]);
-            assertTrue($ratio >= 4.5, sprintf(
-                '%s: --ui-%s (%s) on --ui-%s (%s) is %.2f:1, under the 4.5:1 text rule',
-                $selector,
-                $rule['color'],
-                $ink,
-                $name,
-                $tokens[$name],
-                $ratio,
-            ));
+            // transparent is not a colour to measure against: the page shows through, so the
+            // ink has to read on every ground a button can be placed on.
+            $against = $rule['background'] === 'transparent' ? $grounds : [$rule['background']];
+
+            foreach ($against as $name) {
+                assertTrue(isset($tokens[$name]), "{$selector}: --ui-{$name} is not a token");
+                $ratio = Color::contrast($ink, $tokens[$name]);
+                assertTrue($ratio >= 4.5, sprintf(
+                    '%s, %s: --ui-%s (%s) on --ui-%s (%s) is %.2f:1, under the 4.5:1 text rule',
+                    $where,
+                    $selector,
+                    $rule['color'],
+                    $ink,
+                    $name,
+                    $tokens[$name],
+                    $ratio,
+                ));
+            }
         }
     }
 });
 
 test('a control that is empty at rest has an edge you can see', function () {
-    $tokens = adminTokens();
+    foreach (ADMIN_THEMES as $theme) {
+        $tokens = adminTokens($theme);
+        $where = $theme === '' ? 'the default palette' : "the {$theme} palette";
 
-    assertTrue(isset($tokens['control-line']), '--ui-control-line is gone: controls draw their edge with what now?');
-    foreach (ADMIN_SURFACE as $surface) {
-        $ratio = Color::contrast($tokens['control-line'], $tokens[$surface]);
-        assertTrue($ratio >= 3.0, sprintf(
-            '--ui-control-line (%s) on --ui-%s (%s) is %.2f:1, under the 3:1 control rule',
-            $tokens['control-line'],
-            $surface,
-            $tokens[$surface],
-            $ratio,
-        ));
+        assertTrue(isset($tokens['control-line']), '--ui-control-line is gone: controls draw their edge with what now?');
+        foreach (ADMIN_SURFACE as $surface) {
+            $ratio = Color::contrast($tokens['control-line'], $tokens[$surface]);
+            assertTrue($ratio >= 3.0, sprintf(
+                '%s: --ui-control-line (%s) on --ui-%s (%s) is %.2f:1, under the 3:1 control rule',
+                $where,
+                $tokens['control-line'],
+                $surface,
+                $tokens[$surface],
+                $ratio,
+            ));
+        }
     }
 
     // The distinction the token exists for. --ui-line-strong stays light on purpose: it
@@ -295,10 +427,15 @@ test('a softly drawn field keeps an edge you can see', function () {
 });
 
 test('every colour in the admin comes from the admin palette', function () {
-    $tokens = adminTokens();
     $allowed = ['transparent', 'inherit', 'currentcolor', 'none', 'unset'];
 
     foreach (adminStylesheets() as $file) {
+        // admin-tokens.css IS the palette: it is the one file whose whole job is to say
+        // what colour anything is, and the test above measures every value in it.
+        if ($file === 'admin-tokens.css') {
+            continue;
+        }
+
         // canvas.css is the declared exception, and the reason is in its own header: it
         // loads into a document full of the SITE's tokens, so what sits behind its controls
         // is the user's design, not a surface this palette knows. Its colours are literals

@@ -1,6 +1,6 @@
 /* The library as a table (PLAN.md D-052): a thumbnail, the file, its facts in monospace,
  * what uses it, whether it is described, and its menu. Admin tokens only (--ui-*), defined
- * in admin.css. The grid the picker still uses is admin-media.css. */
+ * in admin-tokens.css. The grid the picker still uses is admin-media.css. */
 
 .media-table {
   table-layout: fixed;

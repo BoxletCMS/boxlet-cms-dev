@@ -64,3 +64,34 @@ testBothDrivers('with nothing waiting, the Overview says so', function (string $
     assertContains(e(t('overview.attention_none')), $screen, 'the calm line');
     assertContains(e(t('activity.recent')), $screen, 'the log');
 });
+
+// "unchanged for 1 days" stood on the owner's Overview for as long as the metric existed;
+// one day now has its own wording. The days are counted in the SITE's zone, from midnight
+// to midnight, so a change late yesterday evening is one day old however late it was.
+testBothDrivers('how long the design has stood says it in English', function (string $driver) {
+    $db = adminSite($driver);
+    $note = static function () use ($db): string {
+        foreach (Overview::metrics($db, 'Europe/Zagreb') as $metric) {
+            if ($metric['label'] === t('overview.design')) {
+                return $metric['note'];
+            }
+        }
+
+        return '';
+    };
+    $changed = static function (string $when) use ($db): void {
+        $db->query('DELETE FROM activity');
+        $at = new DateTimeImmutable($when, new DateTimeZone('Europe/Zagreb'));
+        $db->query(
+            "INSERT INTO activity (occurred_at, kind, action, subject_id, subject) VALUES (?, 'design', 'saved', NULL, 'Design')",
+            [$at->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')],
+        );
+    };
+
+    $changed('today 09:00');
+    assertEquals(t('overview.design_today'), $note(), 'changed today');
+    $changed('yesterday 23:30');
+    assertEquals(t('overview.design_unchanged_one'), $note(), 'one day is not "1 days"');
+    $changed('-4 days 09:00');
+    assertEquals(t('overview.design_unchanged', ['days' => '4']), $note(), 'four days');
+});

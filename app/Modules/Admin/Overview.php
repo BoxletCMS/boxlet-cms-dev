@@ -183,7 +183,8 @@ final class Overview
     }
 
     /**
-     * "unchanged 12 days", from an activity row's time.
+     * "unchanged for 12 days", from an activity row's time. One day has its own wording:
+     * "unchanged for 1 days" was on the owner's Overview for as long as the metric existed.
      */
     private static function since(string $utc, string $zone): string
     {
@@ -194,7 +195,11 @@ final class Overview
         $tz = new DateTimeZone($zone);
         $days = (int) $at->setTimezone($tz)->setTime(0, 0)->diff((new DateTimeImmutable('now', $tz))->setTime(0, 0))->format('%a');
 
-        return $days === 0 ? t('overview.design_today') : t('overview.design_unchanged', ['days' => (string) $days]);
+        if ($days === 0) {
+            return t('overview.design_today');
+        }
+
+        return t($days === 1 ? 'overview.design_unchanged_one' : 'overview.design_unchanged', ['days' => (string) $days]);
     }
 
     /**

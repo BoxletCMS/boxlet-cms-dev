@@ -8,6 +8,7 @@ use App\Core\Response;
 use App\Core\Session;
 use App\Core\Settings;
 use App\Core\View;
+use App\Modules\Admin\Theme;
 use App\Support\ClientIp;
 use App\Support\Url;
 use RuntimeException;
@@ -173,6 +174,7 @@ final class AuthController
     {
         return Response::admin((new View(__DIR__ . '/views'))->render('login-code', 'en', [
             'title' => t('twofactor.login_title'),
+            'theme' => Theme::of($this->container->get('request')),
             'error' => $error,
             'csrf' => $this->session()->csrfToken(),
         ]), $status);
@@ -209,6 +211,9 @@ final class AuthController
     {
         $html = (new View(__DIR__ . '/views'))->render('login', 'en', [
             'title' => t('auth.title'),
+            // The palette this browser chose in the admin (D-054): logging out, or being
+            // logged out, is no reason for the colours to change.
+            'theme' => Theme::of($this->container->get('request')),
             'email' => $email,
             'error' => $error,
             'notice' => $notice,

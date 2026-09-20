@@ -1,7 +1,7 @@
 /* The admin's frame (PLAN.md D-052, "Workbench"): a rail down the left with every screen in
  * four groups; the strip across the top of the content is admin-strip.css. Admin tokens
- * only (--ui-*), defined in admin.css. Loaded by the admin shell alone: the login screen and
- * the installer have no frame.
+ * only (--ui-*), defined in admin-tokens.css. Loaded by the admin shell alone: the login
+ * screen and the installer have no frame.
  *
  * Wide, the rail has its words. On a phone it folds behind a menu button (admin-nav.js),
  * or, without a script, sits above the content as a plain list. Between the two it can keep
@@ -106,9 +106,15 @@
 }
 
 .admin .rail-nav a[aria-current] {
-  background: var(--ui-accent-soft);
+  background: var(--ui-current);
   color: var(--ui-bar-ink);
   box-shadow: inset 2px 0 0 var(--ui-accent);
+}
+
+/* The count in the row you are on is not a quiet aside: it sits on the deepest ground in
+   the rail, where the faint ink measured 4.09:1. */
+.admin .rail-nav a[aria-current] .rail-count {
+  color: var(--ui-bar-ink-muted);
 }
 
 .rail-nav .icon {

@@ -1,6 +1,7 @@
 /* The admin's tables: lists of pages, menus and items, their row actions, editing a row in
- * place, and the status pills they carry. Admin tokens only (--ui-*), defined in admin.css.
- * Split from admin-forms.css when that passed the size limit; loaded by the admin shell. */
+ * place, and the status pills they carry. Admin tokens only (--ui-*), defined in
+ * admin-tokens.css. Split from admin-forms.css when that passed the size limit; loaded by
+ * the admin shell. */
 
 /* Tables */
 

@@ -29,6 +29,8 @@ use App\Support\Url;
  * @var string $time the time there now, H:i
  * @var string $adminEmail who is logged in
  * @var string $railState 'compact' or 'wide' as the owner last left the rail, '' if never
+ * @var string $theme 'light', 'dark' or 'system' — which palette this browser is drawn in
+ * @var string $here this page's own address, so the theme switch comes back to it
  */
 $current = static fn (string $section): string => $nav === $section ? ' aria-current="page"' : '';
 
@@ -72,6 +74,7 @@ foreach ($rail as $entries) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title><?= e($title) ?></title>
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-tokens.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-shell.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-strip.css')) ?>">
@@ -91,7 +94,7 @@ foreach ($rail as $entries) {
     <script src="<?= e(Url::versioned('assets/' . $script)) ?>" defer></script>
 <?php endforeach; ?>
 </head>
-<body class="admin">
+<body class="admin" data-ui-theme="<?= e($theme) ?>">
     <a class="skip-link" href="#admin-content"><?= e(t('admin.skip')) ?></a>
     <?php /* The page editor always opens with the rail folded to its icons: the canvas needs
              the room. Elsewhere it is as the owner last left it (admin-rail-compact.css). */ ?>
@@ -158,6 +161,22 @@ foreach ($rail as $entries) {
                     <span class="admin-where-screen"><?= e($section) ?></span>
                 </p>
                 <div class="admin-strip-end">
+                    <?php /* LIGHT, DARK OR THE MACHINE'S OWN (D-054). Three buttons rather than
+                             a toggle: a toggle cannot say "follow the system", and its label
+                             would have to mean the state one moment and the action the next.
+                             A form, so it works with no script at all; the page comes back
+                             already painted in the chosen palette. */ ?>
+                    <form class="theme-switch" method="post" action="<?= e(Url::admin('appearance')) ?>"
+                          aria-label="<?= e(t('admin.appearance')) ?>" title="<?= e(t('admin.appearance_hint')) ?>">
+                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                        <input type="hidden" name="back" value="<?= e($here) ?>">
+<?php foreach (['light' => 'sun', 'dark' => 'moon', 'system' => 'contrast'] as $choice => $glyph): ?>
+                        <button type="submit" class="theme-choice" name="theme" value="<?= e($choice) ?>"
+                                aria-pressed="<?= $theme === $choice ? 'true' : 'false' ?>" title="<?= e(t('admin.appearance_' . $choice)) ?>">
+                            <?= icon($glyph) ?><span class="visually-hidden"><?= e(t('admin.appearance_' . $choice)) ?></span>
+                        </button>
+<?php endforeach; ?>
+                    </form>
                     <span class="admin-clock" title="<?= e(t('admin.site_time')) ?>"><?= e($zone) ?> · <?= e($time) ?></span>
                     <?php /* The site's home in a new tab: leaving the admin mid-edit would lose
                              whatever is unsaved. */ ?>

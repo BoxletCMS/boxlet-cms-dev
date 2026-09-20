@@ -21,6 +21,7 @@ use App\Support\Url;
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title><?= e($title) ?></title>
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-tokens.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-ui.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-forms.css')) ?>">

@@ -1,5 +1,5 @@
 /* Search across the admin (PLAN.md D-052): the rail's Search, the ⌘K palette, and the Search
- * screen they both lead to. Admin tokens only (--ui-*), defined in admin.css. */
+ * screen they both lead to. Admin tokens only (--ui-*), defined in admin-tokens.css. */
 
 /* The rail's Search: a field-like button, legible at rest, raised on hover. */
 .admin .rail-search {

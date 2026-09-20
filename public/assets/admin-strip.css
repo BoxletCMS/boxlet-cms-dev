@@ -1,7 +1,7 @@
 /* The strip across the top of the content (PLAN.md D-052): where you are — the site's host,
  * then the screen — and the site's time, View site and Log out. Split from admin-shell.css,
  * which keeps the rail, when that passed the size limit. Admin tokens only (--ui-*), defined
- * in admin.css. */
+ * in admin-tokens.css. */
 
 .admin-column {
   min-inline-size: 0;
@@ -86,6 +86,47 @@
 
 .admin-logout {
   margin: 0;
+}
+
+/* LIGHT, DARK OR THE MACHINE'S OWN (D-054). Three buttons inside one bordered group, so it
+   reads as a single switch rather than three loose icons; the chosen one carries the accent
+   tint and the accent ink, which is a shape and a colour rather than colour alone. */
+.theme-switch {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin: 0 var(--ui-2) 0 0;
+  padding: 1px;
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.admin .theme-choice {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ui-radius-s);
+  color: var(--ui-ink-muted);
+  cursor: pointer;
+}
+
+.admin .theme-choice .icon {
+  inline-size: 0.9375rem;
+  block-size: 0.9375rem;
+}
+
+.admin .theme-choice:hover {
+  background: var(--ui-panel);
+  color: var(--ui-ink);
+}
+
+.admin .theme-choice[aria-pressed="true"] {
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
 }
 
 /* View site, Log out and the phone's menu button: icons alone, each named for a screen

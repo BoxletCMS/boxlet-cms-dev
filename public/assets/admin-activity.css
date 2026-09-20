@@ -1,5 +1,5 @@
 /* The activity log (PLAN.md D-052): the Overview's "Recent activity" and the full log. Admin
- * tokens only (--ui-*), defined in admin.css. */
+ * tokens only (--ui-*), defined in admin-tokens.css. */
 
 .activity-log {
   margin: 0;

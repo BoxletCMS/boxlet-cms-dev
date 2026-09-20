@@ -1,5 +1,5 @@
-/* The Overview (PLAN.md D-052). Admin tokens only (--ui-*), defined in admin.css. The row
- * styles of its activity log are in admin-activity.css, shared with the full log. */
+/* The Overview (PLAN.md D-052). Admin tokens only (--ui-*), defined in admin-tokens.css.
+ * The row styles of its activity log are in admin-activity.css, shared with the full log. */
 
 /* The figures: tiles on a grid whose 1px gaps show the ground beneath as hairlines, so no
    tile needs a border of its own. */

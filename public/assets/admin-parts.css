@@ -2,7 +2,7 @@
  * filters and its segmented choice, a row's menu, an empty list, and a figure with its note.
  * Split from admin-ui.css when that passed the size limit; loaded by the admin shell, which
  * the login screen and the installer do not use. Admin tokens only (--ui-*), defined in
- * admin.css. */
+ * admin-tokens.css. */
 
 /* Nothing here yet: a drawn empty box, one sentence, and the action that fills it. */
 .empty-state {

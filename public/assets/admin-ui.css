@@ -1,5 +1,5 @@
 /* Admin buttons, feedback and the installer's progress parts. Admin tokens only
- * (--ui-*), defined in admin.css: no value from the site's tokens.css reaches the
+ * (--ui-*), defined in admin-tokens.css: no value from the site's tokens.css reaches the
  * admin. Loaded by the admin, the login screen and the installer. */
 
 /* Feedback. A save confirmation has to be visible without hunting for it, so it sits at

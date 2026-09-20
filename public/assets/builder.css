@@ -1,6 +1,6 @@
-/* The visual editor shell: toolbar, canvas and panel. Admin tokens only (--ui-*),
- * defined in admin.css. The canvas is an iframe, so the site's own CSS is sealed inside
- * it and cannot reach any of this. */
+/* The visual editor shell: toolbar, canvas and panel. Admin tokens only (--ui-*), defined
+ * in admin-tokens.css. The canvas is an iframe, so the site's own CSS is sealed inside it
+ * and cannot reach any of this. */
 
 /* The builder fills the window below the strip rather than sitting in the usual reading
    column: the canvas is the screen. */

@@ -8,6 +8,7 @@ use App\Core\Request;
 use App\Core\Router;
 use App\Core\Session;
 use App\Modules\Admin\ActivityController;
+use App\Modules\Admin\AppearanceController;
 use App\Modules\Admin\DashboardController;
 use App\Modules\Admin\RequireAdmin;
 use App\Modules\Admin\SearchController;
@@ -230,6 +231,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/search', [SearchController::class, 'index'], $requireAdmin);
     // The activity log in full (D-052); the Overview shows its start.
     $router->get('/admin/activity', [ActivityController::class, 'index'], $requireAdmin);
+    // Light, dark or the machine's own (D-054): the switch in the strip posts here.
+    $router->post('/admin/appearance', [AppearanceController::class, 'save'], $requireAdmin);
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);

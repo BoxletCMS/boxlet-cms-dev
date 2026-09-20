@@ -1,6 +1,7 @@
 /* The Settings screen (PLAN.md D-052): its own list of sections down the left, and the
  * general and branding settings as a ledger — each a row, its name and what it does on
- * the left, the control on the right. Admin tokens only (--ui-*), defined in admin.css. */
+ * the left, the control on the right. Admin tokens only (--ui-*), defined in
+ * admin-tokens.css. */
 
 .settings-layout {
   display: grid;
@@ -32,7 +33,7 @@
 }
 
 .admin .settings-nav a[aria-current] {
-  background: var(--ui-accent-soft);
+  background: var(--ui-current);
   color: var(--ui-ink);
   box-shadow: inset 2px 0 0 var(--ui-accent);
 }

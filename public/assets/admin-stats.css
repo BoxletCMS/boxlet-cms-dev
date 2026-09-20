@@ -1,6 +1,6 @@
 /* Visit statistics (PLAN.md D-051): the Statistics screen — the period, the figures and
  * the tables. The charts and the dashboard card are in admin-stats-chart.css, which the
- * dashboard loads without this. Admin tokens only (--ui-*), defined in admin.css. */
+ * dashboard loads without this. Admin tokens only (--ui-*), defined in admin-tokens.css. */
 
 /* The period: four links that read as one control, the current one raised. One row
    always: wrapping, "12 months" fell alone onto a second line at a phone's width. */

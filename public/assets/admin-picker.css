@@ -57,9 +57,13 @@
   padding: var(--ui-1);
   box-sizing: border-box;
   /* On a light checkerboard, the sign of a transparent picture: a logo is usually drawn
-     for a light site, and on the dark admin (D-052) a dark one vanished into its box. */
-  background-color: var(--ui-ink);
-  background-image: conic-gradient(var(--ui-ink-muted) 25%, transparent 0 50%, var(--ui-ink-muted) 0 75%, transparent 0);
+     for a light site, and on the dark admin (D-052) a dark one vanished into its box. The
+     board keeps its own tokens because it stays light in both palettes — drawn in the ink
+     colours, it turned into a black-and-grey block the moment the admin went to paper
+     (D-054). */
+  background-color: var(--ui-checker);
+  background-image: conic-gradient(var(--ui-checker-square) 25%, transparent 0 50%,
+      var(--ui-checker-square) 0 75%, transparent 0);
   background-size: 0.5rem 0.5rem;
 }
 

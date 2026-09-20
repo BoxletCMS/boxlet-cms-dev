@@ -10,9 +10,10 @@ use JsonException;
  *
  * Two shapes, for two jobs:
  *   - a CSV of one table as the screen is showing it, for a spreadsheet;
- *   - a JSON file of everything, row for row with the three tables, for keeping a copy or
- *     moving a site. JSON rather than a ZIP of CSVs because PHP's zip extension is not on
- *     every shared host, and a copy that only some servers can write is not a copy.
+ *   - a JSON file of everything, row for row with the tables, for keeping a copy or moving
+ *     a site. One file rather than a ZIP of several, because one file is what a person can
+ *     look at before trusting it, and because writing a ZIP would be ours to write: the
+ *     extension for it is optional in PHP (PLAN.md O-20).
  *
  * Importing ADDS: the same day and address is increased, never replaced. Two exports of the
  * same days imported twice would therefore count them twice — the screen says so where the

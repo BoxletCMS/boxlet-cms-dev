@@ -2,13 +2,38 @@
  * the tables. The charts and the dashboard card are in admin-stats-chart.css, which the
  * dashboard loads without this. Admin tokens only (--ui-*), defined in admin-tokens.css. */
 
+/* THE CONTROL ROW: the period, a range of your own, and the days that adds up to. One
+   line wherever the screen is wide enough to hold them, and rows of their own where it is
+   not — on a laptop the three of them were three lines above the figures, which are what
+   the screen is for. flex-wrap does the whole of it: no breakpoint to keep in step with
+   the rail's own. */
+.stats-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-3) var(--ui-4);
+  margin-bottom: var(--ui-5);
+}
+
+/* Inside the row nothing carries a margin of its own: the row's gap is the spacing, and a
+   margin adds to the line's own height — which is how the three of them still took two
+   lines on a wide screen after they were put in one row. */
+.stats-controls > * {
+  margin: 0;
+}
+
+/* The days the figures cover, beside the fields that choose them. */
+.stats-days {
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-sm);
+}
+
 /* The period: four links that read as one control, the current one raised. One row
    always: wrapping, "12 months" fell alone onto a second line at a phone's width. */
 .stats-periods {
   display: inline-grid;
   grid-template-columns: repeat(4, auto);
   gap: var(--ui-1);
-  margin-bottom: var(--ui-4);
   padding: var(--ui-1);
   background: var(--ui-panel-sunken);
   border: var(--ui-border) solid var(--ui-line-strong);
@@ -185,7 +210,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ui-2);
-  margin: 0 0 var(--ui-3);
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-sm);
 }
@@ -205,12 +229,6 @@
 .admin .stats-range .button {
   min-block-size: 2rem;
   padding-block: 0.25rem;
-}
-
-/* The days the screen is showing, under the range that chooses them: .page-subtitle pulls
-   itself up under a page title, which here put it against the fields. */
-.stats-range + .page-subtitle {
-  margin-top: 0;
 }
 
 /* What the figures are narrowed to, each removable. */

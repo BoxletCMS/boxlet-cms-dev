@@ -71,6 +71,29 @@ export default {
     const credit = await page.$eval('body', (el) => el.textContent.includes('IP geolocation by DB-IP'));
     report.verdict('the screen credits DB-IP', credit, `credit ${credit}`);
 
+    // The period, the range and the days it covers are one control row: side by side where
+    // there is room, in rows of their own where there is not. Measured by their tops, which
+    // is the only thing "one line" means.
+    // One line means: the row is no taller than its tallest part. Tops cannot say it —
+    // the parts are centred on the line, so three different heights give three tops.
+    const rowShape = () => page.evaluate(() => {
+      const row = document.querySelector('.stats-controls');
+      const parts = [...row.children].map((p) => Math.round(p.getBoundingClientRect().height));
+      return { row: Math.round(row.getBoundingClientRect().height), parts };
+    });
+    await page.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 1 });
+    await page.goto(`${BASE}/admin/statistics?period=30d`, { waitUntil: 'networkidle2' });
+    const wide = await rowShape();
+    report.verdict('on a wide screen the period, the range and the days share one line',
+      wide.parts.length === 3 && wide.row <= Math.max(...wide.parts) + 2, JSON.stringify(wide));
+
+    await page.setViewport({ width: 700, height: 900, deviceScaleFactor: 1 });
+    await page.goto(`${BASE}/admin/statistics?period=30d`, { waitUntil: 'networkidle2' });
+    const narrow = await rowShape();
+    report.verdict('on a narrow one they wrap into rows instead of scrolling sideways',
+      narrow.row > Math.max(...narrow.parts) + 2, JSON.stringify(narrow));
+    await report.shot(page, '07-controls-narrow', { fullPage: false });
+
     for (const [name, viewport] of [['03-screen-desktop', { width: 1400, height: 1000 }], ['04-screen-phone', { width: 390, height: 844 }]]) {
       await page.setViewport({ ...viewport, deviceScaleFactor: 2 });
       await page.goto(`${BASE}/admin/statistics?period=30d`, { waitUntil: 'networkidle2' });

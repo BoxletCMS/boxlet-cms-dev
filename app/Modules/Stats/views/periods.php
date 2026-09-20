@@ -17,6 +17,11 @@ use App\Support\Url;
 $address = static fn (array $add = [], array $without = []): string => Url::admin('statistics') . '?'
     . http_build_query($filter->asQuery($add + ($all !== null ? ['all' => $all] : []), $without));
 ?>
+        <?php /* THE THREE OF THEM ARE ONE CONTROL ROW: which period, a range of your own,
+                 and the days that adds up to. Side by side wherever there is room, and in
+                 rows of their own where there is not — they used to take three lines of a
+                 screen whose point is the figures below them. */ ?>
+        <div class="stats-controls">
         <nav class="stats-periods" aria-label="<?= e(t('stats.period')) ?>">
 <?php foreach (array_keys(StatsQuery::PERIODS) as $choice): ?>
             <a href="<?= e($address(['period' => $choice], ['from', 'to'])) ?>"<?= $filter->period === $choice ? ' aria-current="page"' : '' ?>><?= e(t('stats.period.' . $choice)) ?></a>
@@ -37,9 +42,10 @@ $address = static fn (array $add = [], array $without = []): string => Url::admi
             <button type="submit" class="button button-secondary"><?= e(t('stats.show')) ?></button>
         </form>
 
-        <p class="page-subtitle"><?= e($filter->from === $filter->to
+        <p class="stats-days"><?= e($filter->from === $filter->to
             ? StatsView::day($filter->from, true)
             : StatsView::day($filter->from, true) . ' – ' . StatsView::day($filter->to, true)) ?></p>
+        </div>
 
 <?php if ($filter->isNarrowed()): ?>
         <?php /* What the figures are narrowed to, each removable: the screen never narrows

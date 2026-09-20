@@ -270,11 +270,11 @@ testBothDrivers('the Settings panel switches it off and on, and deletes every co
     assertContains(e(t('stats.on_now')), dispatch('/admin/settings')->body, 'on by default');
 
     assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics', ['stats_retention' => '12']));
-    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false], Tracker::settings($db), 'saved');
+    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false], Tracker::settings($db), 'saved');
     assertContains(e(t('stats.off_now')), dispatch('/admin/settings')->body, 'said to be off');
 
     adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_dnt' => '1', 'stats_retention' => '99']);
-    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false], Tracker::settings($db), 'a retention not offered');
+    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false], Tracker::settings($db), 'a retention not offered');
 
     adminPost('/admin/settings/statistics/erase', []);
     assertEquals(0, statsTotals($db)['views'], 'counts after erase');
@@ -705,4 +705,36 @@ test('the map that ships with Boxlet has the countries it says it has', function
         assertContains('<path id="c-' . $code . '"', $svg, $code);
     }
     assertTrue(!str_contains($svg, 'id="c-AQ"'), 'Antarctica, which the map window cuts off anyway');
+});
+
+// Gathering the small rows (PLAN.md O-20).
+
+testBothDrivers('rows of one or two visitors are gathered as Other, and only where asked', function (string $driver) {
+    $db = statsSite($driver);
+    $at = '2026-09-19 10:00:00';
+    // Three sources: one with four visitors, two with one each.
+    foreach (['a', 'b', 'c', 'd'] as $n) {
+        statsView($db, '/about', ['referer' => 'https://busy.example/' . $n], $at, '198.51.100.' . ord($n));
+    }
+    statsView($db, '/about', ['referer' => 'https://quiet-one.example/'], $at, '198.51.100.201');
+    statsView($db, '/about', ['referer' => 'https://quiet-two.example/'], $at, '198.51.100.202');
+
+    $query = new App\Modules\Stats\StatsQuery($db);
+    $week = statsFilter(['period' => '7d']);
+    assertEquals(
+        ['busy.example', 'quiet-one.example', 'quiet-two.example'],
+        array_column($query->top('sources', $week), 'value'),
+        'every source, as it is by default',
+    );
+
+    $gathered = $query->top('sources', $week, 10, true);
+    assertEquals(['busy.example', App\Modules\Stats\StatsQuery::OTHER], array_column($gathered, 'value'), 'the small ones as one row');
+    assertEquals(['visitors' => 2, 'views' => 2], ['visitors' => $gathered[1]['visitors'], 'views' => $gathered[1]['views']], 'their counts added up');
+    assertEquals(t('stats.other_small', ['count' => '3']), App\Modules\Stats\StatsView::label('sources', App\Modules\Stats\StatsQuery::OTHER), 'what it is called');
+
+    Settings::set($db, 'stats_group', true);
+    $screen = dispatch('/admin/statistics?period=7d')->body;
+    assertContains(e(t('stats.other_small', ['count' => '3'])), $screen, 'on the screen');
+    assertTrue(!str_contains($screen, 'quiet-one.example'), 'a gathered source named anyway');
+    assertTrue(!str_contains($screen, 'source=%00other'), 'the gathered row offered as a filter');
 });

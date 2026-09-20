@@ -86,6 +86,8 @@ return [
     // The Overview's way to the screen.
     'stats.card_link' => 'All statistics',
     // The country database.
+    'stats.group_small' => 'Gather rows of fewer than :count visitors as “Other”',
+    'stats.other_small' => 'Other (fewer than :count)',
     'stats.proxies' => 'Addresses of your proxies',
     'stats.proxies_hint' => 'Leave this empty unless your site sits behind Cloudflare, a load balancer or a caching proxy. Then every visit arrives from that machine, and the visitor\'s own address comes in a header that anyone could fake — so it is believed only from the addresses listed here. One address or range per line, such as 173.245.48.0/20. This is also what keeps the limits on sending a form and on logging in from counting everyone as one person.',
     'stats.geo_title' => 'Countries',

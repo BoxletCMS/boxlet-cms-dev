@@ -66,7 +66,7 @@ final class StatsController
         if ($all !== null) {
             return AdminView::render($this->container, __DIR__ . '/views', 'all', $data + [
                 'dimension' => $all,
-                'rows' => $query->top($all, $filter, null),
+                'rows' => $query->top($all, $filter, null, $settings['group']),
                 'missing' => null,
             ]);
         }
@@ -95,7 +95,7 @@ final class StatsController
             'missing' => $settings['missing'] ? $query->missing($filter) : null,
             'missingOn' => $settings['missing'],
             'tables' => array_map(
-                static fn (string $dimension): array => $query->top($dimension, $filter),
+                static fn (string $dimension): array => $query->top($dimension, $filter, 10, $settings['group']),
                 array_combine(array_keys(StatsQuery::DIMENSIONS), array_keys(StatsQuery::DIMENSIONS)),
             ),
         ]);

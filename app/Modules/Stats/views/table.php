@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Stats\StatsFilter;
+use App\Modules\Stats\StatsQuery;
 use App\Modules\Stats\StatsView;
 use App\Support\Url;
 
@@ -38,7 +39,8 @@ $narrow = static fn (string $value): string => Url::admin('statistics') . '?'
                     <tbody>
 <?php foreach ($rows as $row):
     $share = min(100, ($byViews ? $row['views'] : (int) $row['visitors']) * 100 / $whole);
-    $narrowed = isset($filter->narrowed[$key]);
+    // The gathered row stands for many values at once, so there is nothing to narrow to.
+    $narrowed = isset($filter->narrowed[$key]) || $row['value'] === StatsQuery::OTHER;
     ?>
                         <tr>
                             <th scope="row" class="stats-name">

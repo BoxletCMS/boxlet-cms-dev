@@ -8,7 +8,7 @@ use App\Support\Url;
  * browser's Do Not Track or Global Privacy Control is honoured, how long counts are kept,
  * and a way to delete them all. Its forms are its own, outside the settings form.
  *
- * @var array{enabled: bool, dnt: bool, retention: int, missing: bool} $stats
+ * @var array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool} $stats
  * @var array{built: string, type: string}|null $geo the country database in use
  * @var string $uploadLimit the largest file this server accepts, as php.ini says it
  * @var string $trustedProxies the addresses that may speak for a visitor, one per line
@@ -25,6 +25,7 @@ use App\Support\Url;
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <label class="checkbox"><input type="checkbox" name="stats_enabled" value="1"<?= $stats['enabled'] ? ' checked' : '' ?>> <span><?= e(t('stats.enabled')) ?></span></label>
                 <label class="checkbox"><input type="checkbox" name="stats_dnt" value="1"<?= $stats['dnt'] ? ' checked' : '' ?>> <span><?= e(t('stats.dnt')) ?></span></label>
+                <label class="checkbox"><input type="checkbox" name="stats_group" value="1"<?= $stats['group'] ? ' checked' : '' ?>> <span><?= e(t('stats.group_small', ['count' => (string) \App\Modules\Stats\StatsQuery::SMALL])) ?></span></label>
                 <label class="checkbox"><input type="checkbox" name="stats_missing" value="1"<?= $stats['missing'] ? ' checked' : '' ?>> <span><?= e(t('stats.missing_count')) ?></span></label>
                 <div class="field">
                     <label for="stats_retention"><?= e(t('stats.retention')) ?></label>

@@ -15,6 +15,12 @@ use DateTimeImmutable;
  */
 final class StatsQuery
 {
+    /** Fewer than this and a row is gathered into "other", where that is switched on. */
+    public const SMALL = 3;
+
+    /** The value that stands for the gathered rows; no real value is ever this. */
+    public const OTHER = "\x00other";
+
     /** The periods the screen offers, and how many days each covers. */
     public const PERIODS = ['today' => 1, '7d' => 7, '30d' => 30, '12m' => 365];
 
@@ -125,10 +131,11 @@ final class StatsQuery
      *
      * @return list<array{value: string, visitors: int|null, views: int}>
      */
-    public function top(string $dimension, StatsFilter $filter, ?int $limit = 10): array
+    public function top(string $dimension, StatsFilter $filter, ?int $limit = 10, bool $group = false): array
     {
         $column = self::DIMENSIONS[$dimension] ?? 'path';
-        $cap = $limit === null ? '' : ' LIMIT ' . max(1, $limit);
+        // Gathering the small rows needs all of them: the limit is applied afterwards.
+        $cap = $limit === null || $group ? '' : ' LIMIT ' . max(1, $limit);
         [$where, $params] = $filter->where();
 
         if ($column === 'path') {
@@ -148,14 +155,14 @@ final class StatsQuery
                 }
             }
 
-            return array_values(array_map(static fn (array $row): array => [
+            return self::gathered(array_values(array_map(static fn (array $row): array => [
                 'value' => (string) $row['value'],
                 'visitors' => $filter->isNarrowed() ? null : ($visitors[(string) $row['value']] ?? 0),
                 'views' => (int) $row['total_views'],
-            ], $rows));
+            ], $rows)), $group, $limit, 'views');
         }
 
-        return array_values(array_map(static fn (array $row): array => [
+        return self::gathered(array_values(array_map(static fn (array $row): array => [
             'value' => (string) $row['value'],
             'visitors' => (int) $row['total_visitors'],
             'views' => (int) $row['total_views'],
@@ -165,7 +172,40 @@ final class StatsQuery
             "SELECT {$column} AS value, SUM(visitors) AS total_visitors, SUM(views) AS total_views FROM stats_views
              WHERE {$where} GROUP BY {$column} ORDER BY total_visitors DESC, total_views DESC, {$column}{$cap}",
             $params,
-        )));
+        ))), $group, $limit, 'visitors');
+    }
+
+    /**
+     * The rows as the table shows them: unchanged, or with everything under SMALL gathered
+     * into one "other" row at the end (O-20), and then cut to the limit.
+     *
+     * @param list<array{value: string, visitors: int|null, views: int}> $rows
+     * @param 'visitors'|'views' $by which count decides that a row is small
+     * @return list<array{value: string, visitors: int|null, views: int}>
+     */
+    private static function gathered(array $rows, bool $group, ?int $limit, string $by): array
+    {
+        if (!$group) {
+            return $rows;
+        }
+
+        $kept = [];
+        $other = ['value' => self::OTHER, 'visitors' => 0, 'views' => 0];
+        $small = 0;
+        foreach ($rows as $row) {
+            if ((int) $row[$by] >= self::SMALL) {
+                $kept[] = $row;
+                continue;
+            }
+            $small++;
+            $other['visitors'] = $row['visitors'] === null ? null : (int) $other['visitors'] + (int) $row['visitors'];
+            $other['views'] += $row['views'];
+        }
+        if ($limit !== null) {
+            $kept = array_slice($kept, 0, max(1, $limit));
+        }
+
+        return $small === 0 ? $kept : [...$kept, $other];
     }
 
     /**

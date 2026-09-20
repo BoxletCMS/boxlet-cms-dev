@@ -38,11 +38,11 @@ final class Tracker
     /**
      * The module's settings, with their defaults: on, honouring DNT and GPC, two years.
      *
-     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool}
+     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool}
      */
     public static function settings(Db $db): array
     {
-        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing']);
+        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing', 'stats_group']);
         $retention = $stored['stats_retention'];
 
         return [
@@ -52,6 +52,10 @@ final class Tracker
             // Addresses that are not there: off unless asked for (O-20). A small site's 404s
             // are mostly other people's broken links and bots guessing at addresses.
             'missing' => $stored['stats_missing'] === true,
+            // Rows of one or two visitors gathered into "Other" (O-20): on a small site a
+            // table is otherwise a list of ones, and one visitor from one country on one
+            // page is close to naming somebody.
+            'group' => $stored['stats_group'] === true,
         ];
     }
 

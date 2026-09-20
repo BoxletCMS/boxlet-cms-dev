@@ -24,6 +24,7 @@ final class StatsView
     public static function label(string $dimension, string $value): string
     {
         return match (true) {
+            $value === StatsQuery::OTHER => t('stats.other_small', ['count' => (string) StatsQuery::SMALL]),
             $dimension === 'devices' => t('stats.device.' . ($value !== '' ? $value : 'desktop')),
             $value !== '' => $dimension === 'countries' ? strtoupper($value) : $value,
             $dimension === 'sources' => t('stats.direct'),

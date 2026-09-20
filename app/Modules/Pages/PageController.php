@@ -5,6 +5,7 @@ namespace App\Modules\Pages;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Settings;
 use App\Core\View;
 use App\Modules\Forms\FormBlocks;
 use App\Modules\Media\MediaPicture;
@@ -205,14 +206,18 @@ final class PageController
         $media = $header['logo'] === null ? [] : MediaPicture::resolve($db, $locale, [$header['logo']]);
 
         $hasHeader = $header['logo'] !== null || $header['button']['url'] !== '' || $menu !== [];
-        $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $menu !== [] || count($locales) > 1;
+        // "Made with Boxlet", when the owner leaves it on (O-20). It is part of what makes a
+        // footer worth drawing: a site whose footer is otherwise empty still has this line,
+        // and without it here the credit would be switched on and never appear.
+        $credit = Settings::get($db, 'site_credit') === true ? BOXLET_SITE : '';
+        $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $menu !== [] || count($locales) > 1 || $credit !== '';
 
         return [
             'headerHtml' => $hasHeader
                 ? $registry->render('header', $header, ['surface' => $look['header_surface']], $look['header_layout'], $media, true, 'header', ['menu' => $menu, 'look' => $look], $locale, $locales)
                 : '',
             'footerHtml' => $hasFooter
-                ? $registry->render('footer', $footer, ['surface' => $look['footer_surface']], $look['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $look], $locale, $locales)
+                ? $registry->render('footer', $footer, ['surface' => $look['footer_surface']], $look['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $look, 'credit' => $credit], $locale, $locales)
                 : '',
         ];
     }

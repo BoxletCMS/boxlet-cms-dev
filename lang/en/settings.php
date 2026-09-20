@@ -11,6 +11,8 @@ return [
     'settings.site_name_hint' => 'The site’s own name. It is shown at the top of this admin, and used where a page needs to name the site it belongs to. Left empty, the admin says Boxlet.',
 
     'settings.timezone' => 'Time zone',
+    'settings.credit' => 'Show “Made with Boxlet” in the site\'s footer',
+    'settings.credit_hint' => 'One quiet line in the small print, linking to boxlet.org. Off unless you want it: what your visitors read is yours, not Boxlet\'s.',
     'settings.timezone_hint' => 'The time zone your site lives in. Dates in the admin — when a page was last edited, when a picture was added — are shown in this zone.',
     'settings.timezone_invalid' => 'That is not a time zone this server knows. Nothing was saved.',
 

@@ -7,6 +7,7 @@ return [
     'site.not_found.intro' => 'Na ovoj adresi nema stranice.',
     'site.languages' => 'Jezici',
     'site.menu' => 'Izbornik',
+    'site.credit' => 'Izrađeno Boxletom',
     'site.form.send' => 'Pošalji',
     'site.form.thanks' => 'Hvala, vaša poruka je poslana.',
     'site.form.required' => 'Molimo ispunite ovo polje.',

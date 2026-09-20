@@ -18,12 +18,14 @@
  * @var array<int, array<string, mixed>> $media
  * @var bool $eager
  * @var array<string, mixed> $resolved values the renderer resolved: the menu, each entry
- *                                   marked when it is the page being drawn, and the look
+ *                                   marked when it is the page being drawn, the look, and
+ *                                   the Boxlet credit when the owner leaves it on
  * @var string $locale the locale being rendered
  * @var array<int, array<string, mixed>> $locales enabled locales
  */
 $menu = is_array($resolved['menu'] ?? null) ? $resolved['menu'] : [];
 $look = is_array($resolved['look'] ?? null) ? $resolved['look'] : [];
+$credit = is_string($resolved['credit'] ?? null) ? $resolved['credit'] : '';
 ?>
 <div class="site-footer density-<?= e($look['density'] ?? 'normal') ?>">
 <?php if ($content['text'] !== ''): ?>
@@ -47,7 +49,16 @@ $look = is_array($resolved['look'] ?? null) ? $resolved['look'] : [];
          a switcher offering a single choice is a control with nothing to do. */ ?>
 <?php require __DIR__ . '/../../Modules/Pages/views/partials/locale-switcher.php'; ?>
 
-<?php if ($content['small_print'] !== ''): ?>
-    <p class="site-small-print"><?= e($content['small_print']) ?></p>
+<?php if ($content['small_print'] !== '' || $credit !== ''): ?>
+    <p class="site-small-print">
+<?= $content['small_print'] !== '' ? e($content['small_print']) : '' ?>
+<?php if ($credit !== ''): ?>
+        <?php /* One line, the last thing on the page, in the small print where a credit
+                 belongs — not a badge and not an image. rel="noopener" because it leaves
+                 the site; no target, because a visitor who wants a new tab has a browser
+                 that gives them one. */ ?>
+        <span class="site-credit"><a href="<?= e($credit) ?>" rel="noopener"><?= e(site_t('site.credit', $locale)) ?></a></span>
+<?php endif; ?>
+    </p>
 <?php endif; ?>
 </div>

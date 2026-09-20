@@ -121,3 +121,30 @@ testBothDrivers('the chrome screen saves the look', function (string $driver) {
 
     assertContains('<option value="centred" selected>', dispatch('/admin/chrome')->body, 'the screen shows it');
 });
+
+testBothDrivers('the site can say what made it, and says nothing unless asked', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    createPage($db, 'en', '', 'Home');
+
+    // Off is the default, and the default is what a site that never opens Settings has.
+    $quiet = dispatch('/')->body;
+    assertTrue(!str_contains($quiet, 'site-credit'), 'a credit nobody asked for');
+    assertTrue(!str_contains($quiet, 'boxlet.org'), 'and no address for one');
+
+    Settings::set($db, 'site_credit', true);
+    $credited = dispatch('/')->body;
+    assertContains('class="site-credit"', $credited, 'the line');
+    assertContains('href="https://boxlet.org"', $credited, 'where it leads');
+    assertContains(site_t('site.credit', 'en'), $credited, 'what it says');
+    // It is the last thing on the page, in the small print, not a badge of its own.
+    assertContains('site-small-print', $credited, 'where it sits');
+
+    // A site whose footer has nothing else in it still draws one for this: without that,
+    // the switch would be on and the line nowhere.
+    assertEquals(1, preg_match_all('~<footer~', $credited), 'exactly one footer');
+
+    // In the language of the page, like everything else a visitor reads (D-044).
+    App\Modules\Languages\Locales::add($db, 'hr');
+    createPage($db, 'hr', '', 'Naslovnica');
+    assertContains(site_t('site.credit', 'hr'), dispatch('/hr/')->body, 'the credit in Croatian');
+});

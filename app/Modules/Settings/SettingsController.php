@@ -61,6 +61,9 @@ final class SettingsController
         $values = [
             'site_name' => trim($request->input('site_name')),
             'timezone' => trim($request->input('timezone')),
+            // One line in the site's footer saying what made it (O-20). Off unless asked
+            // for: what a visitor reads belongs to the site's owner, not to Boxlet.
+            'site_credit' => $request->input('site_credit') === '1',
         ];
 
         // The same list the installer checks against. Two screens writing one setting
@@ -123,11 +126,13 @@ final class SettingsController
     {
         $db = $this->db();
         $text = Settings::many($db, ['site_name', 'timezone', 'maintenance_message'], '');
+        $credit = Settings::get($db, 'site_credit') === true;
 
         return [
             'site_name' => is_string($text['site_name']) ? $text['site_name'] : '',
             'timezone' => is_string($text['timezone']) ? $text['timezone'] : '',
             'maintenance_message' => is_string($text['maintenance_message']) ? $text['maintenance_message'] : '',
+            'site_credit' => $credit,
         ] + $this->storedPictures();
     }
 

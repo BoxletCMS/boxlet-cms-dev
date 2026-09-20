@@ -90,6 +90,13 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                     <span class="hint" id="timezone-hint"><?= e(t('settings.timezone_hint')) ?></span>
                     <?= $error('timezone') ?>
                 </div>
+
+                <?php /* One line in the site's own footer (O-20). Off unless the owner asks:
+                         what a visitor reads belongs to them, not to Boxlet. */ ?>
+                <div class="field">
+                    <label class="checkbox"><input type="checkbox" name="site_credit" value="1"<?= !empty($values['site_credit']) ? ' checked' : '' ?>> <span><?= e(t('settings.credit')) ?></span></label>
+                    <span class="hint"><?= e(t('settings.credit_hint')) ?></span>
+                </div>
             </div>
 
             <div class="panel stack ledger" id="branding">

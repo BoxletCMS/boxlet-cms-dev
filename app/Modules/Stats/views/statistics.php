@@ -20,6 +20,8 @@ use App\Support\Url;
  * @var list<array{path: string, source: string, views: int}>|null $missing the 404s; null while narrowed past what they can answer
  * @var bool $missingOn whether addresses that are not there are counted at all
  * @var string $map the world map, drawn and shaded; '' when the file is missing
+ * @var string $mapZoom the country the map is cut to, or '' for the whole world
+ * @var string $mapCountry the country it could be cut to, whether or not it is
  * @var bool $geo whether countries come from DB-IP's database, which asks to be credited
  * @var string $csrf
  */
@@ -78,9 +80,14 @@ $figures = [
         <section class="panel stats-map" aria-labelledby="stats-map-heading">
             <div class="stats-trend-head">
                 <h2 id="stats-map-heading"><?= e(t('stats.map')) ?></h2>
-                <p class="stats-legend" aria-hidden="true">
-                    <span class="stats-key stats-key-few"><?= e(t('stats.map_few')) ?></span>
-                    <span class="stats-key stats-key-many"><?= e(t('stats.map_many')) ?></span>
+                <p class="stats-legend">
+                    <span class="stats-key stats-key-few" aria-hidden="true"><?= e(t('stats.map_few')) ?></span>
+                    <span class="stats-key stats-key-many" aria-hidden="true"><?= e(t('stats.map_many')) ?></span>
+<?php if ($mapZoom !== ''): ?>
+                    <a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['map' => 'world']))) ?>"><?= e(t('stats.map_world')) ?></a>
+<?php elseif ($mapCountry !== ''): ?>
+                    <a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery([], ['map']))) ?>"><?= e(t('stats.map_one', ['country' => strtoupper($mapCountry)])) ?></a>
+<?php endif; ?>
                 </p>
             </div>
             <?= $map ?>

@@ -124,7 +124,11 @@ foreach ($topology['objects']['countries']['geometries'] as $geometry) {
     if ($d === '') {
         continue;
     }
-    $paths[$code] = '  <path id="c-' . $code . '" data-name="' . htmlspecialchars($name, ENT_QUOTES | ENT_XML1) . '" d="' . $d . '"/>';
+    // The country's own box, so the map can be shown zoomed to it (D-055). Read back out
+    // of the path rather than kept alongside it: what is drawn is what is measured, date
+    // line and all.
+    $paths[$code] = '  <path id="c-' . $code . '" data-name="' . htmlspecialchars($name, ENT_QUOTES | ENT_XML1)
+        . '" data-box="' . box($d) . '" d="' . $d . '"/>';
 }
 
 ksort($paths);
@@ -134,7 +138,8 @@ $svg = "<!--\n  The world's countries, each path carrying its ISO 3166-1 alpha-2
     . "  Shapes: Natural Earth 1:110m (public domain), through world-atlas 2.0.2 (ISC).\n"
     . "  Codes and names: world-countries 5.1.0 (MIT).\n"
     . "  Equirectangular, longitude -180..180 and latitude " . BOTTOM_LAT . ".." . TOP_LAT . ".\n-->\n"
-    . '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . WIDTH . ' ' . $height . '" role="img">' . "\n"
+    . '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . WIDTH . ' ' . $height . '"'
+    . ' data-top-lat="' . TOP_LAT . '" data-bottom-lat="' . BOTTOM_LAT . '" role="img">' . "\n"
     . implode("\n", $paths) . "\n</svg>\n";
 
 $check = new DOMDocument();
@@ -145,6 +150,27 @@ if (!@$check->loadXML($svg)) {
 
 file_put_contents(dirname(__DIR__, 2) . '/public/assets/vendor/world-map.svg', $svg);
 printf("Wrote %d countries, %.1f KB.%s\n", count($paths), strlen($svg) / 1024, $missing === [] ? '' : ' Without a code: ' . implode(', ', $missing));
+
+/**
+ * A path's bounding box as "minX minY width height", the shape an SVG viewBox takes. The
+ * numbers in a path are all absolute moves and lines, which is all the ring builder writes.
+ */
+function box(string $d): string
+{
+    preg_match_all('~[ML](-?[\d.]+) (-?[\d.]+)~', $d, $points, PREG_SET_ORDER);
+    if ($points === []) {
+        return '0 0 ' . WIDTH . ' ' . WIDTH;
+    }
+    $xs = array_map(static fn (array $p): float => (float) $p[1], $points);
+    $ys = array_map(static fn (array $p): float => (float) $p[2], $points);
+    $left = min($xs);
+    $top = min($ys);
+
+    return implode(' ', array_map(
+        static fn (float $n): string => (string) round($n, PRECISION),
+        [$left, $top, max(max($xs) - $left, 1.0), max(max($ys) - $top, 1.0)],
+    ));
+}
 
 /**
  * @return array<mixed>

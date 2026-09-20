@@ -270,11 +270,11 @@ testBothDrivers('the Settings panel switches it off and on, and deletes every co
     assertContains(e(t('stats.on_now')), dispatch('/admin/settings')->body, 'on by default');
 
     assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics', ['stats_retention' => '12']));
-    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country'], Tracker::settings($db), 'saved');
+    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3], Tracker::settings($db), 'saved');
     assertContains(e(t('stats.off_now')), dispatch('/admin/settings')->body, 'said to be off');
 
     adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_dnt' => '1', 'stats_retention' => '99']);
-    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country'], Tracker::settings($db), 'a retention not offered');
+    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3], Tracker::settings($db), 'a retention not offered');
 
     // How much of where a visitor is (D-055): one of three, and anything else is the
     // country — the level that says least.

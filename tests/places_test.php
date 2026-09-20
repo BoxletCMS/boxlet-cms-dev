@@ -196,7 +196,14 @@ function placeSite(string $driver, string $level): App\Core\Db
     return $db;
 }
 
-/** One view from $ip, counted with the location database in reach. */
+/**
+ * One view from $ip, counted with the location database in reach.
+ *
+ * A test that renders the SCREEN passes a time of its own: the screen's "today" is the real
+ * one, and a view counted on a fixed day in September is not in it. The first version of
+ * these tests asked for period=today and found the word "Zagreb" — in "Europe/Zagreb" in the
+ * strip above the content. A passing test about nothing.
+ */
 function placeView(App\Core\Db $db, string $ip, string $path = '/about', string $at = '2026-09-19 10:00:00'): void
 {
     App\Modules\Stats\Tracker::record(
@@ -269,24 +276,149 @@ testBothDrivers('a city too small to name is counted with the others', function 
 
 testBothDrivers('the screen shows the places, and says when it cannot', function (string $driver) {
     $db = placeSite($driver, 'city');
+    $now = gmdate('Y-m-d H:i:s');
     foreach (range(1, 6) as $n) {
-        placeView($db, '198.51.100.' . $n);
+        placeView($db, '198.51.100.' . $n, '/about', $now);
     }
 
-    $screen = dispatch('/admin/statistics?period=today')->body;
+    $screen = dispatch('/admin/statistics?period=30d')->body;
     assertContains(e(t('stats.table.cities')), $screen, 'the Cities table');
-    assertContains('Zagreb', $screen, 'the city itself');
+    // In the table, not anywhere on the page: the site's own time zone is Europe/Zagreb.
+    assertContains('<span>Zagreb</span>', $screen, 'the city itself, as a row');
     assertContains(e(t('stats.places_note', ['count' => '5'])), $screen, 'the note about how exact this is');
 
     // Narrowed to a page, the places cannot be shown at all: they are counted without it.
-    $narrowed = dispatch('/admin/statistics?period=today&path=' . rawurlencode('/about'))->body;
+    $narrowed = dispatch('/admin/statistics?period=30d&path=' . rawurlencode('/about'))->body;
     assertTrue(!str_contains($narrowed, e(t('stats.table.cities'))), 'the Cities table while narrowed to a page');
     assertContains(e(t('stats.places_narrowed')), $narrowed, 'and the reason it is not there');
 
     // Counting countries only: no place tables, and a line pointing at the setting, since
     // this site has a database that could do more.
     App\Core\Settings::set($db, 'stats_location', 'country');
-    $countries = dispatch('/admin/statistics?period=today')->body;
+    $countries = dispatch('/admin/statistics?period=30d')->body;
     assertTrue(!str_contains($countries, e(t('stats.table.regions'))), 'the Regions table while counting countries');
     assertContains(e(t('stats.places_off')), $countries, 'the line about the setting');
+});
+
+/** A small map in the shape the build writes: a projection on the svg, a box per country. */
+function placeMap(): string
+{
+    $file = tmpPath('map.svg');
+    file_put_contents($file, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 388.9"'
+        . ' data-top-lat="84" data-bottom-lat="-56" role="img">'
+        . '<path id="c-HR" data-name="Croatia" data-box="537.9 104.2 16 11.1" d="M537.9 104.2L553.9 115.3Z"/>'
+        . '<path id="c-AT" data-name="Austria" data-box="520 95 20 8" d="M520 95L540 103Z"/></svg>');
+
+    return $file;
+}
+
+/**
+ * The first city dot in a map, as numbers. Zero for anything missing, so a map without a
+ * dot fails the assertion that asked for one rather than the line that reads it.
+ *
+ * @return array{x: float, y: float, r: float}
+ */
+function placeDot(string $svg): array
+{
+    preg_match('~<circle class="map-city" cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"~', $svg, $found);
+
+    return ['x' => (float) ($found[1] ?? 0), 'y' => (float) ($found[2] ?? 0), 'r' => (float) ($found[3] ?? 0)];
+}
+
+test('the map marks the cities visitors came from, and can be cut to one country', function () {
+    $cities = [
+        ['city' => 'Zagreb', 'country' => 'HR', 'visitors' => 20, 'latitude' => 45.79, 'longitude' => 15.97],
+        ['city' => 'Split', 'country' => 'HR', 'visitors' => 5, 'latitude' => 43.51, 'longitude' => 16.44],
+    ];
+    $link = static fn (string $code): string => '/admin/statistics?country=' . $code;
+
+    // The whole world carries no dots: cities that are an hour apart land on top of each
+    // other there, and the shading is what answers "which countries" anyway.
+    $world = App\Modules\Stats\Map::draw(placeMap(), ['HR' => 25], $link, $cities);
+    assertContains('viewBox="0 0 1000 388.9"', $world, 'the whole world');
+    assertEquals(0, preg_match_all('~<circle class="map-city"~', $world), 'dots on the world');
+
+    $cut = App\Modules\Stats\Map::draw(placeMap(), ['HR' => 25], $link, $cities, 'HR');
+    assertEquals(2, preg_match_all('~<circle class="map-city"~', $cut), 'a dot for each city, where they can be told apart');
+    assertContains('<title>Zagreb · ' . e(t('stats.map_visitors', ['count' => '20'])) . '</title>', $cut, 'what a dot says');
+
+    // Zagreb is at 15.97E, 45.79N. On a map 1000 wide, that is (15.97 + 180) / 360 * 1000
+    // across and (84 - 45.79) / 360 * 1000 down — the projection the map was built with,
+    // and the same numbers whether the map is cut or whole.
+    $dot = placeDot($cut);
+    assertEquals(544.4, $dot['x'], 'where the dot is across');
+    assertEquals(106.1, $dot['y'], 'and down');
+
+    // The busiest city's dot is the biggest.
+    preg_match_all('~ r="([\d.]+)"~', $cut, $sizes);
+    assertTrue((float) ($sizes[1][0] ?? 0) > (float) ($sizes[1][1] ?? 0), 'the city with more visitors has the bigger dot');
+    // Not the country's own box, which is 16 units wide: the map goes no closer in than
+    // eight times, because the shapes Boxlet ships are 1:110m and any closer is a cartoon.
+    // The frame keeps the world's own proportions, so the panel has no empty half.
+    assertContains('viewBox="483.4 85.4 125 48.6"', $cut, 'cut to the country, as close as the map allows');
+    // A dot shrinks with the zoom, so it is the size on the screen that it would have been
+    // on the world: eight times in means an eighth of the radius.
+    assertTrue($dot['r'] < 7.0 / 7, "the dot's radius is {$dot['r']}, which is not scaled to the cut");
+
+    $unknown = App\Modules\Stats\Map::draw(placeMap(), ['HR' => 25], $link, $cities, 'ZZ');
+    assertContains('viewBox="0 0 1000 388.9"', $unknown, 'a country the map does not have leaves the world alone');
+});
+
+testBothDrivers('the map opens on the one country nearly everybody comes from', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    // The screen draws the map from the file in its own public directory, which a test run
+    // has to itself (PUBLIC_PATH in fixtures.php), so the small map goes there.
+    $vendor = tmpPath('public-root') . '/assets/vendor';
+    if (!is_dir($vendor)) {
+        mkdir($vendor, 0700, true);
+    }
+    copy(placeMap(), $vendor . '/world-map.svg');
+    // Nine visitors from Croatia and one from Austria: over the 70% the map opens on.
+    $now = gmdate('Y-m-d H:i:s');
+    foreach (range(1, 9) as $n) {
+        placeView($db, '198.51.100.' . $n, '/about', $now);
+    }
+    placeView($db, '203.0.113.7', '/about', $now);
+
+    $screen = dispatch('/admin/statistics?period=30d')->body;
+    assertContains(e(t('stats.map_world')), $screen, 'the way back to the whole world');
+    assertTrue(!str_contains($screen, 'viewBox="0 0 1000'), 'the map is cut to the country');
+
+    $whole = dispatch('/admin/statistics?period=30d&map=world')->body;
+    assertContains('viewBox="0 0 1000', $whole, 'and the address can ask for the world');
+    assertContains(e(t('stats.map_one', ['country' => 'HR'])), $whole, 'with the way back to the country');
+});
+
+testBothDrivers('the city is forgotten before the rest of a place is', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    // Two cities in two countries, four months ago.
+    $old = (new DateTimeImmutable('-4 months'))->format('Y-m-d H:i:s');
+    placeView($db, '198.51.100.9', '/about', $old);
+    placeView($db, '198.51.100.10', '/about', $old);
+    placeView($db, '203.0.113.7', '/about', $old);
+    assertEquals(2, count($db->all("SELECT 1 FROM stats_places WHERE city <> ''")), 'the cities are there to begin with');
+
+    // The first view of a new day does the day's housekeeping; there is no cron (D-051),
+    // and three months is the default for how long a place keeps its city.
+    placeView($db, '198.51.100.11', '/about', gmdate('Y-m-d H:i:s'));
+
+    $cities = $db->all("SELECT country, city FROM stats_places WHERE city <> '' ORDER BY city");
+    assertEquals(1, count($cities), 'only the city inside the window is left');
+    assertEquals('Zagreb', $cities[0]['city'], 'today\'s city, which is young enough to keep');
+
+    // The counts survive the collapse: three visitors four months ago, in two countries.
+    $collapsed = $db->all("SELECT country, region, views, visitors, latitude FROM stats_places WHERE city = '' ORDER BY country");
+    assertEquals(2, count($collapsed), 'one row per region, the city dropped');
+    assertEquals(['AT', 'Vienna', 1, 1], [$collapsed[0]['country'], $collapsed[0]['region'], (int) $collapsed[0]['views'], (int) $collapsed[0]['visitors']], 'Austria, without its city');
+    assertEquals(['HR', 'Zagreb', 2, 2], [$collapsed[1]['country'], $collapsed[1]['region'], (int) $collapsed[1]['views'], (int) $collapsed[1]['visitors']], 'Croatia, with both its visitors kept');
+    assertEquals(null, $collapsed[0]['latitude'], 'and no coordinate to put on a map');
+});
+
+testBothDrivers('a site that asks to keep the city keeps it', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    App\Core\Settings::set($db, 'stats_city_months', 0);
+    placeView($db, '198.51.100.9', '/about', (new DateTimeImmutable('-4 months'))->format('Y-m-d H:i:s'));
+    placeView($db, '198.51.100.12', '/about', gmdate('Y-m-d H:i:s'));
+
+    assertEquals(2, count($db->all("SELECT 1 FROM stats_places WHERE city <> ''")), 'both days keep their city');
 });

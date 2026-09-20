@@ -23,7 +23,8 @@ use PDOException;
  * the host, under a salt kept in settings and replaced by the first request of each new
  * day. The address is read for that one hash and never stored. The same request deletes
  * the previous day's keys, and with them any way of linking a visitor across two days, and
- * the counts older than the retention period: there is no cron to do it (D-051).
+ * the counts older than the retention period: there is no cron to do it (D-051). What that
+ * first view of a day does is NewDay's.
  */
 final class Tracker
 {
@@ -32,6 +33,15 @@ final class Tracker
 
     private const RETENTION_DEFAULT = 24;
 
+    /**
+     * How many months a place keeps its city before the row is collapsed into its region
+     * (D-055); 0 keeps it as long as the counts themselves. A city is the sharpest thing
+     * these tables hold, and it is the one worth forgetting first.
+     */
+    public const CITY_MONTHS = [1, 3, 6, 12, 0];
+
+    private const CITY_MONTHS_DEFAULT = 3;
+
     /** First path segments that are never a visitor's page. */
     private const SKIPPED = ['admin', 'form', 'sitemap', 'install', 'install.php', '_boxlet'];
 
@@ -39,13 +49,14 @@ final class Tracker
      * The module's settings, with their defaults: on, honouring DNT and GPC, two years,
      * and the country as the only thing said about where a visitor is.
      *
-     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string}
+     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string, cityMonths: int}
      */
     public static function settings(Db $db): array
     {
-        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing', 'stats_group', 'stats_location']);
+        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing', 'stats_group', 'stats_location', 'stats_city_months']);
         $retention = $stored['stats_retention'];
         $location = $stored['stats_location'];
+        $cityMonths = $stored['stats_city_months'];
 
         return [
             'enabled' => $stored['stats_enabled'] !== false,
@@ -61,6 +72,7 @@ final class Tracker
             // How much of where a visitor is (D-055). The country unless asked otherwise:
             // the city is the point at which a count starts to be about a person.
             'location' => is_string($location) && in_array($location, Place::LEVELS, true) ? $location : 'country',
+            'cityMonths' => is_int($cityMonths) && in_array($cityMonths, self::CITY_MONTHS, true) ? $cityMonths : self::CITY_MONTHS_DEFAULT,
         ];
     }
 
@@ -135,7 +147,7 @@ final class Tracker
         // gone by the end of this method; what stays is a country, and at most a city.
         $place = $storagePath === '' ? new Place() : Geo::place($storagePath, $ip, $settings['location']);
 
-        $salt = self::salt($db, $day, $today, $settings['retention']);
+        $salt = NewDay::salt($db, $day, $today, $settings);
         $visitor = bin2hex(substr(hash_hmac('sha256', $ip . "\n" . $userAgent . "\n" . $host, $salt, true), 0, 16));
         $agent = Agent::parse($userAgent);
 
@@ -211,34 +223,6 @@ final class Tracker
         $host = strtolower(trim(explode(':', $host)[0], '.'));
 
         return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
-    }
-
-    /**
-     * Today's salt. The first request of a new day makes one, and deletes the earlier
-     * days' visitor keys and the counts older than the retention period.
-     *
-     * Two first requests at once can both make one; whichever the settings table keeps is
-     * read back and used, so at most the loser's own view is keyed with a salt nobody
-     * keeps — one visitor, once, possibly counted twice.
-     */
-    private static function salt(Db $db, string $day, DateTimeImmutable $today, int $retention): string
-    {
-        $stored = Settings::get($db, 'stats_salt');
-        if (is_array($stored) && ($stored['day'] ?? null) === $day && is_string($stored['salt'] ?? null)) {
-            return $stored['salt'];
-        }
-
-        Settings::set($db, 'stats_salt', ['day' => $day, 'salt' => bin2hex(random_bytes(32))]);
-        $db->query('DELETE FROM stats_seen WHERE day <> ?', [$day]);
-        $oldest = $today->modify("-{$retention} months")->format('Y-m-d');
-        $db->query('DELETE FROM stats_views WHERE day < ?', [$oldest]);
-        $db->query('DELETE FROM stats_page_visitors WHERE day < ?', [$oldest]);
-        $db->query('DELETE FROM stats_missing WHERE day < ?', [$oldest]);
-        $db->query('DELETE FROM stats_places WHERE day < ?', [$oldest]);
-
-        $kept = Settings::get($db, 'stats_salt');
-
-        return is_array($kept) && is_string($kept['salt'] ?? null) ? $kept['salt'] : '';
     }
 
     /** Marks the visitor seen today on $path ('' for the site); true the first time. */

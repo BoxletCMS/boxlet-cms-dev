@@ -8,7 +8,7 @@ use App\Support\Url;
  * browser's Do Not Track or Global Privacy Control is honoured, how long counts are kept,
  * and a way to delete them all. Its forms are its own, outside the settings form.
  *
- * @var array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string} $stats
+ * @var array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string, cityMonths: int} $stats
  * @var array{built: string, type: string, cities: bool}|null $geo the location database in use
  * @var array{done: int, total: int}|null $geoDownload a city database part-way down (D-055)
  * @var string $uploadLimit the largest file this server accepts, as php.ini says it
@@ -39,6 +39,22 @@ use App\Support\Url;
 <?php if ($stats['location'] !== 'country' && ($geo === null || !$geo['cities'])): ?>
                     <p class="notice notice-warning"><?= e(t('stats.location_needs_city')) ?></p>
 <?php endif; ?>
+                    <?php /* The city is the sharpest thing these counts hold, so it is the
+                             first thing forgotten (D-055): after this, a place keeps its
+                             region and the counts stay whole. */ ?>
+                    <div class="field">
+                        <label for="stats_city_months"><?= e(t('stats.city_months')) ?></label>
+                        <select id="stats_city_months" name="stats_city_months" aria-describedby="stats_city_months-hint">
+<?php foreach (Tracker::CITY_MONTHS as $months): ?>
+                            <option value="<?= e($months) ?>"<?= $months === $stats['cityMonths'] ? ' selected' : '' ?>><?= e(match ($months) {
+                                0 => t('stats.city_months_all'),
+                                1 => t('stats.months_one'),
+                                default => t('stats.months', ['months' => (string) $months]),
+                            }) ?></option>
+<?php endforeach; ?>
+                        </select>
+                        <span class="hint" id="stats_city_months-hint"><?= e(t('stats.city_months_hint')) ?></span>
+                    </div>
                 </fieldset>
                 <div class="field">
                     <label for="stats_retention"><?= e(t('stats.retention')) ?></label>

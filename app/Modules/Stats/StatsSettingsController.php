@@ -35,6 +35,13 @@ final class StatsSettingsController
         Settings::set($db, 'stats_group', $request->input('stats_group') === '1');
         $location = $request->input('stats_location');
         Settings::set($db, 'stats_location', in_array($location, Place::LEVELS, true) ? $location : 'country');
+        // Checked for emptiness before it is cast, unlike the retention above: 0 is a real
+        // answer here ("as long as the counts"), so a form that sent no field at all would
+        // otherwise be read as asking for it.
+        $cityMonths = $request->input('stats_city_months');
+        Settings::set($db, 'stats_city_months', $cityMonths !== '' && in_array((int) $cityMonths, Tracker::CITY_MONTHS, true)
+            ? (int) $cityMonths
+            : Tracker::settings($db)['cityMonths']);
         // Not stats_*: the addresses that may speak for a visitor are read by the form and
         // login limits too (O-20).
         Settings::set($db, 'trusted_proxies', mb_substr(trim($request->input('trusted_proxies')), 0, 2000));

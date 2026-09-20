@@ -22,6 +22,9 @@ use DateTimeZone;
  */
 final class StatsController
 {
+    /** The share of visitors one country needs before the map opens on it (D-055). */
+    private const MOSTLY = 0.7;
+
     public function __construct(private readonly Container $container)
     {
     }
@@ -87,6 +90,22 @@ final class StatsController
             ]);
         }
 
+        // WHERE THE MAP OPENS (D-055). On one country when the screen is narrowed to it, or
+        // when one country holds nearly all the visitors — which is the case the owner
+        // raised: a site that serves one country learns nothing from a world where one shape
+        // is dark. The address can always ask for the world back.
+        $byCountry = array_column(array_map(
+            static fn (array $row): array => ['code' => strtoupper($row['value']), 'visitors' => (int) $row['visitors']],
+            $query->top('countries', $filter, null),
+        ), 'visitors', 'code');
+        unset($byCountry['']);
+        $all = array_sum($byCountry);
+        $one = (string) (array_search(true, array_map(
+            static fn (int $n): bool => $all > 0 && $n / $all > self::MOSTLY,
+            $byCountry,
+        ), true) ?: $filter->narrowed['country'] ?? '');
+        $zoom = ($request->query['map'] ?? '') === 'world' ? '' : $one;
+
         // One day alone is one point, which is not a line: its chart is the week it ends,
         // narrowed the same way. A range past three months is drawn by week.
         $chart = $filter->days() === 1
@@ -98,15 +117,19 @@ final class StatsController
             'series' => $query->series($chart, $chart->days() > 90),
             'chartWeek' => $filter->days() === 1,
             'chartByWeek' => $chart->days() > 90,
-            // The world map (O-20): the same countries as the table beside it, shaded.
+            // The world map (O-20): the same countries as the table beside it, shaded, with
+            // a dot on every city big enough to name (D-055).
             'map' => Map::draw(
                 Map::path((string) $this->container->get('config')->get('app.public_path')),
-                array_column(array_map(
-                    static fn (array $row): array => ['code' => strtoupper($row['value']), 'visitors' => (int) $row['visitors']],
-                    $query->top('countries', $filter, null),
-                ), 'visitors', 'code'),
+                $byCountry,
                 static fn (string $code): string => Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['country' => $code])),
+                // Only where the map is cut to a country: the dots are not drawn on the
+                // world, so asking the database for them there would be work for nothing.
+                $zoom !== '' && in_array('cities', $places, true) ? (new PlaceQuery($db))->markers($filter) : [],
+                $zoom,
             ),
+            'mapZoom' => $zoom,
+            'mapCountry' => $one,
             // Addresses that are not there, while the owner counts them (O-20).
             'missing' => $settings['missing'] ? $query->missing($filter) : null,
             'missingOn' => $settings['missing'],

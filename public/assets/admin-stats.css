@@ -207,6 +207,12 @@
   padding-block: 0.25rem;
 }
 
+/* The days the screen is showing, under the range that chooses them: .page-subtitle pulls
+   itself up under a page title, which here put it against the fields. */
+.stats-range + .page-subtitle {
+  margin-top: 0;
+}
+
 /* What the figures are narrowed to, each removable. */
 .stats-chips {
   display: flex;

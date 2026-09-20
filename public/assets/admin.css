@@ -199,6 +199,18 @@
   border-radius: var(--ui-radius-s);
 }
 
+/* A fieldset carries a border of the browser's own, drawn in a light system colour that on
+   this dark ground reads as a white box around the controls — measured on the crop shapes
+   and in the installer's database step. Cleared for every fieldset; .fieldset draws its own
+   (admin-forms.css), and so do .block-editor and .repeater — which is why this is the bare
+   element and not .admin fieldset, which would outrank all three. */
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
 /* An icon from the sprite (icon() in helpers.php, D-037): the size of the text beside it,
    in the text's own colour, so it can never have a contrast of its own to get wrong. */
 .admin .icon {

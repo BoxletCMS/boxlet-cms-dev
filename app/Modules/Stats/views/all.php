@@ -10,7 +10,8 @@ use App\Support\Url;
  * @var \App\Modules\Stats\StatsFilter $filter
  * @var array{visitors: int, views: int, perVisitor: float, mobile: float} $totals
  * @var string $dimension
- * @var list<array{value: string, visitors: int, views: int}> $rows
+ * @var list<array{value: string, visitors: int|null, views: int}> $rows
+ * @var list<array{path: string, source: string, views: int}>|null $missing the 404s, when that is the table asked for
  */
 $all = $dimension;
 ?>
@@ -21,5 +22,9 @@ $all = $dimension;
 <?php require __DIR__ . '/periods.php'; ?>
 
         <section class="panel stats-dimension" aria-label="<?= e(t('stats.table.' . $dimension)) ?>">
+<?php if ($dimension === 'missing'): ?>
+<?php require __DIR__ . '/missing.php'; ?>
+<?php else: ?>
 <?php require __DIR__ . '/table.php'; ?>
+<?php endif; ?>
         </section>

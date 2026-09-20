@@ -31,12 +31,13 @@ final class StatsController
     public function index(Request $request, string $locale, array $params): Response
     {
         $db = $this->container->get('db');
-        if (!Tracker::settings($db)['enabled']) {
+        $settings = Tracker::settings($db);
+        if (!$settings['enabled']) {
             return Response::redirect(Url::admin('settings') . '#statistics');
         }
 
-        $all = is_string($request->query['all'] ?? null) && isset(StatsQuery::DIMENSIONS[$request->query['all']])
-            ? $request->query['all'] : null;
+        $wanted = is_string($request->query['all'] ?? null) ? $request->query['all'] : '';
+        $all = isset(StatsQuery::DIMENSIONS[$wanted]) || $wanted === 'missing' ? $wanted : null;
 
         $today = new DateTimeImmutable('now', new DateTimeZone(Dates::zone($db)));
         $filter = StatsFilter::fromQuery($request->query, $today);
@@ -55,10 +56,18 @@ final class StatsController
             'geo' => Geo::status((string) $this->container->get('config')->get('app.storage_path')) !== null,
         ];
 
+        if ($all === 'missing') {
+            return AdminView::render($this->container, __DIR__ . '/views', 'all', $data + [
+                'dimension' => 'missing',
+                'rows' => [],
+                'missing' => $query->missing($filter, null),
+            ]);
+        }
         if ($all !== null) {
             return AdminView::render($this->container, __DIR__ . '/views', 'all', $data + [
                 'dimension' => $all,
                 'rows' => $query->top($all, $filter, null),
+                'missing' => null,
             ]);
         }
 
@@ -73,6 +82,9 @@ final class StatsController
             'series' => $query->series($chart, $chart->days() > 90),
             'chartWeek' => $filter->days() === 1,
             'chartByWeek' => $chart->days() > 90,
+            // Addresses that are not there, while the owner counts them (O-20).
+            'missing' => $settings['missing'] ? $query->missing($filter) : null,
+            'missingOn' => $settings['missing'],
             'tables' => array_map(
                 static fn (string $dimension): array => $query->top($dimension, $filter),
                 array_combine(array_keys(StatsQuery::DIMENSIONS), array_keys(StatsQuery::DIMENSIONS)),

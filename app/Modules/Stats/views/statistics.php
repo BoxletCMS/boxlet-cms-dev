@@ -15,7 +15,9 @@ use App\Support\Url;
  * @var list<array{day: string, visitors: int, views: int}> $series
  * @var bool $chartWeek whether the chart shows the week the period ends, not the period
  * @var bool $chartByWeek whether the chart's points are weeks rather than days
- * @var array<string, list<array{value: string, visitors: int, views: int}>> $tables
+ * @var array<string, list<array{value: string, visitors: int|null, views: int}>> $tables
+ * @var list<array{path: string, source: string, views: int}>|null $missing the 404s; null while narrowed past what they can answer
+ * @var bool $missingOn whether addresses that are not there are counted at all
  * @var bool $geo whether countries come from DB-IP's database, which asks to be credited
  */
 $all = null;
@@ -79,6 +81,18 @@ $figures = [
 <?php endforeach; ?>
         </div>
 
+<?php if ($missingOn): ?>
+        <?php /* Addresses that are not there (O-20), counted only while the owner asks for
+                 it: the source beside each one says whose link is broken. */ ?>
+        <section class="panel stats-dimension" aria-labelledby="stats-missing">
+            <h2 id="stats-missing"><?= e(t('stats.table.missing')) ?></h2>
+<?php require __DIR__ . '/missing.php'; ?>
+<?php if ($missing !== null && count($missing) >= 10): ?>
+            <p class="stats-more"><a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['all' => 'missing']))) ?>"><?= e(t('stats.show_all')) ?></a></p>
+<?php endif; ?>
+        </section>
+
+<?php endif; ?>
         <p class="hint stats-note"><?= e(t('stats.note')) ?> <a href="<?= e(Url::admin('settings') . '#statistics') ?>"><?= e(t('stats.settings_link')) ?></a></p>
 <?php if ($geo): ?>
         <p class="hint stats-note"><a href="https://db-ip.com" target="_blank" rel="noopener"><?= e(t('stats.attribution')) ?></a></p>

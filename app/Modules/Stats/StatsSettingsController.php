@@ -31,6 +31,7 @@ final class StatsSettingsController
         $retention = (int) $request->input('stats_retention');
         Settings::set($db, 'stats_enabled', $request->input('stats_enabled') === '1');
         Settings::set($db, 'stats_dnt', $request->input('stats_dnt') === '1');
+        Settings::set($db, 'stats_missing', $request->input('stats_missing') === '1');
         Settings::set($db, 'stats_retention', in_array($retention, Tracker::RETENTION, true) ? $retention : Tracker::settings($db)['retention']);
 
         return $this->back(t('stats.saved'));

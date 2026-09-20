@@ -169,6 +169,36 @@ final class StatsQuery
     }
 
     /**
+     * Addresses visitors asked for and the site does not have, most asked first (O-20).
+     *
+     * stats_missing knows a day, an address and where the visitor came from, so it can be
+     * narrowed by those two and by nothing else; null says the screen is narrowed to
+     * something it cannot answer, and the screen says so rather than showing a wrong list.
+     *
+     * @return list<array{path: string, source: string, views: int}>|null
+     */
+    public function missing(StatsFilter $filter, ?int $limit = 10): ?array
+    {
+        foreach ($filter->narrowed as $dimension => $value) {
+            if ($dimension !== 'path' && $dimension !== 'source') {
+                return null;
+            }
+        }
+        [$where, $params] = $filter->where();
+        $cap = $limit === null ? '' : ' LIMIT ' . max(1, $limit);
+
+        return array_values(array_map(static fn (array $row): array => [
+            'path' => (string) $row['path'],
+            'source' => (string) $row['source'],
+            'views' => (int) $row['total_views'],
+        ], $this->db->all(
+            "SELECT path, source, SUM(views) AS total_views FROM stats_missing
+             WHERE {$where} GROUP BY path, source ORDER BY total_views DESC, path{$cap}",
+            $params,
+        )));
+    }
+
+    /**
      * The change from $before to $now as a fraction (0.25 for a quarter more), or null when
      * there was nothing before to compare with.
      */

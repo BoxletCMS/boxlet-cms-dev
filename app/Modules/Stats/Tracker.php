@@ -37,17 +37,20 @@ final class Tracker
     /**
      * The module's settings, with their defaults: on, honouring DNT and GPC, two years.
      *
-     * @return array{enabled: bool, dnt: bool, retention: int}
+     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool}
      */
     public static function settings(Db $db): array
     {
-        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention']);
+        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing']);
         $retention = $stored['stats_retention'];
 
         return [
             'enabled' => $stored['stats_enabled'] !== false,
             'dnt' => $stored['stats_dnt'] !== false,
             'retention' => is_int($retention) && in_array($retention, self::RETENTION, true) ? $retention : self::RETENTION_DEFAULT,
+            // Addresses that are not there: off unless asked for (O-20). A small site's 404s
+            // are mostly other people's broken links and bots guessing at addresses.
+            'missing' => $stored['stats_missing'] === true,
         ];
     }
 
@@ -62,7 +65,9 @@ final class Tracker
         $purpose = strtolower(($request->header('sec-purpose') ?? '') . ' ' . ($request->header('purpose') ?? '') . ' ' . ($request->header('x-moz') ?? ''));
 
         return $request->method === 'GET'
-            && $response->status === 200
+            // A 404 is counted too, in its own table, where the owner asks for it (O-20);
+            // record() decides which of the two it is.
+            && ($response->status === 200 || $response->status === 404)
             && str_contains(strtolower((string) ($response->headers['Content-Type'] ?? '')), 'text/html')
             && !in_array($segment, self::SKIPPED, true)
             && !str_contains($purpose, 'prefetch')
@@ -91,12 +96,30 @@ final class Tracker
         $zone = new DateTimeZone(Dates::zone($db));
         $today = ($now ?? new DateTimeImmutable())->setTimezone($zone);
         $day = $today->format('Y-m-d');
-        $salt = self::salt($db, $day, $today, $settings['retention']);
-
         $userAgent = $request->header('user-agent') ?? '';
         $host = self::host($request->header('host') ?? '');
-        $visitor = bin2hex(substr(hash_hmac('sha256', $request->ip . "\n" . $userAgent . "\n" . $host, $salt, true), 0, 16));
         $path = mb_substr($request->path, 0, 255);
+
+        // An address that is not there is not a page view: it goes in its own table, and
+        // only while the owner wants it counted (O-20). Before the salt and the visitor's
+        // key, which a 404 has no use for — and bots asking for addresses that do not exist
+        // are most of what lands here.
+        if ($response->status === 404) {
+            if ($settings['missing']) {
+                self::add(
+                    $db,
+                    'stats_missing',
+                    ['day' => $day, 'path' => $path, 'source' => self::source($request->header('referer') ?? '', $host)],
+                    'views = views + 1',
+                    ['views' => 1],
+                );
+            }
+
+            return $settings['missing'];
+        }
+
+        $salt = self::salt($db, $day, $today, $settings['retention']);
+        $visitor = bin2hex(substr(hash_hmac('sha256', $request->ip . "\n" . $userAgent . "\n" . $host, $salt, true), 0, 16));
         $agent = Agent::parse($userAgent);
 
         $newToSite = self::firstSeen($db, $day, $visitor, '');
@@ -128,7 +151,7 @@ final class Tracker
      */
     public static function erase(Db $db): void
     {
-        foreach (['stats_views', 'stats_page_visitors', 'stats_seen'] as $table) {
+        foreach (['stats_views', 'stats_page_visitors', 'stats_seen', 'stats_missing'] as $table) {
             $db->query("DELETE FROM {$table}");
         }
         $db->query('DELETE FROM settings WHERE `key` = ?', ['stats_salt']);
@@ -174,6 +197,7 @@ final class Tracker
         $oldest = $today->modify("-{$retention} months")->format('Y-m-d');
         $db->query('DELETE FROM stats_views WHERE day < ?', [$oldest]);
         $db->query('DELETE FROM stats_page_visitors WHERE day < ?', [$oldest]);
+        $db->query('DELETE FROM stats_missing WHERE day < ?', [$oldest]);
 
         $kept = Settings::get($db, 'stats_salt');
 

@@ -270,11 +270,11 @@ testBothDrivers('the Settings panel switches it off and on, and deletes every co
     assertContains(e(t('stats.on_now')), dispatch('/admin/settings')->body, 'on by default');
 
     assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics', ['stats_retention' => '12']));
-    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12], Tracker::settings($db), 'saved');
+    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false], Tracker::settings($db), 'saved');
     assertContains(e(t('stats.off_now')), dispatch('/admin/settings')->body, 'said to be off');
 
     adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_dnt' => '1', 'stats_retention' => '99']);
-    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12], Tracker::settings($db), 'a retention not offered');
+    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false], Tracker::settings($db), 'a retention not offered');
 
     adminPost('/admin/settings/statistics/erase', []);
     assertEquals(0, statsTotals($db)['views'], 'counts after erase');
@@ -640,4 +640,35 @@ testBothDrivers('a range of its own is shown, and kept while narrowing', functio
     assertContains('9 Sep 2026 – 11 Sep 2026', $screen, 'the days it shows');
     assertContains('value="2026-09-09"', $screen, 'the field holds the day chosen');
     assertContains('from=2026-09-09&amp;to=2026-09-11&amp;path=%2Fabout', $screen, 'narrowing keeps the range');
+});
+
+// Addresses that are not there (PLAN.md O-20).
+
+testBothDrivers('a 404 is counted only when the owner asks for it, and never as a page view', function (string $driver) {
+    $db = statsSite($driver);
+    $gone = fn () => statsView($db, '/no-such-page', [], response: Response::html('Not found', 404));
+
+    assertTrue(!$gone(), 'counted while switched off');
+    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM stats_missing')['n'] ?? -1), 'rows while switched off');
+
+    Settings::set($db, 'stats_missing', true);
+    assertTrue($gone(), 'not counted while switched on');
+    $gone();
+    statsView($db, '/no-such-page', ['referer' => 'https://news.example.org/piece'], response: Response::html('Not found', 404));
+
+    assertEquals(0, statsTotals($db)['views'], 'a 404 among the page views');
+    $query = new App\Modules\Stats\StatsQuery($db);
+    assertEquals([
+        ['path' => '/no-such-page', 'source' => '', 'views' => 2],
+        ['path' => '/no-such-page', 'source' => 'news.example.org', 'views' => 1],
+    ], $query->missing(statsFilter(['period' => '7d'])), 'the addresses, and who links to them');
+    assertEquals(null, $query->missing(statsFilter(['period' => '7d', 'country' => 'HR'])), 'narrowed to something it cannot answer');
+
+    $screen = dispatch('/admin/statistics?period=7d')->body;
+    assertContains(e(t('stats.table.missing')), $screen, 'the table');
+    assertContains('/no-such-page', $screen, 'the address');
+    assertContains(e(t('stats.missing_not_split')), dispatch('/admin/statistics?period=7d&country=HR')->body, 'said, where it cannot answer');
+
+    Tracker::erase($db);
+    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM stats_missing')['n'] ?? -1), 'left after erase');
 });

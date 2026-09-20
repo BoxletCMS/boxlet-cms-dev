@@ -98,8 +98,11 @@ export default {
       await page.$eval('#statistics', (el) => el.scrollIntoView({ block: 'start' }));
       await report.shot(page, name, { fullPage: false });
       if (name === '01-desktop') {
-        report.verdict('the panel says statistics are on, with its three switches, the retention and the delete button',
-          /Statistics are on\./.test(panel.text) && panel.boxes.length === 3 && panel.retention !== undefined && panel.erase,
+        // By name, not by how many: a switch added later is not a failure, a missing one is.
+      const wanted = ['stats_enabled', 'stats_dnt', 'stats_group', 'stats_missing'];
+      const named = wanted.every((name) => panel.boxes.some((box) => box.startsWith(name + '=')));
+      report.verdict('the panel says statistics are on, with its switches, the retention and the delete button',
+          /Statistics are on\./.test(panel.text) && named && panel.retention !== undefined && panel.erase,
           JSON.stringify(panel));
       } else {
         const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

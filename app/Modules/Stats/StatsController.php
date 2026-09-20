@@ -12,10 +12,12 @@ use DateTimeImmutable;
 use DateTimeZone;
 
 /**
- * The Statistics screen (PLAN.md D-051): a period, four figures against the period before,
- * the trend, and six tables — or one of those tables in full, when the owner asks for all
- * of it. Everything is in the address (?period=, ?all=), so a view can be bookmarked and the
- * back button works; nothing on the screen needs a script.
+ * The Statistics screen (PLAN.md D-051, O-20): a period or a chosen range, four figures
+ * against the period before, the trend, and six tables — or one of those tables in full.
+ * Clicking a row narrows the whole screen to it.
+ *
+ * Everything is in the address, so a view can be bookmarked, shared and stepped out of with
+ * the browser's Back, and nothing on the screen needs a script (StatsFilter).
  */
 final class StatsController
 {
@@ -33,23 +35,21 @@ final class StatsController
             return Response::redirect(Url::admin('settings') . '#statistics');
         }
 
-        $period = is_string($request->query['period'] ?? null) && isset(StatsQuery::PERIODS[$request->query['period']])
-            ? $request->query['period'] : '7d';
         $all = is_string($request->query['all'] ?? null) && isset(StatsQuery::DIMENSIONS[$request->query['all']])
             ? $request->query['all'] : null;
 
         $today = new DateTimeImmutable('now', new DateTimeZone(Dates::zone($db)));
-        $range = StatsQuery::range($period, $today);
+        $filter = StatsFilter::fromQuery($request->query, $today);
         $query = new StatsQuery($db);
-        $totals = $query->totals($range['from'], $range['to']);
+        $totals = $query->totals($filter);
+        $before = $filter->previous();
 
         $data = [
             'title' => t('stats.title'),
             'nav' => 'statistics',
             'wide' => true,
             'styles' => ['admin-stats.css', 'admin-stats-chart.css'],
-            'period' => $period,
-            'range' => $range,
+            'filter' => $filter,
             'totals' => $totals,
             // DB-IP's licence asks for credit where its countries are shown (CC BY 4.0).
             'geo' => Geo::status((string) $this->container->get('config')->get('app.storage_path')) !== null,
@@ -58,19 +58,23 @@ final class StatsController
         if ($all !== null) {
             return AdminView::render($this->container, __DIR__ . '/views', 'all', $data + [
                 'dimension' => $all,
-                'rows' => $query->top($all, $range['from'], $range['to'], null),
+                'rows' => $query->top($all, $filter, null),
             ]);
         }
 
-        // Today alone is one point, which is not a line: its chart is the week it ends.
-        $chart = $period === 'today' ? StatsQuery::range('7d', $today) : $range;
+        // One day alone is one point, which is not a line: its chart is the week it ends,
+        // narrowed the same way. A range past three months is drawn by week.
+        $chart = $filter->days() === 1
+            ? StatsFilter::fromQuery($filter->asQuery(['period' => '7d'], ['from', 'to']), $today)
+            : $filter;
 
         return AdminView::render($this->container, __DIR__ . '/views', 'statistics', $data + [
-            'previous' => $query->totals($range['prevFrom'], $range['prevTo']),
-            'series' => $query->series($chart['from'], $chart['to'], $period === '12m'),
-            'chartWeek' => $period === 'today',
+            'previous' => $query->totals($filter, $before['from'], $before['to']),
+            'series' => $query->series($chart, $chart->days() > 90),
+            'chartWeek' => $filter->days() === 1,
+            'chartByWeek' => $chart->days() > 90,
             'tables' => array_map(
-                static fn (string $dimension): array => $query->top($dimension, $range['from'], $range['to']),
+                static fn (string $dimension): array => $query->top($dimension, $filter),
                 array_combine(array_keys(StatsQuery::DIMENSIONS), array_keys(StatsQuery::DIMENSIONS)),
             ),
         ]);

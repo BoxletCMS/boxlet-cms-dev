@@ -8,6 +8,7 @@ use App\Core\Settings;
 use App\Modules\Design\Composition;
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Pages\TranslationStatus;
+use App\Modules\Stats\StatsFilter;
 use App\Modules\Stats\StatsQuery;
 use App\Modules\Stats\Tracker;
 use App\Support\Bytes;
@@ -54,10 +55,11 @@ final class Overview
 
         if (Tracker::settings($db)['enabled']) {
             $today = new DateTimeImmutable('now', new DateTimeZone($zone));
-            $range = StatsQuery::range('7d', $today);
+            $week = StatsFilter::fromQuery(['period' => '7d'], $today);
+            $before = $week->previous();
             $query = new StatsQuery($db);
-            $now = $query->totals($range['from'], $range['to'])['visitors'];
-            $change = StatsQuery::change($now, $query->totals($range['prevFrom'], $range['prevTo'])['visitors']);
+            $now = $query->totals($week)['visitors'];
+            $change = StatsQuery::change($now, $query->totals($week, $before['from'], $before['to'])['visitors']);
             $metrics[] = [
                 'label' => t('overview.visitors'),
                 'value' => number_format($now),
@@ -165,8 +167,12 @@ final class Overview
             return [];
         }
         $today = new DateTimeImmutable('now', new DateTimeZone($zone));
-        $from = $today->modify('-13 days')->format('Y-m-d');
-        $rows = (new StatsQuery($db))->top('pages', $from, $today->format('Y-m-d'), 4);
+        $fortnight = StatsFilter::fromQuery([
+            'period' => 'custom',
+            'from' => $today->modify('-13 days')->format('Y-m-d'),
+            'to' => $today->format('Y-m-d'),
+        ], $today);
+        $rows = (new StatsQuery($db))->top('pages', $fortnight, 4);
         $top = max(1, $rows[0]['views'] ?? 1);
 
         return array_map(static fn (array $row): array => [

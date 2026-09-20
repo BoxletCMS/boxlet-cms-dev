@@ -38,6 +38,16 @@ function statsView(
     );
 }
 
+/**
+ * A filter as the address would give it, on 19 September 2026.
+ *
+ * @param array<string, string> $query
+ */
+function statsFilter(array $query): App\Modules\Stats\StatsFilter
+{
+    return App\Modules\Stats\StatsFilter::fromQuery($query, new DateTimeImmutable('2026-09-19'));
+}
+
 function statsSite(string $driver): Db
 {
     $db = adminSite($driver);
@@ -286,28 +296,29 @@ testBothDrivers('totals, the change on the period before, and the share on a pho
     statsView($db, '/about', ['user-agent' => $phone], '2026-09-19 12:01:00');
     statsView($db, '/about', ['referer' => 'https://news.example.org/'], '2026-09-19 13:00:00', '192.0.2.44');
 
-    $range = App\Modules\Stats\StatsQuery::range('7d', new DateTimeImmutable('2026-09-19'));
-    assertEquals(['from' => '2026-09-13', 'to' => '2026-09-19', 'prevFrom' => '2026-09-06', 'prevTo' => '2026-09-12'], $range, 'the range');
+    $week = statsFilter(['period' => '7d']);
+    assertEquals(['from' => '2026-09-13', 'to' => '2026-09-19'], ['from' => $week->from, 'to' => $week->to], 'the range');
+    assertEquals(['from' => '2026-09-06', 'to' => '2026-09-12'], $week->previous(), 'the week before it');
     $query = new App\Modules\Stats\StatsQuery($db);
-    $now = $query->totals($range['from'], $range['to']);
-    $before = $query->totals($range['prevFrom'], $range['prevTo']);
+    $now = $query->totals($week);
+    $before = $query->totals($week, ...array_values($week->previous()));
     // 18 Sep and 19 Sep are two days, so the same person is two visitors (SPEC §5.7).
     assertEquals(['visitors' => 4, 'views' => 6, 'perVisitor' => 1.5, 'mobile' => 0.25], $now, 'this week');
     assertEquals(3.0, App\Modules\Stats\StatsQuery::change($now['visitors'], $before['visitors']), 'one visitor to four: three times more');
     assertEquals(null, App\Modules\Stats\StatsQuery::change(5, 0), 'nothing to compare with');
 
-    $series = $query->series($range['from'], $range['to']);
+    $series = $query->series($week);
     assertEquals(7, count($series), 'a point for every day, quiet ones too');
     assertEquals(['day' => '2026-09-19', 'visitors' => 3, 'views' => 5], $series[6], 'the last day');
-    $weeks = $query->series('2026-09-07', '2026-09-19', true);
+    $weeks = $query->series(statsFilter(['period' => 'custom', 'from' => '2026-09-07', 'to' => '2026-09-19']), true);
     assertEquals(['2026-09-07', '2026-09-14'], array_column($weeks, 'day'), 'weeks start on Monday');
     assertEquals([2, 6], array_column($weeks, 'views'), 'each week\'s views');
 
-    $pages = $query->top('pages', $range['from'], $range['to']);
+    $pages = $query->top('pages', $week);
     assertEquals(['value' => '/about', 'visitors' => 4, 'views' => 5], $pages[0], 'the first page, with its own visitors');
-    $sources = $query->top('sources', $range['from'], $range['to']);
+    $sources = $query->top('sources', $week);
     assertEquals([['value' => '', 'visitors' => 3, 'views' => 5], ['value' => 'news.example.org', 'visitors' => 1, 'views' => 1]], $sources, 'sources');
-    assertEquals(1, count($query->top('sources', $range['from'], $range['to'], 1)), 'a limit');
+    assertEquals(1, count($query->top('sources', $week, 1)), 'a limit');
 });
 
 test('the chart\'s gridlines are whole numbers above the highest value', function () {
@@ -553,4 +564,80 @@ testBothDrivers('the Settings panel offers the privacy text', function (string $
     assertContains(e(t('stats.privacy_title')), $settings, 'the section');
     assertContains('lang="hr"', $settings, 'the Croatian version');
     assertContains(e('We count visits to this website on our own server'), $settings, 'the English text');
+});
+
+// Filtering by clicking, with the state in the address (PLAN.md O-20).
+
+test('the address says what is shown, and an address that makes no sense still shows a screen', function () {
+    $week = statsFilter(['period' => '7d']);
+    assertEquals(['2026-09-13', '2026-09-19', 7], [$week->from, $week->to, $week->days()], 'seven days to today');
+
+    $custom = statsFilter(['period' => 'custom', 'from' => '2026-09-10', 'to' => '2026-09-12']);
+    assertEquals(['2026-09-10', '2026-09-12'], [$custom->from, $custom->to], 'a range of its own');
+    assertEquals(['from' => '2026-09-07', 'to' => '2026-09-09'], $custom->previous(), 'the three days before it');
+    assertEquals(['2026-09-10', '2026-09-12'], (function (App\Modules\Stats\StatsFilter $f): array {
+        return [$f->from, $f->to];
+    })(statsFilter(['period' => 'custom', 'from' => '2026-09-12', 'to' => '2026-09-10'])), 'a range given backwards');
+
+    assertEquals('7d', statsFilter(['period' => 'nonsense'])->period, 'a period nobody offers');
+    assertEquals('7d', statsFilter(['period' => 'custom', 'from' => 'yesterday'])->period, 'a date that is not one');
+
+    $narrowed = statsFilter(['period' => '7d', 'country' => 'HR', 'source' => '-']);
+    // In the dimensions' own order, whatever order the address gave them in.
+    assertEquals(['source' => '', 'country' => 'HR'], $narrowed->narrowed, 'what it is narrowed to; - is "none"');
+    assertEquals(['period' => '7d', 'source' => '-', 'country' => 'HR'], $narrowed->asQuery(), 'and back into an address');
+    assertEquals(['period' => '30d', 'country' => 'HR'], $narrowed->asQuery(['period' => '30d'], ['source']), 'with one changed and one removed');
+});
+
+testBothDrivers('narrowing by a country changes every figure, and says what it cannot split', function (string $driver) {
+    $db = statsSite($driver);
+    $storage = geoStorage();
+    writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
+    App\Modules\Stats\Geo::install($storage, tmpPath('geo.mmdb'));
+    $at = '2026-09-19 10:00:00';
+    $croatian = fn (string $path, string $ip) => Tracker::record($db, new Request('GET', $path, '', [], [], ['user-agent' => STATS_CHROME, 'host' => 'example.test'], $ip), Response::html('x'), new DateTimeImmutable($at), $storage);
+    $croatian('/about', '198.51.100.73');
+    $croatian('/about', '198.51.100.74');
+    $croatian('/hr/kontakt', '8.8.8.8');
+
+    $query = new App\Modules\Stats\StatsQuery($db);
+    assertEquals(3, $query->totals(statsFilter(['period' => '7d']))['views'], 'every view');
+    $onlyHr = statsFilter(['period' => '7d', 'country' => 'HR']);
+    assertEquals(2, $query->totals($onlyHr)['views'], 'the Croatian ones');
+    assertEquals([['value' => '/about', 'visitors' => null, 'views' => 2]], $query->top('pages', $onlyHr), 'pages, with visitors it cannot split');
+    assertEquals(2, $query->top('pages', statsFilter(['period' => '7d']))[0]['visitors'], 'and with them when nothing else is narrowed');
+
+    $screen = dispatch('/admin/statistics?period=7d&country=HR')->body;
+    assertContains(e(t('stats.narrowed')), $screen, 'the screen says it is narrowed');
+    assertContains(e(t('stats.clear_filters')), $screen, 'and how to stop');
+    assertTrue(!str_contains($screen, '/hr/kontakt'), 'a page from another country');
+    assertContains('country=HR&amp;browser=Chrome', $screen, 'a second narrowing keeps the first');
+    removeTree($storage . '/geo');
+});
+
+testBothDrivers('a value in a table is a link that narrows the screen to it', function (string $driver) {
+    $db = statsSite($driver);
+    statsView($db, '/about', ['referer' => 'https://news.example.org/']);
+
+    $screen = dispatch('/admin/statistics?period=7d')->body;
+    assertContains('?period=7d&amp;source=news.example.org', $screen, 'the source narrows');
+    assertContains('?period=7d&amp;path=%2Fabout', $screen, 'the page narrows');
+    assertContains('?period=7d&amp;browser=Chrome', $screen, 'the browser narrows');
+
+    // The row of a dimension already narrowed is words, not a link to narrow to it again.
+    // Other tables' rows still carry it, which is why this looks at the cell itself.
+    $only = dispatch('/admin/statistics?period=7d&path=' . rawurlencode('/about'))->body;
+    assertContains('<span>/about</span>', $only, 'the page named as words');
+    assertTrue(!str_contains($only, 'title="' . e(t('stats.narrow_to', ['value' => '/about'])) . '"'), 'and offered to narrow to again');
+});
+
+testBothDrivers('a range of its own is shown, and kept while narrowing', function (string $driver) {
+    $db = statsSite($driver);
+    statsView($db, '/about', [], '2026-09-10 10:00:00');
+    statsView($db, '/about', [], '2026-09-19 10:00:00');
+
+    $screen = dispatch('/admin/statistics?period=custom&from=2026-09-09&to=2026-09-11')->body;
+    assertContains('9 Sep 2026 – 11 Sep 2026', $screen, 'the days it shows');
+    assertContains('value="2026-09-09"', $screen, 'the field holds the day chosen');
+    assertContains('from=2026-09-09&amp;to=2026-09-11&amp;path=%2Fabout', $screen, 'narrowing keeps the range');
 });

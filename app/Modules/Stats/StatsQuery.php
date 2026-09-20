@@ -52,17 +52,20 @@ final class StatsQuery
     }
 
     /**
-     * Visitors, views, views per visitor and the share of visitors on a phone.
+     * Visitors, views, views per visitor and the share of visitors on a phone, for what the
+     * filter is showing. $from and $to override its days, which is how the period before is
+     * asked for.
      *
      * @return array{visitors: int, views: int, perVisitor: float, mobile: float}
      */
-    public function totals(string $from, string $to): array
+    public function totals(StatsFilter $filter, ?string $from = null, ?string $to = null): array
     {
+        [$where, $params] = $filter->where($from, $to);
         $row = $this->db->one(
             "SELECT SUM(visitors) AS visitors, SUM(views) AS views,
                     SUM(CASE WHEN device = 'mobile' THEN visitors ELSE 0 END) AS mobile
-             FROM stats_views WHERE day >= ? AND day <= ?",
-            [$from, $to],
+             FROM stats_views WHERE {$where}",
+            $params,
         );
         $visitors = (int) ($row['visitors'] ?? 0);
         $views = (int) ($row['views'] ?? 0);
@@ -82,13 +85,15 @@ final class StatsQuery
      *
      * @return list<array{day: string, visitors: int, views: int}>
      */
-    public function series(string $from, string $to, bool $week = false): array
+    public function series(StatsFilter $filter, bool $week = false): array
     {
+        [$where, $params] = $filter->where();
+        [$from, $to] = [$filter->from, $filter->to];
         $found = [];
         foreach ($this->db->all(
-            'SELECT day, SUM(visitors) AS visitors, SUM(views) AS views FROM stats_views
-             WHERE day >= ? AND day <= ? GROUP BY day',
-            [$from, $to],
+            "SELECT day, SUM(visitors) AS visitors, SUM(views) AS views FROM stats_views
+             WHERE {$where} GROUP BY day",
+            $params,
         ) as $row) {
             $found[(string) $row['day']] = ['visitors' => (int) $row['visitors'], 'views' => (int) $row['views']];
         }
@@ -113,31 +118,39 @@ final class StatsQuery
      * page's visitors come from their own table (migration 0019) and a page is judged by
      * how often it is read.
      *
-     * @return list<array{value: string, visitors: int, views: int}>
+     * A page's visitors are null while anything else is narrowed: stats_page_visitors knows
+     * a day and a path and nothing more, so it cannot say how many visitors a page had FROM
+     * ONE COUNTRY. The screen says so rather than showing a number that does not answer the
+     * question on the screen (O-20).
+     *
+     * @return list<array{value: string, visitors: int|null, views: int}>
      */
-    public function top(string $dimension, string $from, string $to, ?int $limit = 10): array
+    public function top(string $dimension, StatsFilter $filter, ?int $limit = 10): array
     {
         $column = self::DIMENSIONS[$dimension] ?? 'path';
         $cap = $limit === null ? '' : ' LIMIT ' . max(1, $limit);
+        [$where, $params] = $filter->where();
 
         if ($column === 'path') {
             $rows = $this->db->all(
                 "SELECT path AS value, SUM(views) AS total_views FROM stats_views
-                 WHERE day >= ? AND day <= ? GROUP BY path ORDER BY total_views DESC, path{$cap}",
-                [$from, $to],
+                 WHERE {$where} GROUP BY path ORDER BY total_views DESC, path{$cap}",
+                $params,
             );
             $visitors = [];
-            foreach ($this->db->all(
-                'SELECT path, SUM(visitors) AS visitors FROM stats_page_visitors
-                 WHERE day >= ? AND day <= ? GROUP BY path',
-                [$from, $to],
-            ) as $row) {
-                $visitors[(string) $row['path']] = (int) $row['visitors'];
+            if (!$filter->isNarrowed()) {
+                foreach ($this->db->all(
+                    'SELECT path, SUM(visitors) AS visitors FROM stats_page_visitors
+                     WHERE day >= ? AND day <= ? GROUP BY path',
+                    [$filter->from, $filter->to],
+                ) as $row) {
+                    $visitors[(string) $row['path']] = (int) $row['visitors'];
+                }
             }
 
             return array_values(array_map(static fn (array $row): array => [
                 'value' => (string) $row['value'],
-                'visitors' => $visitors[(string) $row['value']] ?? 0,
+                'visitors' => $filter->isNarrowed() ? null : ($visitors[(string) $row['value']] ?? 0),
                 'views' => (int) $row['total_views'],
             ], $rows));
         }
@@ -150,8 +163,8 @@ final class StatsQuery
             // Aliases that are not column names, so ORDER BY cannot be read as the column
             // rather than its sum.
             "SELECT {$column} AS value, SUM(visitors) AS total_visitors, SUM(views) AS total_views FROM stats_views
-             WHERE day >= ? AND day <= ? GROUP BY {$column} ORDER BY total_visitors DESC, total_views DESC, {$column}{$cap}",
-            [$from, $to],
+             WHERE {$where} GROUP BY {$column} ORDER BY total_visitors DESC, total_views DESC, {$column}{$cap}",
+            $params,
         )));
     }
 

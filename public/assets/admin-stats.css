@@ -178,3 +178,96 @@
 .stats-note {
   max-inline-size: 48rem;
 }
+
+/* A range of your own (O-20): two days beside the periods. */
+.stats-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-2);
+  margin: 0 0 var(--ui-3);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+}
+
+.admin .stats-range input[type="date"] {
+  min-block-size: 2rem;
+  padding: 0.25rem var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-control-soft);
+  border-bottom-color: var(--ui-control-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+}
+
+.admin .stats-range .button {
+  min-block-size: 2rem;
+  padding-block: 0.25rem;
+}
+
+/* What the figures are narrowed to, each removable. */
+.stats-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-2);
+  margin-bottom: var(--ui-4);
+}
+
+.stats-chips-label {
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin .stats-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-2);
+  padding: 0.1875rem var(--ui-2);
+  background: var(--ui-accent-soft);
+  border: var(--ui-border) solid var(--ui-accent);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font-size: var(--ui-text-sm);
+  text-decoration: none;
+}
+
+.admin .stats-chip:hover {
+  background: var(--ui-panel);
+}
+
+.stats-chip-kind {
+  color: var(--ui-ink-faint);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stats-chip .icon {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+}
+
+.admin .stats-chip-clear {
+  font-size: var(--ui-text-sm);
+}
+
+/* A row's value opens the page it names, beside the link that narrows to it. */
+.admin .stats-open {
+  position: relative;
+  margin-inline-start: var(--ui-2);
+  color: var(--ui-ink-faint);
+}
+
+.admin .stats-open:hover {
+  color: var(--ui-accent-dark);
+}
+
+.stats-open .icon {
+  inline-size: 0.8125rem;
+  block-size: 0.8125rem;
+}

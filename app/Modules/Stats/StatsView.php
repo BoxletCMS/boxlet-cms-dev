@@ -10,6 +10,16 @@ use DateTimeImmutable;
  */
 final class StatsView
 {
+    /** Table => the address's name for it. */
+    private const KEYS = [
+        'pages' => 'path',
+        'sources' => 'source',
+        'countries' => 'country',
+        'devices' => 'device',
+        'browsers' => 'browser',
+        'os' => 'os',
+    ];
+
     /** A stored value in words: '' is "direct", "unknown" or "other" by dimension. */
     public static function label(string $dimension, string $value): string
     {
@@ -20,6 +30,21 @@ final class StatsView
             $dimension === 'countries' => t('stats.unknown'),
             default => t('stats.other'),
         };
+    }
+
+    /**
+     * The table a filter's key belongs to, and the key a table narrows by (O-20): the
+     * tables are named in the plural ("countries") and the columns in the singular
+     * ("country"), and the address uses the column's name.
+     */
+    public static function table(string $filterKey): string
+    {
+        return array_search($filterKey, self::KEYS, true) ?: 'pages';
+    }
+
+    public static function filterKey(string $table): string
+    {
+        return self::KEYS[$table] ?? 'path';
     }
 
     /** A Y-m-d day as the chart and the range show it: "19 Sep", or "19 Sep 2026". */

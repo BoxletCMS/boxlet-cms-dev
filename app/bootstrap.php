@@ -41,6 +41,7 @@ use App\Modules\Pages\TranslationController;
 use App\Modules\Settings\ChromeController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Stats\StatsController;
+use App\Modules\Stats\StatsDataController;
 use App\Modules\Stats\StatsSettingsController;
 use App\Modules\Update\Maintenance;
 use App\Modules\Update\MaintenanceController;
@@ -243,6 +244,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // Visit statistics (D-051): the screen, the Settings panel's settings, and deleting
     // every count.
     $router->get('/admin/statistics', [StatsController::class, 'index'], $requireAdmin);
+    // Taking the counts out and putting them back (O-20).
+    $router->get('/admin/statistics/export', [StatsDataController::class, 'export'], $requireAdmin);
+    $router->post('/admin/statistics/import', [StatsDataController::class, 'import'], $requireAdmin);
     $router->post('/admin/settings/statistics', [StatsSettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/statistics/erase', [StatsSettingsController::class, 'erase'], $requireAdmin);
     $router->post('/admin/settings/statistics/countries', [StatsSettingsController::class, 'geoDownload'], $requireAdmin);

@@ -20,6 +20,7 @@ $all = $dimension;
         </div>
         <p class="page-subtitle"><a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery([], ['all']))) ?>"><?= e(t('stats.back')) ?></a></p>
 <?php require __DIR__ . '/periods.php'; ?>
+        <p class="stats-more"><a class="stats-csv" href="<?= e(Url::admin('statistics', 'export') . '?' . http_build_query($filter->asQuery(['table' => $dimension], ['all']))) ?>"><?= e(t('stats.download_csv')) ?></a></p>
 
         <section class="panel stats-dimension" aria-label="<?= e(t('stats.table.' . $dimension)) ?>">
 <?php if ($dimension === 'missing'): ?>

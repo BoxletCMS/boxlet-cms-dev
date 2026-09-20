@@ -114,7 +114,7 @@ final class Tracker
         // are most of what lands here.
         if ($response->status === 404) {
             if ($settings['missing']) {
-                self::add(
+                self::increase(
                     $db,
                     'stats_missing',
                     ['day' => $day, 'path' => $path, 'source' => self::source($request->header('referer') ?? '', $host)],
@@ -132,9 +132,9 @@ final class Tracker
 
         $newToSite = self::firstSeen($db, $day, $visitor, '');
         if (self::firstSeen($db, $day, $visitor, $path)) {
-            self::add($db, 'stats_page_visitors', ['day' => $day, 'path' => $path], 'visitors = visitors + 1', ['visitors' => 1]);
+            self::increase($db, 'stats_page_visitors', ['day' => $day, 'path' => $path], 'visitors = visitors + 1', ['visitors' => 1]);
         }
-        self::add(
+        self::increase(
             $db,
             'stats_views',
             [
@@ -230,12 +230,13 @@ final class Tracker
     /**
      * Adds to a row's counts, making the row if there is none (SPEC §5.0 has no upsert
      * that both databases accept). A row made at the same moment by another view is found
-     * by the second UPDATE.
+     * by the second UPDATE. Public because importing a file of counts (StatsExport) adds to
+     * exactly the same rows in exactly the same way.
      *
      * @param array<string, string> $key
      * @param array<string, int> $first the counts of a new row
      */
-    private static function add(Db $db, string $table, array $key, string $increment, array $first): void
+    public static function increase(Db $db, string $table, array $key, string $increment, array $first): void
     {
         $where = implode(' AND ', array_map(static fn (string $column): string => "{$column} = ?", array_keys($key)));
         $update = "UPDATE {$table} SET {$increment} WHERE {$where}";

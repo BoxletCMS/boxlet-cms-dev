@@ -86,6 +86,19 @@ return [
     // The Overview's way to the screen.
     'stats.card_link' => 'All statistics',
     // The country database.
+    // Taking the counts out and putting them back (O-20).
+    'stats.download_csv' => 'CSV',
+    'stats.data' => 'The counts themselves',
+    'stats.data_intro' => 'Everything counted, as one file: keep a copy, move it to another site, or read it in a spreadsheet. Importing ADDS to what is here — the same file twice counts everything twice.',
+    'stats.download_all' => 'Download everything',
+    'stats.import' => 'Import a file',
+    'stats.import_button' => 'Import',
+    'stats.import_hint' => 'A file this screen made. This server accepts files up to :limit.',
+    'stats.import_done' => 'Imported: :rows rows added to the counts.',
+    'stats.import_none' => 'Choose the file to import first.',
+    'stats.import_too_big' => 'That file is larger than this server accepts (:limit).',
+    'stats.import_not_json' => 'That file is not JSON.',
+    'stats.import_not_ours' => 'That file was not made by this screen.',
     'stats.group_small' => 'Gather rows of fewer than :count visitors as “Other”',
     'stats.other_small' => 'Other (fewer than :count)',
     'stats.proxies' => 'Addresses of your proxies',

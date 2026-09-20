@@ -738,3 +738,61 @@ testBothDrivers('rows of one or two visitors are gathered as Other, and only whe
     assertTrue(!str_contains($screen, 'quiet-one.example'), 'a gathered source named anyway');
     assertTrue(!str_contains($screen, 'source=%00other'), 'the gathered row offered as a filter');
 });
+
+// Taking the counts out and putting them back (PLAN.md O-20).
+
+testBothDrivers('a table comes out as the CSV the screen is showing', function (string $driver) {
+    $db = statsSite($driver);
+    statsView($db, '/about', ['referer' => 'https://news.example.org/']);
+    statsView($db, '/hr/kontakt');
+
+    $csv = dispatch('/admin/statistics/export?period=7d&table=pages');
+    assertEquals('text/csv; charset=utf-8', $csv->headers['Content-Type'] ?? null, 'what it is');
+    assertContains('attachment; filename="boxlet-pages-', $csv->headers['Content-Disposition'] ?? '', 'how it arrives');
+    assertEquals("path,visitors,views\n/about,1,1\n/hr/kontakt,1,1\n", $csv->body, 'the rows');
+
+    // Narrowed on screen, narrowed in the file.
+    assertEquals("path,visitors,views\n/about,,1\n", dispatch('/admin/statistics/export?period=7d&table=pages&source=news.example.org')->body, 'narrowed');
+    assertEquals(302, dispatch('/admin/statistics/export?period=7d&table=nonsense')->status, 'a table nobody has');
+});
+
+testBothDrivers('everything comes out as one file, and goes back in by adding to what is there', function (string $driver) {
+    $db = statsSite($driver);
+    Settings::set($db, 'stats_missing', true);
+    statsView($db, '/about');
+    statsView($db, '/nowhere', [], response: Response::html('Not found', 404));
+
+    $file = dispatch('/admin/statistics/export?table=everything');
+    assertEquals('application/json', $file->headers['Content-Type'] ?? null, 'what it is');
+    $data = json_decode($file->body, true);
+    assertEquals('statistics', $data['boxlet'] ?? null, 'whose file it is');
+    assertEquals(1, count($data['tables']['stats_views'] ?? []), 'the views in it');
+    assertEquals(1, count($data['tables']['stats_missing'] ?? []), 'the addresses that are not there');
+
+    // Imported into a site of its own: the same counts arrive.
+    $other = statsSite($driver);
+    $path = tmpPath('stats-export.json');
+    file_put_contents($path, $file->body);
+    assertEquals(['rows' => 3, 'error' => ''], App\Modules\Stats\StatsExport::import($other, $path), 'rows taken');
+    assertEquals(['views' => 1, 'visitors' => 1], statsTotals($other), 'the counts');
+
+    // And again: importing adds, which is what the screen says it does.
+    App\Modules\Stats\StatsExport::import($other, $path);
+    assertEquals(['views' => 2, 'visitors' => 2], statsTotals($other), 'the same file twice');
+
+    file_put_contents($path, '{"boxlet":"something else"}');
+    assertEquals(t('stats.import_not_ours'), App\Modules\Stats\StatsExport::import($other, $path)['error'], 'a file from elsewhere');
+    file_put_contents($path, 'not json at all');
+    assertEquals(t('stats.import_not_json'), App\Modules\Stats\StatsExport::import($other, $path)['error'], 'not a file at all');
+});
+
+testBothDrivers('the screen offers the file, and says so when nothing was chosen', function (string $driver) {
+    statsSite($driver);
+    $screen = dispatch('/admin/statistics?period=7d')->body;
+    assertContains(e(t('stats.data')), $screen, 'the section');
+    assertContains('table=everything', $screen, 'the whole file');
+    assertContains('table=pages', $screen, 'one table as CSV');
+
+    assertRedirectedTo('/admin/statistics', adminPost('/admin/statistics/import', []));
+    assertContains(e(t('stats.import_none')), dispatch('/admin/statistics')->body, 'said');
+});

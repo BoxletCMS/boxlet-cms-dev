@@ -271,3 +271,23 @@
   inline-size: 0.8125rem;
   block-size: 0.8125rem;
 }
+
+/* Taking a table out as a file (O-20): beside "show all", and quieter than it. */
+.stats-more {
+  display: flex;
+  gap: var(--ui-4);
+}
+
+.admin .stats-csv {
+  color: var(--ui-ink-faint);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+}
+
+.admin .stats-csv:hover {
+  color: var(--ui-accent-dark);
+}
+
+.stats-data {
+  margin-bottom: var(--ui-5);
+}

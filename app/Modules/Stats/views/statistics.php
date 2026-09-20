@@ -20,6 +20,7 @@ use App\Support\Url;
  * @var bool $missingOn whether addresses that are not there are counted at all
  * @var string $map the world map, drawn and shaded; '' when the file is missing
  * @var bool $geo whether countries come from DB-IP's database, which asks to be credited
+ * @var string $csrf
  */
 $all = null;
 $figures = [
@@ -90,9 +91,12 @@ $figures = [
             <section class="panel stats-dimension" aria-labelledby="stats-<?= e($dimension) ?>">
                 <h2 id="stats-<?= e($dimension) ?>"><?= e(t('stats.table.' . $dimension)) ?></h2>
 <?php require __DIR__ . '/table.php'; ?>
+                <p class="stats-more">
 <?php if (count($rows) >= 10): ?>
-                <p class="stats-more"><a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['all' => $dimension]))) ?>"><?= e(t('stats.show_all')) ?></a></p>
+                    <a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['all' => $dimension]))) ?>"><?= e(t('stats.show_all')) ?></a>
 <?php endif; ?>
+                    <a class="stats-csv" href="<?= e(Url::admin('statistics', 'export') . '?' . http_build_query($filter->asQuery(['table' => $dimension]))) ?>"><?= e(t('stats.download_csv')) ?></a>
+                </p>
             </section>
 <?php endforeach; ?>
         </div>
@@ -103,13 +107,56 @@ $figures = [
         <section class="panel stats-dimension" aria-labelledby="stats-missing">
             <h2 id="stats-missing"><?= e(t('stats.table.missing')) ?></h2>
 <?php require __DIR__ . '/missing.php'; ?>
+            <p class="stats-more">
 <?php if ($missing !== null && count($missing) >= 10): ?>
-            <p class="stats-more"><a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['all' => 'missing']))) ?>"><?= e(t('stats.show_all')) ?></a></p>
+                <a href="<?= e(Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['all' => 'missing']))) ?>"><?= e(t('stats.show_all')) ?></a>
 <?php endif; ?>
+                <a class="stats-csv" href="<?= e(Url::admin('statistics', 'export') . '?' . http_build_query($filter->asQuery(['table' => 'missing']))) ?>"><?= e(t('stats.download_csv')) ?></a>
+            </p>
         </section>
 
 <?php endif; ?>
+        <?php /* The counts themselves (O-20): one file out, one file in. */ ?>
+        <section class="panel stats-data" id="data" aria-labelledby="stats-data-heading">
+            <h2 id="stats-data-heading"><?= e(t('stats.data')) ?></h2>
+            <p class="hint"><?= e(t('stats.data_intro')) ?></p>
+            <div class="form-actions">
+                <a class="button button-secondary" href="<?= e(Url::admin('statistics', 'export') . '?' . http_build_query(['table' => 'everything'])) ?>"><?= e(t('stats.download_all')) ?></a>
+            </div>
+            <form method="post" action="<?= e(Url::admin('statistics', 'import')) ?>" enctype="multipart/form-data" class="stack">
+                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                <div class="field">
+                    <label for="stats_file"><?= e(t('stats.import')) ?></label>
+                    <input type="file" id="stats_file" name="stats_file" accept=".json,application/json" aria-describedby="stats_file-hint">
+                    <span class="hint" id="stats_file-hint"><?= e(t('stats.import_hint', ['limit' => \App\Support\Bytes::limits()['fileLabel']])) ?></span>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button button-secondary"><?= e(t('stats.import_button')) ?></button>
+                </div>
+            </form>
+        </section>
+
         <p class="hint stats-note"><?= e(t('stats.note')) ?> <a href="<?= e(Url::admin('settings') . '#statistics') ?>"><?= e(t('stats.settings_link')) ?></a></p>
 <?php if ($geo): ?>
+        <?php /* The counts themselves (O-20): one file out, one file in. */ ?>
+        <section class="panel stats-data" id="data" aria-labelledby="stats-data-heading">
+            <h2 id="stats-data-heading"><?= e(t('stats.data')) ?></h2>
+            <p class="hint"><?= e(t('stats.data_intro')) ?></p>
+            <div class="form-actions">
+                <a class="button button-secondary" href="<?= e(Url::admin('statistics', 'export') . '?' . http_build_query(['table' => 'everything'])) ?>"><?= e(t('stats.download_all')) ?></a>
+            </div>
+            <form method="post" action="<?= e(Url::admin('statistics', 'import')) ?>" enctype="multipart/form-data" class="stack">
+                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                <div class="field">
+                    <label for="stats_file"><?= e(t('stats.import')) ?></label>
+                    <input type="file" id="stats_file" name="stats_file" accept=".json,application/json" aria-describedby="stats_file-hint">
+                    <span class="hint" id="stats_file-hint"><?= e(t('stats.import_hint', ['limit' => \App\Support\Bytes::limits()['fileLabel']])) ?></span>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button button-secondary"><?= e(t('stats.import_button')) ?></button>
+                </div>
+            </form>
+        </section>
+
         <p class="hint stats-note"><a href="https://db-ip.com" target="_blank" rel="noopener"><?= e(t('stats.attribution')) ?></a></p>
 <?php endif; ?>

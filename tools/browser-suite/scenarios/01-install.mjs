@@ -62,6 +62,28 @@ export default {
       /requirement/i.test(first) && checks.length > 0 && !blocked,
       `"${first}", ${checks.length} checks listed, blocked=${blocked}`);
 
+    // Every check keeps its two columns, whatever it says. The rows that print a path are
+    // long enough to wrap, and before this was a grid the second line went back under the
+    // word "OK" — the owner saw it on his own install. Measured rather than eyeballed: the
+    // words always start to the right of the verdict, and the card never pushes the page
+    // sideways. Checked at a phone's width too, where every row wraps.
+    const columns = async () => page.$$eval('.check', (rows) => rows.map((row) => {
+      const verdict = row.querySelector('.check-status');
+      const words = verdict?.nextElementSibling;
+      return [Math.round(verdict?.getBoundingClientRect().left ?? 0), Math.round(words?.getBoundingClientRect().left ?? 0)];
+    }));
+    const straight = (pairs) => pairs.length > 0 && pairs.every(([verdict, words]) => words > verdict);
+    const wide = await columns();
+    await page.setViewport({ width: 400, height: 900, deviceScaleFactor: 1 });
+    await page.reload({ waitUntil: 'networkidle2' });
+    const narrow = await columns();
+    const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
+    await page.reload({ waitUntil: 'networkidle2' });
+    report.verdict('a check that wraps keeps its column, on a wide screen and on a phone',
+      straight(wide) && straight(narrow) && !sideways,
+      `wide ${JSON.stringify(wide[0])}, phone ${JSON.stringify(narrow[0])}, sideways=${sideways}`);
+
     // The token proves filesystem access; it is written on the first visit.
     const tokenFile = `${SITE_DIR}/storage/install-token.txt`;
     if (!existsSync(tokenFile)) {

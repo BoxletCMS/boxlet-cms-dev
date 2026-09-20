@@ -221,9 +221,29 @@
   list-style: none;
 }
 
+/* ONE ROW, TWO COLUMNS: the verdict in its own, the words in theirs. Reported by the owner
+   from a real install, and it is the rows that print a path that show it — the label wraps,
+   and without a column of its own the second line goes back under the word "OK". Measured
+   on the installer's own screen: three of eighteen rows at 1200px, eight of eighteen on a
+   phone. "Missing" and "Optional" are wider than "OK", so the column is sized to its
+   content rather than to a guess. */
+.check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--ui-1) var(--ui-3);
+  align-items: baseline;
+}
+
+/* A hint, or the rewrite rules under a failed check, line up with the words rather than
+   with the verdict. */
+.check > :not(.check-status) {
+  grid-column: 2;
+  /* A path is one long word with no spaces. Where it cannot fit, it breaks inside itself
+     rather than pushing the card wider than the window. */
+  overflow-wrap: anywhere;
+}
+
 .check-status {
-  display: inline-block;
-  min-width: var(--ui-6);
   font-weight: 700;
 }
 

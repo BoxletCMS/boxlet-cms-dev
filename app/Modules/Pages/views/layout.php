@@ -8,7 +8,6 @@ use App\Support\Url;
  * @var string $locale
  * @var string $title
  * @var string $content rendered HTML of the page template
- * @var array<int, array<string, mixed>> $locales enabled locales, with code and label
  * @var string|null $canonical absolute canonical URL; null on error pages
  * @var list<array{hreflang: string, href: string}> $hreflang this page's alternates in other languages
  * @var string $description meta description; empty when the page gives none (D-004)

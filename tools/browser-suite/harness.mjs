@@ -414,11 +414,12 @@ export async function applyCharacter(page, base, preset, action = 'save') {
 }
 
 /**
- * A menu in the header, on a COPY that has none: the demo seed ships no menu, so a freshly
- * installed copy draws no header at all (an empty one is not drawn, D-032), and a check of
- * the header's width or its submenu measured nothing. Made through the admin as the owner
- * would, and only where the chrome names no menu yet; never call it against the
- * development site, whose header is the owner's.
+ * A menu in the header, on a COPY that has none: an empty header is not drawn (D-032), so a
+ * check of the header's width or its submenu measured nothing. The demo seed now ships a menu
+ * of its own (D-057), which this finds and keeps — it returns early — so what is left here is
+ * the fallback for a copy installed WITHOUT the demo. Made through the admin as the owner
+ * would, and only where the chrome names no menu yet; never call it against the development
+ * site, whose header is the owner's.
  *
  * Returns the menu's name, or '' when it could not be set up.
  */

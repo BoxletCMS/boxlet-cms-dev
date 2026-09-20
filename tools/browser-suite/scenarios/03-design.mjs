@@ -52,6 +52,24 @@ export default {
     // place where a character could plausibly leak into the tool (SPEC §5.4 says it must not).
     await controlsOnPanels(page, report, 'design');
 
+    /*
+     * ---- the preview draws the real header and footer (PLAN.md D-057) -------------------
+     *
+     * Measured INSIDE the frame, not on the screenshot: the picture is 20% of the window's
+     * width, and at that size a header and a first section are one band of colour.
+     */
+    const frame = await page.$('iframe[data-design-preview]').then((el) => el && el.contentFrame());
+    const chrome = frame === null ? null : await frame.evaluate(() => ({
+      header: document.querySelector('header') !== null,
+      footer: document.querySelector('footer') !== null,
+      links: [...document.querySelectorAll('header nav a')].map((a) => a.textContent.trim()),
+      description: document.querySelector('meta[name="description"]') !== null,
+    }));
+    report.verdict('the preview draws the site\'s own header and footer',
+      chrome !== null && chrome.header && chrome.footer && chrome.links.length > 0,
+      chrome === null ? 'no preview frame' : JSON.stringify(chrome));
+    await report.shot(page, 'design-screen');
+
     // ---- each character, seen on the home page and in the admin ------------------------
     const adminFingerprints = [];
     for (const preset of presets) {

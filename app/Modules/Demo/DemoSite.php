@@ -7,8 +7,10 @@ use App\Core\Db;
 use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Forms\Form;
+use App\Modules\Menus\Menu;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageLinks;
+use App\Modules\Settings\SiteChrome;
 use App\Support\RichText;
 use RuntimeException;
 
@@ -80,7 +82,34 @@ final class DemoSite
             Page::setStatus($db, $id, true);
         }
 
+        self::menu($db, $locale, $ids);
+
         return count($pages);
+    }
+
+    /**
+     * A navigation menu over the demo pages, and the chrome pointed at it.
+     *
+     * WITHOUT THIS THE DEMO HAS NO HEADER AT ALL. An empty header is deliberately not drawn
+     * (PLAN.md D-032), and a fresh install had no menu, no logo and no button — so the one
+     * thing a new owner sees first was a site with no navigation, and the Appearance screen
+     * had no header to show them. The demo exists to be a site worth looking at; a site
+     * without navigation is not one.
+     *
+     * Every demo page but the home page, whose name is the logo's job, in the order they are
+     * seeded.
+     *
+     * @param array<string, int> $ids slug => page id
+     */
+    private static function menu(Db $db, string $locale, array $ids): void
+    {
+        $menu = Menu::create($db, $locale, 'Main');
+        foreach ($ids as $slug => $id) {
+            if ($slug !== '') {
+                Menu::addItem($db, $menu, null, $id, null, null);
+            }
+        }
+        SiteChrome::saveShared($db, 'Main');
     }
 
     /**

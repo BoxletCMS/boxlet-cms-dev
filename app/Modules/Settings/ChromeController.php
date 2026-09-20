@@ -112,7 +112,7 @@ final class ChromeController
         // Posted as look_<choice>, never chrome_*: a form field is not a settings key.
         $look = [];
         foreach (array_keys(ChromeLook::OPTIONS) as $choice) {
-            $look[$choice] = trim($request->input('look_' . $choice));
+            $look[$choice] = trim($request->input(ChromeLook::field($choice)));
         }
 
         if ($errors !== []) {

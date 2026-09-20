@@ -76,9 +76,10 @@ $word = static fn (string $code, string $field): string => is_string($values['lo
                 <p class="hint"><?= e(t('chrome.look_intro')) ?></p>
                 <div class="look-grid">
 <?php foreach (\App\Modules\Settings\ChromeLook::OPTIONS as $choice => $options): ?>
+<?php $field = \App\Modules\Settings\ChromeLook::field($choice); ?>
                     <div class="field">
-                        <label for="look_<?= e($choice) ?>"><?= e(t('chrome.look.' . $choice)) ?></label>
-                        <select id="look_<?= e($choice) ?>" name="look_<?= e($choice) ?>">
+                        <label for="<?= e($field) ?>"><?= e(t('chrome.look.' . $choice)) ?></label>
+                        <select id="<?= e($field) ?>" name="<?= e($field) ?>">
                             <option value=""><?= e(t('chrome.look.follow', ['value' => t('chrome.look.' . $choice . '.' . ($characterLook[$choice] ?? ''))])) ?></option>
 <?php foreach ($options as $option): ?>
                             <option value="<?= e($option) ?>"<?= ($values['look'][$choice] ?? '') === $option ? ' selected' : '' ?>><?= e(t('chrome.look.' . $choice . '.' . $option)) ?></option>

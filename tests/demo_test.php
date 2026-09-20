@@ -136,3 +136,17 @@ test('installing with the demo option adds the demo site', function () {
     $db = new \App\Core\Db('sqlite', 'sqlite:' . tmpPath('test.sqlite'));
     assertEquals(count(DemoSite::pages()), (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? -1), 'demo pages');
 });
+
+testBothDrivers('the demo site has navigation, so its header is drawn at all', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
+
+    // An empty header is deliberately not drawn (D-032), so a demo without a menu is a demo
+    // with no navigation anywhere — and an Appearance screen with no header to show (D-057).
+    $body = dispatch('/')->body;
+    assertContains('<header class="', $body, 'the demo site draws no header');
+    foreach (['About', 'Services', 'Style guide'] as $title) {
+        assertContains('>' . $title . '<', $body, 'in the menu: ' . $title);
+    }
+    assertTrue(!str_contains($body, '>Northwind Studio</a>'), 'the home page is in the menu as well as being the logo\'s job');
+});

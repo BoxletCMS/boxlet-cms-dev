@@ -68,16 +68,60 @@ final class ChromeLook
     }
 
     /**
-     * The look to draw: each choice the owner made, the active character's for the rest.
+     * The look to draw, in three levels: what is being TRIED, then what the owner SAVED,
+     * then what the CHARACTER gives.
      *
+     * $overrides is what an admin preview is showing without having saved it, and it holds
+     * only the choices that request actually named — see fromRequest(). $character is the
+     * one being previewed, so a choice left to the character follows the character on the
+     * screen rather than the one the site is published with.
+     *
+     * @param array<string, string> $overrides choice => value, '' meaning follow the character
      * @return array<string, string>
      */
-    public static function resolve(Db $db): array
+    public static function resolve(Db $db, array $overrides = [], string $character = ''): array
     {
-        $character = self::CHARACTER[Composition::active($db)] ?? self::CHARACTER['minimal'];
+        $defaults = self::CHARACTER[$character !== '' ? $character : Composition::active($db)] ?? self::CHARACTER['minimal'];
         $look = [];
-        foreach (self::stored($db) as $name => $value) {
-            $look[$name] = $value !== '' ? $value : $character[$name];
+        foreach (self::stored($db) as $name => $stored) {
+            $value = $overrides[$name] ?? $stored;
+            $look[$name] = $value !== '' ? $value : $defaults[$name];
+        }
+
+        return $look;
+    }
+
+    /** The form field that carries one choice. A field name is not a settings key. */
+    public static function field(string $choice): string
+    {
+        return 'look_' . $choice;
+    }
+
+    /**
+     * The look choices a request is trying, for a preview. Each is a value from its own
+     * closed set, or '' for "follow the character"; anything else falls back to ''.
+     *
+     * ONLY THE CHOICES THE REQUEST NAMED. A request that is silent about a choice means the
+     * owner's saved one, not a reset — and the difference matters: the design preview sends
+     * no look at all, so returning all seven as '' would make it draw chrome the site does
+     * not have.
+     *
+     * READS A REQUEST AND WRITES NOTHING. It takes an array and returns an array; it has no
+     * database to write to. Saving stays SiteChrome::saveLook(), reached only through a POST
+     * with a CSRF token.
+     *
+     * @param array<string, mixed> $input
+     * @return array<string, string>
+     */
+    public static function fromRequest(array $input): array
+    {
+        $look = [];
+        foreach (self::OPTIONS as $name => $options) {
+            if (!array_key_exists(self::field($name), $input)) {
+                continue;
+            }
+            $value = $input[self::field($name)];
+            $look[$name] = is_string($value) && in_array($value, $options, true) ? $value : '';
         }
 
         return $look;

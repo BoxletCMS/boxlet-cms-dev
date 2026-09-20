@@ -5,12 +5,9 @@ namespace App\Modules\Pages;
 use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
-use App\Core\Settings;
 use App\Core\View;
 use App\Modules\Forms\FormBlocks;
 use App\Modules\Media\MediaPicture;
-use App\Modules\Menus\MenuTree;
-use App\Modules\Settings\ChromeLook;
 use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
 
@@ -76,13 +73,12 @@ final class PageController
         return $this->render('page', $locale, [
             'title' => $seo['title'] !== '' ? $seo['title'] : (string) $page['title'],
             'description' => $seo['description'],
-            // render() defaults this to null so an error page carries no link preview;
-            // a real page is where the site's default sharing picture belongs (D-028).
+            // An error page carries no link preview; a real page is where the site's
+            // default sharing picture belongs (D-028).
             'shareImage' => SiteChrome::shareImage($db),
-            'blocksHtml' => $html,
             // The one address this page is indexed under, whatever variant reached it.
             'canonical' => Url::canonical($locale, $slug),
-        ], 200, Url::page($locale, $slug), $page);
+        ], ['blocksHtml' => $html], 200, Url::page($locale, $slug), $page);
     }
 
     /**
@@ -103,122 +99,22 @@ final class PageController
     {
         return $this->render('404', $locale, [
             'title' => site_t('site.not_found.title', $locale),
-            'intro' => site_t('site.not_found.intro', $locale),
-        ], 404);
+        ], ['intro' => site_t('site.not_found.intro', $locale)], 404);
     }
 
     /**
-     * @param array<string, mixed> $data
+     * $head is what only the caller knows about this page; $view is what its own template
+     * reads. Everything the LAYOUT reads comes from PageLayoutData, which is the one place
+     * that knows the whole list (D-057).
+     *
+     * @param array{title: string, description?: string, canonical?: string|null, shareImage?: string|null} $head
+     * @param array<string, mixed> $view
      * @param array<string, mixed>|null $page the page being drawn; null on an error page
      */
-    private function render(string $template, string $locale, array $data, int $status = 200, string $current = '', ?array $page = null): Response
+    private function render(string $template, string $locale, array $head, array $view = [], int $status = 200, string $current = '', ?array $page = null): Response
     {
-        // The error pages have no description of their own, and neither has anything
-        // else that renders through this layout: defaulting it here is what keeps the
-        // template free of a guard around a variable that is simply always present.
-        //
-        // The icon is computed here rather than in show(), so the 404 page carries it too —
-        // a browser asks for it whatever the status. One indexed lookup per render, and
-        // null when no favicon is chosen. A sharing picture is show()'s: a link preview of
-        // an error page is not worth a row.
-        $db = $this->container->get('db');
-        // The languages as a visitor is offered them: this page in each, or that
-        // language's home where it is not translated (D-043, step 4). What the switcher
-        // draws, and what hreflang is made from.
-        $alternates = Alternates::for($db, $page, $this->container->get('locales'));
-        $primary = '';
-        foreach ($this->container->get('locales') as $each) {
-            if ((int) $each['is_primary'] === 1) {
-                $primary = (string) $each['code'];
-            }
-        }
-
-        $data += [
-            'canonical' => null,
-            'description' => '',
-            'icon' => SiteChrome::icon($db),
-            'shareImage' => null,
-            'locales' => $alternates,
-            'hreflang' => Alternates::hreflang($alternates, $primary),
-        ] + $this->chrome($locale, $alternates, $current);
+        $data = $view + PageLayoutData::forPage($this->container, $locale, $head, $page, $current);
 
         return Response::html((new View(__DIR__ . '/views'))->render($template, $locale, $data), $status);
-    }
-
-    /**
-     * The site's header and footer, drawn by the block machinery so they inherit the design
-     * tokens and the section style layers (PLAN.md D-028, D-030).
-     *
-     * Computed here rather than in show(), for the reason the icon is: the 404 page carries
-     * chrome too. A page that says "not found" without the site's own header around it
-     * reads as a broken site rather than a wrong address.
-     *
-     * THE MENU IS RESOLVED ONCE, here, and handed to both templates — the same rule pictures
-     * follow. A template asks the database nothing. The chrome stores the menu's NAME, so a
-     * menu deleted and made again under that name simply works, and nothing dangles when it
-     * is not.
-     *
-     * NEITHER IS DRAWN EMPTY. A header with no logo, button or menu has nothing to show, and
-     * an empty <header> on every page is noise. The footer's condition carries one extra
-     * term: it owns the language switcher, so a site with two locales and no footer content
-     * still needs its footer, or the switcher would vanish with it.
-     *
-     * THE CURRENT PAGE IS MARKED HERE, on the resolved menu, rather than handed to the
-     * templates as an address to compare: which entry is this page is a resolution like any
-     * other, and the templates stay free of URL arithmetic (PLAN.md D-032). A parent learns
-     * that the page is one of its children, so a visitor can see where they are.
-     *
-     * @param array<int, array<string, mixed>> $locales
-     * @param string $current the address of the page being drawn; '' on an error page
-     * @return array{headerHtml: string, footerHtml: string}
-     */
-    private function chrome(string $locale, array $locales, string $current = ''): array
-    {
-        $db = $this->container->get('db');
-        $registry = $this->container->get('chrome');
-
-        $menu = [];
-        foreach (MenuTree::forVisitors($db, $locale, SiteChrome::menuName($db)) as $item) {
-            $children = [];
-            $below = false;
-            foreach ($item['children'] as $child) {
-                $children[] = $child + ['current' => $current !== '' && $child['url'] === $current];
-                $below = $below || ($current !== '' && $child['url'] === $current);
-            }
-            $menu[] = ['children' => $children, 'current' => $current !== '' && $item['url'] === $current, 'current_parent' => $below] + $item;
-        }
-        // Colour, arrangement and size: the owner's choices, the character's for the rest.
-        $look = ChromeLook::resolve($db);
-        // The header's button can point at a page like any link field (D-034); followed
-        // here, before the check below asks whether it leads anywhere.
-        $header = SiteChrome::header($db, $locale);
-        $header['button'] = PageLinks::link(
-            $header['button'],
-            PageLinks::targets($db, $registry, $locale, [['type' => 'header', 'content' => $header]]),
-        );
-        $footer = SiteChrome::footer($db, $locale);
-
-        // The logo is a picture like any other and has to be RESOLVED before the template
-        // sees it, exactly as a block's pictures are. Handing the header an empty lookup
-        // was a silent failure of my own making: the setting was saved, the template asked
-        // for a tag, MediaPicture had no entry for that id and drew nothing at all. The
-        // header simply had no logo, under every character, and nothing said why.
-        $media = $header['logo'] === null ? [] : MediaPicture::resolve($db, $locale, [$header['logo']]);
-
-        $hasHeader = $header['logo'] !== null || $header['button']['url'] !== '' || $menu !== [];
-        // "Made with Boxlet", when the owner leaves it on (O-20). It is part of what makes a
-        // footer worth drawing: a site whose footer is otherwise empty still has this line,
-        // and without it here the credit would be switched on and never appear.
-        $credit = Settings::get($db, 'site_credit') === true ? BOXLET_SITE : '';
-        $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $menu !== [] || count($locales) > 1 || $credit !== '';
-
-        return [
-            'headerHtml' => $hasHeader
-                ? $registry->render('header', $header, ['surface' => $look['header_surface']], $look['header_layout'], $media, true, 'header', ['menu' => $menu, 'look' => $look], $locale, $locales)
-                : '',
-            'footerHtml' => $hasFooter
-                ? $registry->render('footer', $footer, ['surface' => $look['footer_surface']], $look['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $look, 'credit' => $credit], $locale, $locales)
-                : '',
-        ];
     }
 }

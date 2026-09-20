@@ -10,6 +10,8 @@ use App\Core\View;
 use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageLayoutData;
+use App\Modules\Settings\ChromeLook;
 use App\Support\Url;
 
 /**
@@ -123,32 +125,31 @@ final class DesignController
             $html .= $registry->render($type, $content, $style, $layout);
         }
 
-        $view = new View(dirname(__DIR__) . '/Pages/views');
-        // THE SECOND RENDERER OF THE SITE LAYOUT, so it owes that layout the same complete
-        // set PageController::render() assembles — every variable the layout reads, not only
-        // the ones that existed when this line was last touched. It has now been caught out
-        // three times: by `description`, then by `icon`, then by the chrome of 5c. The
-        // warning was already written here in two copies and still did not stop the third,
-        // which says the real fix is one source for these variables rather than a louder
-        // comment. Recorded for the architect rather than smuggled into this slice.
+        // The site's own language, not 'en': the chrome's words and its menu are per
+        // locale, so a site whose main language is Croatian would otherwise judge its
+        // design under an empty English footer.
+        $locale = Url::primaryLocale() !== '' ? Url::primaryLocale() : 'en';
+        // Every variable the layout reads comes from ONE place, which is what stopped this
+        // being the second renderer of the site's layout (PLAN.md D-057). It had been caught
+        // out three times by a variable it did not know about — `description`, then `icon`,
+        // then the chrome of 5c — and each time the comment here got louder instead.
         //
-        // A preview describes no page in particular, so it gives no description and the
-        // layout emits no tag (D-004). It draws NO CHROME for the same reason: the header
-        // and footer are decisions about the whole site, while this preview exists to judge
-        // the tokens and the section styles of one character, and chrome around the specimen
-        // would be furniture competing with the thing being looked at.
-        $body = $view->render('page', 'en', [
-            'title' => t('design.preview'),
+        // IT NOW DRAWS THE CHROME. The old comment gave a reason not to: the header and
+        // footer are decisions about the whole site, while this preview existed to judge the
+        // tokens and section styles of one character, so chrome around the specimen was
+        // furniture competing with what was being looked at. On the screen this is being
+        // rebuilt into, the header and footer are among the things being judged, so the
+        // reason goes with the old screen. The look choices the owner is trying ride in the
+        // query and are only READ — validated against their closed sets, never written.
+        $body = (new View(dirname(__DIR__) . '/Pages/views'))->render('page', $locale, [
             'blocksHtml' => $html,
-            'canonical' => null,
-            'description' => '',
-            'icon' => null,
-            'shareImage' => null,
-            'locales' => [],
-            'hreflang' => [],
-            'headerHtml' => '',
-            'footerHtml' => '',
-        ]);
+        ] + PageLayoutData::forPreview(
+            $this->container,
+            $locale,
+            t('design.preview'),
+            ChromeLook::fromRequest($request->query),
+            $character ?? '',
+        ));
         $response = Response::admin($body);
         // The one admin page that may be framed, and only by the admin itself.
         $response->headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data:; form-action 'none'; frame-ancestors 'self'; base-uri 'none'";

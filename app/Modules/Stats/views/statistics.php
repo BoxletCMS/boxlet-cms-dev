@@ -16,6 +16,7 @@ use App\Support\Url;
  * @var bool $chartWeek whether the chart shows the week the period ends, not the period
  * @var bool $chartByWeek whether the chart's points are weeks rather than days
  * @var array<string, list<array{value: string, visitors: int|null, views: int}>> $tables
+ * @var string $placesHidden why the regions and cities are not here: 'narrowed', 'off' or ''
  * @var list<array{path: string, source: string, views: int}>|null $missing the 404s; null while narrowed past what they can answer
  * @var bool $missingOn whether addresses that are not there are counted at all
  * @var string $map the world map, drawn and shaded; '' when the file is missing
@@ -100,6 +101,13 @@ $figures = [
             </section>
 <?php endforeach; ?>
         </div>
+<?php if ($placesHidden !== ''): ?>
+        <p class="hint stats-note"><?= e(t('stats.places_' . $placesHidden)) ?></p>
+<?php elseif (isset($tables['cities'])): ?>
+        <?php /* Under the cities, not under each table: it is about the figures, and one
+                 line in the right place is read where two in the wrong one are not. */ ?>
+        <p class="hint stats-note"><?= e(t('stats.places_note', ['count' => (string) App\Modules\Stats\PlaceQuery::SMALL])) ?></p>
+<?php endif; ?>
 
 <?php if ($missingOn): ?>
         <?php /* Addresses that are not there (O-20), counted only while the owner asks for

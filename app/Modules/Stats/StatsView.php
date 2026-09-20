@@ -24,11 +24,13 @@ final class StatsView
     public static function label(string $dimension, string $value): string
     {
         return match (true) {
-            $value === StatsQuery::OTHER => t('stats.other_small', ['count' => (string) StatsQuery::SMALL]),
+            // The cities have a floor of their own, and it is higher (D-055), so the row
+            // that stands for the small ones has to say the right number.
+            $value === StatsQuery::OTHER => t('stats.other_small', ['count' => (string) ($dimension === 'cities' ? PlaceQuery::SMALL : StatsQuery::SMALL)]),
             $dimension === 'devices' => t('stats.device.' . ($value !== '' ? $value : 'desktop')),
             $value !== '' => $dimension === 'countries' ? strtoupper($value) : $value,
             $dimension === 'sources' => t('stats.direct'),
-            $dimension === 'countries' => t('stats.unknown'),
+            $dimension === 'countries', $dimension === 'regions', $dimension === 'cities' => t('stats.unknown'),
             default => t('stats.other'),
         };
     }

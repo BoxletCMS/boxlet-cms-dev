@@ -181,3 +181,112 @@ test('carrying on a download nobody started says so', function () {
     GeoDownload::cancel($storage);
     assertThrows(fn () => GeoDownload::step($storage), t('stats.geo_download_none'));
 });
+
+/**
+ * A site with the city database in place, counting as much of a location as $level asks.
+ * statsSite() comes from stats_test.php.
+ */
+function placeSite(string $driver, string $level): App\Core\Db
+{
+    $db = statsSite($driver);
+    App\Core\Settings::set($db, 'stats_location', $level);
+    writeMmdb(tmpPath('place.mmdb'), PLACE_NETWORKS, 6, 24, 'Test-City');
+    Geo::install(tmpPath('storage'), tmpPath('place.mmdb'));
+
+    return $db;
+}
+
+/** One view from $ip, counted with the location database in reach. */
+function placeView(App\Core\Db $db, string $ip, string $path = '/about', string $at = '2026-09-19 10:00:00'): void
+{
+    App\Modules\Stats\Tracker::record(
+        $db,
+        new App\Core\Request('GET', $path, '', [], [], ['user-agent' => STATS_CHROME, 'host' => 'example.test'], $ip),
+        App\Core\Response::html('<p>A page</p>'),
+        new DateTimeImmutable($at, new DateTimeZone('UTC')),
+        tmpPath('storage'),
+    );
+}
+
+/** @return array<int, array<string, mixed>> the places counted, most views first */
+function placeRows(App\Core\Db $db): array
+{
+    return $db->all('SELECT country, region, city, latitude, longitude, views, visitors FROM stats_places ORDER BY views DESC, visitors DESC, city');
+}
+
+testBothDrivers('a view is counted where it came from, as far as the owner asked', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    placeView($db, '198.51.100.9');
+    placeView($db, '198.51.100.9', '/services');
+    placeView($db, '203.0.113.7');
+
+    $rows = placeRows($db);
+    assertEquals(2, count($rows), 'one row per place');
+    assertEquals(['HR', 'Zagreb', 'Zagreb'], [$rows[0]['country'], $rows[0]['region'], $rows[0]['city']], 'the busiest place');
+    assertEquals([2, 1], [(int) $rows[0]['views'], (int) $rows[0]['visitors']], 'two views, one visitor');
+    assertEquals([45.79, 15.97], [(float) $rows[0]['latitude'], (float) $rows[0]['longitude']], 'the city\'s coordinates');
+    assertEquals('Vienna', $rows[1]['city'], 'the other place');
+
+    // The path is not in this table and is not going to be: the row is the same row
+    // whichever page was read.
+    assertEquals(0, count(array_filter(
+        $db->all('SELECT * FROM stats_places'),
+        static fn (array $row): bool => array_key_exists('path', $row),
+    )), 'a path column in stats_places');
+});
+
+testBothDrivers('the level decides how much of a place is kept', function (string $driver) {
+    $db = placeSite($driver, 'country');
+    placeView($db, '198.51.100.9');
+    $rows = placeRows($db);
+    assertEquals(['HR', '', ''], [$rows[0]['country'], $rows[0]['region'], $rows[0]['city']], 'the country alone');
+    assertEquals(null, $rows[0]['latitude'], 'and no coordinate');
+
+    App\Core\Settings::set($db, 'stats_location', 'region');
+    placeView($db, '198.51.100.9', '/about', '2026-09-20 10:00:00');
+    $rows = $db->all("SELECT region, city FROM stats_places WHERE day = '2026-09-20'");
+    assertEquals(['Zagreb', ''], [$rows[0]['region'], $rows[0]['city']], 'the region, and no city');
+
+    // Turning it up does not rewrite what was counted before: the days keep what they had.
+    assertEquals(1, count($db->all("SELECT 1 FROM stats_places WHERE day = '2026-09-19' AND region = ''")), 'the day before is untouched');
+});
+
+testBothDrivers('a city too small to name is counted with the others', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    // Six visitors in Zagreb, one in Vienna. Five is the floor, so Vienna is not named.
+    foreach (range(1, 6) as $n) {
+        placeView($db, '198.51.100.' . $n);
+    }
+    placeView($db, '203.0.113.7');
+
+    $cities = (new App\Modules\Stats\PlaceQuery($db))->top('city', statsFilter(['period' => 'today']), 10, false);
+    $named = array_column($cities, 'value');
+    assertTrue(in_array('Zagreb', $named, true), 'the city with six visitors is named');
+    assertTrue(!in_array('Vienna', $named, true), 'the city with one is not');
+    assertTrue(in_array(App\Modules\Stats\StatsQuery::OTHER, $named, true), 'and is counted in the gathered row');
+    assertEquals(t('stats.other_small', ['count' => '5']), App\Modules\Stats\StatsView::label('cities', App\Modules\Stats\StatsQuery::OTHER), 'the row says the floor it stands for');
+});
+
+testBothDrivers('the screen shows the places, and says when it cannot', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    foreach (range(1, 6) as $n) {
+        placeView($db, '198.51.100.' . $n);
+    }
+
+    $screen = dispatch('/admin/statistics?period=today')->body;
+    assertContains(e(t('stats.table.cities')), $screen, 'the Cities table');
+    assertContains('Zagreb', $screen, 'the city itself');
+    assertContains(e(t('stats.places_note', ['count' => '5'])), $screen, 'the note about how exact this is');
+
+    // Narrowed to a page, the places cannot be shown at all: they are counted without it.
+    $narrowed = dispatch('/admin/statistics?period=today&path=' . rawurlencode('/about'))->body;
+    assertTrue(!str_contains($narrowed, e(t('stats.table.cities'))), 'the Cities table while narrowed to a page');
+    assertContains(e(t('stats.places_narrowed')), $narrowed, 'and the reason it is not there');
+
+    // Counting countries only: no place tables, and a line pointing at the setting, since
+    // this site has a database that could do more.
+    App\Core\Settings::set($db, 'stats_location', 'country');
+    $countries = dispatch('/admin/statistics?period=today')->body;
+    assertTrue(!str_contains($countries, e(t('stats.table.regions'))), 'the Regions table while counting countries');
+    assertContains(e(t('stats.places_off')), $countries, 'the line about the setting');
+});

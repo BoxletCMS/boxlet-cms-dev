@@ -12,9 +12,10 @@ use DateTimeImmutable;
 use DateTimeZone;
 
 /**
- * The Statistics screen (PLAN.md D-051, O-20): a period or a chosen range, four figures
- * against the period before, the trend, and six tables — or one of those tables in full.
- * Clicking a row narrows the whole screen to it.
+ * The Statistics screen (PLAN.md D-051, O-20, D-055): a period or a chosen range, four
+ * figures against the period before, the trend, the map, and the tables — or one of those
+ * tables in full. Clicking a row narrows the whole screen to it, except in the two place
+ * tables, whose rows are counted without the page and so cannot narrow anything.
  *
  * Everything is in the address, so a view can be bookmarked, shared and stepped out of with
  * the browser's Back, and nothing on the screen needs a script (StatsFilter).
@@ -36,11 +37,26 @@ final class StatsController
             return Response::redirect(Url::admin('settings') . '#statistics');
         }
 
-        $wanted = is_string($request->query['all'] ?? null) ? $request->query['all'] : '';
-        $all = isset(StatsQuery::DIMENSIONS[$wanted]) || $wanted === 'missing' ? $wanted : null;
+        $status = Geo::status((string) $this->container->get('config')->get('app.storage_path'));
+        $cityDatabase = $status !== null && $status['cities'];
 
         $today = new DateTimeImmutable('now', new DateTimeZone(Dates::zone($db)));
         $filter = StatsFilter::fromQuery($request->query, $today);
+        // Which of the place tables there is anything to show (D-055): as much as the owner
+        // asked to count, and only while the screen is not narrowed to something that table
+        // does not hold — a page above all, which it never will.
+        $places = $filter->narrowedBeyondPlaces() ? [] : match ($settings['location']) {
+            'city' => ['regions', 'cities'],
+            'region' => ['regions'],
+            default => [],
+        };
+
+        // The tables this screen has, in order: the six from stats_views, then whichever
+        // place tables there is anything to show.
+        $shown = [...array_values(array_diff(array_keys(StatsQuery::DIMENSIONS), array_keys(StatsQuery::PLACES))), ...$places];
+
+        $wanted = is_string($request->query['all'] ?? null) ? $request->query['all'] : '';
+        $all = in_array($wanted, $shown, true) || $wanted === 'missing' ? $wanted : null;
         $query = new StatsQuery($db);
         $totals = $query->totals($filter);
         $before = $filter->previous();
@@ -53,7 +69,7 @@ final class StatsController
             'filter' => $filter,
             'totals' => $totals,
             // DB-IP's licence asks for credit where its countries are shown (CC BY 4.0).
-            'geo' => Geo::status((string) $this->container->get('config')->get('app.storage_path')) !== null,
+            'geo' => $status !== null,
         ];
 
         if ($all === 'missing') {
@@ -96,8 +112,16 @@ final class StatsController
             'missingOn' => $settings['missing'],
             'tables' => array_map(
                 static fn (string $dimension): array => $query->top($dimension, $filter, 10, $settings['group']),
-                array_combine(array_keys(StatsQuery::DIMENSIONS), array_keys(StatsQuery::DIMENSIONS)),
+                array_combine($shown, $shown),
             ),
+            // Why the regions and the cities are not on the screen. Nothing at all where the
+            // owner never asked for them and has no database for them either: a line about
+            // a setting is only worth the room where it would change something.
+            'placesHidden' => match (true) {
+                $places !== [] => '',
+                $settings['location'] === 'country' => $cityDatabase ? 'off' : '',
+                default => 'narrowed',
+            },
         ]);
     }
 }

@@ -32,7 +32,15 @@ final class StatsQuery
         'devices' => 'device',
         'browsers' => 'browser',
         'os' => 'os',
+        // Where visitors are, past the country (D-055). Their rows come from stats_places,
+        // which PlaceQuery reads; everything else about them — the table, "show all", the
+        // CSV — is the same machinery as the six above.
+        'regions' => 'region',
+        'cities' => 'city',
     ];
+
+    /** The two that are not in stats_views at all. */
+    public const PLACES = ['regions' => 'region', 'cities' => 'city'];
 
     public function __construct(private readonly Db $db)
     {
@@ -133,6 +141,9 @@ final class StatsQuery
      */
     public function top(string $dimension, StatsFilter $filter, ?int $limit = 10, bool $group = false): array
     {
+        if (isset(self::PLACES[$dimension])) {
+            return (new PlaceQuery($this->db))->top(self::PLACES[$dimension], $filter, $limit, $group);
+        }
         $column = self::DIMENSIONS[$dimension] ?? 'path';
         // Gathering the small rows needs all of them: the limit is applied afterwards.
         $cap = $limit === null || $group ? '' : ' LIMIT ' . max(1, $limit);
@@ -183,7 +194,7 @@ final class StatsQuery
      * @param 'visitors'|'views' $by which count decides that a row is small
      * @return list<array{value: string, visitors: int|null, views: int}>
      */
-    private static function gathered(array $rows, bool $group, ?int $limit, string $by): array
+    public static function gathered(array $rows, bool $group, ?int $limit, string $by): array
     {
         if (!$group) {
             return $rows;

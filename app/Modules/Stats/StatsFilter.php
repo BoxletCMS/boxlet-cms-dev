@@ -67,6 +67,47 @@ final class StatsFilter
         return new self($period, $from, $to, $narrowed);
     }
 
+    /** The only dimension stats_places has of its own, and so the only one it answers. */
+    public const PLACE_DIMENSIONS = ['country'];
+
+    /**
+     * Whether the screen is narrowed to something the places table does not hold — a page
+     * above all, which it deliberately never will (D-055). The regions and the cities are
+     * left off the screen then, with a line saying why, rather than answering a different
+     * question from the one that was asked.
+     */
+    public function narrowedBeyondPlaces(): bool
+    {
+        foreach (array_keys($this->narrowed) as $dimension) {
+            if (!in_array($dimension, self::PLACE_DIMENSIONS, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The WHERE for stats_places: the days, and the country when the screen is narrowed to
+     * one. Anything else it cannot be narrowed by is simply not there — the caller asks
+     * narrowedBeyondPlaces() first.
+     *
+     * @return array{string, list<string>}
+     */
+    public function placeWhere(): array
+    {
+        $sql = 'day >= ? AND day <= ?';
+        $params = [$this->from, $this->to];
+        foreach (self::PLACE_DIMENSIONS as $dimension) {
+            if (array_key_exists($dimension, $this->narrowed)) {
+                $sql .= ' AND ' . $dimension . ' = ?';
+                $params[] = $this->narrowed[$dimension];
+            }
+        }
+
+        return [$sql, $params];
+    }
+
     /** Whether any dimension is narrowed, which is what the page visitors cannot answer. */
     public function isNarrowed(): bool
     {

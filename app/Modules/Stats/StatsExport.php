@@ -25,6 +25,9 @@ final class StatsExport
         'stats_views' => ['keys' => ['day', 'path', 'source', 'country', 'device', 'browser', 'os'], 'counts' => ['views', 'visitors']],
         'stats_page_visitors' => ['keys' => ['day', 'path'], 'counts' => ['visitors']],
         'stats_missing' => ['keys' => ['day', 'path', 'source'], 'counts' => ['views']],
+        // Where visitors were (D-055). Its coordinates are not counts and are not added to;
+        // a row that comes back without them keeps whatever the site already had.
+        'stats_places' => ['keys' => ['day', 'country', 'region', 'city'], 'counts' => ['views', 'visitors']],
     ];
 
     /**

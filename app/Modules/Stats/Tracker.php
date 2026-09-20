@@ -159,6 +159,25 @@ final class Tracker
             ['views' => 1, 'visitors' => $newToSite ? 1 : 0],
         );
 
+        // And where they were, in a table of its own (D-055), which the path never enters.
+        // Written whenever anything at all is known, so the country level fills it too and
+        // turning the level up later adds detail to the days after it rather than rewriting
+        // the days before.
+        if ($place->isKnown()) {
+            self::increase(
+                $db,
+                'stats_places',
+                ['day' => $day, 'country' => $place->country, 'region' => $place->region, 'city' => $place->city],
+                'views = views + 1' . ($newToSite ? ', visitors = visitors + 1' : ''),
+                [
+                    'views' => 1,
+                    'visitors' => $newToSite ? 1 : 0,
+                    'latitude' => $place->latitude,
+                    'longitude' => $place->longitude,
+                ],
+            );
+        }
+
         return true;
     }
 
@@ -168,7 +187,7 @@ final class Tracker
      */
     public static function erase(Db $db): void
     {
-        foreach (['stats_views', 'stats_page_visitors', 'stats_seen', 'stats_missing'] as $table) {
+        foreach (['stats_views', 'stats_page_visitors', 'stats_seen', 'stats_missing', 'stats_places'] as $table) {
             $db->query("DELETE FROM {$table}");
         }
         $db->query('DELETE FROM settings WHERE `key` = ?', ['stats_salt']);
@@ -215,6 +234,7 @@ final class Tracker
         $db->query('DELETE FROM stats_views WHERE day < ?', [$oldest]);
         $db->query('DELETE FROM stats_page_visitors WHERE day < ?', [$oldest]);
         $db->query('DELETE FROM stats_missing WHERE day < ?', [$oldest]);
+        $db->query('DELETE FROM stats_places WHERE day < ?', [$oldest]);
 
         $kept = Settings::get($db, 'stats_salt');
 
@@ -243,7 +263,9 @@ final class Tracker
      * exactly the same rows in exactly the same way.
      *
      * @param array<string, string> $key
-     * @param array<string, int> $first the counts of a new row
+     * @param array<string, int|float|null> $first what a new row carries besides its key:
+     *        its counts, and for a place its coordinates, which are set once and never
+     *        added to
      */
     public static function increase(Db $db, string $table, array $key, string $increment, array $first): void
     {

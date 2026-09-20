@@ -40,7 +40,10 @@ $narrow = static fn (string $value): string => Url::admin('statistics') . '?'
 <?php foreach ($rows as $row):
     $share = min(100, ($byViews ? $row['views'] : (int) $row['visitors']) * 100 / $whole);
     // The gathered row stands for many values at once, so there is nothing to narrow to.
-    $narrowed = isset($filter->narrowed[$key]) || $row['value'] === StatsQuery::OTHER;
+    // Nor is there for a region or a city: they are counted in a table the rest of the
+    // screen cannot be narrowed against, which is what keeps the page away from them.
+    $narrowed = isset($filter->narrowed[$key]) || $row['value'] === StatsQuery::OTHER
+        || isset(StatsQuery::PLACES[$dimension]);
     ?>
                         <tr>
                             <th scope="row" class="stats-name">

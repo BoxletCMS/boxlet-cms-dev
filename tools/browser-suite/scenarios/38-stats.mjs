@@ -52,6 +52,22 @@ export default {
     const own = await todayVisitors();
     report.verdict('the admin looking at the screen is not counted', own === after, `after ${after}, then ${own}`);
 
+    // The world map and narrowing by clicking (O-20).
+    await page.goto(`${BASE}/admin/statistics?period=30d`, { waitUntil: 'networkidle2' });
+    const map = await page.$$eval('.stats-map a path', (paths) => paths.map((p) => p.getAttribute('class')));
+    const shaded = await page.$('.stats-map a');
+    report.verdict('the map shades the countries visitors came from', map.length > 0 && map.every((c) => /^map-step-[1-5]$/.test(c)),
+      JSON.stringify(map.slice(0, 6)));
+    if (shaded) {
+      const country = await page.$eval('.stats-map a', (a) => a.getAttribute('href'));
+      await page.goto(`${BASE}${country}`, { waitUntil: 'networkidle2' });
+      const chips = await page.$$eval('.stats-chip', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
+      report.verdict('clicking a country narrows the screen to it, and says so', chips.length === 1 && /Country/i.test(chips[0]),
+        `${country} → ${JSON.stringify(chips)}`);
+      await report.shot(page, '06-map-narrowed', { fullPage: false });
+    }
+
+    await page.goto(`${BASE}/admin/statistics?period=30d`, { waitUntil: 'networkidle2' });
     const credit = await page.$eval('body', (el) => el.textContent.includes('IP geolocation by DB-IP'));
     report.verdict('the screen credits DB-IP', credit, `credit ${credit}`);
 
@@ -82,8 +98,8 @@ export default {
       await page.$eval('#statistics', (el) => el.scrollIntoView({ block: 'start' }));
       await report.shot(page, name, { fullPage: false });
       if (name === '01-desktop') {
-        report.verdict('the panel says statistics are on, with its two switches, the retention and the delete button',
-          /Statistics are on\./.test(panel.text) && panel.boxes.length === 2 && panel.retention !== undefined && panel.erase,
+        report.verdict('the panel says statistics are on, with its three switches, the retention and the delete button',
+          /Statistics are on\./.test(panel.text) && panel.boxes.length === 3 && panel.retention !== undefined && panel.erase,
           JSON.stringify(panel));
       } else {
         const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

@@ -49,7 +49,7 @@ final class StatsController
             'title' => t('stats.title'),
             'nav' => 'statistics',
             'wide' => true,
-            'styles' => ['admin-stats.css', 'admin-stats-chart.css'],
+            'styles' => ['admin-stats.css', 'admin-stats-chart.css', 'admin-stats-map.css'],
             'filter' => $filter,
             'totals' => $totals,
             // DB-IP's licence asks for credit where its countries are shown (CC BY 4.0).
@@ -82,6 +82,15 @@ final class StatsController
             'series' => $query->series($chart, $chart->days() > 90),
             'chartWeek' => $filter->days() === 1,
             'chartByWeek' => $chart->days() > 90,
+            // The world map (O-20): the same countries as the table beside it, shaded.
+            'map' => Map::draw(
+                Map::path((string) $this->container->get('config')->get('app.public_path')),
+                array_column(array_map(
+                    static fn (array $row): array => ['code' => strtoupper($row['value']), 'visitors' => (int) $row['visitors']],
+                    $query->top('countries', $filter, null),
+                ), 'visitors', 'code'),
+                static fn (string $code): string => Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['country' => $code])),
+            ),
             // Addresses that are not there, while the owner counts them (O-20).
             'missing' => $settings['missing'] ? $query->missing($filter) : null,
             'missingOn' => $settings['missing'],

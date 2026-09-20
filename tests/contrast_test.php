@@ -315,6 +315,13 @@ test('every colour in the admin comes from the admin palette', function () {
                 if (in_array($value, $allowed, true) || str_starts_with($value, 'var(--ui-')) {
                     continue;
                 }
+                // A mix of admin tokens is still the admin's palette: the world map's five
+                // steps are the accent mixed into the page behind it (O-20). Every colour in
+                // the mix must be a token; a literal anywhere in it fails as one would alone.
+                if (str_starts_with($value, 'color-mix(')
+                    && preg_match_all('~var\(--ui-[a-z-]+\)~', $value) === preg_match_all('~#[0-9a-f]{3,8}|\brgba?\(|\bhsla?\(|var\(~', $value)) {
+                    continue;
+                }
                 fail("{$file}: {$selector} sets {$declaration[1]}: {$value}, which is not an --ui- token");
             }
         }

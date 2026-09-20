@@ -18,6 +18,7 @@ use App\Support\Url;
  * @var array<string, list<array{value: string, visitors: int|null, views: int}>> $tables
  * @var list<array{path: string, source: string, views: int}>|null $missing the 404s; null while narrowed past what they can answer
  * @var bool $missingOn whether addresses that are not there are counted at all
+ * @var string $map the world map, drawn and shaded; '' when the file is missing
  * @var bool $geo whether countries come from DB-IP's database, which asks to be credited
  */
 $all = null;
@@ -69,6 +70,21 @@ $figures = [
             </details>
         </section>
 
+<?php if ($map !== ''): ?>
+        <?php /* The world, shaded by where visitors came from; a country is a link that
+                 narrows the screen to it, and the table under it is its text alternative. */ ?>
+        <section class="panel stats-map" aria-labelledby="stats-map-heading">
+            <div class="stats-trend-head">
+                <h2 id="stats-map-heading"><?= e(t('stats.map')) ?></h2>
+                <p class="stats-legend" aria-hidden="true">
+                    <span class="stats-key stats-key-few"><?= e(t('stats.map_few')) ?></span>
+                    <span class="stats-key stats-key-many"><?= e(t('stats.map_many')) ?></span>
+                </p>
+            </div>
+            <?= $map ?>
+        </section>
+
+<?php endif; ?>
         <div class="stats-tables">
 <?php foreach ($tables as $dimension => $rows): ?>
             <section class="panel stats-dimension" aria-labelledby="stats-<?= e($dimension) ?>">

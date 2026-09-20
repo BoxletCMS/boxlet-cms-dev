@@ -672,3 +672,37 @@ testBothDrivers('a 404 is counted only when the owner asks for it, and never as 
     Tracker::erase($db);
     assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM stats_missing')['n'] ?? -1), 'left after erase');
 });
+
+// The world map (PLAN.md O-20).
+
+test('the map shades a country by its visitors, names it and links to its own view', function () {
+    $file = tmpPath('map.svg');
+    file_put_contents($file, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+        . '<path id="c-HR" data-name="Croatia" d="M0 0L1 1Z"/>'
+        . '<path id="c-DE" data-name="Germany" d="M2 2L3 3Z"/>'
+        . '<path id="c-FR" data-name="France" d="M4 4L5 5Z"/></svg>');
+
+    $map = App\Modules\Stats\Map::draw($file, ['DE' => 10, 'HR' => 2], static fn (string $code): string => '/admin/statistics?country=' . $code);
+    assertContains('<a href="/admin/statistics?country=DE"', $map, 'a country with visitors is a link');
+    assertContains('class="map-step-5"', $map, 'the busiest one is the darkest step');
+    assertContains('class="map-step-1"', $map, 'a quiet one is the lightest');
+    assertContains('<title>Germany · ' . e(t('stats.map_visitors', ['count' => '10'])) . '</title>', $map, 'what it says on hover');
+    assertContains('<path class="map-quiet" d="M4 4L5 5Z"/>', $map, 'a country nobody came from');
+    assertTrue(!str_contains($map, 'data-name'), 'the name is left in the drawing');
+
+    assertEquals('', App\Modules\Stats\Map::draw(tmpPath('no-map-here.svg'), ['DE' => 1], static fn (string $c): string => $c), 'no file, no map');
+});
+
+test('the map that ships with Boxlet has the countries it says it has', function () {
+    $file = dirname(__DIR__) . '/public/' . App\Modules\Stats\Map::FILE;
+    assertTrue(is_file($file), 'the map file is missing from public/assets/vendor');
+    $svg = (string) file_get_contents($file);
+
+    $doc = new DOMDocument();
+    assertTrue(@$doc->loadXML($svg), 'the map is not well-formed XML');
+    assertEquals(174, preg_match_all('~<path id="c-[A-Z]{2}"~', $svg), 'countries in the map');
+    foreach (['HR', 'DE', 'US', 'JP', 'BR', 'ZA', 'AU'] as $code) {
+        assertContains('<path id="c-' . $code . '"', $svg, $code);
+    }
+    assertTrue(!str_contains($svg, 'id="c-AQ"'), 'Antarctica, which the map window cuts off anyway');
+});

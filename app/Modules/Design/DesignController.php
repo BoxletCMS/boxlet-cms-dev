@@ -180,9 +180,14 @@ final class DesignController
     {
         $result = Tokens::validate(self::submitted($request->query));
         $decisions = $result['decisions'];
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
         $body = json_encode([
             'errors' => (object) $result['errors'],
-            'colors' => Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']),
+            'colors' => $colors,
+            // Every pair with its ratio, not only the ones that fail: the gauge on the screen
+            // is this list, and a palette that passes by a hair should not look like one that
+            // passes easily (D-058).
+            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== ''),
         ], JSON_THROW_ON_ERROR);
 
         return new Response($body, 200, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);
@@ -253,6 +258,7 @@ final class DesignController
     private function form(array $decisions, array $errors, ?string $notice, int $status = 200, string $character = ''): Response
     {
         $db = $this->db();
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
         $previewQuery = self::query($decisions);
         if ($character !== '') {
             $previewQuery['character'] = $character;
@@ -269,8 +275,9 @@ final class DesignController
             'character' => $character,
             'activeCharacter' => Composition::active($db),
             'hasBlocks' => Composition::hasBlocks($db),
-            'colors' => Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']),
-            'derived' => Tokens::derive($decisions),
+            'colors' => $colors,
+            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== ''),
+            'readable' => Tokens::readable($decisions),
             'previewUrl' => Url::withQuery(Url::admin('design', 'preview'), $previewQuery),
         ], $status);
     }

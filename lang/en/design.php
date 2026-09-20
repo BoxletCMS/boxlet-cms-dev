@@ -77,7 +77,7 @@ return [
     'design.scale.1.333' => 'Pronounced (1.333)',
     'design.scale.1.414' => 'Dramatic (1.414)',
     'design.scale.1.5' => 'Striking (1.5)',
-    'design.derived_sizes' => 'Resulting sizes, small to largest:',
+    'design.readable.text' => 'Body text :base. Headings, small to large: :headings. The largest becomes :phone on a phone.',
 
     'design.shape' => 'Space and shape',
     'design.spacing' => 'Spacing',
@@ -85,7 +85,8 @@ return [
     'design.spacing.normal' => 'Normal',
     'design.spacing.roomy' => 'Roomy',
     'design.spacing.generous' => 'Generous',
-    'design.derived_spacing' => 'Resulting spacing scale:',
+    'design.readable.space' => 'One step of space is :space, and sections stand :section apart.',
+    'design.readable.shape' => 'Corners are :radius, and the content runs :container wide.',
     'design.radius' => 'Corners',
     'design.radius.none' => 'Square',
     'design.radius.subtle' => 'Subtle',
@@ -115,6 +116,14 @@ return [
     'design.page_background.surface' => 'Tinted surface',
     'design.page_background.border' => 'Border tone',
     'design.page_background.contrast' => 'Contrast surface',
+
+    'design.contrast.title' => 'Readable contrast',
+    'design.contrast.intro' => 'Every pair of colours text can land on, measured. WCAG AA asks for 4.5:1, and Save refuses a pair below it.',
+    'design.contrast.sample' => 'Aa',
+    'design.contrast.pass' => 'passes',
+    'design.contrast.fail' => 'too low',
+    'design.contrast.more' => 'The other :count pairs',
+    'design.contrast.all_pass' => 'Every pair passes.',
 
     'design.error.color' => 'Enter a colour as #rrggbb.',
     'design.error.choice' => 'Choose one of the options.',

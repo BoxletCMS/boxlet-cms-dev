@@ -58,7 +58,7 @@ export default {
     for (const preset of presets) {
       await page.goto(`${BASE}/admin/design`, { waitUntil: 'networkidle2' });
       await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
-      await clickAndWait(page, 'form.design-form button[name="action"][value="save"]');
+      await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
 
       await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
       const frame = await canvasFrame(page);

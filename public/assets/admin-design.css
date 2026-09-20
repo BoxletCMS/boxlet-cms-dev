@@ -140,29 +140,80 @@
   overflow-wrap: anywhere;
 }
 
-/* Saving: the choice between design only and design with composition */
+/* The contrast gauge (PLAN.md D-058): every pair, what it looks like, what it measures.
+   The sample is an SVG whose two fills are the site's colours — the only site colour that
+   ever reaches this screen, and it reaches it as data, never as a stylesheet value. */
 
-.apply-choice {
+.gauge-list {
   display: grid;
-  gap: var(--ui-3);
-  padding: var(--ui-4);
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-l);
-  box-shadow: var(--ui-shadow-s);
+  gap: var(--ui-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.apply-option {
+.gauge-row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  gap: var(--ui-2);
+  align-items: center;
+  font-size: var(--ui-text-sm);
+}
+
+.gauge-sample {
+  inline-size: 2.5rem;
+  block-size: 1.5rem;
+  border-radius: var(--ui-radius-s);
+  border: var(--ui-border) solid var(--ui-line);
+}
+
+.gauge-ratio {
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  white-space: nowrap;
+}
+
+/* The verdict is a word, never a colour alone: a red dot says nothing to a reader who
+   cannot see red, and nothing at all to one reading it aloud. */
+.gauge-verdict {
+  color: var(--ui-success);
+}
+
+.gauge-fails .gauge-verdict {
+  color: var(--ui-danger);
+  font-weight: 600;
+}
+
+.gauge-more {
+  margin-block-start: var(--ui-2);
+  font-size: var(--ui-text-sm);
+}
+
+.gauge-more summary {
+  cursor: pointer;
+  color: var(--ui-ink-muted);
+  padding-block: var(--ui-1);
+}
+
+.gauge-more summary:hover {
+  color: var(--ui-ink);
+}
+
+.gauge-more .gauge-list {
+  margin-block-start: var(--ui-2);
+}
+
+/* What the two Save buttons do, under the frame: the bar holds the controls, this holds
+   the sentences. */
+
+.apply-notes {
   display: grid;
   gap: var(--ui-1);
 }
 
-.apply-option .hint {
+.apply-notes .hint {
   font-size: var(--ui-text-xs);
-}
-
-.apply-option .button {
-  justify-self: start;
 }
 
 /* Preview: contained, so it reads as the site inside the tool and not as the tool. */
@@ -196,12 +247,31 @@
   text-transform: uppercase;
 }
 
-.preview-bar .button {
+/* The actions sit at the end of the bar, and wrap under it on a narrow screen rather than
+   squeezing the label that says what the frame is. */
+.preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
   margin-inline-start: auto;
+}
+
+.preview-bar .button {
   padding-block: var(--ui-1);
   font-size: var(--ui-text-xs);
   text-transform: none;
   letter-spacing: normal;
+}
+
+@media (max-width: 52rem) {
+  .preview-bar {
+    flex-wrap: wrap;
+  }
+
+  .preview-actions {
+    margin-inline-start: 0;
+    inline-size: 100%;
+  }
 }
 
 .preview-frame iframe {

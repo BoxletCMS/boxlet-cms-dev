@@ -409,7 +409,11 @@ export async function controlsOnPanels(page, report, where) {
 export async function applyCharacter(page, base, preset, action = 'save') {
   await page.goto(`${base}/admin/design`, { waitUntil: 'networkidle2' });
   await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
-  await clickAndWait(page, `form.design-form button[name="action"][value="${action}"]`);
+  // BY THE FORM IT NAMES, not by the form it sits in: Save moved out of the controls and
+  // beside the preview, where the sticky column keeps it in reach (D-058). It still submits
+  // the same form — through form="design-form" — and the selector has to say so, or it
+  // matches the character cards' own buttons.
+  await clickAndWait(page, `button[form="design-form"][name="action"][value="${action}"]`);
   return alerts(page);
 }
 

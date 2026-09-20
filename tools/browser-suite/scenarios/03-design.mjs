@@ -70,6 +70,44 @@ export default {
       chrome === null ? 'no preview frame' : JSON.stringify(chrome));
     await report.shot(page, 'design-screen');
 
+    /*
+     * ---- the loop is closed (PLAN.md D-058) --------------------------------------------
+     *
+     * Three things the owner judges by feel, measured instead: the gauge is there, the
+     * button that repeated what already happens is gone, and Save can be reached without
+     * scrolling back past every control. The last one is why it moved: the left column is
+     * over three thousand pixels tall.
+     */
+    const loop = await page.evaluate(() => {
+      window.scrollTo(0, 1400);
+      // Every action, not only the first: the destructive one is the second, and it was the
+      // second that a sticky column put out of reach.
+      const actions = [...document.querySelectorAll('.preview-actions button')];
+      const boxes = actions.map((b) => b.getBoundingClientRect());
+      return {
+        rows: document.querySelectorAll('.gauge-row').length,
+        open: document.querySelectorAll('[data-gauge-open] .gauge-row').length,
+        ratios: [...document.querySelectorAll('[data-pair-ratio]')].slice(0, 3).map((e) => e.textContent),
+        updateButton: document.querySelector('[data-preview-button]') !== null,
+        actions: actions.length,
+        saveInView: boxes.length > 0 && boxes.every((r) => r.top >= 0 && r.bottom <= window.innerHeight),
+        columnHeight: document.body.scrollHeight,
+      };
+    });
+    report.verdict('every contrast pair is measured on the screen', loop.rows === 11 && loop.open === 6,
+      `${loop.rows} rows, ${loop.open} open, first ratios ${loop.ratios.join(', ')}`);
+    report.verdict('the "Update preview" button is gone where JavaScript runs', !loop.updateButton,
+      loop.updateButton ? 'it is still there' : 'the preview follows every change instead');
+    report.verdict('every Save is in reach with the controls scrolled', loop.saveInView,
+      `left column ${loop.columnHeight}px tall; ${loop.actions} action(s) ${loop.saveInView ? 'visible' : 'OFF SCREEN'}`);
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    // A choice is immediate: no click on anything called "update", and no waiting.
+    const framedBefore = await page.$eval('iframe[data-design-preview]', (el) => el.src);
+    await page.select('#design-container', 'narrow');
+    await page.waitForFunction((was) => document.querySelector('iframe[data-design-preview]').src !== was, {}, framedBefore);
+    report.pass('choosing a value refreshes the preview by itself', 'the frame followed the select with no button pressed');
+
     // ---- each character, seen on the home page and in the admin ------------------------
     const adminFingerprints = [];
     for (const preset of presets) {
@@ -215,7 +253,7 @@ export default {
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    await clickAndWait(page, 'form.design-form button[name="action"][value="save"]');
+    await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
     const refusal = await alerts(page);
     await report.shot(page, 'contrast-refused');
 

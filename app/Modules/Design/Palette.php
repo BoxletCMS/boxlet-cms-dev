@@ -61,16 +61,23 @@ final class Palette
     }
 
     /**
-     * Every text/background pair the palette produces that falls below WCAG AA, with the
-     * decision responsible for it.
+     * EVERY text/background pair the palette produces, with what it measures and what it
+     * needs. The gauge on the Design screen is this list; failures() is a filter over it.
+     *
+     * One list, because two would drift: for a while the screen could only say "this fails",
+     * which made a palette that passes by a hair look the same as one that passes easily —
+     * and a person cannot aim at a number they are never shown.
+     *
+     * $decision names the choice responsible, so a failure can point at the control that
+     * causes it rather than at the colour it produced.
      *
      * @param array<string, string> $colors
-     * @return list<array{pair: string, decision: string, ratio: float, required: float}>
+     * @return list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}>
      */
-    public static function failures(array $colors, bool $hasSecondary): array
+    public static function pairs(array $colors, bool $hasSecondary): array
     {
         $contrastDecision = $hasSecondary ? 'secondary' : 'seed';
-        $pairs = [
+        $defined = [
             ['text_on_background', 'surface_contrast', 'text', 'background'],
             ['muted_on_background', 'surface_contrast', 'muted', 'background'],
             ['text_on_surface', 'surface_contrast', 'text', 'surface'],
@@ -84,11 +91,38 @@ final class Palette
             ['text_on_gradient_end', 'seed', 'on-gradient', 'gradient-end'],
         ];
 
-        $failures = [];
-        foreach ($pairs as [$pair, $decision, $foreground, $background]) {
+        $pairs = [];
+        foreach ($defined as [$pair, $decision, $foreground, $background]) {
             $ratio = Color::contrast($colors[$foreground], $colors[$background]);
-            if ($ratio < self::AA_BODY) {
-                $failures[] = ['pair' => $pair, 'decision' => $decision, 'ratio' => $ratio, 'required' => self::AA_BODY];
+            $pairs[] = [
+                'pair' => $pair,
+                'decision' => $decision,
+                'ratio' => $ratio,
+                'required' => self::AA_BODY,
+                'passes' => $ratio >= self::AA_BODY,
+                // The two colours themselves, so the gauge can show the pair rather than
+                // only name it: a row that says 3.9:1 and shows nothing is a number.
+                'foreground' => $colors[$foreground],
+                'background' => $colors[$background],
+            ];
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * Every pair that falls below WCAG AA, with the decision responsible for it. What Save
+     * refuses on, and what the screen puts beside the control at fault.
+     *
+     * @param array<string, string> $colors
+     * @return list<array{pair: string, decision: string, ratio: float, required: float}>
+     */
+    public static function failures(array $colors, bool $hasSecondary): array
+    {
+        $failures = [];
+        foreach (self::pairs($colors, $hasSecondary) as $pair) {
+            if (!$pair['passes']) {
+                $failures[] = ['pair' => $pair['pair'], 'decision' => $pair['decision'], 'ratio' => $pair['ratio'], 'required' => $pair['required']];
             }
         }
 

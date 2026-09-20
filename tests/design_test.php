@@ -206,3 +206,98 @@ test('a missing stylesheet is recompiled on the next request', function () {
     assertEquals(basename($file), basename(linkedStylesheet(dispatch('/about'))), 'same design, same name');
     assertTrue(is_file($file), 'the stylesheet was not recompiled');
 });
+
+// ---- Round 2: the loop closes (PLAN.md D-058) -----------------------------------------
+
+test('every pair is measured, and the failures are exactly the ones that do not pass', function () {
+    $colors = App\Modules\Design\Palette::colors('#ffe600', '', 'low');
+    $pairs = App\Modules\Design\Palette::pairs($colors, false);
+    $failures = App\Modules\Design\Palette::failures($colors, false);
+
+    assertEquals(11, count($pairs), 'pairs measured');
+    foreach ($pairs as $pair) {
+        assertTrue($pair['ratio'] > 0, 'a ratio for ' . $pair['pair']);
+        assertEquals($pair['ratio'] >= 4.5, $pair['passes'], 'the verdict for ' . $pair['pair']);
+        assertTrue($pair['foreground'] !== $pair['background'], 'two colours for ' . $pair['pair']);
+    }
+
+    $failed = array_values(array_map(
+        static fn (array $pair): string => $pair['pair'],
+        array_filter($pairs, static fn (array $pair): bool => !$pair['passes']),
+    ));
+    assertEquals($failed, array_map(static fn (array $f): string => $f['pair'], $failures), 'failures against the same list');
+    assertTrue($failed !== [], 'a yellow seed fails something');
+});
+
+test('the check endpoint carries every pair, not only the failures', function () {
+    adminSite('sqlite');
+    $query = http_build_query(designFields(Presets::get('minimal')));
+    $result = json_decode(dispatch('/admin/design/check?' . $query)->body, true);
+
+    assertEquals(11, count($result['pairs'] ?? []), 'pairs in the response');
+    assertEquals([], $result['errors'] ?? null, 'minimal passes, so no errors');
+    foreach ($result['pairs'] as $pair) {
+        assertTrue($pair['passes'] === true, $pair['pair'] . ' passes under minimal');
+    }
+});
+
+test('the screen shows the gauge, and never folds away a pair that fails', function () {
+    adminSite('sqlite');
+    $body = dispatch('/admin/design')->body;
+
+    // Six open, five folded, while everything passes.
+    preg_match('~<ul class="gauge-list" data-gauge-open>(.*?)</ul>~s', $body, $open);
+    assertEquals(6, substr_count($open[1] ?? '', 'class="gauge-row'), 'rows standing open');
+    assertContains('data-pair="text_on_background"', $body, 'the first pair');
+    assertContains('4.5', $body, 'what the rule asks for');
+
+    // A grey seed fails three pairs, and one of them — text on the start of the gradient —
+    // is the tenth of eleven, which is inside the part that folds away. Measured, not
+    // assumed: a failure the screen hides is the one thing this must never do.
+    $failing = adminPost('/admin/design', designFields(['seed' => '#7f7f7f'] + Presets::get('minimal')) + ['action' => 'save']);
+    preg_match('~<ul class="gauge-list" data-gauge-open>(.*?)</ul>~s', $failing->body, $openAgain);
+    $folded = '';
+    if (preg_match('~<ul class="gauge-list" data-gauge-folded>(.*?)</ul>~s', $failing->body, $hidden) === 1) {
+        $folded = $hidden[1];
+    }
+    assertTrue(!str_contains($folded, 'gauge-fails'), 'a failing pair was folded out of sight');
+    assertEquals(7, substr_count($openAgain[1] ?? '', 'class="gauge-row'), 'six, plus the one lifted out of the fold');
+    assertEquals(3, substr_count($openAgain[1] ?? '', 'gauge-fails'), 'all three failures stand open');
+    assertEquals(4, substr_count($folded, 'class="gauge-row'), 'the rest stay folded');
+});
+
+test('the decisions are shown as numbers a person reads, never as CSS', function () {
+    adminSite('sqlite');
+    $body = dispatch('/admin/design')->body;
+    preg_match_all('~<p class="derived">(.*?)</p>~s', $body, $lines);
+    $derived = implode(' ', $lines[1]);
+
+    assertTrue(!str_contains($derived, 'clamp('), 'the screen printed a clamp()');
+    assertTrue(!str_contains($derived, 'rem'), 'the screen printed rem values');
+    $readable = Tokens::readable(Presets::get(Presets::DEFAULT));
+    assertContains($readable['text']['base'] . 'px', $derived, 'the body size');
+    assertContains($readable['radius'] . 'px', $derived, 'the corner radius');
+    assertContains($readable['container'] . 'px', $derived, 'the content width');
+});
+
+test('Save stands beside the preview and still submits the form', function () {
+    adminSite('sqlite');
+    $body = dispatch('/admin/design')->body;
+
+    // In the preview's own bar, which is the one part of a sticky column that is always in
+    // view: below a frame 78vh tall, a button never comes back into reach however far the
+    // page is scrolled.
+    preg_match('~<div class="preview-bar">(.*?)</div>\s*</div>~s', $body, $bar);
+    assertContains('value="save"', $bar[1] ?? '', 'Save stands in the preview bar');
+    assertContains('<button type="submit" form="design-form" name="action" value="save"', $body, 'the button names its form');
+    assertContains('id="design-form"', $body, 'the form it names');
+
+    // And outside the form element, which is the whole point: it must not be a child of it.
+    preg_match('~<form id="design-form".*?</form>~s', $body, $form);
+    assertTrue(!str_contains($form[0] ?? '', 'value="save"'), 'the button is still inside the form');
+
+    // And it still saves: the button is outside the form element, so this is not a detail
+    // the markup alone can settle.
+    $saved = adminPost('/admin/design', designFields(Presets::get('bold')) + ['action' => 'save']);
+    assertRedirectedTo('/admin/design', $saved);
+});

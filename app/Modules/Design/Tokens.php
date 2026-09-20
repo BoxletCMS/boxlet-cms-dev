@@ -147,6 +147,50 @@ final class Tokens
     }
 
     /**
+     * The same decisions in numbers a person can read, for the lines under the controls
+     * (PLAN.md D-058).
+     *
+     * WHAT WAS THERE BEFORE WAS CSS. The screen printed
+     * `clamp(2.038rem, 1.508rem + 1.759vw, 2.827rem)` and a row of rem values, which is the
+     * compiler's own language leaking onto the owner's screen: it told a person who has
+     * never written a stylesheet nothing, and it told one who has nothing they could not
+     * read off the page itself.
+     *
+     * PIXELS AT THE BROWSER'S DEFAULT of 16px to the rem. That is an assumption, and it is
+     * the right one to make here: a reader who has changed it is reading a page whose every
+     * size moves with their setting, and the number is a sense of scale, not a promise.
+     *
+     * The specimen is the preview beside these lines — the admin cannot show one, because
+     * its own type is fixed by the --ui-* set and must never follow the site's (SPEC §5.4).
+     *
+     * @param array<string, string> $decisions validated decisions
+     * @return array{text: array<string, int>, text_phone: int, space: int, section: int, radius: int, container: int, container_rem: float}
+     */
+    public static function readable(array $decisions): array
+    {
+        $px = static fn (float $rem): int => (int) round($rem * 16);
+        $ratio = (float) $decisions['scale'];
+        $sizes = [];
+        foreach (self::TYPE_STEPS as $name => $step) {
+            $sizes[$name] = $px($ratio ** $step);
+        }
+        $unit = self::SPACING[$decisions['spacing']];
+        $width = self::CONTAINER[$decisions['container']];
+
+        return [
+            'text' => $sizes,
+            // What the largest heading shrinks to on a narrow screen, by the same rule
+            // typeScale() uses to build the clamp.
+            'text_phone' => $px(max(1.25, $ratio ** 5 * 0.72)),
+            'space' => $px($unit),
+            'section' => $px($unit * self::SPACE_STEPS['2xl']),
+            'radius' => $px((float) rtrim(self::RADII[$decisions['radius']]['m'], 'rem')),
+            'container' => $px($width),
+            'container_rem' => $width,
+        ];
+    }
+
+    /**
      * The page as a sheet (D-031): what sits around it, how far it is inset, and how wide
      * the header runs.
      *

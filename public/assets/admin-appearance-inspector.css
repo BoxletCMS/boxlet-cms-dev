@@ -1,10 +1,14 @@
-/* The controls on the Appearance screen: five tabs, and inside them the rows of buttons,
- * sliders, typefaces and swatches a decision is made with (PLAN.md D-059, D-062, D-063,
- * D-065, D-066).
+/* HOW A DECISION IS MADE on the Appearance screen: five tabs, and inside them the rows of
+ * buttons, the sliders, the typeface cards and the specimen (PLAN.md D-059, D-062, D-065,
+ * D-066, D-075).
+ *
+ * How a COLOUR is shown and taken over is admin-appearance-colour.css, which split off here
+ * when the two together passed 500 lines. The seam is the one they already had: nothing in
+ * that file is a control with a closed set, and nothing in this one carries a site colour.
  *
  * Admin tokens only (--ui-*), with ONE exception that is the point of the screen: the
- * typeface cards are set in the faces being chosen, because a list of names is not a choice
- * anybody can make. */
+ * typeface cards and the specimen are set in the faces being chosen, because a list of
+ * names is not a choice anybody can make. */
 
 .tabs {
   display: grid;
@@ -80,143 +84,6 @@
   inline-size: 100%;
   min-inline-size: 0;
   accent-color: var(--ui-accent);
-}
-
-/* ---- the palette as ONE list of roles (PLAN.md D-074) --------------------------------- */
-
-/* It used to be two lists: fifteen colours that could not be touched, and a folded panel
-   holding the seven that could. The same information twice, and the half that can be
-   CHANGED was the half that was closed. */
-
-.roles {
-  display: grid;
-  gap: var(--ui-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.role {
-  display: grid;
-  /* swatch, name, hex, then what can be said or done about it.
-     THE LAST TWO ARE FIXED, and that is the whole point of the row. Each <li> is its own
-     grid — a list is not one grid unless every row contributes the same cells — so an
-     `auto` column is sized by ITS row alone: the hexes landed at 253px on the seven rows
-     with a picker and at 194px on the nine without, which is a column that is not a column.
-     A hex is always seven characters of mono, and the widest thing the last cell holds is
-     the word for a computed colour. */
-  grid-template-columns: 1.5rem minmax(0, 1fr) 2.9rem 3.75rem;
-  gap: var(--ui-2);
-  align-items: center;
-  font-size: var(--ui-text-sm);
-}
-
-/* The swatch IS the picker for a role that can be the owner's: a colour beside a button
-   that opens a colour picker is two things where there is one. Sized like the read-only
-   swatch beside it, so the list reads as one list.
-   MIN-BLOCK-SIZE AS WELL AS BLOCK-SIZE: every field's input carries a 2.5rem floor so a
-   text box is comfortable to hit (admin-forms.css), and a floor beats a height — the
-   square came out 24 wide and 40 tall until this said otherwise. */
-.role .role-swatch {
-  inline-size: 1.5rem;
-  block-size: 1.5rem;
-  min-block-size: 1.5rem;
-  max-inline-size: none;
-  flex: none;
-  padding: 0;
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-control-line);
-  border-radius: var(--ui-radius-s);
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.role svg.role-swatch,
-.role > svg {
-  inline-size: 1.5rem;
-  block-size: 1.5rem;
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-s);
-}
-
-.role-name {
-  min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.role-value {
-  color: var(--ui-ink-faint);
-  font-family: var(--ui-mono);
-  font-size: var(--ui-text-xs);
-}
-
-/* A role the owner has taken over reads at full strength; the hex of one the palette works
-   out is a fact about the palette, not a choice anybody made.
-   DRIVEN BY THE SWITCH, not by a class the server writes: appearance.js flips that checkbox
-   the moment a colour is picked (D-065), so the row has to follow without a round trip. */
-.role:has(input[type="checkbox"]:checked) .role-value {
-  color: var(--ui-ink);
-}
-
-/* Said in a word rather than by being quiet: a row that is only paler than its neighbours
-   does not say WHY it cannot be changed. */
-.role-derived {
-  color: var(--ui-ink-faint);
-  font-size: 0.625rem;
-  letter-spacing: 0.04em;
-  text-align: end;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-/* The switch is the mechanism, not the control (D-065): it carries "is this mine" through
-   the form, and the button beside it is what a person presses. CLIPPED, NEVER FADED —
-   opacity is what the admin's contrast rule forbids for making a control quiet (D-012). */
-.role input[type="checkbox"] {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  clip-path: inset(50%);
-}
-
-/* Only a role that HAS been taken over has anything to give back. */
-.role-free {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  inline-size: 1.5rem;
-  block-size: 1.5rem;
-  padding: 0;
-  background: transparent;
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-s);
-  color: var(--ui-ink-muted);
-  cursor: pointer;
-}
-
-.role:has(input[type="checkbox"]:checked) .role-free {
-  display: inline-flex;
-}
-
-.role-free:hover {
-  border-color: var(--ui-accent);
-  color: var(--ui-ink);
-}
-
-/* Reset all, likewise: it appears with the first colour taken and goes with the last one
-   given back, without the screen being asked for again. */
-.palette-reset {
-  display: none;
-}
-
-.field:has(.roles input[type="checkbox"]:checked) .palette-reset {
-  display: inline-flex;
-}
-
-.role .field-error {
-  grid-column: 1 / -1;
 }
 
 /* ---- a closed set is a row of buttons (PLAN.md D-065) --------------------------------- */
@@ -375,8 +242,9 @@
   font-weight: 400;
 }
 
-/* The sizes the two controls above decide, at the sizes they decide — in the admin's own
-   face, because the site's belongs to the site. */
+/* The sizes the two controls above decide, AT those sizes and in the face being chosen
+   (D-075). The panel is the admin's; what is set inside it is the site's, for the same
+   reason the cards above it are. */
 .specimen {
   display: grid;
   gap: var(--ui-1);

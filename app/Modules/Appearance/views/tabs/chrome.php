@@ -27,7 +27,17 @@ use App\Support\Url;
  * @var array<string, string> $characterLook what the character gives each choice
  * @var array<string, string> $errors
  * @var callable(string): string $error
+ * @var callable(string, string): string $ownColour
+ * @var array<string, string> $colors
+ * @var array<string, string> $decisions
  */
+/* Which palette shade each part is showing right now — what the owner chose, else what the
+   character gives. Only so the picker opens on the colour that is there rather than on
+   black; nothing is decided here. */
+$resolvedSurface = [
+    'header_surface' => ($look['header_surface'] ?? '') !== '' ? $look['header_surface'] : ($characterLook['header_surface'] ?? 'plain'),
+    'footer_surface' => ($look['footer_surface'] ?? '') !== '' ? $look['footer_surface'] : ($characterLook['footer_surface'] ?? 'plain'),
+];
 $word = static fn (string $code, string $field): string => is_string($words[$code][$field] ?? null)
     ? $words[$code][$field]
     : '';
@@ -83,6 +93,16 @@ $word = static fn (string $code, string $field): string => is_string($words[$cod
                     </div>
                     <?= field_hint('hint.look.' . $choice) ?>
                 </div>
+<?php if ($choice === 'header_surface' || $choice === 'footer_surface'): ?>
+                <?php /* Or a colour of its own (D-076), under the group it answers. The ink
+                         on it is DERIVED from it (Palette::inksOn), so this is not the free
+                         colour §5.4 refuses: it is a surface that brings its own readable
+                         text, and the gauge measures it like any other. */ ?>
+                <?= $ownColour(
+                    str_replace('_surface', '_colour', $choice),
+                    $colors[['plain' => 'background', 'tinted' => 'surface', 'contrast' => 'contrast'][$resolvedSurface[$choice]] ?? 'background'],
+                ) ?>
+<?php endif; ?>
 <?php endforeach; ?>
             </fieldset>
 

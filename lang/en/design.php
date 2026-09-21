@@ -53,6 +53,7 @@ return [
     'design.by_hand.computed' => 'computed',
     'design.by_hand.free' => 'Let the palette work out :role again',
     'design.by_hand.free_all' => 'Reset all',
+    'design.by_hand.free_short' => 'Use the palette',
     'design.by_hand.freed' => 'That colour is the palette\'s again.',
     'design.by_hand.all_freed' => 'Every colour is the palette\'s again.',
     'design.color.background' => 'Background',
@@ -156,6 +157,9 @@ return [
     'design.page_background.surface' => 'Tinted surface',
     'design.page_background.border' => 'Border tone',
     'design.page_background.contrast' => 'Contrast surface',
+    'design.page_background_colour' => 'Or a colour of your own',
+    'design.header_colour' => 'Or a colour of your own',
+    'design.footer_colour' => 'Or a colour of your own',
 
     'design.contrast.title' => 'Readable contrast',
     'design.contrast.intro' => 'Every pair of colours text can land on, measured. WCAG AA asks for 4.5:1, and Save refuses a pair below it.',
@@ -200,6 +204,10 @@ return [
     'design.pair.muted_on_contrast' => 'Muted text on the contrast surface',
     'design.pair.text_on_gradient_start' => 'Text on the start of the gradient',
     'design.pair.text_on_gradient_end' => 'Text on the end of the gradient',
+    'design.pair.text_on_header' => 'Text on the header’s own colour',
+    'design.pair.muted_on_header' => 'Muted text on the header’s own colour',
+    'design.pair.text_on_footer' => 'Text on the footer’s own colour',
+    'design.pair.muted_on_footer' => 'Muted text on the footer’s own colour',
 
     'design.specimen.hero' => 'A site that looks like you meant it',
     'design.specimen.hero_sub' => 'Every colour, size, space and shadow here follows from the design decisions.',

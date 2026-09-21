@@ -166,7 +166,14 @@ final class Presets
             + ['typography' => $preset['typography'], 'text_size' => $preset['text_size'], 'scale' => $preset['scale']]
             + self::NOTHING_NUDGED
             + $preset
-            + self::SHEET;
+            /* NO CHARACTER GIVES ONE OF THE THREE A COLOUR OF ITS OWN (D-076). The shades of
+               the palette are what a character IS; one shipping a free colour would be
+               making the owner's exception for them, exactly as a character shipping a
+               hand-set role would (D-063). Split in two because they sit on either side of
+               the sheet in the order validate() stores. */
+            + ['page_background_colour' => '']
+            + self::SHEET
+            + ['header_colour' => '', 'footer_colour' => ''];
     }
 
     public static function exists(string $name): bool

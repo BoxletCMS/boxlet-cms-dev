@@ -67,6 +67,11 @@ final class AppearanceForm
         foreach (Palette::BY_HAND as $role) {
             $query['color_' . $role . '_on'] = ($state['decisions']['color_' . $role] ?? '') !== '' ? '1' : '0';
         }
+        // And the three places that may take a colour of their own, for the same reason
+        // (D-076): the input always carries a colour, so only the switch says it is meant.
+        foreach (Tokens::OWN_COLOURS as $field) {
+            $query[$field . '_on'] = ($state['decisions'][$field] ?? '') !== '' ? '1' : '0';
+        }
         foreach ($state['look'] as $choice => $value) {
             $query[ChromeLook::field($choice)] = $value;
         }
@@ -165,6 +170,11 @@ final class AppearanceForm
         foreach (Palette::BY_HAND as $role) {
             if (($fields['color_' . $role . '_on'] ?? '') !== '1') {
                 $fields['color_' . $role] = '';
+            }
+        }
+        foreach (Tokens::OWN_COLOURS as $field) {
+            if (($fields[$field . '_on'] ?? '') !== '1') {
+                $fields[$field] = '';
             }
         }
 

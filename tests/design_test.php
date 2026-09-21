@@ -827,3 +827,142 @@ testBothDrivers('the footer menu runs in as many columns as the chrome says', fu
     assertEquals('4', App\Modules\Settings\ChromeLook::stored($db)['footer_columns'], 'the choice');
     assertContains('footer-cols-4', dispatch('/')->body, 'and the class the footer draws with');
 });
+
+/*
+ * OR A COLOUR OF YOUR OWN (PLAN.md D-076, docs/ispravci.md §C3).
+ *
+ * Three places take a shade of the palette or a colour the owner picked. The frame around a
+ * boxed page carries no text, so it needs nothing but the colour; the header and the footer
+ * carry text, so the ink on them is DERIVED from the colour and then measured.
+ */
+testBothDrivers('the header and the footer may take a colour of their own, with the ink worked out from it', function (string $driver) {
+    $db = adminSite($driver);
+
+    adminPost('/admin/appearance', appearanceFields([
+        'header_colour' => '#1b3a2f', 'header_colour_on' => '1',
+        'footer_colour' => '#f3e9d2', 'footer_colour_on' => '1',
+        'action' => 'save',
+    ]));
+    $stored = Design::load($db);
+    assertEquals('#1b3a2f', $stored['header_colour'], 'the header colour that was published');
+    assertEquals('#f3e9d2', $stored['footer_colour'], 'the footer colour that was published');
+
+    $css = (new TokenCompiler())->css(Derived::from($stored));
+    assertContains('--chrome-header-bg: #1b3a2f;', $css, 'the header carries its colour as a token');
+    assertContains('--chrome-footer-bg: #f3e9d2;', $css, 'and so does the footer');
+
+    // The ink is not a colour from the palette that happened to be there: it is chosen
+    // against THIS surface, and it reads on it.
+    $colors = Palette::colors($stored['seed'], $stored['secondary'], $stored['surface_contrast']);
+    foreach (['#1b3a2f', '#f3e9d2'] as $surface) {
+        $inks = Palette::inksOn($surface, $colors);
+        assertTrue(Color::contrast($inks['text'], $surface) >= Palette::AA_BODY,
+            'the text reads on ' . $surface . ': ' . number_format(Color::contrast($inks['text'], $surface), 2));
+        assertTrue(Color::contrast($inks['muted'], $surface) >= Palette::AA_BODY,
+            'and so does the muted text: ' . number_format(Color::contrast($inks['muted'], $surface), 2));
+    }
+
+    // And the gauge says so, by name, so a person can see the number rather than trust it.
+    $pairs = array_column(Palette::pairs($colors, false, [], Tokens::ownChrome($stored)), 'pair');
+    foreach (['text_on_header', 'muted_on_header', 'text_on_footer', 'muted_on_footer'] as $pair) {
+        assertTrue(in_array($pair, $pairs, true), $pair . ' is measured');
+    }
+});
+
+/*
+ * THE TWO COLOURS ANYBODY PICKS FIRST.
+ *
+ * A fixed step of 0.42 in lightness away from the surface is a comfortable muted tone in the
+ * middle of the range and breaks at both ends: black put the muted text at 2.48:1 and white
+ * at 4.29:1, so Boxlet refused both. The derivation walks until the pair reads,
+ * which is why this is a test of the RESULT and not of the step.
+ */
+testBothDrivers('black and white are colours the header may take', function (string $driver) {
+    $db = adminSite($driver);
+    $decisions = Presets::get('minimal');
+    $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+
+    foreach (['#000000', '#ffffff'] as $surface) {
+        $inks = Palette::inksOn($surface, $colors);
+        assertTrue(Color::contrast($inks['muted'], $surface) >= Palette::AA_BODY,
+            'muted text reads on ' . $surface . ': ' . number_format(Color::contrast($inks['muted'], $surface), 2));
+        // And it is MUTED, not the text colour over again: a second ink identical to the
+        // first says the design has no quiet tone at all.
+        assertTrue($inks['muted'] !== $inks['text'], 'and it is a quieter tone than the text on ' . $surface);
+
+        $result = Tokens::validate(['header_colour' => $surface] + $decisions);
+        assertEquals('', $result['errors']['header_colour'] ?? '', 'nothing is refused for ' . $surface);
+    }
+});
+
+testBothDrivers('a colour neither ink can be read on is refused, naming the control', function (string $driver) {
+    $db = adminSite($driver);
+    // A mid grey: the light ink and the dark ink both land just under AA on it.
+    $result = Tokens::validate(['header_colour' => '#7a7a7a'] + Presets::get('minimal'));
+
+    assertTrue(isset($result['errors']['header_colour']), 'the refusal is the header colour\'s own');
+    assertContains('4.5', $result['errors']['header_colour'], 'and it says what was needed');
+    // The colour is KEPT rather than replaced, so the screen can show what was refused.
+    assertEquals('#7a7a7a', $result['decisions']['header_colour'], 'the colour that was refused');
+});
+
+testBothDrivers('no character gives a place a colour of its own', function (string $driver) {
+    $db = adminSite($driver);
+    foreach (['editorial', 'minimal', 'bold', 'soft', 'brutalist'] as $name) {
+        $decisions = Presets::get($name);
+        foreach (Tokens::OWN_COLOURS as $field) {
+            assertTrue(array_key_exists($field, $decisions), $name . ' carries ' . $field);
+            assertEquals('', $decisions[$field], $name . ' leaves ' . $field . ' to the palette');
+        }
+    }
+});
+
+testBothDrivers('the page\'s own colour paints what surrounds a boxed page, and gains no pair', function (string $driver) {
+    $db = adminSite($driver);
+
+    adminPost('/admin/appearance', appearanceFields([
+        'boxed' => 'yes',
+        'page_background_colour' => '#101010', 'page_background_colour_on' => '1',
+        'action' => 'save',
+    ]));
+    $stored = Design::load($db);
+    assertEquals('#101010', $stored['page_background_colour'], 'the colour that was published');
+    assertContains('--page-bg: #101010;', (new TokenCompiler())->css(Derived::from($stored)), 'and what the frame is painted with');
+
+    // No text sits on it, so it adds nothing to the gauge — the reasoning that has always
+    // made this decision harmless.
+    $colors = Palette::colors($stored['seed'], $stored['secondary'], $stored['surface_contrast']);
+    $pairs = Palette::pairs($colors, false, [], Tokens::ownChrome($stored));
+    foreach ($pairs as $pair) {
+        assertTrue(!str_contains($pair['decision'], 'page_background_colour'), 'no pair belongs to the page background');
+    }
+});
+
+testBothDrivers('a place gives its colour back to the palette in one press', function (string $driver) {
+    $db = adminSite($driver);
+    adminPost('/admin/appearance', appearanceFields([
+        'header_colour' => '#1b3a2f', 'header_colour_on' => '1',
+        'action' => 'save',
+    ]));
+    assertEquals('#1b3a2f', Design::load($db)['header_colour'], 'the colour is the owner\'s');
+
+    // The button beside it, which re-renders rather than publishing: the screen shows the
+    // palette's colour again and Publish is what makes it so.
+    $body = adminPost('/admin/appearance', appearanceFields([
+        'header_colour' => '#1b3a2f', 'header_colour_on' => '1',
+        'action' => 'colour:free:header_colour',
+    ]))->body;
+    assertTrue(!str_contains($body, 'name="header_colour_on" value="1" checked'),
+        'the switch beside the header colour is off again');
+    assertEquals('#1b3a2f', Design::load($db)['header_colour'], 'and nothing was published by pressing it');
+
+    // "Reset all" frees these three along with the seven palette roles: the button says one
+    // thing, so it does one thing.
+    $body = adminPost('/admin/appearance', appearanceFields([
+        'header_colour' => '#1b3a2f', 'header_colour_on' => '1',
+        'color_text' => '#222222', 'color_text_on' => '1',
+        'action' => 'colour:free',
+    ]))->body;
+    assertTrue(!str_contains($body, 'name="header_colour_on" value="1" checked'), 'the header colour is the palette\'s again');
+    assertTrue(!str_contains($body, 'name="color_text_on" value="1" checked'), 'and so is the text colour');
+});

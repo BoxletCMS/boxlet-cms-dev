@@ -118,6 +118,48 @@ $slider = static function (string $key, float $min, float $max, float $step) use
         . '</div>';
 };
 
+/**
+ * OR A COLOUR OF YOUR OWN (PLAN.md D-076, handoff §C3).
+ *
+ * Sits directly under the segmented group it belongs to, never in a section of its own: it
+ * is one more answer to the question above it — "which colour is this" — and a panel called
+ * "custom colours" somewhere else would be the same question asked twice.
+ *
+ * THE SAME MECHANISM AS A HAND-SET ROLE (D-063, D-074), because it is the same act. A colour
+ * input always carries SOME colour, so "is this mine" cannot be read off its value; the
+ * switch is what says so, choosing flips it (appearance.js), and one visible button gives it
+ * back. Nothing here depends on a script: without one, the switch is a checkbox with a label
+ * and the button is an ordinary submit.
+ *
+ * WHILE IT IS NOT THE OWNER'S, the input holds the shade that place has as the page was
+ * rendered — a starting point for the picker, not a readout. It does not follow the palette
+ * live, and it carries no hex beside it for exactly that reason: a number that can go stale
+ * is worse than none, and the shade itself is stated by the group above, which does follow.
+ *
+ * @param string $showing the colour to start the picker on when the owner has not chosen
+ */
+$ownColour = static function (string $key, string $showing) use ($decisions, $error): string {
+    $id = 'design-' . $key;
+    $taken = ($decisions[$key] ?? '') !== '';
+    $label = t('design.' . $key);
+
+    return '<div class="field own-colour' . ($taken ? ' own-colour-taken' : '') . '">'
+        . '<div class="field-row">'
+        . '<label class="field-label" for="' . e($id) . '">' . e($label) . '</label>'
+        . '<button type="submit" form="design-form" name="action" value="colour:free:' . e($key) . '"'
+        . ' class="button button-quiet own-colour-free">' . e(t('design.by_hand.free_short')) . '</button>'
+        . '</div>'
+        . '<div class="colour-field">'
+        . '<input type="color" class="colour-input" id="' . e($id) . '" name="' . e($key) . '"'
+        . ' value="' . e($taken ? $decisions[$key] : $showing) . '" data-by-hand="' . e($key) . '">'
+        . '</div>'
+        . '<input type="checkbox" name="' . e($key) . '_on" value="1"' . ($taken ? ' checked' : '')
+        . ' data-by-hand-switch="' . e($key) . '" tabindex="-1" aria-hidden="true">'
+        . field_hint('hint.design.' . $key)
+        . $error($key)
+        . '</div>';
+};
+
 /** The five tabs, in the order the questions arrive. */
 $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
 

@@ -59,7 +59,38 @@ final class Derived
             'border' => ['width' => $hard ? '3px' : '1px', 'card' => $hard ? '3px' : '0px'],
             'container' => ['width' => self::rem($width), 'narrow' => self::rem($width * 0.68), 'wide' => self::rem($width * 1.3)],
             'page' => self::page($decisions, $colors, Tokens::SPACING[$decisions['spacing']]),
+            'chrome' => self::chrome($decisions, $colors),
         ];
+    }
+
+    /**
+     * The header's and the footer's own colours, and the ink derived for them (D-076).
+     *
+     * EMITTED ONLY WHEN THE OWNER SET ONE, which is what makes this need no rule of its own
+     * and no class on the element. chrome.css reads every one of these through
+     * `var(--chrome-header-bg, <what the surface class gave>)`, so a token that is not here
+     * is not a colour that is wrong — it is the palette's shade, standing exactly as before.
+     *
+     * The three inks are the same three the contrast surface has always had, from the same
+     * function (Palette::inksOn): a surface that carries text needs an ink that can be read
+     * on it, a muted one beside it and a raised one for whatever sits on top.
+     *
+     * @param array<string, string> $decisions
+     * @param array<string, string> $colors
+     * @return array<string, string>
+     */
+    private static function chrome(array $decisions, array $colors): array
+    {
+        $tokens = [];
+        foreach (Tokens::ownChrome($decisions) as $part => $surface) {
+            $inks = Palette::inksOn($surface, $colors);
+            $tokens[$part . '-bg'] = $surface;
+            $tokens[$part . '-text'] = $inks['text'];
+            $tokens[$part . '-muted'] = $inks['muted'];
+            $tokens[$part . '-raised'] = $inks['raised'];
+        }
+
+        return $tokens;
     }
 
     /**
@@ -80,7 +111,12 @@ final class Derived
         $boxed = $decisions['boxed'] === 'yes';
 
         return [
-            'bg' => $colors[$decisions['page_background']] ?? $colors['surface'],
+            // A shade of the palette, or the owner's own colour where they gave one (D-076).
+            // Nothing else changes: this is the one value the whole boxed-page decision
+            // runs through, so a free colour here needs no second rule anywhere.
+            'bg' => $decisions['page_background_colour'] !== ''
+                ? $decisions['page_background_colour']
+                : ($colors[$decisions['page_background']] ?? $colors['surface']),
             'frame' => $boxed ? self::rem($spacingUnit * (Tokens::FRAME[$decisions['frame']] ?? 3.0)) : '0',
             // The sheet's own corners and lift, and both are ZERO WHEN IT IS NOT BOXED for
             // the same reason the frame is: an unboxed sheet fills the window, and a

@@ -164,7 +164,7 @@ final class AppearancePreview
         $body = json_encode([
             'errors' => (object) $result['errors'],
             'colors' => $colors,
-            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand),
+            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions)),
             // What every control comes to, so a readout follows the control it belongs to
             // instead of holding the number the page was rendered with (D-066).
             'readouts' => AppearanceForm::readouts($decisions),

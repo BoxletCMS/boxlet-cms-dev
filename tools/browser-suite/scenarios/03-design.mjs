@@ -916,6 +916,91 @@ export default {
       afterReset[target] !== handTuned,
       `section ${target}: "${handTuned}" -> "${afterReset[target]}"`);
 
+    // ---- or a colour of your own (D-076) -------------------------------------------------
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await openTab(page, 'page');
+    const ownAtRest = await page.evaluate(() => {
+      const field = document.querySelector('.own-colour');
+      const input = field && field.querySelector('input[type="color"]');
+      const free = field && field.querySelector('.own-colour-free');
+      return {
+        there: field !== null,
+        // No control is ever invisible at rest (CLAUDE.md): the picker is a real square.
+        picker: input === null ? null : Math.round(input.getBoundingClientRect().width),
+        // And the one that undoes it is NOT there until there is something to undo.
+        freeShown: free !== null && getComputedStyle(free).display !== 'none',
+      };
+    });
+    report.verdict('the page offers a colour of its own, and nothing to undo yet',
+      ownAtRest.there && ownAtRest.picker >= 40 && !ownAtRest.freeShown,
+      JSON.stringify(ownAtRest));
+    await report.shot(page, 'own-colour-page');
+
+    // Choosing is what makes it the owner's: the switch is mechanism and flips under the
+    // hand, exactly as a hand-set palette role does (D-065).
+    await page.$eval('input[name="page_background_colour"]', (el) => {
+      el.value = '#101010';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const afterPicking = await page.evaluate(() => ({
+      on: document.querySelector('input[name="page_background_colour_on"]').checked,
+      freeShown: getComputedStyle(document.querySelector('.own-colour-free')).display !== 'none',
+    }));
+    report.verdict('choosing a colour takes the place over, and the way back appears',
+      afterPicking.on && afterPicking.freeShown, JSON.stringify(afterPicking));
+
+    // The header's own colour, published, and what the page then really draws.
+    await openTab(page, 'chrome');
+    await page.$eval('input[name="header_colour"]', (el) => {
+      el.value = '#1b3a2f';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await report.shot(page, 'own-colour-header');
+    await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
+
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
+    const headerDrawn = await page.evaluate(() => {
+      const header = document.querySelector('header.block');
+      if (header === null) {
+        return null;
+      }
+      const link = header.querySelector('a');
+      const seen = getComputedStyle(header);
+      return {
+        background: seen.backgroundColor,
+        text: seen.color,
+        // What a word inside is REALLY set in, computed the same way as the two above:
+        // reading --section-link would compare "#fefbfb" with "rgb(254, 251, 251)" and
+        // call two names for one colour a difference.
+        link: link === null ? null : getComputedStyle(link).color,
+        bodyBackground: getComputedStyle(document.body).backgroundColor,
+      };
+    });
+    await report.shot(page, 'own-colour-drawn');
+    report.verdict('the header on the site is drawn in the colour that was chosen',
+      headerDrawn !== null && headerDrawn.background === 'rgb(27, 58, 47)',
+      JSON.stringify(headerDrawn));
+    // The ink is DERIVED from that colour, so it is one the page can be read in rather
+    // than whatever the palette happened to hold.
+    report.verdict('and the ink on it was worked out for it, not taken from the palette',
+      headerDrawn !== null && headerDrawn.text !== headerDrawn.background && headerDrawn.link === headerDrawn.text,
+      headerDrawn === null ? 'no header' : `text ${headerDrawn.text}, links ${headerDrawn.link}`);
+
+    // Give it back, and the site returns to the palette's shade with nothing left behind.
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await openTab(page, 'chrome');
+    await clickAndWait(page, 'button[form="design-form"][name="action"][value="colour:free:header_colour"]');
+    await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
+    const givenBack = await page.evaluate(() => {
+      const header = document.querySelector('header.block');
+      return header === null ? null : getComputedStyle(header).backgroundColor;
+    });
+    report.verdict('giving the colour back leaves the header on the palette\'s shade',
+      givenBack !== null && givenBack !== 'rgb(27, 58, 47)', String(givenBack));
+
     // ---- a palette that fails contrast ---------------------------------------------------
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     await page.$eval('input[name="seed"]', (el) => {

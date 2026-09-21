@@ -97,31 +97,84 @@ final class Palette
 
         // The contrast surface is the second seed when given, else a deep shade of the first.
         $contrast = $secondary !== '' ? $secondary : Color::fromOklch(0.27, min($seedChroma, 0.1), $hue);
-        [$contrastLightness, $contrastChroma, $contrastHue] = Color::toOklch($contrast);
         $colors['contrast'] = $contrast;
-        $colors['on-contrast'] = self::readableOn([$contrast], $colors);
-        /*
-         * WHICH INK WON, MEASURED RATHER THAN GUESSED FROM WHICH SLOT IT CAME FROM.
-         *
-         * This asked whether the ink was the BACKGROUND colour, and took that to mean "light
-         * text" — true while every background was near-white, and wrong the moment one could
-         * be set by hand: on a dark page the background IS the dark ink, and the muted text
-         * beside it was then pushed the wrong way, to 1.40:1 (D-063).
-         */
-        [$inkLightness] = Color::toOklch($colors['on-contrast']);
-        $lightText = $inkLightness > 0.5;
-        $colors['muted-on-contrast'] = Color::fromOklch(
-            $contrastLightness + ($lightText ? 0.42 : -0.42),
-            min($contrastChroma, 0.04),
-            $contrastHue,
-        );
-        $colors['contrast-raised'] = Color::fromOklch($contrastLightness + ($lightText ? 0.06 : -0.06), $contrastChroma, $contrastHue);
+        $inks = self::inksOn($contrast, $colors);
+        $colors['on-contrast'] = $inks['text'];
+        $colors['muted-on-contrast'] = $inks['muted'];
+        $colors['contrast-raised'] = $inks['raised'];
 
         $colors['gradient-start'] = $seed;
         $colors['gradient-end'] = Color::fromOklch(max(0.2, $seedLightness - 0.1), $seedChroma, $hue + 45);
         $colors['on-gradient'] = self::readableOn([$colors['gradient-start'], $colors['gradient-end']], $colors);
 
         return $colors;
+    }
+
+    /**
+     * THE INK FOR A SURFACE THE PALETTE DID NOT CHOOSE (PLAN.md D-076).
+     *
+     * Whichever of the palette's two inks can be read on it, a muted version of that, and a
+     * raised version of the surface itself — the three a section needs beyond its background.
+     *
+     * WHICH INK WON IS MEASURED, NOT GUESSED FROM WHICH SLOT IT CAME FROM. This asked
+     * whether the ink was the BACKGROUND colour and took that to mean "light text" — true
+     * while every background was near-white, and wrong the moment one could be set by hand:
+     * on a dark page the background IS the dark ink, and the muted text beside it was then
+     * pushed the wrong way, to 1.40:1 (D-063).
+     *
+     * It was the contrast surface's own arithmetic, inline. The header and the footer may
+     * now carry a colour of their own (D-076) and need exactly the same three, so it is one
+     * function with three callers rather than three copies that would drift — the contrast
+     * surface included, which is what proves the move changed nothing.
+     *
+     * @param array<string, string> $colors the palette so far; needs `background` and `text`
+     * @return array{text: string, muted: string, raised: string}
+     */
+    public static function inksOn(string $surface, array $colors): array
+    {
+        [$lightness, $chroma, $hue] = Color::toOklch($surface);
+        $text = self::readableOn([$surface], $colors);
+        [$inkLightness] = Color::toOklch($text);
+        $lightText = $inkLightness > 0.5;
+
+        return [
+            'text' => $text,
+            'muted' => self::muted($surface, $lightness, min($chroma, 0.04), $hue, $lightText),
+            'raised' => Color::fromOklch($lightness + ($lightText ? 0.06 : -0.06), $chroma, $hue),
+        ];
+    }
+
+    /**
+     * The muted ink for a surface: the step the contrast surface has always taken, and
+     * further where that step is not enough to read (PLAN.md D-076).
+     *
+     * A FIXED STEP IS WRONG AT THE ENDS OF THE RANGE. 0.42 of lightness away is a comfortable
+     * muted tone for a surface somewhere in the middle, which every contrast surface the five
+     * characters ship is. Measured against a surface the OWNER picks it breaks at both ends:
+     * a pure black header put the muted text at 2.48:1 and a pure white one at 4.29:1, so
+     * Boxlet refused the two colours anybody is likeliest to choose. That was the derivation
+     * being weak, not the choice being bad.
+     *
+     * It walks further away until the pair reads, and stops at the first step that does. A
+     * surface already passing at 0.42 is returned at 0.42 — which is every contrast surface
+     * in use today, so nothing that works now moves.
+     *
+     * When the whole range is exhausted nothing is forced: the last value is returned, the
+     * pair fails and the check refuses it, naming the control (D-063). A colour neither of
+     * the palette's inks can be read on is a colour Boxlet should say no to.
+     */
+    private static function muted(string $surface, float $lightness, float $chroma, float $hue, bool $lighter): string
+    {
+        $limit = $lighter ? 1.0 : 0.0;
+        $muted = Color::fromOklch($lightness + ($lighter ? 0.42 : -0.42), $chroma, $hue);
+        for ($step = 0.42; $lighter ? $lightness + $step <= $limit : $lightness - $step >= $limit; $step += 0.02) {
+            $muted = Color::fromOklch($lightness + ($lighter ? $step : -$step), $chroma, $hue);
+            if (Color::contrast($muted, $surface) >= self::AA_BODY) {
+                break;
+            }
+        }
+
+        return $muted;
     }
 
     /**
@@ -138,9 +191,11 @@ final class Palette
      * @param array<string, string> $colors
      * @param array<string, string> $byHand the roles the owner set, so a failure names the
      *        control that can fix it
+     * @param array<string, string> $ownChrome `header` and `footer` => the colour the owner
+     *        gave that part, absent for one still taking a shade of the palette (D-076)
      * @return list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}>
      */
-    public static function pairs(array $colors, bool $hasSecondary, array $byHand = []): array
+    public static function pairs(array $colors, bool $hasSecondary, array $byHand = [], array $ownChrome = []): array
     {
         $contrastDecision = $hasSecondary ? 'secondary' : 'seed';
         $defined = [
@@ -178,6 +233,38 @@ final class Palette
             ];
         }
 
+        /*
+         * THE TWO SURFACES THE PALETTE DOES NOT OWN (D-076).
+         *
+         * While the header and the footer could only take `plain`, `tinted` or `contrast`,
+         * the twelve pairs above already covered them: each of those three is a palette role
+         * that is measured. A colour of their own is a surface nothing else measures, so it
+         * gets its own rows — one for the ink, one for the muted text beside it.
+         *
+         * Both are DERIVED from the colour (inksOn), so these can only fail for a colour
+         * neither of the palette's inks can be read on. That is rare and it is real, and a
+         * refusal naming the control is the whole reason the check exists (D-063).
+         */
+        foreach (['header', 'footer'] as $part) {
+            $surface = $ownChrome[$part] ?? '';
+            if ($surface === '') {
+                continue;
+            }
+            $inks = self::inksOn($surface, $colors);
+            foreach (['text' => 'text', 'muted' => 'muted'] as $which => $ink) {
+                $ratio = Color::contrast($inks[$ink], $surface);
+                $pairs[] = [
+                    'pair' => $which . '_on_' . $part,
+                    'decision' => $part . '_colour',
+                    'ratio' => $ratio,
+                    'required' => self::AA_BODY,
+                    'passes' => $ratio >= self::AA_BODY,
+                    'foreground' => $inks[$ink],
+                    'background' => $surface,
+                ];
+            }
+        }
+
         return $pairs;
     }
 
@@ -187,12 +274,13 @@ final class Palette
      *
      * @param array<string, string> $colors
      * @param array<string, string> $byHand
+     * @param array<string, string> $ownChrome
      * @return list<array{pair: string, decision: string, ratio: float, required: float}>
      */
-    public static function failures(array $colors, bool $hasSecondary, array $byHand = []): array
+    public static function failures(array $colors, bool $hasSecondary, array $byHand = [], array $ownChrome = []): array
     {
         $failures = [];
-        foreach (self::pairs($colors, $hasSecondary, $byHand) as $pair) {
+        foreach (self::pairs($colors, $hasSecondary, $byHand, $ownChrome) as $pair) {
             if (!$pair['passes']) {
                 $failures[] = ['pair' => $pair['pair'], 'decision' => $pair['decision'], 'ratio' => $pair['ratio'], 'required' => $pair['required']];
             }

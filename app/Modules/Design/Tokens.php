@@ -100,6 +100,23 @@ final class Tokens
     public const PAGE_BACKGROUND = ['surface', 'border', 'contrast'];
 
     /*
+     * OR A COLOUR OF YOUR OWN (PLAN.md D-076, handoff §C3).
+     *
+     * Three places where the shades of the palette are a choice and not the only one: what
+     * surrounds a boxed page, and the two bands the page is held between. Empty until the
+     * owner sets one, and a hex when they have — the same convention the seven hand-set
+     * roles use (D-063), for the same reason: a default nobody chose is not a value.
+     *
+     * THESE ARE NOT A FREE COLOUR PER SECTION, which §5.4 refuses and this does not open. A
+     * section takes a surface from the palette because a page of arbitrary bands is a page
+     * with no palette left. The page's own frame and its chrome are three places, decided
+     * once for the whole site, and each one is measured: the frame carries no text at all,
+     * and the ink on the other two is DERIVED from the colour (Palette::inksOn) rather than
+     * left to whatever the palette happened to hold.
+     */
+    public const OWN_COLOURS = ['page_background_colour', 'header_colour', 'footer_colour'];
+
+    /*
      * THE SHEET, AND WHAT BREAKS OUT OF IT (PLAN.md D-067, handoff §3.3).
      *
      * The frame used to be hard-coded at three spacing units and wrapped the WHOLE page, so
@@ -203,6 +220,17 @@ final class Tokens
             $decisions[$key] = $colour ?? '';
         }
 
+        // The three places that may take a colour of their own instead of a shade of the
+        // palette (D-076). Same shape as the roles above: '' is "use the palette's".
+        foreach (self::OWN_COLOURS as $key) {
+            $typed = is_string($input[$key] ?? null) ? trim($input[$key]) : '';
+            $colour = $typed === '' ? '' : Color::normalizeHex($typed);
+            if ($colour === null) {
+                $errors[$key] = t('design.error.color');
+            }
+            $decisions[$key] = $colour ?? '';
+        }
+
         // The step between sizes, and the three nudges: numbers, each with its own bounds.
         $scale = self::bounded($input['scale'] ?? null, self::SCALE_MIN, self::SCALE_MAX);
         if ($scale === null) {
@@ -235,7 +263,7 @@ final class Tokens
          */
         $byHand = self::byHand($decisions);
         $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
-        foreach (Palette::failures($colors, $decisions['secondary'] !== '', $byHand) as $failure) {
+        foreach (Palette::failures($colors, $decisions['secondary'] !== '', $byHand, self::ownChrome($decisions)) as $failure) {
             $message = t('design.error.contrast', [
                 'pair' => t('design.pair.' . $failure['pair']),
                 'ratio' => number_format($failure['ratio'], 2),
@@ -260,8 +288,9 @@ final class Tokens
             ['typography', 'text_size', 'scale'],
             array_keys(self::NUDGES),
             ['heading_weight', 'tracking', 'caps', 'spacing', 'radius', 'shadow', 'container',
-                'surface_contrast', 'header_width', 'boxed', 'page_background',
-                'frame', 'sheet_radius', 'sheet_shadow', 'header_bleed', 'footer_bleed'],
+                'surface_contrast', 'header_width', 'boxed', 'page_background', 'page_background_colour',
+                'frame', 'sheet_radius', 'sheet_shadow', 'header_bleed', 'footer_bleed',
+                'header_colour', 'footer_colour'],
         );
         $ordered = [];
         foreach ($order as $key) {
@@ -339,6 +368,31 @@ final class Tokens
         }
 
         return $byHand;
+    }
+
+    /**
+     * The colour the owner gave the header and the footer, leaving out a part still taking a
+     * shade of the palette (D-076). One reading of the decisions, as byHand() is: the key's
+     * shape is known here and nowhere else.
+     *
+     * The page background's own colour is NOT among them. These two are surfaces that carry
+     * text and so have ink derived for them and pairs measured on them; the frame around a
+     * boxed page carries none, which is what has always made that decision harmless.
+     *
+     * @param array<string, string> $decisions
+     * @return array<string, string>
+     */
+    public static function ownChrome(array $decisions): array
+    {
+        $own = [];
+        foreach (['header', 'footer'] as $part) {
+            $value = $decisions[$part . '_colour'] ?? '';
+            if ($value !== '') {
+                $own[$part] = $value;
+            }
+        }
+
+        return $own;
     }
 
     /**

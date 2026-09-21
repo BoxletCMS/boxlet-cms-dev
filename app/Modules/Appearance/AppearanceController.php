@@ -110,11 +110,24 @@ final class AppearanceController
          * guarantee D-063 moved from derivation to checking.
          */
         if (str_starts_with($action, 'colour:free')) {
-            $freeing = $action === 'colour:free'
-                ? Palette::BY_HAND
-                : array_intersect(Palette::BY_HAND, [substr($action, strlen('colour:free:'))]);
-            foreach ($freeing as $role) {
-                $state['decisions']['color_' . $role] = '';
+            /* The seven palette roles and the three places that may take a colour of their
+               own (D-076) are one list here: the button beside each says the same thing —
+               give this back — and which store the decision lives in is not the owner's
+               question. "Free all" frees all ten. */
+            $named = $action === 'colour:free' ? null : substr($action, strlen('colour:free:'));
+            $freeing = [];
+            foreach (Palette::BY_HAND as $role) {
+                if ($named === null || $named === $role) {
+                    $freeing[] = 'color_' . $role;
+                }
+            }
+            foreach (Tokens::OWN_COLOURS as $field) {
+                if ($named === null || $named === $field) {
+                    $freeing[] = $field;
+                }
+            }
+            foreach ($freeing as $field) {
+                $state['decisions'][$field] = '';
             }
             $again = Tokens::validate($state['decisions']);
 
@@ -266,6 +279,7 @@ final class AppearanceController
                 'admin-appearance-rail.css',
                 'admin-appearance-picture.css',
                 'admin-appearance-inspector.css',
+                'admin-appearance-colour.css',
                 'admin-appearance-widths.css',
             ],
             // The screen IS the window, as the page editor's canvas is: the admin's rail
@@ -281,7 +295,7 @@ final class AppearanceController
             'hasBlocks' => Composition::hasBlocks($db),
             'library' => DesignLibrary::all($db),
             'colors' => $colors,
-            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand),
+            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions)),
             'readable' => Tokens::readable($decisions),
             'readouts' => AppearanceForm::readouts($decisions),
             // The chrome half of the screen.

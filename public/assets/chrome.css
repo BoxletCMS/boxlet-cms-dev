@@ -89,6 +89,61 @@
   font-size: var(--text-sm);
 }
 
+/* A COLOUR OF ITS OWN (PLAN.md D-076).
+
+   The header and the footer take one of the three palette surfaces, and may instead take a
+   colour the owner picked. Every value below falls back to WHAT THE SURFACE CLASS ALREADY
+   GAVE, and the tokens exist only when a colour was set — so with no colour set this whole
+   block computes to exactly what sections.css put there, and there is nothing to switch on,
+   no class to add and no rule generated per site.
+
+   The --section-* properties are redefined on the CHILD, not on the element itself: a
+   custom property whose own value appears in its fallback is a cycle, and a cycle in CSS is
+   not a warning — it is the property silently becoming invalid. On the container the
+   var(--section-*) inside each fallback is the value INHERITED from the header, which is
+   the surface class's, which is the thing meant.
+
+   header.block:not(.layout-transparent) beats .surface-contrast on specificity (0,2,1
+   against 0,1,0), so this does not depend on which stylesheet loads last.
+
+   A TRANSPARENT HEADER IS EXCLUDED, because the two choices contradict each other: that
+   layout exists to paint NOTHING and take the colours of the section beneath, and a header
+   with a colour of its own that draws none of it would leave its ink standing on a surface
+   it was not measured against. The layout wins, and it wins by not matching. */
+header.block:not(.layout-transparent) {
+  background: var(--chrome-header-bg, var(--section-bg));
+  color: var(--chrome-header-text, var(--section-text));
+}
+
+footer.block {
+  background: var(--chrome-footer-bg, var(--section-bg));
+  color: var(--chrome-footer-text, var(--section-text));
+}
+
+header.block:not(.layout-transparent) > .container {
+  --section-bg: var(--chrome-header-bg, var(--section-bg));
+  --section-text: var(--chrome-header-text, var(--section-text));
+  --section-muted: var(--chrome-header-muted, var(--section-muted));
+  /* A link takes the ink rather than the accent, as it does on the contrast surface: the
+     accent is chosen against the PAGE, and a colour of its own is not the page. */
+  --section-link: var(--chrome-header-text, var(--section-link));
+  --section-button-bg: var(--chrome-header-text, var(--section-button-bg));
+  --section-button-text: var(--chrome-header-bg, var(--section-button-text));
+  --section-card: var(--chrome-header-raised, var(--section-card));
+  --section-border: var(--chrome-header-muted, var(--section-border));
+}
+
+footer.block > .container {
+  --section-bg: var(--chrome-footer-bg, var(--section-bg));
+  --section-text: var(--chrome-footer-text, var(--section-text));
+  --section-muted: var(--chrome-footer-muted, var(--section-muted));
+  --section-link: var(--chrome-footer-text, var(--section-link));
+  --section-button-bg: var(--chrome-footer-text, var(--section-button-bg));
+  --section-button-text: var(--chrome-footer-bg, var(--section-button-text));
+  --section-card: var(--chrome-footer-raised, var(--section-card));
+  --section-border: var(--chrome-footer-muted, var(--section-border));
+}
+
 /* THE CHROME'S LOOK (PLAN.md D-032, D-036). Every value is a closed-set class drawn from
    the tokens: density, a rule under the header, logo size, and the header's and footer's
    arrangements. Surfaces are the sections' own (sections.css), so contrast is the
@@ -102,7 +157,10 @@
 .site-footer.density-roomy { padding-block: var(--space-xl); }
 
 .block-header:has(.has-rule) {
-  border-block-end: var(--border-width) solid var(--section-border);
+  /* The own colour's muted ink where there is one (D-076). Read here rather than through
+     --section-border, because this rule is on the HEADER and that property is redefined on
+     its container — a custom property cannot carry its own value in its fallback. */
+  border-block-end: var(--border-width) solid var(--chrome-header-muted, var(--section-border));
 }
 
 .logo-small .site-logo img { block-size: 2em; }

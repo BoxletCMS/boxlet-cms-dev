@@ -13,6 +13,8 @@
  * @var callable(string): string $error one field's message, or an empty slot for the script
  * @var callable(string, array<array-key, string>, string=, string=): string $segmented
  * @var callable(string, list<string>): array<string, string> $labels
+ * @var callable(string, string): string $ownColour
+ * @var array<string, string> $colors
  */
 ?>
             <?php /* Its own group rather than three more controls under Shape (D-031).
@@ -25,6 +27,10 @@
                 <?= $segmented('boxed', $labels('boxed', App\Modules\Design\Tokens::BOXED)) ?>
                 <?= $segmented('page_background', $labels('page_background', App\Modules\Design\Tokens::PAGE_BACKGROUND)) ?>
                 <p class="hint"><?= e(t('design.page_background_hint')) ?></p>
+                <?php /* Or a colour of its own (D-076). The one place on the page where a
+                         free colour carries no risk at all: it shows only around a BOXED
+                         page, so no text ever lands on it and the gauge gains no pair. */ ?>
+                <?= $ownColour('page_background_colour', $colors[$decisions['page_background']] ?? $colors['surface']) ?>
                 <?= $segmented('header_width', $labels('header_width', App\Modules\Design\Tokens::HEADER_WIDTH)) ?>
 
                 <?php /* THE SHEET AND ITS EDGES (D-067). Every one of these only shows on a

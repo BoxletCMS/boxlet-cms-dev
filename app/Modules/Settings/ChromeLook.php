@@ -29,6 +29,12 @@ final class ChromeLook
         'density' => ['compact', 'normal', 'roomy'],
         'header_rule' => ['on', 'off'],
         'logo_size' => ['small', 'medium', 'large'],
+        /* How many columns the footer's MENU runs in, and only when the footer is in
+         * columns at all (PLAN.md D-067). The handoff asks for the footer's own grid to take
+         * this number; measured against what a footer actually holds — the owner's words,
+         * the menu, the switcher and the small print — three and four columns would leave
+         * two of them empty. A long menu is the thing that really needs the room. */
+        'footer_columns' => ['2', '3', '4'],
     ];
 
     /**
@@ -38,15 +44,15 @@ final class ChromeLook
      */
     public const CHARACTER = [
         // A masthead: the name on the left, a hairline under it, air around both.
-        'editorial' => ['header_layout' => 'left', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_rule' => 'on', 'logo_size' => 'medium'],
+        'editorial' => ['header_layout' => 'left', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_rule' => 'on', 'logo_size' => 'medium', 'footer_columns' => '2'],
         // Everything on one axis and as little of it as possible.
-        'minimal' => ['header_layout' => 'centred', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'plain', 'density' => 'normal', 'header_rule' => 'off', 'logo_size' => 'small'],
+        'minimal' => ['header_layout' => 'centred', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'plain', 'density' => 'normal', 'header_rule' => 'off', 'logo_size' => 'small', 'footer_columns' => '2'],
         // The header over the first section, which is where Bold spends its colour.
-        'bold' => ['header_layout' => 'transparent', 'footer_layout' => 'columns', 'header_surface' => 'plain', 'footer_surface' => 'contrast', 'density' => 'normal', 'header_rule' => 'off', 'logo_size' => 'large'],
+        'bold' => ['header_layout' => 'transparent', 'footer_layout' => 'columns', 'header_surface' => 'plain', 'footer_surface' => 'contrast', 'density' => 'normal', 'header_rule' => 'off', 'logo_size' => 'large', 'footer_columns' => '3'],
         // Always within reach, on a soft tint, with room to breathe.
-        'soft' => ['header_layout' => 'sticky', 'footer_layout' => 'columns', 'header_surface' => 'tinted', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_rule' => 'off', 'logo_size' => 'medium'],
+        'soft' => ['header_layout' => 'sticky', 'footer_layout' => 'columns', 'header_surface' => 'tinted', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_rule' => 'off', 'logo_size' => 'medium', 'footer_columns' => '2'],
         // A slab of contrast, packed tight, ruled off.
-        'brutalist' => ['header_layout' => 'left', 'footer_layout' => 'columns', 'header_surface' => 'contrast', 'footer_surface' => 'contrast', 'density' => 'compact', 'header_rule' => 'on', 'logo_size' => 'large'],
+        'brutalist' => ['header_layout' => 'left', 'footer_layout' => 'columns', 'header_surface' => 'contrast', 'footer_surface' => 'contrast', 'density' => 'compact', 'header_rule' => 'on', 'logo_size' => 'large', 'footer_columns' => '3'],
     ];
 
     /**

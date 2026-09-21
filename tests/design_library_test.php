@@ -48,7 +48,9 @@ test('a row damaged by hand comes back as something the design layer accepts', f
 
     assertEquals(Presets::get(Presets::DEFAULT)['seed'], $saved['decisions']['seed'] ?? '', 'the seed falls back');
     assertTrue(in_array($saved['decisions']['scale'] ?? '', App\Modules\Design\Tokens::SCALES, true), 'so does the scale');
-    assertEquals(7, count($saved['look'] ?? []), 'every chrome choice is there, empty');
+    // Bound to the source: the chrome gained an eighth choice and a literal 7 would have
+    // failed for a change it has nothing to do with.
+    assertEquals(count(ChromeLook::OPTIONS), count($saved['look'] ?? []), 'every chrome choice is there, empty');
 });
 
 testBothDrivers('the screen keeps what is on it, and the site does not move', function (string $driver) {

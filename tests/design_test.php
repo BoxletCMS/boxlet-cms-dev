@@ -225,7 +225,7 @@ test('every pair is measured, and the failures are exactly the ones that do not 
     $pairs = App\Modules\Design\Palette::pairs($colors, false);
     $failures = App\Modules\Design\Palette::failures($colors, false);
 
-    assertEquals(11, count($pairs), 'pairs measured');
+    assertEquals(12, count($pairs), 'pairs measured');
     foreach ($pairs as $pair) {
         assertTrue($pair['ratio'] > 0, 'a ratio for ' . $pair['pair']);
         assertEquals($pair['ratio'] >= 4.5, $pair['passes'], 'the verdict for ' . $pair['pair']);
@@ -245,7 +245,7 @@ test('the check endpoint carries every pair, not only the failures', function ()
     $query = http_build_query(designFields(Presets::get('minimal')));
     $result = json_decode(dispatch('/admin/appearance/check?' . $query)->body, true);
 
-    assertEquals(11, count($result['pairs'] ?? []), 'pairs in the response');
+    assertEquals(12, count($result['pairs'] ?? []), 'pairs in the response');
     assertEquals([], $result['errors'] ?? null, 'minimal passes, so no errors');
     foreach ($result['pairs'] as $pair) {
         assertTrue($pair['passes'] === true, $pair['pair'] . ' passes under minimal');
@@ -263,7 +263,7 @@ test('the screen shows the gauge, and never folds away a pair that fails', funct
     assertContains('4.5', $body, 'what the rule asks for');
 
     // A grey seed fails three pairs, and one of them — text on the start of the gradient —
-    // is the tenth of eleven, which is inside the part that folds away. Measured, not
+    // is the eleventh of twelve, which is inside the part that folds away. Measured, not
     // assumed: a failure the screen hides is the one thing this must never do.
     $failing = adminPost('/admin/appearance', designFields(['seed' => '#7f7f7f'] + Presets::get('minimal')) + ['action' => 'save']);
     preg_match('~<ul class="gauge-list" data-gauge-open>(.*?)</ul>~s', $failing->body, $openAgain);
@@ -272,7 +272,7 @@ test('the screen shows the gauge, and never folds away a pair that fails', funct
         $folded = $hidden[1];
     }
     assertTrue(!str_contains($folded, 'gauge-fails'), 'a failing pair was folded out of sight');
-    assertEquals(7, substr_count($openAgain[1] ?? '', 'class="gauge-row'), 'six, plus the one lifted out of the fold');
+    assertEquals(8, substr_count($openAgain[1] ?? '', 'class="gauge-row'), 'six, plus the two lifted out of the fold');
     assertEquals(3, substr_count($openAgain[1] ?? '', 'gauge-fails'), 'all three failures stand open');
     assertEquals(4, substr_count($folded, 'class="gauge-row'), 'the rest stay folded');
 });
@@ -519,7 +519,7 @@ test('a colour set by hand is used exactly, and the ones that depend on it are w
     }
 });
 
-test('only the six independent roles can be set by hand', function () {
+test('only the seven independent roles can be set by hand', function () {
     $minimal = Presets::get('minimal');
     $roles = array_keys(Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast']));
     $onOffer = Palette::BY_HAND;
@@ -527,7 +527,7 @@ test('only the six independent roles can be set by hand', function () {
     $left = array_values(array_diff($roles, Palette::BY_HAND));
     sort($left);
 
-    assertEquals(['background', 'border', 'link', 'muted', 'surface', 'text'], $onOffer, 'the roles on offer');
+    assertEquals(['background', 'border', 'card', 'link', 'muted', 'surface', 'text'], $onOffer, 'the roles on offer');
     // Every other role the palette holds, named: the two seeds under their own names, and
     // the five inks that go ON a colour. Choosing one of those is choosing whether text can
     // be read, which is the palette's job and the reason the check can be trusted.
@@ -567,7 +567,7 @@ testBothDrivers('a colour is the owner\'s only while its switch is on', function
     assertContains('--color-surface: #eceff4;', $css, 'the compiled token');
 });
 
-test('the screen offers the six colours, folded away until one is the owner\'s', function () {
+test('the screen offers the seven colours, folded away until one is the owner\'s', function () {
     $db = adminSite('sqlite');
     $shut = dispatch('/admin/appearance')->body;
 
@@ -681,4 +681,99 @@ test('every readout the screen shows comes from one place', function () {
     // instead of holding the number the page was rendered with.
     $checked = json_decode(dispatch('/admin/appearance/check?' . http_build_query(designFields(['spacing' => 'generous'] + Presets::get('minimal'))))->body, true);
     assertEquals(Tokens::readable(['spacing' => 'generous'] + Presets::get('minimal'))['space'] . 'px', $checked['readouts']['spacing'] ?? '', 'the spacing it would come to');
+});
+
+// ---- Round 9: the sheet, and what breaks out of it (D-067) -----------------------------
+
+test('the frame wraps the sheet, and the chrome chooses which side of it to be on', function () {
+    $db = adminSite('sqlite');
+    lookSite($db);
+
+    // Boxed, with the header breaking out: the header is a child of the page, the sections
+    // are inside the sheet, and the frame is between them.
+    Design::save($db, Tokens::validate([
+        'boxed' => 'yes', 'header_bleed' => 'full', 'footer_bleed' => 'sheet',
+    ] + Presets::get('soft'))['decisions'], tmpPath('cache'));
+    $body = dispatch('/')->body;
+
+    assertContains('<div class="page">', $body, 'the page');
+    assertContains('<div class="page-frame">', $body, 'the frame');
+    assertContains('<div class="page-sheet">', $body, 'the sheet');
+    $frame = strpos($body, '<div class="page-frame">');
+    assertTrue(strpos($body, '<header') < $frame, 'the header is outside the frame');
+    assertTrue(strpos($body, '<footer') > $frame, 'the footer is inside it');
+
+    // And the other way round.
+    Design::save($db, Tokens::validate([
+        'boxed' => 'yes', 'header_bleed' => 'sheet', 'footer_bleed' => 'full',
+    ] + Presets::get('soft'))['decisions'], tmpPath('cache'));
+    $swapped = dispatch('/')->body;
+    $frame = strpos($swapped, '<div class="page-frame">');
+    assertTrue(strpos($swapped, '<header') > $frame, 'the header is inside the frame now');
+    assertTrue(strrpos($swapped, '<footer') > strpos($swapped, '</div>'), 'and the footer is out of it');
+});
+
+test('the sheet\'s corners and lift are zero unless the page is boxed', function () {
+    $boxed = Derived::from(Tokens::validate([
+        'boxed' => 'yes', 'frame' => 'wide', 'sheet_radius' => 'round', 'sheet_shadow' => 'shadow',
+    ] + Presets::get('soft'))['decisions']);
+    $flat = Derived::from(Tokens::validate([
+        'boxed' => 'no', 'frame' => 'wide', 'sheet_radius' => 'round', 'sheet_shadow' => 'shadow',
+    ] + Presets::get('soft'))['decisions']);
+
+    assertTrue($boxed['page']['frame'] !== '0', 'a boxed page has a frame: ' . $boxed['page']['frame']);
+    assertTrue($boxed['page']['sheet-radius'] !== '0', 'and corners');
+    assertTrue($boxed['page']['sheet-shadow'] !== 'none', 'and a lift');
+
+    // Not conditionals in the stylesheet: the tokens themselves are zero, which is what
+    // keeps every rule free of "is this boxed" (D-031, D-067).
+    assertEquals('0', $flat['page']['frame'], 'an unboxed page has no frame');
+    assertEquals('0', $flat['page']['sheet-radius'], 'no corners');
+    assertEquals('none', $flat['page']['sheet-shadow'], 'and no lift');
+});
+
+test('how much room is around the sheet is a decision', function () {
+    $decisions = static fn (string $frame): array => Tokens::validate(['boxed' => 'yes', 'frame' => $frame] + Presets::get('soft'))['decisions'];
+    $thin = Derived::from($decisions('thin'))['page']['frame'];
+    $wide = Derived::from($decisions('wide'))['page']['frame'];
+
+    assertEquals('1.5rem', $thin, 'thin is one spacing unit');
+    assertEquals('7.5rem', $wide, 'wide is five');
+    assertTrue(isset(Tokens::validate(['frame' => 'enormous'] + Presets::get('soft'))['errors']['frame']), 'and nothing else is a frame');
+});
+
+testBothDrivers('cards have a colour of their own, between the page and a tinted section', function (string $driver) {
+    $db = adminSite($driver);
+    $minimal = Presets::get('minimal');
+    $colors = Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast']);
+
+    assertTrue(isset($colors['card']), 'the palette has a card colour');
+    assertTrue($colors['card'] !== $colors['background'] && $colors['card'] !== $colors['surface'],
+        'and it is neither the page nor the tinted surface: ' . $colors['card']);
+
+    // It is checked like every other surface text can land on.
+    $pairs = array_column(Palette::pairs($colors, false), 'pair');
+    assertTrue(in_array('text_on_card', $pairs, true), 'text on a card is measured');
+
+    // And the owner may take it over, like the other six.
+    adminPost('/admin/appearance', appearanceFields(['color_card' => '#eef1f4', 'color_card_on' => '1', 'action' => 'save']));
+    assertEquals('#eef1f4', Design::load($db)['color_card'], 'the card colour that was published');
+    assertContains('--color-card: #eef1f4;', (new TokenCompiler())->css(Derived::from(Design::load($db))), 'the compiled token');
+});
+
+testBothDrivers('the footer menu runs in as many columns as the chrome says', function (string $driver) {
+    $db = adminSite($driver);
+    lookSite($db);
+
+    // The menu goes with it: one screen is one form, so a post that omits a field clears
+    // it — the same rule that cost the site its header when a character card posted alone.
+    adminPost('/admin/appearance', appearanceFields([
+        'header_menu' => 'Main',
+        'look_footer_layout' => 'columns',
+        'look_footer_columns' => '4',
+        'action' => 'save',
+    ]));
+
+    assertEquals('4', App\Modules\Settings\ChromeLook::stored($db)['footer_columns'], 'the choice');
+    assertContains('footer-cols-4', dispatch('/')->body, 'and the class the footer draws with');
 });

@@ -115,7 +115,7 @@ export default {
         columnHeight: document.body.scrollHeight,
       };
     });
-    report.verdict('every contrast pair is measured on the screen', loop.rows === 11 && loop.open === 6,
+    report.verdict('every contrast pair is measured on the screen', loop.rows === 12 && loop.open === 6,
       `${loop.rows} rows, ${loop.open} open, first ratios ${loop.ratios.join(', ')}`);
     report.verdict('the "Update preview" button is gone where JavaScript runs', !loop.updateButton,
       loop.updateButton ? 'it is still there' : 'the preview follows every change instead');
@@ -295,10 +295,11 @@ export default {
 
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
       const seen = await page.evaluate(() => {
-        const sheet = document.querySelector('.page');
+        // The sheet is .page-sheet now; .page is what surrounds it (D-067).
+        const sheet = document.querySelector('.page-sheet');
         const box = sheet.getBoundingClientRect();
         const outside = [];
-        for (const el of document.querySelectorAll('.page > *, main > section')) {
+        for (const el of document.querySelectorAll('.page-sheet > *, main > section')) {
           const r = el.getBoundingClientRect();
           if (r.width > 0 && (r.left < box.left - 0.5 || r.right > box.right + 0.5)) {
             outside.push(el.className.toString().slice(0, 30));

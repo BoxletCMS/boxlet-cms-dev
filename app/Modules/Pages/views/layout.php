@@ -17,6 +17,9 @@ use App\Support\Url;
  * @var string $footerHtml the site footer, already rendered, or '' when there is none.
  *                         It carries the language switcher: the site has exactly one footer
  *                         and this layout must not draw a second (D-028).
+ * @var string $headerBleed 'sheet' to draw the header inside the sheet, 'full' to let it
+ *                          reach the window's edge (D-067)
+ * @var string $footerBleed the same, for the footer
  */
 ?>
 <!doctype html>
@@ -65,12 +68,30 @@ use App\Support\Url;
          was nothing to inset, because body carried both the background and the content.
          When the page is not boxed the frame token is zero, so this fills the window and
          the colour around it is never seen — which is also why no text can land on it. */ ?>
+    <?php /* THE FRAME WRAPS THE SHEET, NOT THE PAGE (D-067). Two slots for the chrome: one
+             outside the frame, where it reaches the window's edge, and one inside the
+             sheet. Which is used is a decision, read here — the CSS never asks whether the
+             page is boxed, which is what keeps it free of conditionals. */ ?>
     <div class="page">
+<?php if ($headerBleed === 'full'): ?>
 <?= $headerHtml ?>
+<?php endif; ?>
+        <div class="page-frame">
+            <div class="page-sheet">
+<?php if ($headerBleed !== 'full'): ?>
+<?= $headerHtml ?>
+<?php endif; ?>
     <main>
 <?= $content ?>
     </main>
+<?php if ($footerBleed !== 'full'): ?>
 <?= $footerHtml ?>
+<?php endif; ?>
+            </div>
+        </div>
+<?php if ($footerBleed === 'full'): ?>
+<?= $footerHtml ?>
+<?php endif; ?>
     </div>
 <?php /* NO SECOND FOOTER HERE. The site has exactly one and the chrome footer is it — it
          carries the language switcher through the same partial this layout used to include.

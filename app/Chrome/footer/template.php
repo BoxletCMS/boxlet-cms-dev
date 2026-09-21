@@ -27,7 +27,9 @@ $menu = is_array($resolved['menu'] ?? null) ? $resolved['menu'] : [];
 $look = is_array($resolved['look'] ?? null) ? $resolved['look'] : [];
 $credit = is_string($resolved['credit'] ?? null) ? $resolved['credit'] : '';
 ?>
-<div class="site-footer density-<?= e($look['density'] ?? 'normal') ?>">
+<?php /* The menu's columns are a CLASS, not a custom property: the admin's policy refuses a
+         style attribute, and a closed set of three is exactly what a class is for (D-067). */ ?>
+<div class="site-footer density-<?= e($look['density'] ?? 'normal') ?> footer-cols-<?= e($look['footer_columns'] ?? '2') ?>">
 <?php if ($content['text'] !== ''): ?>
     <div class="site-footer-text"><?= nl2br(e($content['text'])) ?></div>
 <?php endif; ?>

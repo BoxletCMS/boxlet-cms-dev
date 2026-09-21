@@ -28,7 +28,7 @@ final class Palette
      * of two inks can be read on a colour; handing those over would be handing over the one
      * decision that keeps text legible, dressed as a choice.
      */
-    public const BY_HAND = ['background', 'surface', 'border', 'text', 'muted', 'link'];
+    public const BY_HAND = ['background', 'card', 'surface', 'border', 'text', 'muted', 'link'];
 
     /**
      * @param array<string, string> $byHand role => #rrggbb for a role the owner set, '' or
@@ -64,6 +64,12 @@ final class Palette
 
         $colors = [
             'background' => Color::fromOklch($page, $tint * 0.4, $hue),
+            // CARDS AND PANELS ARE THEIR OWN ROLE (D-067). They used to take the tinted
+            // surface's colour on a plain section, which made a card on the page and a
+            // tinted band the same tone — so a card sitting inside a tinted section had
+            // nothing to be distinct from. It sits half a step from the page, between the
+            // two.
+            'card' => Color::fromOklch($away($step * 0.5), $tint * 0.7, $hue),
             'surface' => Color::fromOklch($away($step), $tint, $hue),
             'border' => Color::fromOklch($away($step + 0.1), $tint * 1.5, $hue),
             'text' => Color::fromOklch($dark ? 0.95 : 0.2, $ink, $hue),
@@ -140,6 +146,7 @@ final class Palette
         $defined = [
             ['text_on_background', 'surface_contrast', 'text', 'background'],
             ['muted_on_background', 'surface_contrast', 'muted', 'background'],
+            ['text_on_card', 'surface_contrast', 'text', 'card'],
             ['text_on_surface', 'surface_contrast', 'text', 'surface'],
             ['muted_on_surface', 'surface_contrast', 'muted', 'surface'],
             ['links_on_background', 'seed', 'link', 'background'],

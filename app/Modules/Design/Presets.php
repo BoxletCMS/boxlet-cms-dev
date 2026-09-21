@@ -24,13 +24,21 @@ final class Presets
      *  a character that shipped one would be making that choice for them (D-063). */
     /** No character nudges a step or overrides the pairing's heading treatment: those are
      *  the owner's exceptions to what a character gives (D-066). */
+    /* The sheet as every character has drawn it until now: three units of frame, square
+     * corners, no lift, chrome inside the sheet. Soft is the one that is boxed, so it is the
+     * one where any of this shows (D-067). */
+    private const SHEET = [
+        'frame' => 'normal', 'sheet_radius' => 'square', 'sheet_shadow' => 'none',
+        'header_bleed' => 'sheet', 'footer_bleed' => 'sheet',
+    ];
+
     private const NOTHING_NUDGED = [
         'nudge_h1' => '0', 'nudge_h2' => '0', 'nudge_sm' => '0',
         'heading_weight' => '', 'tracking' => '', 'caps' => '',
     ];
 
     private const NO_COLOURS_BY_HAND = [
-        'color_background' => '', 'color_surface' => '', 'color_border' => '',
+        'color_background' => '', 'color_card' => '', 'color_surface' => '', 'color_border' => '',
         'color_text' => '', 'color_muted' => '', 'color_link' => '',
     ];
 
@@ -157,7 +165,8 @@ final class Presets
             + self::NO_COLOURS_BY_HAND
             + ['typography' => $preset['typography'], 'text_size' => $preset['text_size'], 'scale' => $preset['scale']]
             + self::NOTHING_NUDGED
-            + $preset;
+            + $preset
+            + self::SHEET;
     }
 
     public static function exists(string $name): bool

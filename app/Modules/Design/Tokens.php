@@ -99,6 +99,23 @@ final class Tokens
     public const BOXED = ['no', 'yes'];
     public const PAGE_BACKGROUND = ['surface', 'border', 'contrast'];
 
+    /*
+     * THE SHEET, AND WHAT BREAKS OUT OF IT (PLAN.md D-067, handoff §3.3).
+     *
+     * The frame used to be hard-coded at three spacing units and wrapped the WHOLE page, so
+     * the header and footer were inset with everything else and could not reach the edge of
+     * the window. It wraps the sheet alone now, and the two bleed decisions say which side
+     * of it the chrome renders on.
+     *
+     * The bleeds are NOT TOKENS. They decide which slot the chrome renders into, so the
+     * layout reads them and the CSS never asks "is this boxed" — which is the property the
+     * frame's docblock has always been proud of.
+     */
+    public const FRAME = ['thin' => 1.0, 'narrow' => 2.0, 'normal' => 3.0, 'wide' => 5.0];
+    public const SHEET_RADIUS = ['square', 'soft', 'round'];
+    public const SHEET_SHADOW = ['none', 'shadow', 'hairline'];
+    public const BLEED = ['sheet', 'full'];
+
     /** Type steps as powers of the scale ratio, from small print to the largest heading. */
     /**
      * The closed decisions and their allowed values. The two colours are open (#rrggbb).
@@ -117,6 +134,11 @@ final class Tokens
             'header_width' => self::HEADER_WIDTH,
             'boxed' => self::BOXED,
             'page_background' => self::PAGE_BACKGROUND,
+            'frame' => array_keys(self::FRAME),
+            'sheet_radius' => self::SHEET_RADIUS,
+            'sheet_shadow' => self::SHEET_SHADOW,
+            'header_bleed' => self::BLEED,
+            'footer_bleed' => self::BLEED,
         ];
     }
 
@@ -238,7 +260,8 @@ final class Tokens
             ['typography', 'text_size', 'scale'],
             array_keys(self::NUDGES),
             ['heading_weight', 'tracking', 'caps', 'spacing', 'radius', 'shadow', 'container',
-                'surface_contrast', 'header_width', 'boxed', 'page_background'],
+                'surface_contrast', 'header_width', 'boxed', 'page_background',
+                'frame', 'sheet_radius', 'sheet_shadow', 'header_bleed', 'footer_bleed'],
         );
         $ordered = [];
         foreach ($order as $key) {

@@ -98,6 +98,12 @@ final class AppearanceForm
             'look' => ChromeLook::fromRequest($query),
             'character' => $character,
             'words' => self::words($query, $locale),
+            // Where the chrome renders, which is a design decision and so arrives with the
+            // rest of them rather than in the look (D-067).
+            'bleeds' => [
+                'header_bleed' => is_string($query['header_bleed'] ?? null) ? $query['header_bleed'] : 'sheet',
+                'footer_bleed' => is_string($query['footer_bleed'] ?? null) ? $query['footer_bleed'] : 'sheet',
+            ],
         ];
         if (array_key_exists(self::MENU, $query) && is_string($query[self::MENU])) {
             $trying['menu'] = $query[self::MENU];

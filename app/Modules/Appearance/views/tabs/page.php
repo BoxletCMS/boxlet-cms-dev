@@ -26,4 +26,13 @@
                 <?= $segmented('page_background', $labels('page_background', App\Modules\Design\Tokens::PAGE_BACKGROUND)) ?>
                 <p class="hint"><?= e(t('design.page_background_hint')) ?></p>
                 <?= $segmented('header_width', $labels('header_width', App\Modules\Design\Tokens::HEADER_WIDTH)) ?>
+
+                <?php /* THE SHEET AND ITS EDGES (D-067). Every one of these only shows on a
+                         boxed page, and each hint says so rather than the control hiding:
+                         a control that disappears is worse than one that explains itself. */ ?>
+                <?= $segmented('frame', $labels('frame', array_keys(App\Modules\Design\Tokens::FRAME))) ?>
+                <?= $segmented('sheet_radius', $labels('sheet_radius', App\Modules\Design\Tokens::SHEET_RADIUS)) ?>
+                <?= $segmented('sheet_shadow', $labels('sheet_shadow', App\Modules\Design\Tokens::SHEET_SHADOW)) ?>
+                <?= $segmented('header_bleed', $labels('header_bleed', App\Modules\Design\Tokens::BLEED)) ?>
+                <?= $segmented('footer_bleed', $labels('footer_bleed', App\Modules\Design\Tokens::BLEED)) ?>
             </fieldset>

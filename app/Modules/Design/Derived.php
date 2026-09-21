@@ -81,7 +81,21 @@ final class Derived
 
         return [
             'bg' => $colors[$decisions['page_background']] ?? $colors['surface'],
-            'frame' => $boxed ? self::rem($spacingUnit * 3) : '0',
+            'frame' => $boxed ? self::rem($spacingUnit * (Tokens::FRAME[$decisions['frame']] ?? 3.0)) : '0',
+            // The sheet's own corners and lift, and both are ZERO WHEN IT IS NOT BOXED for
+            // the same reason the frame is: an unboxed sheet fills the window, and a
+            // rounded corner or a shadow on something with no edge visible is a rule that
+            // does nothing but has to be read by everyone after (D-067).
+            'sheet-radius' => $boxed ? match ($decisions['sheet_radius']) {
+                'round' => self::RADII['round']['l'],
+                'soft' => self::RADII['subtle']['l'],
+                default => '0',
+            } : '0',
+            'sheet-shadow' => $boxed ? match ($decisions['sheet_shadow']) {
+                'shadow' => self::shadows('soft', $colors['text'])['l'],
+                'hairline' => '0 0 0 1px ' . $colors['border'],
+                default => 'none',
+            } : 'none',
             // The sheet keeps the page background; only what surrounds it changes.
             'sheet' => $colors['background'],
             'header-width' => $decisions['header_width'] === 'full' ? '100%' : self::rem(Tokens::width($decisions['container']) ?? 56.0),

@@ -59,6 +59,11 @@ return [
     'hint.design.shadow' => 'Whether cards and pictures cast a shadow, and what kind.',
     'hint.design.container' => 'How wide the page’s content runs on a large screen.',
     'hint.design.header_width' => 'Whether the header lines up with the page’s content or runs the full width of the window.',
+    'hint.design.frame' => 'How much room there is between the sheet and the edge of the window. Only shows on a boxed page.',
+    'hint.design.sheet_radius' => 'The corners of the sheet itself, not of the things on it. Only shows on a boxed page.',
+    'hint.design.sheet_shadow' => 'Whether the sheet looks lifted off what is behind it. Only shows on a boxed page.',
+    'hint.design.header_bleed' => 'Lets the header run to the edge of the window while the content stays boxed. On a page that is not boxed the two are the same thing. A header laid over the first section can only do that inside the sheet.',
+    'hint.design.footer_bleed' => 'The same for the footer: inside the sheet, or edge to edge under it.',
     'hint.design.boxed' => '“Yes” shows the page as a sheet with a margin of colour around it on large screens.',
 
     // The Header and footer screen: hint.look.{choice}
@@ -68,6 +73,7 @@ return [
     'hint.look.footer_surface' => 'The footer’s background, from the site’s own colours.',
     'hint.look.density' => 'How much room there is around the header’s and footer’s contents.',
     'hint.look.header_rule' => 'A thin line under the header, between it and the page.',
+    'hint.look.footer_columns' => 'How many columns a long menu runs in at the foot of the page. Only does anything when the footer is in columns.',
     'hint.look.logo_size' => 'How tall the logo is drawn. Its shape never changes.',
 
     // Media

@@ -4,6 +4,7 @@ namespace App\Modules\Pages;
 
 use App\Core\Container;
 use App\Core\Settings;
+use App\Modules\Design\Design;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Menus\MenuTree;
 use App\Modules\Settings\ChromeLook;
@@ -33,6 +34,8 @@ use App\Modules\Settings\SiteChrome;
  *     icon: array{url: string, type: string}|null,
  *     shareImage: string|null,
  *     hreflang: list<array{hreflang: string, href: string}>,
+ *     headerBleed: string,
+ *     footerBleed: string,
  *     headerHtml: string,
  *     footerHtml: string,
  * }
@@ -43,7 +46,7 @@ final class PageLayoutData
      * What the layout is handed, beside View's own $locale and $content. The test above
      * asserts this list against the template, so it is a fact rather than a comment.
      */
-    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'headerHtml', 'footerHtml'];
+    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'headerBleed', 'footerBleed', 'headerHtml', 'footerHtml'];
 
     /**
      * A visitor's page, or an error page.
@@ -78,7 +81,7 @@ final class PageLayoutData
             // A link preview of an error page is not worth a row, so this is the caller's.
             'shareImage' => $head['shareImage'] ?? null,
             'hreflang' => Alternates::hreflang($alternates, self::primary($container->get('locales'))),
-        ] + self::chrome($container, $locale, $alternates, $current, []);
+        ] + self::chrome($container, $locale, $alternates, $current, ['bleeds' => Design::load($db)]);
     }
 
     /**
@@ -98,7 +101,7 @@ final class PageLayoutData
      * A choice left at "follow the character" follows the character being PREVIEWED, so
      * Bold's sections never stand under Minimal's header.
      *
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>} $trying
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>} $trying
      * @return LayoutData
      */
     public static function forPreview(Container $container, string $locale, string $title, array $trying = []): array
@@ -137,9 +140,10 @@ final class PageLayoutData
      * other, and the templates stay free of URL arithmetic (PLAN.md D-032).
      *
      * @param array<int, array<string, mixed>> $locales the languages, as the switcher shows them
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>} $trying
-     *        what an admin preview is showing unsaved; empty for a visitor's page
-     * @return array{headerHtml: string, footerHtml: string}
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>} $trying
+     *        what an admin preview is showing unsaved; for a visitor's page only the two
+     *        bleeds, which are design decisions rather than chrome ones (D-067)
+     * @return array{headerBleed: string, footerBleed: string, headerHtml: string, footerHtml: string}
      */
     private static function chrome(Container $container, string $locale, array $locales, string $current, array $trying): array
     {
@@ -191,7 +195,14 @@ final class PageLayoutData
         $credit = Settings::get($db, 'site_credit') === true ? BOXLET_SITE : '';
         $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $menu !== [] || count($locales) > 1 || $credit !== '';
 
+        // WHICH SIDE OF THE FRAME THE CHROME IS ON (D-067). A design decision, not a chrome
+        // one: it is about the shape of the page, and the layout reads it so no rule in the
+        // stylesheet has to ask whether the page is boxed.
+        $bleeds = $trying['bleeds'] ?? [];
+
         return [
+            'headerBleed' => ($bleeds['header_bleed'] ?? 'sheet') === 'full' ? 'full' : 'sheet',
+            'footerBleed' => ($bleeds['footer_bleed'] ?? 'sheet') === 'full' ? 'full' : 'sheet',
             'headerHtml' => $hasHeader
                 ? $registry->render('header', $header, ['surface' => $resolved['header_surface']], $resolved['header_layout'], $media, true, 'header', ['menu' => $menu, 'look' => $resolved], $locale, $locales)
                 : '',

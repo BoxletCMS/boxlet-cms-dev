@@ -14,7 +14,6 @@
    renders exactly as it did. */
 body {
   margin: 0;
-  padding: var(--page-frame, 0);
   color: var(--color-text);
   background: var(--page-bg, var(--color-background));
   font-family: var(--font-body);
@@ -23,8 +22,20 @@ body {
   line-height: var(--leading-body);
 }
 
-.page {
+/* The page is what surrounds the sheet; the frame is the room between them; the sheet is
+   the page itself (D-067). When the design is not boxed the frame is zero and the sheet
+   fills the window, so these three are one box and nothing here is conditional. */
+.page-frame {
+  padding: var(--page-frame, 0);
+}
+
+.page-sheet {
   background: var(--page-sheet, var(--color-background));
+  border-radius: var(--page-sheet-radius, 0);
+  box-shadow: var(--page-sheet-shadow, none);
+  /* clip, not hidden: a corner has to cut the section under it, and `hidden` would make
+     this a scroll container and stop a sticky header sticking. */
+  overflow: clip;
 }
 
 
@@ -140,7 +151,7 @@ code {
   /* A boxed page keeps a sliver of its frame on a phone rather than the whole of it:
      measured, Soft's frame took 144 of a 390-pixel screen and left the header 150 to
      draw in. min() leaves an unboxed page (frame 0) exactly as it was. */
-  body {
+  .page-frame {
     padding: min(var(--page-frame, 0rem), 3vw);
   }
 }

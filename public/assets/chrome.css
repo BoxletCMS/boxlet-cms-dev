@@ -140,8 +140,13 @@
 /* Transparent: laid over the first section, taking that section's colours rather than
    painting its own — which is what makes it readable over any surface a hero can have.
    The first section gains the header's room above its own rhythm, so nothing sits under
-   the bar. */
-.page {
+   the bar.
+
+   THE SHEET IS WHAT IT IS LAID OVER (D-067). A header that BREAKS OUT of the sheet has
+   nothing to overlay — it sits above it, on the colour around the page — so none of these
+   rules match it and it draws as an ordinary header. That is the honest reading of the two
+   decisions together, and it needs no code to say so. */
+.page-sheet {
   position: relative;
 }
 
@@ -153,11 +158,11 @@
   background: transparent;
 }
 
-.page:has(> .block-header.layout-transparent) > main > .block:first-child {
+.page-sheet:has(> .block-header.layout-transparent) > main > .block:first-child {
   padding-block-start: calc(var(--section-rhythm) + var(--space-3xl));
 }
 
-.page:has(> main > .block:first-child:is(.surface-contrast, .surface-image)) > .block-header.layout-transparent {
+.page-sheet:has(> main > .block:first-child:is(.surface-contrast, .surface-image)) > .block-header.layout-transparent {
   --section-text: var(--color-on-contrast);
   --section-muted: var(--color-muted-on-contrast);
   --section-link: var(--color-on-contrast);
@@ -166,7 +171,7 @@
   --section-button-text: var(--color-contrast);
 }
 
-.page:has(> main > .block:first-child.surface-gradient) > .block-header.layout-transparent {
+.page-sheet:has(> main > .block:first-child.surface-gradient) > .block-header.layout-transparent {
   --section-text: var(--color-on-gradient);
   --section-muted: var(--color-on-gradient);
   --section-link: var(--color-on-gradient);
@@ -175,7 +180,7 @@
   --section-button-text: var(--color-gradient-start);
 }
 
-.page:has(> main > .block:first-child.surface-tinted) > .block-header.layout-transparent {
+.page-sheet:has(> main > .block:first-child.surface-tinted) > .block-header.layout-transparent {
   --section-card: var(--color-background);
 }
 
@@ -186,9 +191,26 @@
   align-items: start;
 }
 
+/* In columns the menu is a list down the side, and a long one may run in two or three of
+   them — which is the thing more columns actually help with (D-067). */
 .layout-columns .site-footer-nav ul {
-  flex-direction: column;
-  gap: var(--space-xs);
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: var(--space-xs) var(--space-l);
+}
+
+.layout-columns.footer-cols-3 .site-footer-nav ul {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.layout-columns.footer-cols-4 .site-footer-nav ul {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 40rem) {
+  .layout-columns .site-footer-nav ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .layout-columns .site-footer .locale-switcher,

@@ -35,6 +35,7 @@ use App\Support\Url;
  * @var array<int, array<string, mixed>> $locales
  * @var string $shownLocale the language the preview draws
  * @var array<string, string> $characterLook what the character gives each look choice
+ * @var array<string, string> $readouts what every control comes to, in words
  * @var string $host the site's own hostname, for the strip over the picture
  * @var string $pageName which page the picture is of
  * @var string $previewUrl
@@ -59,18 +60,20 @@ $error = static fn (string $key): string => isset($errors[$key])
  * $readout is the number the choice comes to — "20px", "56rem · 896px" — which is what
  * replaced the compiler's clamp() on this screen (D-058).
  *
- * @param array<string, string> $labels value => what it is called
+ * @param array<array-key, string> $labels value => what it is called. array-key, not string:
+ *        the heading weights are their own labels and PHP turns '600' into 600.
  */
-$segmented = static function (string $key, array $labels, string $readout = '', string $follows = '') use ($decisions, $error): string {
+$segmented = static function (string $key, array $labels, string $readout = '', string $follows = '') use ($decisions, $error, $readouts): string {
+    $readout = $readouts[$key] ?? $readout;
     $current = $decisions[$key] ?? '';
     $id = 'design-' . $key;
     $html = '<div class="field"><div class="field-row"><span class="field-label" id="' . e($id) . '-label">' . e(t('design.' . $key)) . '</span>';
     // The right of the label row says either what the choice comes to, or — for a chrome
     // choice nobody has touched — that it is still following the character (D-065, §3.5).
     if ($follows !== '' && $current === '') {
-        $html .= '<span class="readout readout-following">' . e($follows) . '</span>';
+        $html .= '<span class="readout readout-following" data-readout="' . e($key) . '">' . e($follows) . '</span>';
     } elseif ($readout !== '') {
-        $html .= '<span class="readout">' . e($readout) . '</span>';
+        $html .= '<span class="readout" data-readout="' . e($key) . '">' . e($readout) . '</span>';
     }
     $html .= '</div><div class="segmented" role="radiogroup" aria-labelledby="' . e($id) . '-label">';
     foreach ($labels as $value => $label) {
@@ -92,6 +95,27 @@ $labels = static function (string $key, array $values): array {
 };
 $swatch = static fn (string $hex, string $name): string => '<svg viewBox="0 0 10 10" aria-hidden="true">'
     . '<rect width="10" height="10" fill="' . e($hex) . '" data-swatch="' . e($name) . '"/></svg>';
+
+/**
+ * A decision that is a NUMBER: a slider, with what it comes to beside its name (D-062,
+ * D-066). The readout is the number a person can picture, not the one the CSS is in.
+ */
+$slider = static function (string $key, float $min, float $max, float $step) use ($decisions, $error, $readouts): string {
+    $id = 'design-' . $key;
+
+    return '<div class="field"><div class="field-row">'
+        . '<label for="' . e($id) . '">' . e(t('design.' . $key)) . '</label>'
+        . '<output class="readout" data-readout="' . e($key) . '" id="' . e($id) . '-value" for="' . e($id) . '">' . e($readouts[$key] ?? '') . '</output>'
+        . '</div>'
+        . '<input type="range" id="' . e($id) . '" name="' . e($key) . '"'
+        . ' min="' . e(rtrim(rtrim(number_format($min, 3, '.', ''), '0'), '.')) . '"'
+        . ' max="' . e(rtrim(rtrim(number_format($max, 3, '.', ''), '0'), '.')) . '"'
+        . ' step="' . e(rtrim(rtrim(number_format($step, 3, '.', ''), '0'), '.')) . '"'
+        . ' value="' . e($decisions[$key]) . '" data-slider-for="' . e($id) . '-value">'
+        . field_hint('hint.design.' . $key)
+        . $error($key)
+        . '</div>';
+};
 
 /** The five tabs, in the order the questions arrive. */
 $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];

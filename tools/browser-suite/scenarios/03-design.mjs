@@ -203,8 +203,9 @@ export default {
         content,
       };
     });
+    // The readout gives both units now (D-066): "44rem · 704px".
     report.verdict('the width slider says what the page is laid out to',
-      measured.readout === '44rem' && measured.token === '44rem' && Math.abs(measured.content - 44 * 16) <= 2,
+      measured.readout.startsWith('44rem') && measured.token === '44rem' && Math.abs(measured.content - 44 * 16) <= 2,
       `the control says ${measured.readout}, the page's token is ${measured.token}, the content measures ${measured.content}px (44rem is ${44 * 16}px)`);
     await report.shot(page, 'width-slider');
     await page.$eval('#design-container', (el, back) => {

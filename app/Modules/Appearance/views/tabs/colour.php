@@ -11,7 +11,7 @@
  * @var array<string, string> $decisions
  * @var array<string, string> $errors
  * @var callable(string): string $error one field's message, or an empty slot for the script
- * @var callable(string, array<string, string>, string=, string=): string $segmented
+ * @var callable(string, array<array-key, string>, string=, string=): string $segmented
  * @var callable(string, list<string>): array<string, string> $labels
  * @var array<string, string> $colors
  * @var list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}> $pairs

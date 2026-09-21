@@ -43,10 +43,15 @@ final class Derived
         return [
             'color' => $colors,
             'font' => ['heading' => Typography::stack($pairing['heading']), 'body' => Typography::stack($pairing['body'])],
-            'heading' => ['weight' => $pairing['heading_weight'], 'tracking' => $pairing['tracking'], 'transform' => $pairing['transform']],
+            // The pairing's own treatment, unless the owner has taken one over (D-066).
+            'heading' => [
+                'weight' => $decisions['heading_weight'] !== '' ? $decisions['heading_weight'] : $pairing['heading_weight'],
+                'tracking' => Tokens::TRACKING[$decisions['tracking']] ?? $pairing['tracking'],
+                'transform' => Tokens::CAPS[$decisions['caps']] ?? $pairing['transform'],
+            ],
             'body' => ['weight' => $pairing['body_weight']],
             'leading' => ['body' => $pairing['leading_body'], 'heading' => $pairing['leading_heading']],
-            'text' => self::typeScale((float) $decisions['scale'], Tokens::TEXT_SIZE[$decisions['text_size']] ?? 1.0),
+            'text' => self::typeScale($decisions),
             'space' => self::spaceScale(Tokens::SPACING[$decisions['spacing']]),
             'radius' => self::RADII[$decisions['radius']],
             'shadow' => self::shadows($decisions['shadow'], $colors['text']),
@@ -86,11 +91,56 @@ final class Derived
     /**
      * @return array<string, string>
      */
-    private static function typeScale(float $ratio, float $base = 1.0): array
+    /**
+     * The nudges in rem, keyed by the step each one moves (D-066). Pixels on the screen,
+     * because that is what a person is nudging; rem here, because that is what the scale is
+     * in and 16 is the root the whole model assumes.
+     *
+     * @param array<string, string> $decisions
+     * @return array<string, float>
+     */
+    private static function nudges(array $decisions): array
+    {
+        $nudges = [];
+        foreach (Tokens::NUDGES as $key => $bounds) {
+            $nudges[$bounds['step']] = (float) ($decisions[$key] ?? 0) / 16;
+        }
+
+        return $nudges;
+    }
+
+    /**
+     * ONE PLACE WHERE A SIZE IS WORKED OUT (D-066), in rem.
+     *
+     * The compiler needs it as CSS and the screen needs it as a number a person reads, and
+     * for a while they each did the arithmetic. The screen's copy was written first and did
+     * not know about the nudges, so every readout in the Type tab was wrong the moment one
+     * was used — caught by a test within a minute of the nudges existing. Two copies of a
+     * formula are two answers waiting to differ.
+     *
+     * @param array<string, string> $decisions validated decisions
+     */
+    public static function sizeOf(array $decisions, string $step): float
+    {
+        $ratio = (float) $decisions['scale'];
+        $base = Tokens::TEXT_SIZE[$decisions['text_size']] ?? 1.0;
+        $nudges = self::nudges($decisions);
+
+        // The nudge lands AFTER the ratio, so the scale stays the relationship it is and the
+        // nudge stays the exception it is. Never below half a rem: a size of zero is not a
+        // smaller heading, it is a missing one.
+        return max(0.5, $base * $ratio ** self::TYPE_STEPS[$step] + ($nudges[$step] ?? 0.0));
+    }
+
+    /**
+     * @param array<string, string> $decisions
+     * @return array<string, string>
+     */
+    private static function typeScale(array $decisions): array
     {
         $sizes = [];
         foreach (self::TYPE_STEPS as $name => $step) {
-            $size = $base * $ratio ** $step;
+            $size = self::sizeOf($decisions, $name);
             if ($step < 3) {
                 $sizes[$name] = self::rem($size);
                 continue;

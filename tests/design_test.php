@@ -607,3 +607,78 @@ test('a dark page set by hand works out its own palette, and the preview draws i
     ))->body, true);
     assertTrue(isset($unreadable['errors']['seed']), 'the seed is what is too dark now');
 });
+
+// ---- Round 9: type in detail (D-066) ---------------------------------------------------
+
+test('the step between sizes is a number, and the characters keep the ratios they had', function () {
+    foreach (Presets::names() as $name) {
+        $preset = Presets::get($name);
+        assertEquals($preset['scale'], Tokens::validate($preset)['decisions']['scale'], $name . ' keeps its ratio exactly');
+    }
+
+    assertEquals('1.42', Tokens::validate(['scale' => '1.42'] + Presets::get('minimal'))['decisions']['scale'], 'a number of its own');
+    $tooSteep = Tokens::validate(['scale' => '2.4'] + Presets::get('minimal'));
+    assertTrue(isset($tooSteep['errors']['scale']), 'outside the bounds is refused');
+    assertEquals('1.2', $tooSteep['decisions']['scale'], 'and falls back to the default');
+});
+
+test('a nudge moves one step and leaves the scale alone', function () {
+    $minimal = Presets::get('minimal');
+    $plain = Derived::from($minimal);
+    $nudged = Derived::from(['nudge_h1' => '16'] + $minimal);
+
+    // 16px is 1rem, added after the ratio has run. The largest heading is a clamp(), so the
+    // size itself is asked for rather than parsed back out of the CSS.
+    assertEquals(
+        round(Derived::sizeOf($minimal, '4xl') + 1, 4),
+        round(Derived::sizeOf(['nudge_h1' => '16'] + $minimal, '4xl'), 4),
+        'one rem larger, exactly',
+    );
+    assertContains('clamp(', $nudged['text']['4xl'], 'the largest heading still shrinks on a phone');
+    assertEquals($plain['text']['2xl'], $nudged['text']['2xl'], 'the step below it did not move');
+    assertEquals($plain['text']['base'], $nudged['text']['base'], 'nor did the body');
+
+    $readable = Tokens::readable(['nudge_h1' => '16'] + $minimal);
+    assertEquals(Tokens::readable($minimal)['text']['4xl'] + 16, $readable['text']['4xl'], 'the nudge is those pixels, exactly');
+
+    // Both directions, and bounded: a heading can take more than it can lose.
+    assertEquals('-30', Tokens::validate(['nudge_h1' => '-30'] + $minimal)['decisions']['nudge_h1'], 'the smallest it goes');
+    assertTrue(isset(Tokens::validate(['nudge_h1' => '-31'] + $minimal)['errors']['nudge_h1']), 'and no further');
+    assertTrue(isset(Tokens::validate(['nudge_sm' => '9'] + $minimal)['errors']['nudge_sm']), 'small print has its own bounds');
+});
+
+test('the heading treatment follows the typeface until it is taken over', function () {
+    $grotesk = ['typography' => 'grotesk'] + Presets::get('minimal');
+    $pairing = App\Modules\Design\Typography::PAIRINGS['grotesk'];
+
+    $following = Derived::from($grotesk);
+    assertEquals($pairing['heading_weight'], $following['heading']['weight'], 'the pairing\'s weight');
+    assertEquals($pairing['tracking'], $following['heading']['tracking'], 'the pairing\'s letter spacing');
+    assertEquals($pairing['transform'], $following['heading']['transform'], 'the pairing\'s case');
+
+    $mine = Derived::from(['heading_weight' => '400', 'tracking' => 'wide', 'caps' => 'yes'] + $grotesk);
+    assertEquals('400', $mine['heading']['weight'], 'the weight that was chosen');
+    assertEquals(Tokens::TRACKING['wide'], $mine['heading']['tracking'], 'the letter spacing that was chosen');
+    assertEquals('uppercase', $mine['heading']['transform'], 'and the case');
+
+    // A choice survives changing the typeface; what was never chosen follows the new one.
+    $rounded = Derived::from(['typography' => 'rounded', 'heading_weight' => '400'] + $grotesk);
+    assertEquals('400', $rounded['heading']['weight'], 'the weight stayed the owner\'s');
+    assertEquals(App\Modules\Design\Typography::PAIRINGS['rounded']['tracking'], $rounded['heading']['tracking'], 'the spacing followed');
+});
+
+test('every readout the screen shows comes from one place', function () {
+    adminSite('sqlite');
+    $readouts = App\Modules\Appearance\AppearanceForm::readouts(Presets::get('minimal'));
+    $body = dispatch('/admin/appearance')->body;
+
+    foreach (['text_size', 'scale', 'spacing', 'radius', 'container', 'nudge_h1', 'specimen.4xl'] as $name) {
+        assertTrue(isset($readouts[$name]), 'the server works out ' . $name);
+        assertContains('data-readout="' . $name . '"', $body, 'the screen names ' . $name);
+    }
+
+    // And the check endpoint returns them, so a readout follows the control being dragged
+    // instead of holding the number the page was rendered with.
+    $checked = json_decode(dispatch('/admin/appearance/check?' . http_build_query(designFields(['spacing' => 'generous'] + Presets::get('minimal'))))->body, true);
+    assertEquals(Tokens::readable(['spacing' => 'generous'] + Presets::get('minimal'))['space'] . 'px', $checked['readouts']['spacing'] ?? '', 'the spacing it would come to');
+});

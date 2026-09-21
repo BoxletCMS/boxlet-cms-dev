@@ -22,6 +22,13 @@ final class Presets
 
     /** Every character derives its whole palette: a colour set by hand is the owner's, and
      *  a character that shipped one would be making that choice for them (D-063). */
+    /** No character nudges a step or overrides the pairing's heading treatment: those are
+     *  the owner's exceptions to what a character gives (D-066). */
+    private const NOTHING_NUDGED = [
+        'nudge_h1' => '0', 'nudge_h2' => '0', 'nudge_sm' => '0',
+        'heading_weight' => '', 'tracking' => '', 'caps' => '',
+    ];
+
     private const NO_COLOURS_BY_HAND = [
         'color_background' => '', 'color_surface' => '', 'color_border' => '',
         'color_text' => '', 'color_muted' => '', 'color_link' => '',
@@ -142,8 +149,14 @@ final class Presets
         // Merged here rather than written out five times: six empty strings repeated in
         // every character would say nothing except "this character makes no choice", which
         // is the default for all of them. The order is the one validate() stores in.
+        // THE ORDER validate() STORES IN, spelled once: what a character gives, with the
+        // decisions no character makes merged into their places rather than appended. A
+        // test compares a character with what validation returns, and an array whose keys
+        // are in another order is a different array.
         return ['seed' => $preset['seed'], 'secondary' => $preset['secondary']]
             + self::NO_COLOURS_BY_HAND
+            + ['typography' => $preset['typography'], 'text_size' => $preset['text_size'], 'scale' => $preset['scale']]
+            + self::NOTHING_NUDGED
             + $preset;
     }
 

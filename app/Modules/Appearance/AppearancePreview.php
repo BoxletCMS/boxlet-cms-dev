@@ -156,6 +156,9 @@ final class AppearancePreview
             'errors' => (object) $result['errors'],
             'colors' => $colors,
             'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand),
+            // What every control comes to, so a readout follows the control it belongs to
+            // instead of holding the number the page was rendered with (D-066).
+            'readouts' => AppearanceForm::readouts($decisions),
         ], JSON_THROW_ON_ERROR);
 
         return new Response($body, 200, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);

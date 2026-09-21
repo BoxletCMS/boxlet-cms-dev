@@ -107,6 +107,41 @@ final class AppearanceForm
     }
 
     /**
+     * WHAT EVERY CONTROL COMES TO, in the words the screen shows beside it (PLAN.md D-066).
+     *
+     * One place, used twice: the screen renders these into the markup, and /check returns
+     * them so they follow a control that is being dragged. Before this they were rendered
+     * once and went stale the moment anything moved — a readout that lies is worse than no
+     * readout, because it is read.
+     *
+     * @param array<string, string> $decisions validated decisions
+     * @return array<string, string> readout name => what it says
+     */
+    public static function readouts(array $decisions): array
+    {
+        $readable = Tokens::readable($decisions);
+        $readouts = [
+            'text_size' => $readable['text']['base'] . 'px',
+            'scale' => $decisions['scale'] . '×',
+            'spacing' => $readable['space'] . 'px',
+            'radius' => $readable['radius'] . 'px',
+            'container' => $decisions['container'] . 'rem · ' . $readable['container'] . 'px',
+            'phone' => t('design.readable.phone', ['phone' => $readable['text_phone'] . 'px']),
+        ];
+        foreach (Tokens::NUDGES as $key => $bounds) {
+            $readouts[$key] = t('design.nudge_readout', [
+                'nudge' => $decisions[$key] . 'px',
+                'size' => $readable['text'][$bounds['step']] . 'px',
+            ]);
+        }
+        foreach (['4xl', '2xl', 'base', 'sm'] as $step) {
+            $readouts['specimen.' . $step] = $readable['text'][$step] . 'px';
+        }
+
+        return $readouts;
+    }
+
+    /**
      * Form fields as decisions: a colour counts only when its switch is on, because a colour
      * input ALWAYS submits some colour and "this one is mine" cannot be read off its value.
      *

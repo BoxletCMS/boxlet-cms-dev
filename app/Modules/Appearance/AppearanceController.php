@@ -228,6 +228,7 @@ final class AppearanceController
             // never looking at a folded panel wondering where their colour went.
             'handSet' => $byHand !== [],
             'readable' => Tokens::readable($decisions),
+            'readouts' => AppearanceForm::readouts($decisions),
             // The chrome half of the screen.
             'look' => $state['look'],
             'menu' => $state['menu'],

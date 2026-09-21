@@ -534,8 +534,10 @@
   gap: var(--ui-3);
 }
 
-.slider input[type="range"] {
-  flex: 1 1 auto;
+/* Every slider on this screen, wherever it sits: the helper renders one as a child of the
+   field rather than of a wrapper (D-066). */
+.appearance input[type="range"] {
+  inline-size: 100%;
   min-inline-size: 0;
   accent-color: var(--ui-accent);
 }

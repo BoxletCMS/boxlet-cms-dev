@@ -13,9 +13,10 @@ use App\Modules\Design\Typography;
  * @var array<string, string> $decisions
  * @var array<string, string> $errors
  * @var callable(string): string $error one field's message, or an empty slot for the script
- * @var callable(string, array<string, string>, string=, string=): string $segmented
+ * @var callable(string, array<array-key, string>, string=, string=): string $segmented
+ * @var callable(string, float, float, float): string $slider
  * @var callable(string, list<string>): array<string, string> $labels
- * @var array{text: array<string, int>, text_phone: int} $readable
+ * @var array<string, string> $readouts what every control comes to, in words
  */
 ?>
             <fieldset class="fieldset">
@@ -47,8 +48,34 @@ use App\Modules\Design\Typography;
                          control for too long: the scale is how much bigger each heading is
                          than the one under it, and this is how big the text itself is
                          (D-062). */ ?>
-                <?= $segmented('text_size', $labels('text_size', array_keys(Tokens::TEXT_SIZE)), $readable['text']['base'] . 'px') ?>
-                <?= $segmented('scale', $labels('scale', Tokens::SCALES), $readable['text']['2xl'] . 'px') ?>
+                <?= $segmented('text_size', $labels('text_size', array_keys(Tokens::TEXT_SIZE))) ?>
+                <?php /* THE STEP BETWEEN SIZES IS A NUMBER (D-066). Six named ratios were six
+                         answers to a question with a continuum behind it, and the gap between
+                         two of them was a decision nobody could make. */ ?>
+                <?= $slider('scale', Tokens::SCALE_MIN, Tokens::SCALE_MAX, 0.005) ?>
+
+                <?php /* The three exceptions to the scale (D-066): a ratio cannot say "that
+                         headline, two pixels smaller". The readout gives the nudge AND what
+                         the step comes to, because the nudge alone says nothing. */ ?>
+<?php foreach (Tokens::NUDGES as $key => $bounds): ?>
+                <?= $slider($key, (float) $bounds['min'], (float) $bounds['max'], 1) ?>
+<?php endforeach; ?>
+
+                <?php /* The heading treatment the PAIRING gives, which the owner may take
+                         over: '' follows the typeface, exactly as a chrome choice follows
+                         the character (D-066). */ ?>
+<?php
+    // The weights are their own labels — "600" says more than any word for it would.
+    /** @var array<array-key, string> $weights — PHP turns '600' into 600, and pretending
+     *  otherwise is how a type stops being true. */
+    $weights = ['' => t('design.heading_weight.follow')];
+    foreach (Tokens::HEADING_WEIGHTS as $weight) {
+        $weights[(string) $weight] = $weight;
+    }
+?>
+                <?= $segmented('heading_weight', $weights, '', t('design.follows_pairing')) ?>
+                <?= $segmented('tracking', ['' => t('design.tracking.follow')] + $labels('tracking', array_keys(Tokens::TRACKING)), '', t('design.follows_pairing')) ?>
+                <?= $segmented('caps', ['' => t('design.caps.follow')] + $labels('caps', array_keys(Tokens::CAPS)), '', t('design.follows_pairing')) ?>
 
                 <?php /* THE SPECIMEN (D-065). Not the site's own typeface at the site's own
                          size — the admin may not take those — but the SIZES, which is what
@@ -58,9 +85,9 @@ use App\Modules\Design\Typography;
                 <div class="specimen" aria-hidden="true">
 <?php foreach ([['4xl', 'design.specimen.hero'], ['2xl', 'design.specimen.text_heading'], ['base', 'design.specimen.text_body'], ['sm', 'design.specimen.small']] as [$step, $key]): ?>
                     <p class="specimen-line specimen-<?= e($step) ?>" data-specimen="<?= e($step) ?>">
-                        <span><?= e(t($key)) ?></span><em data-specimen-size="<?= e($step) ?>"><?= e($readable['text'][$step] . 'px') ?></em>
+                        <span><?= e(t($key)) ?></span><em data-readout="specimen.<?= e($step) ?>" data-specimen-size="<?= e($step) ?>"><?= e($readouts['specimen.' . $step] ?? '') ?></em>
                     </p>
 <?php endforeach; ?>
                 </div>
-                <p class="derived"><?= e(t('design.readable.phone', ['phone' => $readable['text_phone'] . 'px'])) ?></p>
+                <p class="derived" data-readout="phone"><?= e($readouts['phone'] ?? '') ?></p>
             </fieldset>

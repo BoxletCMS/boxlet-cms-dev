@@ -8,7 +8,43 @@ namespace App\Modules\Design;
  */
 final class Tokens
 {
+    /*
+     * THE STEP BETWEEN SIZES IS A NUMBER (PLAN.md D-066), 1.1 to 1.6.
+     *
+     * Six named ratios were six answers to a question with a continuum behind it, and the
+     * gap between "Moderate" and "Clear" was a decision nobody could make. The five
+     * characters keep the exact ratios they always had — a number is not rounded to a step
+     * on the way in, only clamped — so nothing moved when the decision changed shape.
+     */
+    public const SCALE_MIN = 1.1;
+    public const SCALE_MAX = 1.6;
+    /** What the five characters use, and what the slider's marks sit on. */
     public const SCALES = ['1.125', '1.2', '1.25', '1.333', '1.414', '1.5'];
+
+    /*
+     * PER-STEP NUDGES (D-066): the type scale is a ratio, and a ratio cannot say "that
+     * headline, two pixels smaller". Each is a number of pixels ADDED to one step after the
+     * scale has done its work, so the scale stays the relationship it is and the nudge stays
+     * the exception it is. Zero is the default and means the scale alone.
+     *
+     * Bounded in both directions, and asymmetrically: a heading can take a lot more than it
+     * can lose before it stops being a heading.
+     */
+    public const NUDGES = [
+        'nudge_h1' => ['step' => '4xl', 'min' => -30, 'max' => 40],
+        'nudge_h2' => ['step' => '2xl', 'min' => -12, 'max' => 20],
+        'nudge_sm' => ['step' => 'sm', 'min' => -3, 'max' => 5],
+    ];
+
+    /*
+     * The heading treatment, which the PAIRING gives and the owner may take over (D-066).
+     * '' is "as the pairing has it" — the same convention the chrome's seven choices use,
+     * and for the same reason: a weight chosen by hand should survive changing the typeface,
+     * and one never chosen should follow it.
+     */
+    public const HEADING_WEIGHTS = ['400', '500', '600', '700', '800'];
+    public const TRACKING = ['tight' => '-0.03em', 'normal' => '0em', 'wide' => '0.06em'];
+    public const CAPS = ['no' => 'none', 'yes' => 'uppercase'];
     /** Spacing base unit in rem; the whole spacing scale is multiples of it. */
     public const SPACING = ['compact' => 0.875, 'normal' => 1.0, 'roomy' => 1.25, 'generous' => 1.5];
     public const RADIUS = ['none', 'subtle', 'round', 'pill'];
@@ -73,7 +109,6 @@ final class Tokens
     {
         return [
             'typography' => array_keys(Typography::PAIRINGS),
-            'scale' => self::SCALES,
             'spacing' => array_keys(self::SPACING),
             'radius' => self::RADIUS,
             'shadow' => self::SHADOW,
@@ -110,6 +145,17 @@ final class Tokens
         }
         $decisions = ['seed' => $seed ?? $fallback['seed'], 'secondary' => $secondary ?? ''];
 
+        // The heading treatment: each may be left to the pairing, so '' is a value here
+        // rather than a missing one.
+        foreach (['heading_weight' => self::HEADING_WEIGHTS, 'tracking' => array_keys(self::TRACKING), 'caps' => array_keys(self::CAPS)] as $key => $allowed) {
+            $value = $input[$key] ?? '';
+            if (!is_string($value) || ($value !== '' && !in_array($value, $allowed, true))) {
+                $errors[$key] = t('design.error.choice');
+                $value = '';
+            }
+            $decisions[$key] = $value;
+        }
+
         foreach (self::choices() as $key => $allowed) {
             $value = $input[$key] ?? null;
             if (!is_string($value) || !in_array($value, $allowed, true)) {
@@ -133,6 +179,20 @@ final class Tokens
                 $errors[$key] = t('design.error.color');
             }
             $decisions[$key] = $colour ?? '';
+        }
+
+        // The step between sizes, and the three nudges: numbers, each with its own bounds.
+        $scale = self::bounded($input['scale'] ?? null, self::SCALE_MIN, self::SCALE_MAX);
+        if ($scale === null) {
+            $errors['scale'] = t('design.error.scale', ['min' => self::number(self::SCALE_MIN), 'max' => self::number(self::SCALE_MAX)]);
+        }
+        $decisions['scale'] = self::number($scale ?? (float) $fallback['scale']);
+        foreach (self::NUDGES as $key => $bounds) {
+            $nudge = self::bounded($input[$key] ?? null, (float) $bounds['min'], (float) $bounds['max']);
+            if ($nudge === null) {
+                $errors[$key] = t('design.error.nudge', ['min' => (string) $bounds['min'], 'max' => (string) $bounds['max']]);
+            }
+            $decisions[$key] = self::number((float) (int) round($nudge ?? 0.0));
         }
 
         // The one decision that is a number rather than one of a closed set.
@@ -175,7 +235,9 @@ final class Tokens
         $order = array_merge(
             ['seed', 'secondary'],
             array_map(static fn (string $role): string => 'color_' . $role, Palette::BY_HAND),
-            ['typography', 'text_size', 'scale', 'spacing', 'radius', 'shadow', 'container',
+            ['typography', 'text_size', 'scale'],
+            array_keys(self::NUDGES),
+            ['heading_weight', 'tracking', 'caps', 'spacing', 'radius', 'shadow', 'container',
                 'surface_contrast', 'header_width', 'boxed', 'page_background'],
         );
         $ordered = [];
@@ -211,11 +273,12 @@ final class Tokens
     public static function readable(array $decisions): array
     {
         $px = static fn (float $rem): int => (int) round($rem * 16);
-        $ratio = (float) $decisions['scale'];
-        $base = self::TEXT_SIZE[$decisions['text_size']] ?? 1.0;
+        // Asked, not worked out again: the screen's numbers and the stylesheet's sizes come
+        // from one formula (D-066). They did not, for about a minute, and every readout in
+        // the Type tab was wrong the moment a nudge was used.
         $sizes = [];
-        foreach (Derived::TYPE_STEPS as $name => $step) {
-            $sizes[$name] = $px($base * $ratio ** $step);
+        foreach (array_keys(Derived::TYPE_STEPS) as $name) {
+            $sizes[$name] = $px(Derived::sizeOf($decisions, $name));
         }
         $unit = self::SPACING[$decisions['spacing']];
         $width = self::width($decisions['container']) ?? 56.0;
@@ -224,7 +287,9 @@ final class Tokens
             'text' => $sizes,
             // What the largest heading shrinks to on a narrow screen, by the same rule
             // typeScale() uses to build the clamp.
-            'text_phone' => $px(max(1.25, $base * $ratio ** 5 * 0.72)),
+            // What the largest heading shrinks to on a narrow screen, by the same rule the
+            // stylesheet's clamp() is built from.
+            'text_phone' => $px(max(1.25, Derived::sizeOf($decisions, '4xl') * 0.72)),
             'space' => $px($unit),
             'section' => $px($unit * Derived::SPACE_STEPS['2xl']),
             'radius' => $px((float) rtrim(Derived::RADII[$decisions['radius']]['m'], 'rem')),
@@ -251,6 +316,20 @@ final class Tokens
         }
 
         return $byHand;
+    }
+
+    /**
+     * A number within bounds, or null for anything that is not one — which is what makes it
+     * an error rather than a silent default. Shared by every decision that is a number.
+     */
+    public static function bounded(mixed $value, float $min, float $max): ?float
+    {
+        if (is_bool($value) || is_array($value) || $value === null || !is_numeric($value)) {
+            return null;
+        }
+        $number = (float) $value;
+
+        return $number < $min || $number > $max ? null : $number;
     }
 
     /**

@@ -581,3 +581,202 @@
   font-weight: 400;
   white-space: nowrap;
 }
+
+/* ---- a closed set is a row of buttons (PLAN.md D-065) --------------------------------- */
+
+/* The label and what the choice comes to, on one line: the number belongs to the control,
+   not to a paragraph under it. */
+.field-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ui-2);
+}
+
+.field-row .field-label,
+.field-row label {
+  margin: 0;
+}
+
+.readout {
+  margin-inline-start: auto;
+  color: var(--ui-ink-muted);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* "following" is the one readout that is a STATE rather than a value, so it is the one that
+   is coloured. */
+.readout-following {
+  color: var(--ui-accent);
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  padding: 1px;
+  background: var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.segment {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ui-1) var(--ui-2);
+  background: var(--ui-panel);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  text-align: center;
+  cursor: pointer;
+}
+
+.segment:first-child { border-start-start-radius: var(--ui-radius-s); border-end-start-radius: var(--ui-radius-s); }
+.segment:last-child { border-start-end-radius: var(--ui-radius-s); border-end-end-radius: var(--ui-radius-s); }
+
+/* The radio itself is the thing that is checked and focused; it is not drawn, because the
+   segment around it is what a person is aiming at. Focus lands on the segment through
+   :has(), and every browser Boxlet targets has had it for two years.
+   CLIPPED, NEVER FADED: opacity is what the admin's contrast rule forbids as a way of
+   making a control quiet (D-012), and a rule that means "this is the mechanism, not the
+   control" should not be written in the one property that means the opposite. */
+.segment input,
+.typeface input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  clip-path: inset(50%);
+}
+
+.segment:hover {
+  color: var(--ui-ink);
+}
+
+.segment:has(input:checked) {
+  background: var(--ui-accent-soft);
+  color: var(--ui-ink);
+  font-weight: 650;
+}
+
+.segment:has(input:focus-visible) {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: -2px;
+}
+
+/* The follow segment is the one that says "not mine", so it reads quieter than a choice. */
+.segment-follow {
+  flex-basis: 100%;
+}
+
+/* ---- the typefaces, and the specimen ------------------------------------------------- */
+
+.typefaces {
+  display: grid;
+  gap: var(--ui-1);
+}
+
+.typeface {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-3);
+  padding: var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  cursor: pointer;
+}
+
+.typeface:has(input:checked) {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 1px var(--ui-accent);
+}
+
+.typeface:has(input:focus-visible) {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+
+/* The one place the admin shows the SITE's typefaces: they are what is being chosen, and a
+   list of names is not a choice anybody can make. The families are the same files the site
+   serves, named in admin-appearance-fonts.css. */
+.typeface-sample {
+  flex: 0 0 2rem;
+  font-size: 1.35rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.typeface-name {
+  display: grid;
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+}
+
+.typeface-name span {
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-xs);
+  font-weight: 400;
+}
+
+/* The sizes the two controls above decide, at the sizes they decide — in the admin's own
+   face, because the site's belongs to the site. */
+.specimen {
+  display: grid;
+  gap: var(--ui-1);
+  padding: var(--ui-3);
+  background: var(--ui-panel-sunken);
+  border-radius: var(--ui-radius-m);
+}
+
+.specimen-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ui-2);
+  margin: 0;
+  overflow: hidden;
+}
+
+.specimen-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.specimen-line em {
+  margin-inline-start: auto;
+  color: var(--ui-ink-faint);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.specimen-4xl { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+.specimen-2xl { font-size: 1.15rem; font-weight: 650; }
+.specimen-base { font-size: var(--ui-text-sm); }
+.specimen-sm { font-size: var(--ui-text-xs); color: var(--ui-ink-muted); }
+
+/* The spacing scale as it runs: seven steps of one decision. */
+.ramp {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  block-size: 1.25rem;
+}
+
+.ramp-step {
+  background: var(--ui-accent);
+  border-radius: 1px;
+  block-size: 100%;
+}
+
+.ramp-step[data-ramp="0.25"] { inline-size: 2px; }
+.ramp-step[data-ramp="0.5"] { inline-size: 4px; }
+.ramp-step[data-ramp="1"] { inline-size: 8px; }
+.ramp-step[data-ramp="2"] { inline-size: 16px; }
+.ramp-step[data-ramp="4"] { inline-size: 32px; }
+.ramp-step[data-ramp="6"] { inline-size: 48px; }
+.ramp-step[data-ramp="8"] { inline-size: 64px; }

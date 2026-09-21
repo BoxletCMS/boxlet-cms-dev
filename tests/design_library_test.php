@@ -96,7 +96,7 @@ testBothDrivers('using a kept design fills the screen with it and publishes noth
 
     assertEquals(200, $response->status, 'the screen');
     assertContains('value="#7a2e2e"', $response->body, 'the kept colour is on the screen');
-    assertContains('<option value="sticky" selected>', $response->body, 'and the kept header arrangement');
+    assertContains('value="sticky" checked', $response->body, 'and the kept header arrangement');
     assertContains('Autumn', $response->body, 'it says which design');
     assertEquals($published, Design::load($db)['seed'], 'the site has not changed');
 });

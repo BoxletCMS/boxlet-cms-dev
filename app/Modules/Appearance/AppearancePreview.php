@@ -111,6 +111,35 @@ final class AppearancePreview
     }
 
     /**
+     * The six typefaces, for the cards that choose between them (PLAN.md D-065).
+     *
+     * THE ONE PLACE THE ADMIN LOADS THE SITE'S FONTS, and it is not a leak of the site's
+     * design into the tool: these faces are the thing being CHOSEN, and a list of six names
+     * is not a choice anybody can make. Nothing else on the screen uses them — the sample is
+     * two letters wide.
+     *
+     * Served rather than written into a stylesheet by hand, because Typography already knows
+     * where the files are and what weights they come in; a second copy of that would drift
+     * the first time a family changed.
+     *
+     * @param array<string, string> $params
+     */
+    public function typefaces(Request $request, string $locale, array $params): Response
+    {
+        $css = '';
+        foreach (array_keys(Typography::PAIRINGS) as $pairing) {
+            $css .= Typography::fontFaces($pairing, Url::asset('assets/fonts'));
+        }
+        // And what each card's sample is set in. The stack is Typography's, so a card can
+        // never show a face the site would not use.
+        foreach (Typography::PAIRINGS as $name => $pairing) {
+            $css .= '.typeface-sample[data-typeface="' . $name . '"] { font-family: ' . Typography::stack($pairing['heading']) . "; }\n";
+        }
+
+        return new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'max-age=3600']);
+    }
+
+    /**
      * What the gauge and the inline messages read while values change: every contrast pair
      * with its ratio, the derived palette, and the errors Save would refuse on. The same
      * validation Save runs — this endpoint is not a second opinion.

@@ -53,24 +53,37 @@ $word = static fn (string $code, string $field): string => is_string($words[$cod
                     </span>
                 </div>
 
-                <?php /* How the chrome looks (D-032, D-036). Every choice starts "as the
-                         character has it", which names what that currently is, so leaving it
-                         alone is a choice the owner can read rather than a blank. */ ?>
-                <div class="look-grid">
+                <?php /* How the chrome looks (D-032, D-036). Every choice can be left to the
+                         character, and that is now a STATE you can see rather than a default
+                         hidden in a dropdown (D-065, handoff §3.5): the group says
+                         "following" while nothing is chosen, and the first segment — named
+                         for what the character actually gives — puts it back. */ ?>
 <?php foreach (ChromeLook::OPTIONS as $choice => $options): ?>
-<?php $field = ChromeLook::field($choice); ?>
-                    <div class="field">
-                        <label for="<?= e($field) ?>"><?= e(t('chrome.look.' . $choice)) ?></label>
-                        <select id="<?= e($field) ?>" name="<?= e($field) ?>">
-                            <option value=""><?= e(t('chrome.look.follow', ['value' => t('chrome.look.' . $choice . '.' . ($characterLook[$choice] ?? ''))])) ?></option>
-<?php foreach ($options as $option): ?>
-                            <option value="<?= e($option) ?>"<?= ($look[$choice] ?? '') === $option ? ' selected' : '' ?>><?= e(t('chrome.look.' . $choice . '.' . $option)) ?></option>
-<?php endforeach; ?>
-                        </select>
-                        <?= field_hint('hint.look.' . $choice) ?>
+<?php
+    $field = ChromeLook::field($choice);
+    $chosen = $look[$choice] ?? '';
+    $fromCharacter = t('chrome.look.' . $choice . '.' . ($characterLook[$choice] ?? ''));
+?>
+                <div class="field">
+                    <div class="field-row">
+                        <span class="field-label" id="<?= e($field) ?>-label"><?= e(t('chrome.look.' . $choice)) ?></span>
+                        <span class="readout<?= $chosen === '' ? ' readout-following' : '' ?>"><?= e($chosen === '' ? t('chrome.look.following') : t('chrome.look.' . $choice . '.' . $chosen)) ?></span>
                     </div>
+                    <div class="segmented" role="radiogroup" aria-labelledby="<?= e($field) ?>-label">
+                        <label class="segment segment-follow">
+                            <input type="radio" id="<?= e($field) ?>" name="<?= e($field) ?>" value=""<?= $chosen === '' ? ' checked' : '' ?>>
+                            <span><?= e(t('chrome.look.follow_short', ['value' => $fromCharacter])) ?></span>
+                        </label>
+<?php foreach ($options as $option): ?>
+                        <label class="segment">
+                            <input type="radio" name="<?= e($field) ?>" value="<?= e($option) ?>"<?= $chosen === $option ? ' checked' : '' ?>>
+                            <span><?= e(t('chrome.look.' . $choice . '.' . $option)) ?></span>
+                        </label>
 <?php endforeach; ?>
+                    </div>
+                    <?= field_hint('hint.look.' . $choice) ?>
                 </div>
+<?php endforeach; ?>
             </fieldset>
 
 <?php foreach ($locales as $locale): ?>

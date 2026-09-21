@@ -93,7 +93,9 @@ return [
     'design.scale.1.333' => 'Pronounced (1.333)',
     'design.scale.1.414' => 'Dramatic (1.414)',
     'design.scale.1.5' => 'Striking (1.5)',
-    'design.readable.text' => 'Body text :base. Headings, small to large: :headings. The largest becomes :phone on a phone.',
+    // The specimen shows the sizes themselves now (D-065); this is the one thing it cannot
+    // show, because it is about a screen the owner is not looking at.
+    'design.readable.phone' => 'The largest heading becomes :phone on a phone.',
 
     'design.shape' => 'Space and shape',
     'design.spacing' => 'Spacing',
@@ -163,6 +165,7 @@ return [
     'design.specimen.link' => 'a link in the main colour',
     'design.specimen.text_heading' => 'Readable by default',
     'design.specimen.text_body' => 'Body text sits on the page background at a comfortable measure, with',
+    'design.specimen.small' => 'Small print and captions',
     'design.specimen.tinted_heading' => 'Sections set the surface',
     'design.specimen.tinted_body' => 'This section is tinted and ruled at the top. Text, cards and',
     'design.specimen.contrast_heading' => 'Contrast sections',

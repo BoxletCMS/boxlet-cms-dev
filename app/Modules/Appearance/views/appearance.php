@@ -44,14 +44,43 @@ use App\Support\Url;
 $error = static fn (string $key): string => isset($errors[$key])
     ? '<p class="field-error" data-error-for="' . e($key) . '" role="alert">' . e($errors[$key]) . '</p>'
     : '<p class="field-error" data-error-for="' . e($key) . '" hidden></p>';
-$select = static function (string $key, array $labels) use ($decisions): string {
-    $html = '<select id="design-' . e($key) . '" name="' . e($key) . '">';
+/*
+ * A CLOSED SET IS A ROW OF BUTTONS, NOT A DROPDOWN (PLAN.md D-065).
+ *
+ * Every option is visible at rest, the current one is visibly the current one, and choosing
+ * is one press rather than open-read-choose-close. A select hides four of five answers
+ * behind the one already given, which on a screen whose whole point is "change it and look"
+ * is the wrong shape.
+ *
+ * RADIO INPUTS, not buttons with a hidden field: they submit without a script, the browser
+ * gives arrow-key movement inside the group for free, and screen readers already know what
+ * a radio group is.
+ *
+ * $readout is the number the choice comes to — "20px", "56rem · 896px" — which is what
+ * replaced the compiler's clamp() on this screen (D-058).
+ *
+ * @param array<string, string> $labels value => what it is called
+ */
+$segmented = static function (string $key, array $labels, string $readout = '', string $follows = '') use ($decisions, $error): string {
+    $current = $decisions[$key] ?? '';
+    $id = 'design-' . $key;
+    $html = '<div class="field"><div class="field-row"><span class="field-label" id="' . e($id) . '-label">' . e(t('design.' . $key)) . '</span>';
+    // The right of the label row says either what the choice comes to, or — for a chrome
+    // choice nobody has touched — that it is still following the character (D-065, §3.5).
+    if ($follows !== '' && $current === '') {
+        $html .= '<span class="readout readout-following">' . e($follows) . '</span>';
+    } elseif ($readout !== '') {
+        $html .= '<span class="readout">' . e($readout) . '</span>';
+    }
+    $html .= '</div><div class="segmented" role="radiogroup" aria-labelledby="' . e($id) . '-label">';
     foreach ($labels as $value => $label) {
-        $selected = (string) $value === $decisions[$key] ? ' selected' : '';
-        $html .= '<option value="' . e($value) . '"' . $selected . '>' . e($label) . '</option>';
+        $checked = (string) $value === $current ? ' checked' : '';
+        $html .= '<label class="segment"><input type="radio" id="' . e($id . '-' . ($value === '' ? 'follow' : $value)) . '"'
+            . ' name="' . e($key) . '" value="' . e((string) $value) . '"' . $checked . '>'
+            . '<span>' . e($label) . '</span></label>';
     }
 
-    return $html . '</select>';
+    return $html . '</div>' . field_hint('hint.design.' . $key) . $error($key) . '</div>';
 };
 $labels = static function (string $key, array $values): array {
     $result = [];
@@ -231,6 +260,9 @@ $card = static function (array $decisions, string $name, string $badge, string $
                 </div>
             </form>
         </div>
+
+        <?php /* The faces the Type tab chooses between, loaded by this screen alone. */ ?>
+        <link rel="stylesheet" href="<?= e(Url::admin('appearance', 'typefaces')) ?>">
 
         <?php /* Without JavaScript this form sends the current values to the preview frame. */ ?>
         <form id="design-preview-form" method="get" action="<?= e(Url::admin('appearance', 'preview')) ?>" target="design-preview" class="visually-hidden"></form>

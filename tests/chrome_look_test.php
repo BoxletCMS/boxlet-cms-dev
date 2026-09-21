@@ -119,7 +119,7 @@ testBothDrivers('the Appearance screen saves the look', function (string $driver
     assertEquals('', $stored['density'], 'a choice left to the character');
     assertEquals('small', $stored['logo_size'], 'the logo size');
 
-    assertContains('<option value="centred" selected>', dispatch('/admin/appearance')->body, 'the screen shows it');
+    assertContains('value="centred" checked', dispatch('/admin/appearance')->body, 'the screen shows it');
 });
 
 testBothDrivers('the site can say what made it, and says nothing unless asked', function (string $driver) {

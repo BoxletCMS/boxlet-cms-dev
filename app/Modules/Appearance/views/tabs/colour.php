@@ -3,7 +3,7 @@
 /**
  * The colour tab of the Appearance screen (PLAN.md D-059). Included by appearance.php, whose
  * variables and helpers it reads: $decisions, $errors, $colors, $pairs, $readable, and the
- * $select, $labels, $error and $swatch closures.
+ * $segmented, $labels, $error and $swatch closures.
  *
  * NO LEGEND REPEATING THE TAB'S OWN NAME: the strip above already says which of the five
  * this is, and a heading that restates it is furniture.
@@ -11,7 +11,7 @@
  * @var array<string, string> $decisions
  * @var array<string, string> $errors
  * @var callable(string): string $error one field's message, or an empty slot for the script
- * @var callable(string, array<string, string>): string $select
+ * @var callable(string, array<string, string>, string=, string=): string $segmented
  * @var callable(string, list<string>): array<string, string> $labels
  * @var array<string, string> $colors
  * @var list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}> $pairs
@@ -70,12 +70,7 @@ foreach ($pairs as $index => $pair) {
                     <?= field_hint('hint.design.secondary') ?>
                     <?= $error('secondary') ?>
                 </div>
-                <div class="field">
-                    <label for="design-surface_contrast"><?= e(t('design.surface_contrast')) ?></label>
-                    <?= $select('surface_contrast', $labels('surface_contrast', App\Modules\Design\Tokens::SURFACE_CONTRAST)) ?>
-                    <?= field_hint('hint.design.surface_contrast') ?>
-                    <?= $error('surface_contrast') ?>
-                </div>
+                <?= $segmented('surface_contrast', $labels('surface_contrast', App\Modules\Design\Tokens::SURFACE_CONTRAST)) ?>
                 <div class="field">
                     <span class="field-label"><?= e(t('design.derived_colours')) ?></span>
                     <ul class="swatches">

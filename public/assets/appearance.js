@@ -172,6 +172,26 @@
     timer = window.setTimeout(refresh, 250);
   }
 
+  /*
+   * PICKING A COLOUR IS TAKING IT OVER (D-065).
+   *
+   * Those six inputs show what the palette works out until the owner takes the role over,
+   * and this file rewrites the untaken ones whenever the palette moves. That put the two in
+   * a race the owner loses: choose a colour, and if a refresh lands before the switch is
+   * flipped, the choice is written back over. Measured — the browser check waited fifteen
+   * seconds for a colour that had been quietly replaced.
+   *
+   * So the act of choosing sets the switch. Giving the role back is still one press, which
+   * is the direction that needs a deliberate gesture.
+   */
+  form.addEventListener('input', function (event) {
+    var field = event.target.getAttribute && event.target.getAttribute('data-by-hand');
+    var mine = field && form.querySelector('[data-by-hand-switch="' + field + '"]');
+    if (mine && !mine.checked) {
+      mine.checked = true;
+    }
+  });
+
   form.addEventListener('input', changed);
   form.addEventListener('change', changed);
   // Still the form's own event, although the buttons now sit beside the preview: a button

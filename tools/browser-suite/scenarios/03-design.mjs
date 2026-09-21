@@ -215,9 +215,10 @@ export default {
     // A choice is immediate: no click on anything called "update", and no waiting.
     const framedBefore = await page.$eval('iframe[data-design-preview]', (el) => el.src);
     await openTab(page, 'shape');
-    // A select, deliberately: the width is a slider now (D-062), and a slider is the one
-    // control this screen still waits 250ms for.
-    await page.select('#design-spacing', 'generous');
+    // A segment, deliberately: the width is a slider (D-062) and a slider is the one control
+    // this screen still waits 250ms for. A closed set is a row of radios now (D-065), and
+    // pressing one is a change like any other.
+    await page.click('label.segment:has(input[name="spacing"][value="generous"])');
     await page.waitForFunction((was) => document.querySelector('iframe[data-design-preview]').src !== was, {}, framedBefore);
     report.pass('choosing a value refreshes the preview by itself', 'the frame followed the select with no button pressed');
 
@@ -343,16 +344,15 @@ export default {
     await openTab(page, 'colour');
     await page.evaluate(() => { document.querySelector('.by-hand').open = true; });
     const inkBefore = await page.$eval('#design-color_text', (el) => el.value);
-    await page.$eval('#design-color_background', (el) => {
-      el.value = '#0d0d10';
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await page.click('[data-by-hand-switch="color_background"]');
-    await page.$eval('#design-color_link', (el) => {
-      el.value = '#8ab4f8';
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await page.click('[data-by-hand-switch="color_link"]');
+    // Choosing a colour is taking the role over, so no switch is pressed here: that is the
+    // product's rule now (D-065), and it exists because pressing them separately lost the
+    // owner's colour to the next refresh.
+    for (const [field, colour] of [['color_background', '#0d0d10'], ['color_link', '#8ab4f8']]) {
+      await page.$eval(`#design-${field}`, (el, value) => {
+        el.value = value;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, colour);
+    }
     /*
      * WAITED FOR, NOT SLEPT THROUGH. A fixed 1500ms passed once and failed once, on a check
      * whose whole subject is whether the dependent colours were worked out again: the answer
@@ -399,6 +399,9 @@ export default {
     // Put both back, and leave nothing published: this scenario only looked.
     await page.click('[data-by-hand-switch="color_background"]');
     await page.click('[data-by-hand-switch="color_link"]');
+    report.verdict('the switches give a colour back to the palette',
+      await page.$$eval('[data-by-hand-switch]', (boxes) => boxes.every((b) => !b.checked)),
+      'every role is the palette\'s again');
 
     /*
      * ---- the designs the owner keeps (PLAN.md D-061) ------------------------------------

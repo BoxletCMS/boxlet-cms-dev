@@ -280,15 +280,22 @@ test('the screen shows the gauge, and never folds away a pair that fails', funct
 test('the decisions are shown as numbers a person reads, never as CSS', function () {
     adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
-    preg_match_all('~<p class="derived">(.*?)</p>~s', $body, $lines);
-    $derived = implode(' ', $lines[1]);
+    // The numbers live beside the controls they belong to now (D-065): a readout on the
+    // label's line, and the specimen for the type.
+    preg_match_all('~<(?:span|output) class="readout[^"]*"[^>]*>(.*?)</(?:span|output)>~s', $body, $readouts);
+    preg_match_all('~<em data-specimen-size="[^"]*">(.*?)</em>~s', $body, $specimen);
+    $numbers = implode(' ', array_merge($readouts[1], $specimen[1]));
 
-    assertTrue(!str_contains($derived, 'clamp('), 'the screen printed a clamp()');
-    assertTrue(!str_contains($derived, 'rem'), 'the screen printed rem values');
+    assertTrue(!str_contains($numbers, 'clamp('), 'the screen printed a clamp()');
     $readable = Tokens::readable(Presets::get(Presets::DEFAULT));
-    assertContains($readable['text']['base'] . 'px', $derived, 'the body size');
-    assertContains($readable['radius'] . 'px', $derived, 'the corner radius');
-    assertContains($readable['container'] . 'px', $derived, 'the content width');
+    assertContains($readable['text']['base'] . 'px', $numbers, 'the body size');
+    assertContains($readable['radius'] . 'px', $numbers, 'the corner radius');
+    assertContains($readable['container'] . 'px', $numbers, 'the content width');
+    // rem is allowed in exactly one place, because it is the unit that control is IN: the
+    // width slider says "42rem · 672px". Nowhere else may leak the compiler's language.
+    $remOnly = array_values(array_filter($readouts[1], static fn (string $r): bool => str_contains($r, 'rem')));
+    assertEquals(1, count($remOnly), 'readouts mentioning rem: ' . implode(' | ', $remOnly));
+    assertContains('·', $remOnly[0] ?? '', 'and it gives pixels beside it');
 });
 
 test('Publish stands in the screen\'s own bar and still submits the form', function () {
@@ -468,7 +475,9 @@ test('the screen offers a text size and a real slider for the width', function (
     adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
-    assertContains('id="design-text_size"', $body, 'the text size');
+    // A closed set is a row of radios now, not a dropdown (D-065).
+    assertContains('name="text_size" value="large"', $body, 'the text size');
+    assertContains('id="design-text_size-larger"', $body, 'each of its segments');
     assertContains('<input type="range" id="design-container" name="container"', $body, 'the width is a slider');
     assertContains('min="36"', $body, 'its smallest');
     assertContains('max="88"', $body, 'its largest');

@@ -146,6 +146,19 @@ final class AppearanceController
         $db = $this->db();
         $character = Presets::exists($request->input('character')) ? $request->input('character') : '';
 
+        // Overwriting from a card in the rail: the name comes from the design itself, so
+        // "save what is on screen into this one" needs no field and cannot be mistyped.
+        if (str_starts_with($action, 'library:save:')) {
+            $into = DesignLibrary::find($db, (int) substr($action, strlen('library:save:')));
+            if ($into === null) {
+                return $this->screen($state, [], null, 404, $character);
+            }
+            DesignLibrary::save($db, $into['name'], $state['decisions'], $state['look'], $character);
+            Activity::record($db, 'design', 'kept', null, $into['name']);
+
+            return $this->screen($state, [], t('appearance.library.overwritten', ['name' => $into['name']]), 200, $character);
+        }
+
         if ($action === 'library:save') {
             $name = DesignLibrary::cleanName($request->input('library_name'));
             if ($name === '') {
@@ -199,7 +212,9 @@ final class AppearanceController
             'title' => t('appearance.title'),
             'nav' => 'appearance',
             'styles' => ['admin-design.css', 'admin-appearance.css'],
-            'wide' => true,
+            // The screen IS the window, as the page editor's canvas is: the admin's rail
+            // folds to its icons beside it (D-064).
+            'bare' => true,
             'decisions' => $decisions,
             'errors' => $errors,
             'notice' => $notice,
@@ -228,8 +243,23 @@ final class AppearanceController
                 static fn (string $code): array => PageLinks::choices($db, $code),
                 $this->locales(),
             )),
+            // What the strip over the picture says is in the frame.
+            'host' => (string) parse_url(Url::withOrigin(''), PHP_URL_HOST),
+            'pageName' => self::previewedPage($db, $shown),
             'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shown, $character)),
         ], $status);
+    }
+
+    /**
+     * What the preview is a picture OF: the home page by name, or the specimen when a site
+     * has no home page yet. The strip says so, because a preview with no address is a
+     * picture of something.
+     */
+    private static function previewedPage(Db $db, string $locale): string
+    {
+        $home = $db->one('SELECT title FROM pages WHERE slug = ? AND locale = ?', ['', $locale]);
+
+        return $home === null ? t('design.preview') : (string) $home['title'];
     }
 
     /**

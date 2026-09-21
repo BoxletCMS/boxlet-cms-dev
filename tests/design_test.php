@@ -291,21 +291,21 @@ test('the decisions are shown as numbers a person reads, never as CSS', function
     assertContains($readable['container'] . 'px', $derived, 'the content width');
 });
 
-test('Save stands beside the preview and still submits the form', function () {
+test('Publish stands in the screen\'s own bar and still submits the form', function () {
     adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
-    // In the preview's own bar, which is the one part of a sticky column that is always in
-    // view: below a frame 78vh tall, a button never comes back into reach however far the
-    // page is scrolled.
-    preg_match('~<div class="preview-bar">(.*?)</div>\s*</div>~s', $body, $bar);
-    assertContains('value="save"', $bar[1] ?? '', 'Save stands in the preview bar');
+    // In the bar over the whole screen, which never scrolls at all: the columns scroll
+    // under it, so no amount of reading moves the one button that acts (D-064).
+    preg_match('~<div class="appearance-bar">(.*?)<form~s', $body, $bar);
+    assertContains('value="save"', $bar[1] ?? '', 'Publish stands in the bar');
+    assertContains('data-state', $bar[1] ?? '', 'and so does what state the screen is in');
     assertContains('<button type="submit" form="design-form" name="action" value="save"', $body, 'the button names its form');
     assertContains('id="design-form"', $body, 'the form it names');
 
     // And outside the form element, which is the whole point: it must not be a child of it.
     preg_match('~<form id="design-form".*?</form>~s', $body, $form);
-    assertTrue(!str_contains($form[0] ?? '', 'value="save"'), 'the button is still inside the form');
+    assertTrue(!str_contains($form[0] ?? '', 'name="action" value="save"'), 'the button is still inside the form');
 
     // And it still saves: the button is outside the form element, so this is not a detail
     // the markup alone can settle.

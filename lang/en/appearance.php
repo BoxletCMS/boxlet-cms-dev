@@ -11,11 +11,23 @@
 
 return [
     'appearance.title' => 'Appearance',
+    'appearance.subhead' => 'Design, header and footer — one screen',
+    'appearance.characters' => 'Characters',
+    'appearance.characters_hint' => 'starting points',
+    'appearance.library_count' => ':count saved',
+    'appearance.library.overwrite' => 'Save what is on screen into “:name”',
+    'appearance.back' => 'Leave Appearance',
+    'appearance.stage.viewport' => ':width px',
+    // The last word of a card's summary: whether the page is a sheet or runs to the edges.
+    'appearance.boxed' => 'boxed',
+    'appearance.full_bleed' => 'full bleed',
     'appearance.tab.colour' => 'Colour',
     'appearance.tab.type' => 'Type',
     'appearance.tab.shape' => 'Shape',
-    'appearance.tab.page' => 'The page',
-    'appearance.tab.chrome' => 'Header and footer',
+    // SHORT, because five of them share 312px and a strip that wraps to two rows reads as
+    // two strips. Each panel says the longer thing inside itself.
+    'appearance.tab.page' => 'Page',
+    'appearance.tab.chrome' => 'Header',
     'appearance.publish' => 'Publish',
     'appearance.published' => 'Published. The site looks like this from now on.',
     'appearance.words_previewed' => 'The preview shows this language.',
@@ -36,6 +48,7 @@ return [
 
     // Designs the owner keeps (D-061).
     'appearance.library' => 'Your designs',
+    'appearance.library.empty_rail' => 'Nothing kept yet.',
     'appearance.library_hint' => 'Keep what is on this screen under a name, and come back to it later. Saving one here does not change the site.',
     'appearance.library.empty' => 'Nothing kept yet. Set the screen the way you want it and save it under a name.',
     'appearance.library.name' => 'Name for this design',

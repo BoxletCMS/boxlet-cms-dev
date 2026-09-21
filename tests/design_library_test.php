@@ -120,16 +120,33 @@ test('a design that is not there any more is not an error page', function () {
     assertEquals(404, adminPost('/admin/appearance', appearanceFields(['action' => 'library:delete:4242']))->status, 'deleting one');
 });
 
-test('the library is on the screen, with a way to keep what is on it', function () {
+test('the library is in the rail, with a way to keep what is on the screen', function () {
     $db = adminSite('sqlite');
-    assertContains(t('appearance.library.empty'), dispatch('/admin/appearance')->body, 'an empty library says so');
+    assertContains(t('appearance.library.empty_rail'), dispatch('/admin/appearance')->body, 'an empty library says so');
 
     DesignLibrary::save($db, 'Autumn', Presets::get('soft'), [], 'soft');
     $body = dispatch('/admin/appearance')->body;
 
-    assertContains('>Autumn</h3>', $body, 'the design is listed');
+    assertContains('>Autumn</span>', $body, 'the design is listed');
     assertContains('value="library:use:', $body, 'a way to use it');
     assertContains('value="library:delete:', $body, 'a way to delete it');
+    // Overwriting is on the card itself: the name is the design's own, so it cannot be
+    // mistyped into a second design nobody meant to make (D-064).
+    assertContains('value="library:save:', $body, 'a way to write over it from its own card');
     assertContains('name="library_name"', $body, 'a name for a new one');
     assertContains('value="library:save"', $body, 'and a way to keep it');
+});
+
+testBothDrivers('writing over a design from its own card needs no name', function (string $driver) {
+    $db = adminSite($driver);
+    $id = DesignLibrary::save($db, 'Autumn', Presets::get('soft'), [], 'soft');
+
+    $response = adminPost('/admin/appearance', appearanceFields(['seed' => '#1f1fd1', 'action' => 'library:save:' . $id]));
+
+    assertEquals(200, $response->status, 'the screen comes back');
+    assertEquals(1, count(DesignLibrary::all($db)), 'still one design');
+    $again = DesignLibrary::find($db, $id) ?? fail('the design it was written into is gone');
+    assertEquals('#1f1fd1', $again['decisions']['seed'], 'holding what was on the screen');
+    assertEquals('Autumn', $again['name'], 'under the name it already had');
+    assertEquals(404, adminPost('/admin/appearance', appearanceFields(['action' => 'library:save:4242']))->status, 'one that is gone');
 });

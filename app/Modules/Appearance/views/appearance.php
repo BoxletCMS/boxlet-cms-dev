@@ -35,6 +35,8 @@ use App\Support\Url;
  * @var array<int, array<string, mixed>> $locales
  * @var string $shownLocale the language the preview draws
  * @var array<string, string> $characterLook what the character gives each look choice
+ * @var string $host the site's own hostname, for the strip over the picture
+ * @var string $pageName which page the picture is of
  * @var string $previewUrl
  * @var string $title
  * @var string $csrf
@@ -64,194 +66,145 @@ $swatch = static fn (string $hex, string $name): string => '<svg viewBox="0 0 10
 
 /** The five tabs, in the order the questions arrive. */
 $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
-?>
-        <div class="page-header">
-            <h1><?= e($title) ?></h1>
-        </div>
-<?php if ($notice !== null): ?>
-        <p class="notice<?= $errors !== [] ? ' notice-error' : '' ?>" role="<?= $errors !== [] ? 'alert' : 'status' ?>"><?= e($notice) ?></p>
-<?php endif; ?>
 
-        <section class="characters" aria-labelledby="characters-heading">
-            <h2 id="characters-heading"><?= e(t('design.presets')) ?></h2>
-            <p class="hint"><?= e(t('design.presets_hint')) ?></p>
-            <div class="character-strip">
-<?php foreach (Presets::names() as $preset): ?>
-<?php
-    $tokens = Presets::get($preset);
-    $palette = Palette::colors($tokens['seed'], $tokens['secondary'], $tokens['surface_contrast']);
-    $shape = Presets::COMPOSITION[$preset]['section'];
-    $summary = implode(' · ', [
-        t('style.width.' . $shape['width']),
-        t('style.rhythm.' . $shape['rhythm']),
-        t('style.align.' . $shape['align']),
-        t('style.divider.' . Presets::dividerAccent($preset)),
-    ]);
+/**
+ * A character or a saved design in one line, BUILT FROM ITS OWN DECISIONS: "modern · 56rem ·
+ * normal · full bleed". Not a sentence somebody wrote about it — a sentence that cannot go
+ * out of date.
+ *
+ * @param array<string, string> $decisions
+ */
+$summary = static fn (array $decisions): string => implode(' · ', [
+    t('design.typography.' . $decisions['typography']),
+    $decisions['container'] . 'rem',
+    t('design.spacing.' . $decisions['spacing']),
+    t($decisions['boxed'] === 'yes' ? 'appearance.boxed' : 'appearance.full_bleed'),
+]);
+
+/** One card in the left rail: three swatches, a name, what it is, and what it does. */
+$card = static function (array $decisions, string $name, string $badge, string $key, string $inside) use ($swatch, $summary): string {
+    $palette = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+
+    return '<div class="rail-card' . ($badge !== '' ? ' rail-card-current' : '') . '">'
+        . '<div class="rail-card-top">'
+        . '<span class="rail-chips" aria-hidden="true">'
+        . $swatch($palette['accent'], $key . '-accent')
+        . $swatch($palette['contrast'], $key . '-contrast')
+        . $swatch($palette['surface'], $key . '-surface')
+        . '</span>'
+        . '<span class="rail-card-name">' . e($name) . '</span>'
+        // The badge is the WORD, not a glyph: "in use" is a fact about the site, and a dot
+        // that means it is a dot somebody has to be taught.
+        . ($badge !== '' ? '<span class="rail-live">' . e($badge) . '</span>' : '')
+        . $inside
+        . '</div>'
+        . '<p class="rail-card-shape">' . e($summary($decisions)) . '</p>'
+        . '</div>';
+};
 ?>
-                <?php /* A CARD IS NOT ITS OWN FORM ANY MORE (D-059). Each used to post on its
-                         own, carrying nothing but the character's name — which was harmless
-                         while the screen held only the design, and destructive the moment it
-                         also held the header: loading a character posted a screen with every
-                         chrome field empty, and the owner's menu and words were read back as
-                         cleared. Measured on the copy, where the site lost its header.
-                         The button names the one form instead, so loading a character carries
-                         the whole screen, with JavaScript or without it. */ ?>
-                <div class="character-card<?= $preset === $activeCharacter ? ' character-current' : '' ?>">
-                    <h3>
-                        <?= e(t('design.preset.' . $preset)) ?>
-<?php if ($preset === $activeCharacter): ?>
-                        <span class="character-badge"><?= e(t('design.preset.current')) ?></span>
-<?php endif; ?>
-                    </h3>
-                    <div class="character-chips" aria-hidden="true">
-                        <?= $swatch($palette['accent'], 'preset-' . $preset . '-accent') ?>
-                        <?= $swatch($palette['contrast'], 'preset-' . $preset . '-contrast') ?>
-                        <?= $swatch($palette['surface'], 'preset-' . $preset . '-surface') ?>
-                    </div>
-                    <p class="character-shape"><?= e($summary) ?></p>
-                    <p class="hint"><?= e(t('design.preset.' . $preset . '_hint')) ?></p>
-                    <button type="submit" form="design-form" name="action" value="preset:<?= e($preset) ?>" class="button button-secondary"><?= e(t('design.load_preset')) ?></button>
-                </div>
+        <div class="appearance" data-appearance>
+            <?php /* THE BAR. Everything that acts on the whole screen: what it is on the
+                     left, how to look at it and what to do with it on the right. */ ?>
+            <div class="appearance-bar">
+                <span class="appearance-title"><?= icon('palette') ?><strong><?= e($title) ?></strong>
+                    <span class="appearance-subhead"><?= e(t('appearance.subhead')) ?></span></span>
+
+                <div class="preview-tools" data-preview-tools hidden>
+                    <div class="viewports" role="group" aria-label="<?= e(t('appearance.width')) ?>">
+<?php foreach (['desktop' => 1280, 'tablet' => 834, 'phone' => 390] as $name => $width): ?>
+                        <button type="button" class="viewport" data-viewport="<?= e((string) $width) ?>" aria-pressed="<?= $name === 'desktop' ? 'true' : 'false' ?>" title="<?= e(t('appearance.width.' . $name)) ?>"><?= e(t('appearance.width.' . $name)) ?></button>
 <?php endforeach; ?>
-            </div>
-        </section>
+                    </div>
+                    <label class="zoom">
+                        <span class="visually-hidden"><?= e(t('appearance.zoom')) ?></span>
+                        <select data-zoom>
+                            <option value="fit"><?= e(t('appearance.zoom.fit')) ?></option>
+                            <option value="1">100%</option>
+                            <option value="0.75">75%</option>
+                            <option value="0.5">50%</option>
+                        </select>
+                    </label>
+                    <?php /* Held, not toggled: a comparison you have to keep holding is one
+                             you cannot walk away from and mistake for the site. */ ?>
+                    <button type="button" class="viewport viewport-compare" data-compare aria-pressed="false" title="<?= e(t('appearance.compare_hint')) ?>"><?= e(t('appearance.compare')) ?></button>
+                </div>
 
-        <?php /* THE LIBRARY (D-061). The five characters above are Boxlet's; these are the
-                 owner's. Until now an afternoon on colour and type had nowhere to go, and
-                 loading any character threw it away — which is the real source of "too few
-                 options", not the number of controls.
-                 Keeping one does not touch the site, and neither does using one: the screen
-                 fills with it and Publish is still the confirmation. */ ?>
-        <section class="characters library" aria-labelledby="library-heading">
-            <h2 id="library-heading"><?= e(t('appearance.library')) ?></h2>
-            <p class="hint"><?= e(t('appearance.library_hint')) ?></p>
+                <span class="preview-state" data-state role="status"
+                      data-published="<?= e(t('appearance.state.published')) ?>"
+                      data-unpublished="<?= e(t('appearance.state.unpublished')) ?>"
+                      data-problem="<?= e(t('appearance.state.problem')) ?>"><?= e(t('appearance.state.published')) ?></span>
 
-<?php if ($library === []): ?>
-            <p class="hint library-empty"><?= e(t('appearance.library.empty')) ?></p>
+                <div class="preview-actions">
+                    <button type="submit" form="design-preview-form" class="button button-quiet" data-preview-button><?= e(t('design.update_preview')) ?></button>
+                    <a class="button button-quiet" href="<?= e(Url::admin('appearance')) ?>" data-revert hidden><?= e(t('appearance.revert')) ?></a>
+<?php if ($character !== '' && $hasBlocks): ?>
+                    <button type="submit" form="design-form" name="action" value="save" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
+                    <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
 <?php else: ?>
-            <div class="character-strip">
-<?php foreach ($library as $saved): ?>
-<?php $palette = Palette::colors($saved['decisions']['seed'], $saved['decisions']['secondary'], $saved['decisions']['surface_contrast']); ?>
-                <div class="character-card">
-                    <h3><?= e($saved['name']) ?></h3>
-                    <div class="character-chips" aria-hidden="true">
-                        <?= $swatch($palette['accent'], 'saved-' . $saved['id'] . '-accent') ?>
-                        <?= $swatch($palette['contrast'], 'saved-' . $saved['id'] . '-contrast') ?>
-                        <?= $swatch($palette['surface'], 'saved-' . $saved['id'] . '-surface') ?>
-                    </div>
-                    <p class="character-shape"><?= e($saved['character'] === ''
-                        ? t('appearance.library.by_hand')
-                        : t('appearance.library.from', ['character' => t('design.preset.' . $saved['character'])])) ?></p>
-                    <div class="library-actions">
-                        <button type="submit" form="design-form" name="action" value="library:use:<?= e((string) $saved['id']) ?>" class="button button-secondary"><?= e(t('appearance.library.use')) ?></button>
-                        <?php /* Named in full for anyone who cannot see which card it sits on. */ ?>
-                        <button type="submit" form="design-form" name="action" value="library:delete:<?= e((string) $saved['id']) ?>" class="button button-ghost"
-                                title="<?= e(t('appearance.library.delete_one', ['name' => $saved['name']])) ?>">
-                            <?= e(t('appearance.library.delete')) ?><span class="visually-hidden">: <?= e($saved['name']) ?></span>
-                        </button>
-                    </div>
+                    <button type="submit" form="design-form" name="action" value="save" class="button"><?= e(t('appearance.publish')) ?></button>
+<?php endif; ?>
                 </div>
-<?php endforeach; ?>
             </div>
+
+<?php if ($notice !== null): ?>
+            <p class="notice appearance-notice<?= $errors !== [] ? ' notice-error' : '' ?>" role="<?= $errors !== [] ? 'alert' : 'status' ?>"><?= e($notice) ?></p>
 <?php endif; ?>
 
-            <div class="library-keep">
-                <div class="field">
-                    <label for="library_name"><?= e(t('appearance.library.name')) ?></label>
-                    <input type="text" id="library_name" name="library_name" form="design-form" maxlength="80"
-                           value="" autocomplete="off">
-                    <?= $error('library_name') ?>
-                </div>
-                <button type="submit" form="design-form" name="action" value="library:save" class="button button-secondary"><?= e(t('appearance.library.save')) ?></button>
-            </div>
-        </section>
-
-        <div class="design-workspace">
-            <form id="design-form" method="post" action="<?= e(Url::admin('appearance')) ?>" class="stack design-form" data-design-form
+            <?php /* ONE FORM AROUND ALL THREE COLUMNS. The character cards, the library and
+                     every control post the same screen — that is what stopped a character
+                     load from clearing the header (D-059) — so the form IS the layout. */ ?>
+            <form id="design-form" method="post" action="<?= e(Url::admin('appearance')) ?>" class="appearance-body design-form" data-design-form
                   data-check-url="<?= e(Url::admin('appearance', 'check')) ?>" data-preview-url="<?= e(Url::admin('appearance', 'preview')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="character" value="<?= e($character) ?>">
 
-                <div class="tabs" data-tabs>
-                    <div class="tab-strip" data-tab-strip>
-<?php foreach ($tabs as $index => $name): ?>
-                        <a class="tab<?= $index === 0 ? ' tab-current' : '' ?>" href="#panel-<?= e($name) ?>" id="tab-<?= e($name) ?>" data-tab="<?= e($name) ?>"><?= e(t('appearance.tab.' . $name)) ?></a>
+                <div class="appearance-rail">
+                    <h2 class="rail-heading"><?= e(t('appearance.characters')) ?> <span><?= e(t('appearance.characters_hint')) ?></span></h2>
+<?php foreach (Presets::names() as $preset): ?>
+                    <?= $card(
+                        Presets::get($preset),
+                        t('design.preset.' . $preset),
+                        $preset === $activeCharacter ? t('design.preset.current') : '',
+                        'preset-' . $preset,
+                        '<button type="submit" form="design-form" name="action" value="preset:' . e($preset) . '" class="rail-use">'
+                            . '<span class="visually-hidden">' . e(t('design.load_preset')) . ': ' . e(t('design.preset.' . $preset)) . '</span></button>',
+                    ) ?>
 <?php endforeach; ?>
-                    </div>
-<?php foreach ($tabs as $name): ?>
-                    <div class="tab-panel" id="panel-<?= e($name) ?>" data-panel="<?= e($name) ?>" aria-labelledby="tab-<?= e($name) ?>">
-                        <?php include __DIR__ . '/tabs/' . $name . '.php'; ?>
-                    </div>
+
+                    <h2 class="rail-heading"><?= e(t('appearance.library')) ?>
+                        <span><?= e($library === [] ? t('appearance.library.empty_rail') : t('appearance.library_count', ['count' => count($library)])) ?></span></h2>
+<?php foreach ($library as $saved): ?>
+                    <?= $card(
+                        $saved['decisions'],
+                        $saved['name'],
+                        '',
+                        'saved-' . $saved['id'],
+                        '<span class="rail-card-tools">'
+                            . '<button type="submit" form="design-form" name="action" value="library:save:' . $saved['id'] . '" class="icon-button" title="' . e(t('appearance.library.overwrite', ['name' => $saved['name']])) . '">'
+                            . icon('replace') . '<span class="visually-hidden">' . e(t('appearance.library.overwrite', ['name' => $saved['name']])) . '</span></button>'
+                            . '<button type="submit" form="design-form" name="action" value="library:delete:' . $saved['id'] . '" class="icon-button" title="' . e(t('appearance.library.delete_one', ['name' => $saved['name']])) . '">'
+                            . icon('trash-2') . '<span class="visually-hidden">' . e(t('appearance.library.delete_one', ['name' => $saved['name']])) . '</span></button>'
+                            . '</span>'
+                            . '<button type="submit" form="design-form" name="action" value="library:use:' . $saved['id'] . '" class="rail-use">'
+                            . '<span class="visually-hidden">' . e(t('appearance.library.use')) . ': ' . e($saved['name']) . '</span></button>',
+                    ) ?>
 <?php endforeach; ?>
+
+                    <div class="rail-keep">
+                        <label class="visually-hidden" for="library_name"><?= e(t('appearance.library.name')) ?></label>
+                        <input type="text" id="library_name" name="library_name" maxlength="80" value="" autocomplete="off"
+                               placeholder="<?= e(t('appearance.library.name')) ?>">
+                        <?= $error('library_name') ?>
+                        <button type="submit" form="design-form" name="action" value="library:save" class="button button-secondary"><?= e(t('appearance.library.save')) ?></button>
+                    </div>
                 </div>
-            </form>
 
-            <div class="design-preview">
-                <div class="preview-frame">
-                    <?php /* PUBLISH IN THE BAR (D-058): the one part of a sticky column that
-                             is always in view. Below a frame this tall, a button sits past the
-                             bottom of the window and stays there however far the page is
-                             scrolled. The buttons submit the form by name, not by containment. */ ?>
-                    <?php /* TWO ROWS, NOT ONE WRAPPING ONE. Everything here — a label, three
-                             widths, a zoom, Compare, what state the screen is in, and two
-                             actions — does not fit across a column this wide, and left to
-                             wrap it landed in a different arrangement at every width. So the
-                             rows are declared: what this is and what to do with it, then the
-                             tools for looking at it. */ ?>
-                    <?php /* TWO ROWS, NOT ONE WRAPPING ONE. A label, three widths, a zoom,
-                             Compare, what state the screen is in and two actions do not fit
-                             across a column this wide, and left to wrap they landed in a
-                             different arrangement at every width. So the rows are declared:
-                             what this is and what to do with it, then the tools for looking
-                             at it. */ ?>
-                    <div class="preview-bar">
-                        <div class="preview-bar-row">
-                            <span class="preview-label"><?= e(t('design.preview.title')) ?></span>
-
-                            <?php /* What the owner is looking at: their own unpublished work, or
-                                     the site as it stands. It starts as "published", because on
-                                     arrival the screen IS the site. */ ?>
-                            <span class="preview-state" data-state role="status"
-                                  data-published="<?= e(t('appearance.state.published')) ?>"
-                                  data-unpublished="<?= e(t('appearance.state.unpublished')) ?>"
-                                  data-problem="<?= e(t('appearance.state.problem')) ?>"><?= e(t('appearance.state.published')) ?></span>
-
-                            <div class="preview-actions">
-                                <button type="submit" form="design-preview-form" class="button button-quiet" data-preview-button><?= e(t('design.update_preview')) ?></button>
-                                <a class="button button-quiet" href="<?= e(Url::admin('appearance')) ?>" data-revert hidden><?= e(t('appearance.revert')) ?></a>
-<?php if ($character !== '' && $hasBlocks): ?>
-                                <button type="submit" form="design-form" name="action" value="save" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
-                                <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
-<?php else: ?>
-                                <button type="submit" form="design-form" name="action" value="save" class="button"><?= e(t('appearance.publish')) ?></button>
-<?php endif; ?>
-                            </div>
-                        </div>
-
-                        <?php /* THE TOOLS (D-060). Three widths, a zoom, and Compare. Each is a
-                                 button or a select with a visible resting state; none of them
-                                 appears on hover. Without JavaScript they are not there at all,
-                                 and the frame is what it always was — the column's width, at
-                                 full size. */ ?>
-                        <div class="preview-tools" data-preview-tools hidden>
-                            <div class="viewports" role="group" aria-label="<?= e(t('appearance.width')) ?>">
-<?php foreach (['desktop' => 1280, 'tablet' => 834, 'phone' => 390] as $name => $width): ?>
-                                <button type="button" class="viewport" data-viewport="<?= e((string) $width) ?>" aria-pressed="<?= $name === 'desktop' ? 'true' : 'false' ?>"><?= e(t('appearance.width.' . $name)) ?></button>
-<?php endforeach; ?>
-                            </div>
-                            <label class="zoom">
-                                <span class="visually-hidden"><?= e(t('appearance.zoom')) ?></span>
-                                <select data-zoom>
-                                    <option value="fit"><?= e(t('appearance.zoom.fit')) ?></option>
-                                    <option value="1">100%</option>
-                                    <option value="0.75">75%</option>
-                                    <option value="0.5">50%</option>
-                                </select>
-                            </label>
-                            <?php /* Held, not toggled: a comparison you have to keep holding is
-                                     one you cannot walk away from and mistake for the site. */ ?>
-                            <button type="button" class="viewport viewport-compare" data-compare aria-pressed="false" title="<?= e(t('appearance.compare_hint')) ?>"><?= e(t('appearance.compare')) ?></button>
-                        </div>
+                <div class="appearance-stage-column">
+                    <?php /* The strip says WHAT is in the frame and at what size: a preview
+                             with no address is a picture of something. */ ?>
+                    <div class="stage-strip">
+                        <span class="stage-where"><?= e($host) ?> <span>·</span> <?= e($pageName) ?></span>
+                        <span class="stage-size" data-stage-size></span>
                     </div>
                     <?php /* THE ZOOM SCALES THE STAGE, NEVER THE FRAME'S WIDTH. A page judged
                              at 1280 has to lay itself out at 1280; shrinking the frame instead
@@ -261,25 +214,26 @@ $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
                         <iframe name="design-preview" src="<?= e($previewUrl) ?>" title="<?= e(t('design.preview')) ?>" data-design-preview></iframe>
                     </div>
                 </div>
-<?php if ($character !== ''): ?>
-                <p class="preview-note"><?= e(t('design.preview.composition_note', ['character' => t('design.preset.' . $character)])) ?></p>
-<?php else: ?>
-                <p class="preview-note"><?= e(t('design.preview.note')) ?></p>
-<?php endif; ?>
-<?php if ($character !== '' && $hasBlocks): ?>
-                <div class="apply-notes">
-                    <p class="hint"><strong><?= e(t('design.apply.design_only')) ?></strong> — <?= e(t('design.apply.design_only_hint')) ?></p>
-                    <p class="hint"><strong><?= e(t('design.apply.with_composition')) ?></strong> — <?= e(t('design.apply.with_composition_hint')) ?></p>
+
+                <div class="appearance-inspector">
+                    <div class="tabs" data-tabs>
+                        <div class="tab-strip" data-tab-strip>
+<?php foreach ($tabs as $index => $name): ?>
+                            <a class="tab<?= $index === 0 ? ' tab-current' : '' ?>" href="#panel-<?= e($name) ?>" id="tab-<?= e($name) ?>" data-tab="<?= e($name) ?>"><?= e(t('appearance.tab.' . $name)) ?></a>
+<?php endforeach; ?>
+                        </div>
+<?php foreach ($tabs as $name): ?>
+                        <div class="tab-panel" id="panel-<?= e($name) ?>" data-panel="<?= e($name) ?>" aria-labelledby="tab-<?= e($name) ?>">
+                            <?php include __DIR__ . '/tabs/' . $name . '.php'; ?>
+                        </div>
+<?php endforeach; ?>
+                    </div>
                 </div>
-<?php elseif ($character !== ''): ?>
-                <p class="hint"><?= e(t('design.apply.no_blocks')) ?></p>
-<?php endif; ?>
-            </div>
+            </form>
         </div>
 
         <?php /* Without JavaScript this form sends the current values to the preview frame. */ ?>
         <form id="design-preview-form" method="get" action="<?= e(Url::admin('appearance', 'preview')) ?>" target="design-preview" class="visually-hidden"></form>
         <script src="<?= e(Url::versioned('assets/appearance.js')) ?>" defer></script>
-        <?php /* The link field (page or address) is admin.js's, as everywhere else. */ ?>
         <script src="<?= e(Url::versioned('assets/appearance-tabs.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-stage.js')) ?>" defer></script>

@@ -45,7 +45,19 @@ export default {
     const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',
         (els) => els.map((e) => e.value.slice('preset:'.length))));
-    report.verdict('the Design screen offers five characters', presets.length === 5, presets.join(', '));
+    report.verdict('the Appearance screen offers five characters', presets.length === 5, presets.join(', '));
+
+    // THE SCREEN IS THE WINDOW (D-064): three columns that scroll on their own, under a bar
+    // that does not. A page taller than the window here means the layout has come apart.
+    const shell = await page.evaluate(() => ({
+      page: document.documentElement.scrollHeight,
+      window: window.innerHeight,
+      columns: [...document.querySelectorAll('.appearance-rail, .appearance-stage-column, .appearance-inspector')].length,
+      railFolded: document.querySelector('.admin-frame.rail-compact') !== null,
+    }));
+    report.verdict('the screen fills the window and does not scroll as a page',
+      shell.page <= shell.window + 1 && shell.columns === 3 && shell.railFolded,
+      `page ${shell.page}px in a window of ${shell.window}px, ${shell.columns} columns, admin rail folded: ${shell.railFolded}`);
 
     // The richest form in the admin, and judged before the loop below starts changing the
     // site's own colours — the guard reads computed backgrounds, and this screen is the one
@@ -405,7 +417,7 @@ export default {
     await clickAndWait(page, 'button[form="design-form"][value="library:save"]', 40000);
 
     const afterKeeping = await page.evaluate((name) => ({
-      listed: [...document.querySelectorAll('.library .character-card h3')].map((h) => h.textContent.trim()),
+      listed: [...document.querySelectorAll('.appearance-rail .rail-card-name')].map((h) => h.textContent.trim()),
       said: (document.querySelector('.notice') || {}).textContent?.trim() ?? '',
       stillOnScreen: document.querySelector('#design-seed').value,
     }), KEPT);
@@ -417,8 +429,8 @@ export default {
     // Now throw the screen away with a character, and bring the kept design back.
     await applyCharacter(page, BASE, 'brutalist', 'save');
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-    const useButton = await page.$$eval('.library .character-card', (cards, name) => {
-      const card = cards.find((c) => c.querySelector('h3').textContent.trim() === name);
+    const useButton = await page.$$eval('.appearance-rail .rail-card', (cards, name) => {
+      const card = cards.find((c) => c.querySelector('.rail-card-name').textContent.trim() === name);
       return card ? card.querySelector('[value^="library:use:"]').value : '';
     }, KEPT);
     await clickAndWait(page, `button[form="design-form"][value="${useButton}"]`, 40000);
@@ -430,7 +442,7 @@ export default {
     // And deleting it takes only itself.
     const deleteButton = useButton.replace('library:use:', 'library:delete:');
     await clickAndWait(page, `button[form="design-form"][value="${deleteButton}"]`, 40000);
-    const left = await page.$$eval('.library .character-card h3', (hs) => hs.map((h) => h.textContent.trim()));
+    const left = await page.$$eval('.appearance-rail .rail-card-name', (hs) => hs.map((h) => h.textContent.trim()));
     report.verdict('the scenario takes its kept design away again', !left.includes(KEPT),
       `left in the library: ${JSON.stringify(left)}`);
 

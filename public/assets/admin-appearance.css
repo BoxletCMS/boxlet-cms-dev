@@ -1,3 +1,286 @@
+/* The Appearance screen fills the window (PLAN.md D-064): a bar, then three columns that
+   scroll independently. The page editor already works this way, and the admin's own rail
+   folds to its icons beside it. Admin tokens only (--ui-*): the site's own design appears
+   in one place on this screen, inside the preview frame, which is a separate document. */
+
+.admin-main-bare {
+  max-width: none;
+  padding: 0;
+}
+
+.appearance {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  /* dvh, so a phone browser's own chrome cannot add a scrollbar to a screen that fits. */
+  height: calc(100dvh - var(--ui-bar-height));
+  min-height: 40rem;
+}
+
+.appearance-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-2) var(--ui-3);
+  padding: var(--ui-2) var(--ui-3);
+  background: var(--ui-panel);
+  border-block-end: var(--ui-border) solid var(--ui-line);
+}
+
+.appearance-title {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  white-space: nowrap;
+}
+
+.appearance-title strong {
+  font-size: var(--ui-text-base);
+}
+
+/* The subhead says what the screen is for, and goes first when there is no room for it. */
+.appearance-subhead {
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-xs);
+}
+
+@media (max-width: 68rem) {
+  .appearance-subhead {
+    display: none;
+  }
+}
+
+.appearance-bar .preview-tools {
+  margin-inline-start: auto;
+}
+
+.appearance-bar .preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
+}
+
+/* The no-script preview form has no content of its own: it exists to be submitted into the
+   frame. HIDDEN OUTRIGHT, not visually hidden — .visually-hidden is an absolutely positioned
+   1em box, and sitting after a screen that already fills the window it added exactly 13px of
+   page and a scrollbar with it. A form with display:none still submits. */
+#design-preview-form {
+  display: none;
+}
+
+.appearance-notice {
+  margin: 0;
+  border-radius: 0;
+}
+
+/* ---- the three columns --------------------------------------------------------------- */
+
+.appearance-body {
+  display: grid;
+  grid-template-columns: 12.25rem minmax(0, 1fr) 19.5rem;
+  min-height: 0;
+  margin: 0;
+  gap: 0;
+}
+
+/* Each column carries its own scroll: the picture stays where it is while a list of
+   controls is read, which is the whole reason this screen fills the window. */
+.appearance-rail,
+.appearance-inspector {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--ui-3);
+}
+
+.appearance-rail {
+  display: grid;
+  align-content: start;
+  gap: var(--ui-2);
+  background: var(--ui-panel-sunken);
+  border-inline-end: var(--ui-border) solid var(--ui-line);
+}
+
+.appearance-inspector {
+  background: var(--ui-panel);
+  border-inline-start: var(--ui-border) solid var(--ui-line);
+}
+
+.appearance-stage-column {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  background: var(--ui-bg);
+}
+
+/* ---- the rail's cards ------------------------------------------------------------- */
+
+.rail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ui-2);
+  margin: var(--ui-3) 0 var(--ui-1);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rail-heading:first-child {
+  margin-block-start: 0;
+}
+
+.rail-heading span {
+  color: var(--ui-ink-faint);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* A card is a button you can read: the whole thing is the target, and the tools on it sit
+   above that target rather than inside it. */
+.rail-card {
+  position: relative;
+  display: grid;
+  gap: var(--ui-1);
+  padding: var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.rail-card-current {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 1px var(--ui-accent);
+}
+
+.rail-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+}
+
+.rail-card-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-chips {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.rail-chips svg {
+  inline-size: 0.85rem;
+  block-size: 0.85rem;
+  border-radius: 2px;
+  border: var(--ui-border) solid var(--ui-line);
+}
+
+.rail-live {
+  margin-inline-start: auto;
+  padding: 0 var(--ui-1);
+  background: var(--ui-accent-soft);
+  border-radius: var(--ui-radius-s);
+  color: var(--ui-ink);
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.rail-card-shape {
+  margin: 0;
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-xs);
+  overflow-wrap: anywhere;
+}
+
+/* The card's own button covers it, under the tools rather than over them, so "use this"
+   is the whole card and the two icons still get their own clicks. */
+.rail-use {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ui-radius-m);
+  cursor: pointer;
+}
+
+/* The CARD lights up, not the button over it. Fading a translucent sheet over the card
+   would be opacity doing the work, which is the one thing the admin's contrast rule
+   forbids (D-012) — and tests/contrast_test.php said so within a minute of it being
+   written. */
+.rail-card:hover {
+  border-color: var(--ui-accent);
+}
+
+.rail-card-tools {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  margin-inline-start: auto;
+  gap: var(--ui-1);
+}
+
+.rail-keep {
+  display: grid;
+  gap: var(--ui-2);
+  margin-block-start: var(--ui-3);
+}
+
+/* ---- the strip over the picture ---------------------------------------------------- */
+
+.stage-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  padding: var(--ui-1) var(--ui-3);
+  background: var(--ui-panel-sunken);
+  border-block-end: var(--ui-border) solid var(--ui-line);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+}
+
+.stage-where span {
+  color: var(--ui-ink-faint);
+}
+
+.stage-size {
+  margin-inline-start: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Under a tablet's width the three columns become one scroll, in the order they are read:
+   what to look at, then what to change, then what to start from. */
+@media (max-width: 64rem) {
+  .appearance {
+    height: auto;
+  }
+
+  .appearance-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .appearance-rail,
+  .appearance-inspector {
+    overflow: visible;
+    border: 0;
+    border-block-start: var(--ui-border) solid var(--ui-line);
+  }
+
+  .appearance-stage-column {
+    order: -1;
+  }
+}
+
 /* The Appearance screen's tabs (PLAN.md D-059), on top of admin-design.css, which still
    holds the characters, the gauge and the preview. Admin tokens only (--ui-*): the site's
    own design appears in one place on this screen, inside the preview frame, which is a
@@ -35,7 +318,7 @@
 
 .tab {
   flex: 1 1 auto;
-  padding: var(--ui-2) var(--ui-3);
+  padding: var(--ui-2) var(--ui-1);
   border-radius: var(--ui-radius-m);
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-sm);
@@ -170,9 +453,9 @@
    pushing the screen sideways. */
 .preview-stage {
   overflow: auto;
+  min-height: 0;
   inline-size: 100%;
-  block-size: 78vh;
-  min-block-size: 32rem;
+  block-size: 100%;
   background: var(--ui-panel-sunken);
 }
 
@@ -187,9 +470,11 @@
   block-size: 100%;
 }
 
-@media (max-width: 68rem) {
+/* In one column the stage has no row to fill, so it takes a share of the window. */
+@media (max-width: 64rem) {
   .preview-stage {
-    block-size: 60vh;
+    block-size: 70vh;
+    min-block-size: 28rem;
   }
 }
 

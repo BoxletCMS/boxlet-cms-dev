@@ -59,6 +59,31 @@ export default {
       shell.page <= shell.window + 1 && shell.columns === 3 && shell.railFolded,
       `page ${shell.page}px in a window of ${shell.window}px, ${shell.columns} columns, admin rail folded: ${shell.railFolded}`);
 
+    /*
+     * AND IN A SHORT WINDOW, which is where it broke. Two things made the document taller
+     * than the window: a three-row grid whose third row was only used when there was a
+     * message, and the clipped radios a segmented control is built on, absolutely positioned
+     * against the PAGE from inside a column that scrolls. Both were invisible at the height
+     * this suite happened to run at.
+     */
+    const tall = page.viewport();
+    await page.setViewport({ ...tall, height: 620 });
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await new Promise((resolve) => { setTimeout(resolve, 500); });
+    const short = await page.evaluate(() => ({
+      page: document.documentElement.scrollHeight,
+      window: window.innerHeight,
+      sideways: ['.appearance-rail', '.appearance-inspector'].map((where) => {
+        const column = document.querySelector(where);
+        return column.scrollWidth - column.clientWidth;
+      }),
+    }));
+    report.verdict('a short window gets short columns, not a longer page',
+      short.page <= short.window + 1,
+      `page ${short.page}px in a window of ${short.window}px`);
+    await page.setViewport(tall);
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+
     // The richest form in the admin, and judged before the loop below starts changing the
     // site's own colours — the guard reads computed backgrounds, and this screen is the one
     // place where a character could plausibly leak into the tool (SPEC §5.4 says it must not).

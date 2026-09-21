@@ -8,12 +8,20 @@
   padding: 0;
 }
 
+/* A COLUMN, NOT A THREE-ROW GRID. The grid named three rows — bar, message, body — and the
+   screen usually has two, so the body landed in the `auto` row and took the height of its
+   own content: the page grew past the window, the columns stopped scrolling on their own,
+   and below them sat a dead band of the admin's background. Found in the owner's
+   screenshot, reproduced at a short window, measured at 699px of page in a 620px window.
+   A flex column does not care how many children there are. */
 .appearance {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  /* dvh, so a phone browser's own chrome cannot add a scrollbar to a screen that fits. */
+  display: flex;
+  flex-direction: column;
+  /* dvh, so a phone browser's own chrome cannot add a scrollbar to a screen that fits.
+     NO FLOOR: a floor is the one thing that can make this screen taller than the window,
+     and then the page scrolls and the columns stop scrolling on their own — which is the
+     whole arrangement gone. A short window gets short columns instead. */
   height: calc(100dvh - var(--ui-bar-height));
-  min-height: 40rem;
 }
 
 .appearance-bar {
@@ -75,6 +83,7 @@
 /* ---- the three columns --------------------------------------------------------------- */
 
 .appearance-body {
+  flex: 1 1 auto;
   display: grid;
   grid-template-columns: 12.25rem minmax(0, 1fr) 19.5rem;
   min-height: 0;
@@ -84,10 +93,22 @@
 
 /* Each column carries its own scroll: the picture stays where it is while a list of
    controls is read, which is the whole reason this screen fills the window. */
+/* RELATIVE, so anything absolutely positioned inside — a visually hidden label, the radio
+   a segment is built on — is measured against its own column and not against the page.
+   Left static, those escape the scroll container and make the DOCUMENT taller than the
+   window, which is the dead band under the screen and the page scrollbar with it. One rule
+   here rather than hunting each of them down. */
 .appearance-rail,
 .appearance-inspector {
+  position: relative;
   min-height: 0;
   overflow-y: auto;
+  /* NEVER SIDEWAYS. These two columns have a width the layout gives them, so a horizontal
+     scrollbar is not a way to see more — it is a way to be told something is too wide, at
+     the cost of a bar under every one of them. Anything that does not fit is a bug to fix,
+     and two of them were (a hidden label 16px out, an input asking for twenty characters).
+     `clip` rather than `hidden`, so this does not become a scroll container. */
+  overflow-x: clip;
   padding: var(--ui-3);
 }
 
@@ -208,6 +229,10 @@
   position: absolute;
   inset: 0;
   z-index: 0;
+  /* Its only content is the name for a screen reader, which is an absolutely positioned
+     1em box: left alone it stuck 16px out of the rail and put a horizontal scrollbar under
+     the whole column. */
+  overflow: hidden;
   background: transparent;
   border: 0;
   border-radius: var(--ui-radius-m);
@@ -234,6 +259,13 @@
   display: grid;
   gap: var(--ui-2);
   margin-block-start: var(--ui-3);
+}
+
+/* A text input carries an intrinsic width of about twenty characters, which is wider than
+   this column and was the last eight pixels of horizontal scrollbar under the rail. */
+.rail-keep input {
+  inline-size: 100%;
+  min-inline-size: 0;
 }
 
 /* ---- the strip over the picture ---------------------------------------------------- */
@@ -599,13 +631,23 @@
   margin: 0;
 }
 
+/* A readout is a number most of the time and a phrase sometimes — "Stays at the top when
+   scrolling" — and a phrase that cannot shrink pushes the whole column sideways. It keeps
+   its line and gives way at the end instead. */
 .readout {
+  min-inline-size: 0;
   margin-inline-start: auto;
+  overflow: hidden;
   color: var(--ui-ink-muted);
   font-family: var(--ui-mono);
   font-size: var(--ui-text-xs);
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.field-row {
+  min-inline-size: 0;
 }
 
 /* "following" is the one readout that is a STATE rather than a value, so it is the one that
@@ -623,7 +665,13 @@
   border-radius: var(--ui-radius-m);
 }
 
+/* RELATIVE, so the clipped radio inside has something to be positioned against. Left
+   static, that input was absolute against the page itself: from inside a column that
+   scrolls, it sat wherever its static position fell and stretched the DOCUMENT past the
+   window — the dead band under the screen in the owner's screenshot, measured at 699px of
+   document in a 620px window. */
 .segment {
+  position: relative;
   display: flex;
   flex: 1 1 auto;
   align-items: center;
@@ -681,6 +729,7 @@
 }
 
 .typeface {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--ui-3);
@@ -813,4 +862,37 @@
 
 .confirm-options .hint {
   font-size: var(--ui-text-xs);
+}
+
+/* ---- density in the inspector -------------------------------------------------------- */
+
+/* A group's name is a LABEL, not a heading: small, quiet and in capitals, as the handoff
+   draws it. The value beside it is the thing worth reading at full strength. */
+.appearance-inspector .field-label,
+.appearance-inspector .field > .field-row > label {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Three hundred pixels of column is not the place for a paragraph at reading size: the
+   hints stay — they are what teaches the screen — but at the size of a footnote. */
+.appearance-inspector .hint {
+  font-size: var(--ui-text-xs);
+  line-height: 1.45;
+}
+
+.appearance-inspector .fieldset {
+  gap: var(--ui-3);
+  padding: var(--ui-3);
+}
+
+.appearance-inspector .field {
+  gap: var(--ui-1);
+}
+
+.appearance-inspector .tab-panel {
+  gap: var(--ui-3);
 }

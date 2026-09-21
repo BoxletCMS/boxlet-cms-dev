@@ -18,6 +18,10 @@ return [
     'appearance.library.overwrite' => 'Save what is on screen into “:name”',
     'appearance.back' => 'Leave Appearance',
     'appearance.stage.viewport' => ':width px',
+    // Said rather than silently acted on: the screen used to change the width by itself when
+    // the column ran out of room, and a picture that changes under your hand reads as a
+    // design that changed.
+    'appearance.stage.tight' => 'Too little room — choose a narrower width',
     // The last word of a card's summary: whether the page is a sheet or runs to the edges.
     'appearance.boxed' => 'boxed',
     'appearance.full_bleed' => 'full bleed',

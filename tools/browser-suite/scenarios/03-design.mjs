@@ -84,6 +84,99 @@ export default {
     await page.setViewport(tall);
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
 
+    /*
+     * DRAGGED FROM 1600 TO 820 (docs/ispravci.md §A3). Four things went wrong at once and
+     * only ever together: the admin rail could be opened as a FOURTH column from a button
+     * this screen should not offer; the columns collapsed at 64rem of WINDOW while the admin
+     * rail decided at 62.5rem, so between them sat a band with a wide rail and stacked
+     * columns; and the picture chose its own width from every resize, so shrinking the
+     * window walked it from desktop to phone under the owner's hand.
+     *
+     * Measured across the sweep rather than at one width, because each of those is a
+     * RELATION between two widths and none of them shows at a single one.
+     */
+    const sweep = [];
+    for (const width of [1600, 1440, 1280, 1200, 1100, 1024, 1000, 960, 900, 820]) {
+      await page.setViewport({ ...tall, width });
+      await new Promise((resolve) => { setTimeout(resolve, 250); });
+      sweep.push(await page.evaluate((at) => {
+        const body = document.querySelector('.appearance-body');
+        const root = document.documentElement;
+        /* Asked, not deduced from overflow: a box can report more scrollable content than it
+           can be scrolled to, which is exactly how the stage hid a second scrollbar. */
+        const scrollers = [...document.querySelectorAll('*')].filter((el) => {
+          if (!/(auto|scroll)/.test(getComputedStyle(el).overflowY)) return false;
+          const was = el.scrollTop;
+          el.scrollTop = 99999;
+          const max = el.scrollTop;
+          el.scrollTop = was;
+          return max > 0;
+        }).length;
+        return {
+          at,
+          rail: Math.round(document.querySelector('.admin-rail').getBoundingClientRect().width),
+          columns: getComputedStyle(body).gridTemplateColumns.split(' ').length,
+          frame: document.querySelector('iframe[data-design-preview]').style.width,
+          page: root.scrollHeight,
+          window: window.innerHeight,
+          sideways: root.scrollWidth - root.clientWidth,
+          scrollers,
+        };
+      }, width));
+    }
+    await page.setViewport(tall);
+
+    const railWidths = [...new Set(sweep.map((s) => s.rail))];
+    report.verdict('the admin rail keeps one width while this screen is resized',
+      railWidths.length === 1, `widths seen: ${railWidths.join(', ')}`);
+    report.verdict('the picture keeps the width it opened on',
+      new Set(sweep.map((s) => s.frame)).size === 1,
+      sweep.map((s) => `${s.at}:${s.frame}`).join(' '));
+    report.verdict('the columns go three, then two, then one — never three to one',
+      [...new Set(sweep.map((s) => s.columns))].join(',') === '3,2,1',
+      sweep.map((s) => `${s.at}:${s.columns}`).join(' '));
+    const spilling = sweep.filter((s) => s.sideways > 0 || s.page > s.window + 1);
+    report.verdict('no width spills sideways or past the bottom of the window',
+      spilling.length === 0,
+      spilling.map((s) => `${s.at}: ${s.sideways}px sideways, ${s.page}px of page in ${s.window}px`).join('; ') || 'none of ten widths');
+    const stacked = sweep.filter((s) => s.columns === 1);
+    report.verdict('stacked, there is exactly one vertical scroll',
+      stacked.length > 0 && stacked.every((s) => s.scrollers === 1),
+      stacked.map((s) => `${s.at}:${s.scrollers}`).join(' ') || 'never stacked');
+
+    // The strip over the picture had the slot for this from the first day and nothing ever
+    // wrote into it: the size of the page being judged, and how much of it is on screen.
+    const stageSays = await page.$eval('[data-stage-size]', (el) => el.textContent.trim());
+    report.verdict('the strip says what size the picture is',
+      /^\d+×\d+ · \d+%$/.test(stageSays), stageSays === '' ? 'the slot is empty' : stageSays);
+
+    // The button that could open the admin rail over this screen as a fourth column. It is
+    // in the markup for every other screen and hidden here by admin-nav.js.
+    const toggle = await page.$eval('[data-rail-toggle]', (b) => b.hidden);
+    report.verdict('this screen does not offer to open the admin rail', toggle === true,
+      `rail toggle hidden: ${toggle}`);
+
+    // And what takes the characters' place once they stop being a column.
+    await page.setViewport({ ...tall, width: 1150 });
+    await new Promise((resolve) => { setTimeout(resolve, 250); });
+    await page.click('[data-rail-panel]');
+    await new Promise((resolve) => { setTimeout(resolve, 200); });
+    const panel = await page.evaluate(() => {
+      const rail = document.getElementById('appearance-rail');
+      return {
+        open: document.querySelector('[data-rail-panel]').getAttribute('aria-expanded'),
+        shown: getComputedStyle(rail).display !== 'none',
+        cards: rail.querySelectorAll('.rail-card').length,
+        // One rail, not a copy: two sets of these buttons would be two sets of submits.
+        rails: document.querySelectorAll('.appearance-rail').length,
+      };
+    });
+    report.verdict('the characters open as a panel when they are no longer a column',
+      panel.open === 'true' && panel.shown && panel.cards === 5 && panel.rails === 1,
+      JSON.stringify(panel));
+    await page.setViewport(tall);
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+
     // The richest form in the admin, and judged before the loop below starts changing the
     // site's own colours — the guard reads computed backgrounds, and this screen is the one
     // place where a character could plausibly leak into the tool (SPEC §5.4 says it must not).
@@ -199,9 +292,18 @@ export default {
       };
     });
 
-    // A column too narrow to carry 1280 above the floor opens on a width it CAN carry.
+    /*
+     * A column too narrow to carry 1280 above the floor opens on a width it CAN carry.
+     *
+     * THE WINDOW MOVED, THE RULE DID NOT. This was 1100px, which used to leave the stage
+     * 484px — under the 640 that 1280 needs at the floor. With the columns now going three
+     * to two rather than three to one, 1100px hands the stage 736px and 1280 fits honestly,
+     * so the old window no longer sets up the case at all. 960px does: 596px of stage, and
+     * the screen has to choose the tablet. Changing the width the case is built at is not
+     * the same as changing what it asserts, which is untouched.
+     */
     const wide = page.viewport();
-    await page.setViewport({ ...wide, width: 1100 });
+    await page.setViewport({ ...wide, width: 960 });
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     await new Promise((resolve) => { setTimeout(resolve, 600); });
     const narrow = await stageState();

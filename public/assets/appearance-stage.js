@@ -22,6 +22,8 @@
   var tools = document.querySelector('[data-preview-tools]');
   var state = document.querySelector('[data-state]');
   var revert = document.querySelector('[data-revert]');
+  var size = document.querySelector('[data-stage-size]');
+  var tight = document.querySelector('[data-stage-tight]');
   if (!stage || !frame || !tools) {
     return;
   }
@@ -59,6 +61,19 @@
     // to.
     var spare = stage.clientWidth - width * factor;
     frame.style.marginInlineStart = (spare > 0 ? spare / 2 : 0) + 'px';
+    // What the picture IS: the page's own width and height, and how much of full size is on
+    // screen. The strip had the slot for it from the first day and nothing ever filled it,
+    // so the zoom was a number in a dropdown and the height was a guess.
+    if (size) {
+      size.textContent = width + '×' + Math.round(tall > 0 ? tall / factor : 0)
+        + ' · ' + Math.round(factor * 100) + '%';
+    }
+    // The floor has been hit: the frame is wider than the stage and scrolls sideways. SAID,
+    // never fixed by changing the width — the owner chose that width, or saw the screen open
+    // on it, and a picture that becomes a phone by itself reads as a design that changed.
+    if (tight) {
+      tight.hidden = spare >= 0;
+    }
   }
 
   var chooser = tools.querySelector('[data-zoom]');
@@ -106,12 +121,21 @@
    * would be a page nobody can read, or one silently clipped — which is what the prototype
    * did twice by trusting a default width instead of measuring. So the width is chosen from
    * the room there actually is, and only until the owner picks one for themselves.
+   *
+   * ONCE, AT THE FIRST REAL MEASUREMENT. It ran from every ResizeObserver tick, so dragging
+   * the window — or opening devtools — walked the picture from desktop to tablet to phone
+   * and back under the owner's hand, and nothing on screen said why. From the second
+   * measurement on the width is whatever is showing, and draw() says when there is no longer
+   * room for it.
    */
+  var chosenOnce = false;
+
   function fitsTheColumn() {
     var room = stage.clientWidth;
-    if (room <= 0 || picked) {
+    if (room <= 0 || picked || chosenOnce) {
       return;
     }
+    chosenOnce = true;
     for (var i = 0; i < WIDTHS.length; i++) {
       if (room / WIDTHS[i] >= SMALLEST) {
         show(WIDTHS[i]);

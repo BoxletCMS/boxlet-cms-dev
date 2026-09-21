@@ -1,0 +1,115 @@
+/* The picture on the Appearance screen and the toolbar over it (PLAN.md D-060).
+ *
+ * Every control has a resting state: a viewport button is a button whether or not it is the
+ * current one, and the one in use says so with a filled ground rather than by being the only
+ * visible thing.
+ *
+ * The stage's own size at each threshold is in admin-appearance-widths.css. Admin tokens
+ * only (--ui-*): what is inside the frame is a separate document with the site's own. */
+
+.preview-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-2);
+}
+
+.viewports {
+  display: flex;
+  gap: 1px;
+  padding: 1px;
+  background: var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.viewport {
+  padding: var(--ui-1) var(--ui-2);
+  background: var(--ui-panel);
+  border: 0;
+  color: var(--ui-ink-muted);
+  font: inherit;
+  font-size: var(--ui-text-xs);
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.viewport:first-child { border-start-start-radius: var(--ui-radius-s); border-end-start-radius: var(--ui-radius-s); }
+.viewport:last-child { border-start-end-radius: var(--ui-radius-s); border-end-end-radius: var(--ui-radius-s); }
+
+.viewport:hover {
+  color: var(--ui-ink);
+}
+
+.viewport[aria-pressed="true"] {
+  background: var(--ui-accent-soft);
+  color: var(--ui-ink);
+  font-weight: 650;
+}
+
+.zoom select {
+  padding: var(--ui-1) var(--ui-2);
+  font-size: var(--ui-text-xs);
+}
+
+/* Compare is a chip like the widths, not a word floating beside them: it is the same kind
+   of control — something you press to change what the frame shows. */
+.viewport-compare {
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.viewport-compare[aria-pressed="true"] {
+  background: var(--ui-accent-soft);
+  color: var(--ui-ink);
+}
+
+/* The state, in words. Never a colour alone: a dot says nothing to a reader who cannot see
+   it and nothing at all to one reading the page aloud. */
+.preview-state {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+
+.state-unpublished {
+  color: var(--ui-warning);
+}
+
+.state-problem {
+  color: var(--ui-danger);
+}
+
+/* The stage the frame is scaled inside. Its width follows the frame's scaled width so the
+   picture stays where it is put, and anything wider than the column scrolls rather than
+   pushing the screen sideways. */
+.preview-stage {
+  /* SIDEWAYS ONLY. The frame is laid out at full size and scaled down, and the scrollable
+     overflow this box reports is the frame BEFORE the transform — 1280×1176 of it while
+     840×772 is what is drawn. So the stage scrolled 404px down onto nothing, and in the
+     stacked state that was the second scroll inside the first. Measured, not reasoned: the
+     frame's own rectangle is exactly the stage's.
+     Vertically there is nothing to scroll to by construction — draw() gives the frame the
+     height that lands back on the stage exactly — and sideways there is, whenever the
+     chosen width is wider than the room. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  background: var(--ui-panel-sunken);
+}
+
+/* With no script this is the whole of it: a frame the width of the column, as tall as the
+   stage. The toolbar then sets a width, a height and a scale in pixels, and these are what
+   it starts from. */
+.preview-stage iframe {
+  display: block;
+  border: 0;
+  transform-origin: top left;
+  inline-size: 100%;
+  block-size: 100%;
+}

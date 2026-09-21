@@ -56,6 +56,15 @@
   // screen alone and is not remembered.
   var editor = frame.hasAttribute('data-rail-editor');
 
+  // A screen that fills the window for itself (Appearance, the page editor) has no room for a
+  // wide rail: opening it would lay a fourth column over the three already there, and because
+  // nothing here is remembered in the cookie the next load would silently undo it. The rail
+  // stays on its icons, and the button that could undo that does not exist.
+  if (editor) {
+    fold.hidden = true;
+    return;
+  }
+
   function folded() {
     return frame.classList.contains('rail-compact') || (narrow.matches && !frame.classList.contains('rail-wide'));
   }

@@ -1,7 +1,15 @@
-/* The Appearance screen fills the window (PLAN.md D-064): a bar, then three columns that
-   scroll independently. The page editor already works this way, and the admin's own rail
-   folds to its icons beside it. Admin tokens only (--ui-*): the site's own design appears
-   in one place on this screen, inside the preview frame, which is a separate document. */
+/* The Appearance screen (PLAN.md D-064, D-072): a bar, then the three columns that scroll
+ * independently — the characters, the picture, the controls.
+ *
+ * THIS FILE IS THE SCREEN ITSELF: what the bar holds, how the columns are laid out, and the
+ * strip over the picture. What is INSIDE each column has its own file beside this one
+ * (-rail, -picture, -inspector), and every threshold at which this screen rearranges is in
+ * admin-appearance-widths.css, which is loaded LAST so its overrides win. One file of a
+ * thousand lines was past the point where it is read rather than searched, and the
+ * thresholds scattered through it were the fault docs/ispravci.md §A was written about.
+ *
+ * Admin tokens only (--ui-*): the site's own design appears in one place on this screen,
+ * inside the preview frame, which is a separate document. */
 
 .admin-main-bare {
   max-width: none;
@@ -15,13 +23,20 @@
    screenshot, reproduced at a short window, measured at 699px of page in a 620px window.
    A flex column does not care how many children there are. */
 .appearance {
+  /* THE SCREEN MEASURES ITSELF, NOT THE WINDOW. How much room there is depends on the admin
+     rail — 3.25rem folded, 13.5rem open — which a media query cannot see: the same 1100px
+     window gave this screen 1048px once and 884px the next time, and the CSS behaved
+     identically both times. Every threshold this screen has is a @container on this box
+     (admin-appearance-widths.css), so folding the rail moves the breakpoints with it. */
+  container-type: inline-size;
+  container-name: appearance;
   display: flex;
   flex-direction: column;
-  /* dvh, so a phone browser's own chrome cannot add a scrollbar to a screen that fits.
-     NO FLOOR: a floor is the one thing that can make this screen taller than the window,
-     and then the page scrolls and the columns stop scrolling on their own — which is the
-     whole arrangement gone. A short window gets short columns instead. */
-  height: calc(100dvh - var(--ui-bar-height));
+  height: 100%;
+  /* Stacked, this is the ONE scroll on the screen: the columns give theirs up rather than
+     nest a second one inside it. Above that width nothing here overflows, so no bar
+     appears. */
+  overflow-y: auto;
 }
 
 .appearance-bar {
@@ -51,10 +66,12 @@
   font-size: var(--ui-text-xs);
 }
 
-@media (max-width: 68rem) {
-  .appearance-subhead {
-    display: none;
-  }
+/* Opens the characters as a panel once they stop being a column. Shown by the container
+   query in admin-appearance-widths.css, and only when appearance-rail.js is there to open
+   it: without a script the screen stacks instead, and a button that could not do anything
+   would be worse. */
+.appearance-rail-open {
+  display: none;
 }
 
 .appearance-bar .preview-tools {
@@ -83,9 +100,14 @@
 /* ---- the three columns --------------------------------------------------------------- */
 
 .appearance-body {
+  position: relative;
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 12.25rem minmax(0, 1fr) 19.5rem;
+  /* A FLOOR UNDER THE PICTURE. With minmax(0, 1fr) the stage was free to shrink to nothing
+     long before any threshold fired — the two side columns are fixed, so every pixel the
+     window loses came out of the one thing the screen exists to show. 30rem is a 1280px
+     page at a little over 0.6, still a page rather than a smudge. */
+  grid-template-columns: 12.25rem minmax(30rem, 1fr) 19.5rem;
   min-height: 0;
   margin: 0;
   gap: 0;
@@ -125,147 +147,28 @@
   border-inline-start: var(--ui-border) solid var(--ui-line);
 }
 
+/* A MEASURE, NOT A WIDTH. In its column this does nothing — the column is 19.5rem — and
+   stacked it stops a slider and a row of five segments from being drawn across nine hundred
+   pixels. One rule rather than one per stacked state, so there is nothing to keep in sync.
+   (This is more than docs/ispravci.md asked for: it asked only that the columns stack.) */
+.appearance-inspector .tabs,
+.appearance-rail {
+  /* 100% FIRST, and it is not decoration. The rail is a GRID ITEM, and an auto margin on one
+     of those turns off the stretch that would otherwise fill its track: left at `auto` width
+     it shrank to the widest card it happened to hold — 241px in a 390px column, floating in
+     the middle. A definite width takes the question away, the maximum clamps it, and the
+     margins then have something left over to centre. */
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: 42rem;
+  margin-inline: auto;
+}
+
 .appearance-stage-column {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   background: var(--ui-bg);
-}
-
-/* ---- the rail's cards ------------------------------------------------------------- */
-
-.rail-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--ui-2);
-  margin: var(--ui-3) 0 var(--ui-1);
-  color: var(--ui-ink-muted);
-  font-size: var(--ui-text-xs);
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.rail-heading:first-child {
-  margin-block-start: 0;
-}
-
-.rail-heading span {
-  color: var(--ui-ink-faint);
-  font-weight: 500;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-/* A card is a button you can read: the whole thing is the target, and the tools on it sit
-   above that target rather than inside it. */
-.rail-card {
-  position: relative;
-  display: grid;
-  gap: var(--ui-1);
-  padding: var(--ui-2);
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
-}
-
-.rail-card-current {
-  border-color: var(--ui-accent);
-  box-shadow: 0 0 0 1px var(--ui-accent);
-}
-
-.rail-card-top {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-2);
-}
-
-.rail-card-name {
-  min-inline-size: 0;
-  overflow: hidden;
-  font-size: var(--ui-text-sm);
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rail-chips {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 2px;
-}
-
-.rail-chips svg {
-  inline-size: 0.85rem;
-  block-size: 0.85rem;
-  border-radius: 2px;
-  border: var(--ui-border) solid var(--ui-line);
-}
-
-.rail-live {
-  margin-inline-start: auto;
-  padding: 0 var(--ui-1);
-  background: var(--ui-accent-soft);
-  border-radius: var(--ui-radius-s);
-  color: var(--ui-ink);
-  font-size: 0.65rem;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.rail-card-shape {
-  margin: 0;
-  color: var(--ui-ink-faint);
-  font-size: var(--ui-text-xs);
-  overflow-wrap: anywhere;
-}
-
-/* The card's own button covers it, under the tools rather than over them, so "use this"
-   is the whole card and the two icons still get their own clicks. */
-.rail-use {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  /* Its only content is the name for a screen reader, which is an absolutely positioned
-     1em box: left alone it stuck 16px out of the rail and put a horizontal scrollbar under
-     the whole column. */
-  overflow: hidden;
-  background: transparent;
-  border: 0;
-  border-radius: var(--ui-radius-m);
-  cursor: pointer;
-}
-
-/* The CARD lights up, not the button over it. Fading a translucent sheet over the card
-   would be opacity doing the work, which is the one thing the admin's contrast rule
-   forbids (D-012) — and tests/contrast_test.php said so within a minute of it being
-   written. */
-.rail-card:hover {
-  border-color: var(--ui-accent);
-}
-
-.rail-card-tools {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  margin-inline-start: auto;
-  gap: var(--ui-1);
-}
-
-.rail-keep {
-  display: grid;
-  gap: var(--ui-2);
-  margin-block-start: var(--ui-3);
-}
-
-/* A text input carries an intrinsic width of about twenty characters, which is wider than
-   this column and was the last eight pixels of horizontal scrollbar under the rail. */
-.rail-keep input {
-  inline-size: 100%;
-  min-inline-size: 0;
 }
 
 /* ---- the strip over the picture ---------------------------------------------------- */
@@ -285,552 +188,19 @@
   color: var(--ui-ink-faint);
 }
 
+/* The one thing in this strip that is a warning rather than a fact, so it is the one that
+   is coloured — and it is words, not a colour alone. */
+.stage-tight {
+  margin-inline-start: auto;
+  color: var(--ui-warning);
+  font-weight: 650;
+}
+
 .stage-size {
   margin-inline-start: auto;
   font-variant-numeric: tabular-nums;
-}
-
-/* Under a tablet's width the three columns become one scroll, in the order they are read:
-   what to look at, then what to change, then what to start from. */
-@media (max-width: 64rem) {
-  .appearance {
-    height: auto;
-  }
-
-  .appearance-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .appearance-rail,
-  .appearance-inspector {
-    overflow: visible;
-    border: 0;
-    border-block-start: var(--ui-border) solid var(--ui-line);
-  }
-
-  .appearance-stage-column {
-    order: -1;
-  }
-}
-
-/* The Appearance screen's tabs (PLAN.md D-059), on top of admin-design.css, which still
-   holds the characters, the gauge and the preview. Admin tokens only (--ui-*): the site's
-   own design appears in one place on this screen, inside the preview frame, which is a
-   separate document. */
-
-.tabs {
-  display: grid;
-  gap: var(--ui-4);
-}
-
-/* The strip reads as a row of tabs at rest — each one has its own edge, not only the
-   selected one, because a control that appears on hover is a control nobody knew was
-   there. */
-.tab-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ui-1);
-  padding: var(--ui-1);
-  background: var(--ui-panel-sunken);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-l);
-}
-
-/* The strip's own colour wins over the admin's link colour: these are tabs, and a tab that
-   is painted like a link reads as somewhere else to go rather than as this screen's parts. */
-.tab-strip .tab {
-  color: var(--ui-ink-muted);
-}
-
-.tab-strip .tab:hover,
-.tab-strip .tab-current,
-.tab-strip .tab[aria-selected="true"] {
-  color: var(--ui-ink);
-}
-
-.tab {
-  flex: 1 1 auto;
-  padding: var(--ui-2) var(--ui-1);
-  border-radius: var(--ui-radius-m);
-  color: var(--ui-ink-muted);
-  font-size: var(--ui-text-sm);
-  font-weight: 600;
-  text-align: center;
-  text-decoration: none;
   white-space: nowrap;
 }
-
-.tab:hover {
-  background: var(--ui-panel);
-  color: var(--ui-ink);
-}
-
-.tab-current,
-.tab[aria-selected="true"] {
-  background: var(--ui-panel);
-  color: var(--ui-ink);
-  box-shadow: var(--ui-shadow-s);
-}
-
-.tab-panel {
-  display: grid;
-  gap: var(--ui-4);
-}
-
-/* Focus is the admin's own one rule (admin.css), not a second one here. */
-
-/* The toolbar over the picture (PLAN.md D-060). Every control has a resting state: a
-   viewport button is a button whether or not it is the current one, and the one in use says
-   so with a filled ground rather than by being the only visible thing. */
-
-.preview-label {
-  white-space: nowrap;
-}
-
-/* The bar declares its rows rather than letting eight controls wrap where they like. */
-.preview-bar {
-  display: grid;
-  gap: var(--ui-2);
-}
-
-.preview-bar-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ui-2);
-}
-
-.preview-bar-row .preview-actions {
-  margin-inline-start: auto;
-}
-
-.preview-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ui-2);
-}
-
-.viewports {
-  display: flex;
-  gap: 1px;
-  padding: 1px;
-  background: var(--ui-line);
-  border-radius: var(--ui-radius-m);
-}
-
-.viewport {
-  padding: var(--ui-1) var(--ui-2);
-  background: var(--ui-panel);
-  border: 0;
-  color: var(--ui-ink-muted);
-  font: inherit;
-  font-size: var(--ui-text-xs);
-  text-transform: none;
-  letter-spacing: normal;
-  cursor: pointer;
-}
-
-.viewport:first-child { border-start-start-radius: var(--ui-radius-s); border-end-start-radius: var(--ui-radius-s); }
-.viewport:last-child { border-start-end-radius: var(--ui-radius-s); border-end-end-radius: var(--ui-radius-s); }
-
-.viewport:hover {
-  color: var(--ui-ink);
-}
-
-.viewport[aria-pressed="true"] {
-  background: var(--ui-accent-soft);
-  color: var(--ui-ink);
-  font-weight: 650;
-}
-
-.zoom select {
-  padding: var(--ui-1) var(--ui-2);
-  font-size: var(--ui-text-xs);
-}
-
-/* Compare is a chip like the widths, not a word floating beside them: it is the same kind
-   of control — something you press to change what the frame shows. */
-.viewport-compare {
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
-}
-
-.viewport-compare[aria-pressed="true"] {
-  background: var(--ui-accent-soft);
-  color: var(--ui-ink);
-}
-
-/* The state, in words. Never a colour alone: a dot says nothing to a reader who cannot see
-   it and nothing at all to one reading the page aloud. */
-.preview-state {
-  color: var(--ui-ink-muted);
-  font-size: var(--ui-text-xs);
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: normal;
-  white-space: nowrap;
-}
-
-.state-unpublished {
-  color: var(--ui-warning);
-}
-
-.state-problem {
-  color: var(--ui-danger);
-}
-
-/* The stage the frame is scaled inside. Its width follows the frame's scaled width so the
-   picture stays where it is put, and anything wider than the column scrolls rather than
-   pushing the screen sideways. */
-.preview-stage {
-  overflow: auto;
-  min-height: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  background: var(--ui-panel-sunken);
-}
-
-/* With no script this is the whole of it: a frame the width of the column, as tall as the
-   stage. The toolbar then sets a width, a height and a scale in pixels, and these are what
-   it starts from. */
-.preview-stage iframe {
-  display: block;
-  border: 0;
-  transform-origin: top left;
-  inline-size: 100%;
-  block-size: 100%;
-}
-
-/* In one column the stage has no row to fill, so it takes a share of the window. */
-@media (max-width: 64rem) {
-  .preview-stage {
-    block-size: 70vh;
-    min-block-size: 28rem;
-  }
-}
-
-/* The owner's own designs (PLAN.md D-061), under Boxlet's five. Same cards, so the two
-   strips read as the same kind of thing — a whole look you can put on — with a different
-   heading saying whose they are. */
-
-.library {
-  margin-block-start: calc(var(--ui-5) * -0.5);
-}
-
-/* auto-FILL, not auto-fit: two kept designs are two cards the width of a character, not two
-   cards stretched across the screen. The strip above happens to hold exactly five, so the
-   difference never showed there. */
-.library .character-strip {
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-}
-
-.library-empty {
-  margin-block-end: var(--ui-3);
-}
-
-.library-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ui-2);
-  align-items: center;
-  margin-block-start: auto;
-}
-
-/* Keeping one is a name and a button, on the same line where there is room: it is one
-   action, not a form of its own. */
-.library-keep {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: var(--ui-3);
-  margin-block-start: var(--ui-3);
-  padding: var(--ui-3);
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-l);
-}
-
-.library-keep .field {
-  flex: 0 1 24rem;
-  margin: 0;
-}
-
-/* A slider and the number it is at (PLAN.md D-062). The number is beside the control, not
-   under it: it is what the control MEANS, and a value you have to look away to read is a
-   value you cannot aim. */
-
-.slider {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-3);
-}
-
-/* Every slider on this screen, wherever it sits: the helper renders one as a child of the
-   field rather than of a wrapper (D-066). */
-.appearance input[type="range"] {
-  inline-size: 100%;
-  min-inline-size: 0;
-  accent-color: var(--ui-accent);
-}
-
-.slider-value {
-  min-inline-size: 4.5rem;
-  color: var(--ui-ink);
-  font-size: var(--ui-text-sm);
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-}
-
-/* Colours set by hand (PLAN.md D-063). Folded away, because it is a disagreement with the
-   palette rather than a step in setting one up — and open whenever one of them is the
-   owner's, so nobody looks at a closed panel wondering where their colour went. */
-
-.by-hand {
-  padding: var(--ui-3);
-  background: var(--ui-panel-sunken);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
-}
-
-.by-hand > summary {
-  cursor: pointer;
-  color: var(--ui-ink);
-  font-weight: 600;
-}
-
-.by-hand > .hint {
-  margin-block: var(--ui-2) var(--ui-3);
-}
-
-.by-hand .field + .field {
-  margin-block-start: var(--ui-3);
-}
-
-/* The switch sits with the swatch it governs, not under it: "is this mine" is part of the
-   same answer as "which colour". */
-.by-hand-on {
-  margin-inline-start: var(--ui-2);
-  font-size: var(--ui-text-sm);
-  font-weight: 400;
-  white-space: nowrap;
-}
-
-/* ---- a closed set is a row of buttons (PLAN.md D-065) --------------------------------- */
-
-/* The label and what the choice comes to, on one line: the number belongs to the control,
-   not to a paragraph under it. */
-.field-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--ui-2);
-}
-
-.field-row .field-label,
-.field-row label {
-  margin: 0;
-}
-
-/* A readout is a number most of the time and a phrase sometimes — "Stays at the top when
-   scrolling" — and a phrase that cannot shrink pushes the whole column sideways. It keeps
-   its line and gives way at the end instead. */
-.readout {
-  min-inline-size: 0;
-  margin-inline-start: auto;
-  overflow: hidden;
-  color: var(--ui-ink-muted);
-  font-family: var(--ui-mono);
-  font-size: var(--ui-text-xs);
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.field-row {
-  min-inline-size: 0;
-}
-
-/* "following" is the one readout that is a STATE rather than a value, so it is the one that
-   is coloured. */
-.readout-following {
-  color: var(--ui-accent);
-}
-
-.segmented {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1px;
-  padding: 1px;
-  background: var(--ui-line);
-  border-radius: var(--ui-radius-m);
-}
-
-/* RELATIVE, so the clipped radio inside has something to be positioned against. Left
-   static, that input was absolute against the page itself: from inside a column that
-   scrolls, it sat wherever its static position fell and stretched the DOCUMENT past the
-   window — the dead band under the screen in the owner's screenshot, measured at 699px of
-   document in a 620px window. */
-.segment {
-  position: relative;
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: center;
-  padding: var(--ui-1) var(--ui-2);
-  background: var(--ui-panel);
-  color: var(--ui-ink-muted);
-  font-size: var(--ui-text-xs);
-  text-align: center;
-  cursor: pointer;
-}
-
-.segment:first-child { border-start-start-radius: var(--ui-radius-s); border-end-start-radius: var(--ui-radius-s); }
-.segment:last-child { border-start-end-radius: var(--ui-radius-s); border-end-end-radius: var(--ui-radius-s); }
-
-/* The radio itself is the thing that is checked and focused; it is not drawn, because the
-   segment around it is what a person is aiming at. Focus lands on the segment through
-   :has(), and every browser Boxlet targets has had it for two years.
-   CLIPPED, NEVER FADED: opacity is what the admin's contrast rule forbids as a way of
-   making a control quiet (D-012), and a rule that means "this is the mechanism, not the
-   control" should not be written in the one property that means the opposite. */
-.segment input,
-.typeface input {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  clip-path: inset(50%);
-}
-
-.segment:hover {
-  color: var(--ui-ink);
-}
-
-.segment:has(input:checked) {
-  background: var(--ui-accent-soft);
-  color: var(--ui-ink);
-  font-weight: 650;
-}
-
-.segment:has(input:focus-visible) {
-  outline: 2px solid var(--ui-accent);
-  outline-offset: -2px;
-}
-
-/* The follow segment is the one that says "not mine", so it reads quieter than a choice. */
-.segment-follow {
-  flex-basis: 100%;
-}
-
-/* ---- the typefaces, and the specimen ------------------------------------------------- */
-
-.typefaces {
-  display: grid;
-  gap: var(--ui-1);
-}
-
-.typeface {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--ui-3);
-  padding: var(--ui-2);
-  background: var(--ui-panel);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
-  cursor: pointer;
-}
-
-.typeface:has(input:checked) {
-  border-color: var(--ui-accent);
-  box-shadow: 0 0 0 1px var(--ui-accent);
-}
-
-.typeface:has(input:focus-visible) {
-  outline: 2px solid var(--ui-accent);
-  outline-offset: 2px;
-}
-
-/* The one place the admin shows the SITE's typefaces: they are what is being chosen, and a
-   list of names is not a choice anybody can make. The families are the same files the site
-   serves, named in admin-appearance-fonts.css. */
-.typeface-sample {
-  flex: 0 0 2rem;
-  font-size: 1.35rem;
-  line-height: 1;
-  text-align: center;
-}
-
-.typeface-name {
-  display: grid;
-  font-size: var(--ui-text-sm);
-  font-weight: 600;
-}
-
-.typeface-name span {
-  color: var(--ui-ink-faint);
-  font-size: var(--ui-text-xs);
-  font-weight: 400;
-}
-
-/* The sizes the two controls above decide, at the sizes they decide — in the admin's own
-   face, because the site's belongs to the site. */
-.specimen {
-  display: grid;
-  gap: var(--ui-1);
-  padding: var(--ui-3);
-  background: var(--ui-panel-sunken);
-  border-radius: var(--ui-radius-m);
-}
-
-.specimen-line {
-  display: flex;
-  align-items: baseline;
-  gap: var(--ui-2);
-  margin: 0;
-  overflow: hidden;
-}
-
-.specimen-line span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.specimen-line em {
-  margin-inline-start: auto;
-  color: var(--ui-ink-faint);
-  font-family: var(--ui-mono);
-  font-size: var(--ui-text-xs);
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-}
-
-.specimen-4xl { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
-.specimen-2xl { font-size: 1.15rem; font-weight: 650; }
-.specimen-base { font-size: var(--ui-text-sm); }
-.specimen-sm { font-size: var(--ui-text-xs); color: var(--ui-ink-muted); }
-
-/* The spacing scale as it runs: seven steps of one decision. */
-.ramp {
-  display: flex;
-  align-items: end;
-  gap: 2px;
-  block-size: 1.25rem;
-}
-
-.ramp-step {
-  background: var(--ui-accent);
-  border-radius: 1px;
-  block-size: 100%;
-}
-
-.ramp-step[data-ramp="0.25"] { inline-size: 2px; }
-.ramp-step[data-ramp="0.5"] { inline-size: 4px; }
-.ramp-step[data-ramp="1"] { inline-size: 8px; }
-.ramp-step[data-ramp="2"] { inline-size: 16px; }
-.ramp-step[data-ramp="4"] { inline-size: 32px; }
-.ramp-step[data-ramp="6"] { inline-size: 48px; }
-.ramp-step[data-ramp="8"] { inline-size: 64px; }
 
 /* Publish asking how to apply a character (PLAN.md D-068). Under the bar, across the whole
    screen, because it is a question about the whole screen and the answer is destructive. */
@@ -864,35 +234,3 @@
   font-size: var(--ui-text-xs);
 }
 
-/* ---- density in the inspector -------------------------------------------------------- */
-
-/* A group's name is a LABEL, not a heading: small, quiet and in capitals, as the handoff
-   draws it. The value beside it is the thing worth reading at full strength. */
-.appearance-inspector .field-label,
-.appearance-inspector .field > .field-row > label {
-  color: var(--ui-ink-muted);
-  font-size: var(--ui-text-xs);
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-/* Three hundred pixels of column is not the place for a paragraph at reading size: the
-   hints stay — they are what teaches the screen — but at the size of a footnote. */
-.appearance-inspector .hint {
-  font-size: var(--ui-text-xs);
-  line-height: 1.45;
-}
-
-.appearance-inspector .fieldset {
-  gap: var(--ui-3);
-  padding: var(--ui-3);
-}
-
-.appearance-inspector .field {
-  gap: var(--ui-1);
-}
-
-.appearance-inspector .tab-panel {
-  gap: var(--ui-3);
-}

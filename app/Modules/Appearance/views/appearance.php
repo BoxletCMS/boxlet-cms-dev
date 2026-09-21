@@ -163,6 +163,13 @@ $card = static function (array $decisions, string $name, string $badge, string $
                 <span class="appearance-title"><?= icon('palette') ?><strong><?= e($title) ?></strong>
                     <span class="appearance-subhead"><?= e(t('appearance.subhead')) ?></span></span>
 
+                <?php /* The characters, once there is no room for them as a column: the same
+                         rail, opened over the screen from here (appearance-rail.js). Drawn
+                         only when that script is running and the screen is narrow enough —
+                         everywhere else it is a column, and this is display:none. */ ?>
+                <button type="button" class="button button-quiet appearance-rail-open" data-rail-panel
+                        aria-expanded="false" aria-controls="appearance-rail"><?= e(t('appearance.characters')) ?></button>
+
                 <div class="preview-tools" data-preview-tools hidden>
                     <div class="viewports" role="group" aria-label="<?= e(t('appearance.width')) ?>">
 <?php foreach (['desktop' => 1280, 'tablet' => 834, 'phone' => 390] as $name => $width): ?>
@@ -228,7 +235,7 @@ $card = static function (array $decisions, string $name, string $badge, string $
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="character" value="<?= e($character) ?>">
 
-                <div class="appearance-rail">
+                <div class="appearance-rail" id="appearance-rail">
                     <h2 class="rail-heading"><?= e(t('appearance.characters')) ?> <span><?= e(t('appearance.characters_hint')) ?></span></h2>
 <?php foreach (Presets::names() as $preset): ?>
                     <?= $card(
@@ -274,6 +281,10 @@ $card = static function (array $decisions, string $name, string $badge, string $
                              with no address is a picture of something. */ ?>
                     <div class="stage-strip">
                         <span class="stage-where"><?= e($host) ?> <span>·</span> <?= e($pageName) ?></span>
+                        <?php /* Said, not silently acted on: when the column cannot carry the
+                                 chosen width the screen says so here and leaves the width
+                                 alone. */ ?>
+                        <span class="stage-tight" data-stage-tight role="status" hidden><?= e(t('appearance.stage.tight')) ?></span>
                         <span class="stage-size" data-stage-size></span>
                     </div>
                     <?php /* THE ZOOM SCALES THE STAGE, NEVER THE FRAME'S WIDTH. A page judged
@@ -309,4 +320,5 @@ $card = static function (array $decisions, string $name, string $badge, string $
         <form id="design-preview-form" method="get" action="<?= e(Url::admin('appearance', 'preview')) ?>" target="design-preview" class="visually-hidden"></form>
         <script src="<?= e(Url::versioned('assets/appearance.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-tabs.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-rail.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-stage.js')) ?>" defer></script>

@@ -225,7 +225,17 @@ final class AppearanceController
         return AdminView::render($this->container, __DIR__ . '/views', 'appearance', [
             'title' => t('appearance.title'),
             'nav' => 'appearance',
-            'styles' => ['admin-design.css', 'admin-appearance.css'],
+            // ORDER IS LOAD-BEARING FOR THE LAST ONE. -widths.css holds every threshold at
+            // which this screen rearranges, and several of those override a base rule of the
+            // same specificity in the three before it, so the cascade is decided here (D-072).
+            'styles' => [
+                'admin-design.css',
+                'admin-appearance.css',
+                'admin-appearance-rail.css',
+                'admin-appearance-picture.css',
+                'admin-appearance-inspector.css',
+                'admin-appearance-widths.css',
+            ],
             // The screen IS the window, as the page editor's canvas is: the admin's rail
             // folds to its icons beside it (D-064).
             'bare' => true,

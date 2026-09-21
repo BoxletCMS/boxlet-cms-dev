@@ -13,10 +13,15 @@
 
 /* The strip reads as a row of tabs at rest — each one has its own edge, not only the
    selected one, because a control that appears on hover is a control nobody knew was
-   there. */
+   there.
+   FIVE EQUAL COLUMNS, NOT A WRAPPING ROW. Five tabs in 19.5rem minus padding is about
+   280px, which fits in English and does not in Croatian: "Boja · Tipografija · Oblik ·
+   Stranica · Zaglavlje" broke into two ragged rows, and a strip that wraps unevenly reads
+   as two strips. Equal columns wrap as one block or not at all, and a name too long for
+   its column gives way at the end with the whole of it in the title. */
 .tab-strip {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--ui-1);
   padding: var(--ui-1);
   background: var(--ui-panel-sunken);
@@ -37,14 +42,16 @@
 }
 
 .tab {
-  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
   padding: var(--ui-2) var(--ui-1);
   border-radius: var(--ui-radius-m);
   color: var(--ui-ink-muted);
-  font-size: var(--ui-text-sm);
+  font-size: var(--ui-text-xs);
   font-weight: 600;
   text-align: center;
   text-decoration: none;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -401,6 +408,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* WITHOUT A SCRIPT THESE ARE THE SIZES. appearance-readouts.js overrides them with the
+   page's real sizes, shrunk together to fit (D-075) — an inline size beats a stylesheet —
+   and without it the specimen is at least four different sizes rather than four identical
+   lines. */
 .specimen-4xl { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
 .specimen-2xl { font-size: 1.15rem; font-weight: 650; }
 .specimen-base { font-size: var(--ui-text-sm); }

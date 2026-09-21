@@ -111,16 +111,79 @@
     });
   }
 
+  /*
+   * THE SPECIMEN IS THE SIZES, DRAWN (D-075).
+   *
+   * It was fixed at 1.6rem, so dragging the scale moved the number beside each line and the
+   * lines themselves did not move at all — which took away the one thing a specimen is for:
+   * the RELATION between the sizes.
+   *
+   * THE ARITHMETIC IS NOT REDONE HERE. The pixels in each readout are the server's, worked
+   * out by the one formula that owns them (Derived::sizeOf, D-066); this only shrinks all
+   * four by the SAME factor so the biggest fits the column. A second copy of that formula in
+   * JavaScript is two answers waiting to differ, which is the bug D-066 exists to prevent.
+   *
+   * Written through the CSSOM, one property at a time: the admin's policy refuses a style
+   * ATTRIBUTE and allows this (appearance-stage.js says the same, and measured it).
+   */
+  /*
+   * THE BIGGEST LINE, and the only number here that is a judgement rather than arithmetic.
+   * 34 was the handoff's suggestion and it is too small: at the default character the hero
+   * is 72px and the body 17px, so everything below the subhead shrank to a smudge. 40 keeps
+   * the body legible at the sizes people actually choose, and the hero gives way at the end
+   * rather than growing the panel — this is a picture of a size, not something to read.
+   */
+  var BIGGEST_LINE = 40;
+
+  function drawSpecimen() {
+    var lines = [].slice.call(document.querySelectorAll('[data-specimen]'));
+    var sizes = lines.map(function (line) {
+      var said = line.querySelector('[data-specimen-size]');
+      return said ? parseFloat(said.textContent) || 0 : 0;
+    });
+    var biggest = Math.max.apply(null, sizes.concat([0]));
+    if (biggest <= 0) {
+      return;
+    }
+    var factor = Math.min(1, BIGGEST_LINE / biggest);
+    lines.forEach(function (line, at) {
+      if (sizes[at] > 0) {
+        /*
+         * NO FLOOR WORTH THE NAME. A floor of 9px made the body and the small print the
+         * same size at the default character — 17px and 13px both landed on it — which is
+         * the one thing this must never do: the whole point is the RELATION, and two steps
+         * drawn identically say the design has none. 5px only stops a line vanishing.
+         */
+        line.style.fontSize = Math.max(5, Math.round(sizes[at] * factor)) + 'px';
+      }
+    });
+  }
+
+  /** And in the face being chosen: a pairing is two faces, and the specimen shows both. */
+  function showTypeface() {
+    var specimen = document.querySelector('.specimen');
+    var chosen = form.querySelector('input[name="typography"]:checked');
+    if (specimen && chosen) {
+      specimen.setAttribute('data-typeface', chosen.value);
+    }
+  }
+
   document.addEventListener('appearance:answer', function (event) {
     var answer = event.detail || {};
     showErrors(answer.errors || {});
     showColors(answer.colors || {});
     showPairs(answer.pairs || []);
     showReadouts(answer.readouts);
+    drawSpecimen();
   });
 
   // The hex beside a colour keeps up with the HAND, not with the server: a value that only
   // appears a quarter of a second after the picker closes reads as a screen that did not
-  // hear the choice.
+  // hear the choice. The typeface is the same: pressing a card changes the face the specimen
+  // is set in at once, and the SIZES then follow when the server answers.
   form.addEventListener('input', showColourValues);
+  form.addEventListener('change', showTypeface);
+
+  // What the server already said, drawn: the readouts are in the markup before any change.
+  drawSpecimen();
 })();

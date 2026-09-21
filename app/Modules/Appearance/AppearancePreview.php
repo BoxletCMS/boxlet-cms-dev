@@ -130,10 +130,19 @@ final class AppearancePreview
         foreach (array_keys(Typography::PAIRINGS) as $pairing) {
             $css .= Typography::fontFaces($pairing, Url::asset('assets/fonts'));
         }
-        // And what each card's sample is set in. The stack is Typography's, so a card can
-        // never show a face the site would not use.
+        /*
+         * And what each card's sample is set in — and, since D-075, the SPECIMEN too. The
+         * stack is Typography's, so neither can ever show a face the site would not use.
+         *
+         * The specimen is the one place on this screen where both halves of a pairing are
+         * shown: a pairing is a heading face AND a body face, and two lines of each is the
+         * only way to see whether they belong together.
+         */
         foreach (Typography::PAIRINGS as $name => $pairing) {
-            $css .= '.typeface-sample[data-typeface="' . $name . '"] { font-family: ' . Typography::stack($pairing['heading']) . "; }\n";
+            $heading = Typography::stack($pairing['heading']);
+            $css .= '.typeface-sample[data-typeface="' . $name . '"] { font-family: ' . $heading . "; }\n";
+            $css .= '.specimen[data-typeface="' . $name . '"] .specimen-heading { font-family: ' . $heading . "; }\n";
+            $css .= '.specimen[data-typeface="' . $name . '"] .specimen-body { font-family: ' . Typography::stack($pairing['body']) . "; }\n";
         }
 
         return new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'max-age=3600']);

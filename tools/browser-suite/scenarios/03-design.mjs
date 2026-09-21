@@ -243,6 +243,78 @@ export default {
     await page.evaluate(() => window.scrollTo(0, 0));
 
     /*
+     * THE TABS ARE ONE ROW (docs/ispravci.md §C5). Five of them share about 280px, which
+     * fits in English and does not in Croatian: the strip wrapped into two ragged rows, and
+     * a strip that wraps unevenly reads as two strips.
+     */
+    const strip = await page.evaluate(() => {
+      const tabs = [...document.querySelectorAll('.tab')];
+      return {
+        count: tabs.length,
+        rows: new Set(tabs.map((t) => Math.round(t.getBoundingClientRect().top))).size,
+        widths: [...new Set(tabs.map((t) => Math.round(t.getBoundingClientRect().width)))],
+        titled: tabs.every((t) => (t.getAttribute('title') || '') === t.textContent.trim()),
+      };
+    });
+    report.verdict('the five tabs are one row of equal columns, each with its whole name',
+      strip.count === 5 && strip.rows === 1 && strip.widths.length === 1 && strip.titled,
+      JSON.stringify(strip));
+
+    /*
+     * THE SPECIMEN IS THE SIZES, DRAWN (docs/ispravci.md §C2).
+     *
+     * It was fixed at 1.6rem, so the scale slider moved the number beside each line and the
+     * lines themselves did not move — which took away the one thing a specimen is for. What
+     * is asserted is the RELATION: every line is the server's own size shrunk by the SAME
+     * factor, no two steps land on the same size, and moving the scale moves the picture.
+     */
+    await openTab(page, 'type');
+    await new Promise((resolve) => { setTimeout(resolve, 400); });
+    const specimen = () => page.evaluate(() => ({
+      face: document.querySelector('.specimen').getAttribute('data-typeface'),
+      lines: [...document.querySelectorAll('[data-specimen]')].map((line) => ({
+        drawn: Math.round(parseFloat(getComputedStyle(line).fontSize)),
+        said: parseFloat(line.querySelector('[data-specimen-size]').textContent),
+        family: getComputedStyle(line).fontFamily.split(',')[0].replace(/["']/g, ''),
+      })),
+    }));
+    const drawn = await specimen();
+    const factors = drawn.lines.map((l) => l.drawn / l.said);
+    const spread = Math.max(...factors) - Math.min(...factors);
+    report.verdict('the specimen is the page\'s own sizes, shrunk together to fit',
+      drawn.lines.length === 4
+        // Rounding to whole pixels is the only thing that may separate the factors.
+        && spread < 0.05
+        && new Set(drawn.lines.map((l) => l.drawn)).size === 4
+        && Math.max(...drawn.lines.map((l) => l.drawn)) <= 40,
+      `${drawn.lines.map((l) => `${l.said}→${l.drawn}`).join(' ')}; factors differ by ${spread.toFixed(3)}`);
+    // Two faces, because a pairing is two faces and that is what is being chosen.
+    report.verdict('the specimen is set in the pairing being chosen',
+      new Set(drawn.lines.map((l) => l.family)).size === 2
+        && drawn.lines[0].family !== drawn.lines[3].family,
+      `${drawn.face}: ${drawn.lines.map((l) => l.family).join(', ')}`);
+
+    // And it MOVES. Dragging the scale is the case that used to change nothing on screen.
+    const scaleWas = await page.$eval('#design-scale', (el) => el.value);
+    await page.$eval('#design-scale', (el) => {
+      el.value = el.max;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await new Promise((resolve) => { setTimeout(resolve, 1500); });
+    const bigger = await specimen();
+    report.verdict('dragging the scale changes the picture, not only the numbers',
+      bigger.lines[1].drawn !== drawn.lines[1].drawn,
+      `the subhead was ${drawn.lines[1].drawn}px beside a ${drawn.lines[0].drawn}px hero, `
+      + `now ${bigger.lines[1].drawn}px beside ${bigger.lines[0].drawn}px`);
+    // Put it back where it was: this check only looked.
+    await page.$eval('#design-scale', (el, back) => {
+      el.value = back;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, scaleWas);
+    await new Promise((resolve) => { setTimeout(resolve, 800); });
+    await openTab(page, 'colour');
+
+    /*
      * ONE LIST OF ROLES (docs/ispravci.md §C1). It used to be two — fifteen colours that
      * could not be touched, and a folded panel holding the seven that could — so the same
      * information sat in two places and the half that can be CHANGED was the half that was

@@ -301,7 +301,11 @@ $card = static function (array $decisions, string $name, string $badge, string $
                     <div class="tabs" data-tabs>
                         <div class="tab-strip" data-tab-strip>
 <?php foreach ($tabs as $index => $name): ?>
-                            <a class="tab<?= $index === 0 ? ' tab-current' : '' ?>" href="#panel-<?= e($name) ?>" id="tab-<?= e($name) ?>" data-tab="<?= e($name) ?>"><?= e(t('appearance.tab.' . $name)) ?></a>
+                            <?php /* The whole name in the title: five tabs share 280px, and a
+                                     name that gives way at the end has to be readable
+                                     somewhere (D-075). */ ?>
+                            <a class="tab<?= $index === 0 ? ' tab-current' : '' ?>" href="#panel-<?= e($name) ?>" id="tab-<?= e($name) ?>" data-tab="<?= e($name) ?>"
+                               title="<?= e(t('appearance.tab.' . $name)) ?>"><?= e(t('appearance.tab.' . $name)) ?></a>
 <?php endforeach; ?>
                         </div>
 <?php foreach ($tabs as $name): ?>

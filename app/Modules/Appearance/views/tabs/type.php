@@ -77,14 +77,19 @@ use App\Modules\Design\Typography;
                 <?= $segmented('tracking', ['' => t('design.tracking.follow')] + $labels('tracking', array_keys(Tokens::TRACKING)), '', t('design.follows_pairing')) ?>
                 <?= $segmented('caps', ['' => t('design.caps.follow')] + $labels('caps', array_keys(Tokens::CAPS)), '', t('design.follows_pairing')) ?>
 
-                <?php /* THE SPECIMEN (D-065). Not the site's own typeface at the site's own
-                         size — the admin may not take those — but the SIZES, which is what
-                         the two controls above decide and what the line of numbers used to
-                         say in words. Set in the admin's face, labelled with the pixels the
-                         site will use. */ ?>
-                <div class="specimen" aria-hidden="true">
-<?php foreach ([['4xl', 'design.specimen.hero'], ['2xl', 'design.specimen.text_heading'], ['base', 'design.specimen.text_body'], ['sm', 'design.specimen.small']] as [$step, $key]): ?>
-                    <p class="specimen-line specimen-<?= e($step) ?>" data-specimen="<?= e($step) ?>">
+                <?php /* THE SPECIMEN, DRAWN RATHER THAN DESCRIBED (D-065, D-075).
+                         It was fixed at 1.6rem, so the scale slider moved the number on the
+                         right and the sample looked exactly the same — which took away its
+                         only reason to exist, the RELATION between the sizes. The lines are
+                         drawn at the sizes the page will really use, scaled down together
+                         to fit the column, and in the pairing being chosen: the cards above
+                         already take the site's faces, because they are what is being
+                         chosen, and so is this.
+                         THE NUMBERS STAY REAL. The pixels beside each line are the server's,
+                         not the shrunken ones — they are what the site gets. */ ?>
+                <div class="specimen" data-typeface="<?= e($decisions['typography']) ?>" aria-hidden="true">
+<?php foreach ([['4xl', 'design.specimen.hero', 'heading'], ['2xl', 'design.specimen.text_heading', 'heading'], ['base', 'design.specimen.text_body', 'body'], ['sm', 'design.specimen.small', 'body']] as [$step, $key, $half]): ?>
+                    <p class="specimen-line specimen-<?= e($step) ?> specimen-<?= e($half) ?>" data-specimen="<?= e($step) ?>">
                         <span><?= e(t($key)) ?></span><em data-readout="specimen.<?= e($step) ?>" data-specimen-size="<?= e($step) ?>"><?= e($readouts['specimen.' . $step] ?? '') ?></em>
                     </p>
 <?php endforeach; ?>

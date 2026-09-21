@@ -31,9 +31,11 @@ $gaugeRow = static function (array $pair): string {
     $ratio = number_format($pair['ratio'], 2);
 
     return '<li class="gauge-row' . ($pair['passes'] ? '' : ' gauge-fails') . '" data-pair="' . e($pair['pair']) . '">'
-        . '<svg class="gauge-sample" viewBox="0 0 40 24" aria-hidden="true">'
-        . '<rect width="40" height="24" fill="' . e($pair['background']) . '" data-pair-background/>'
-        . '<text x="20" y="17" text-anchor="middle" font-size="13" fill="' . e($pair['foreground']) . '" data-pair-foreground>' . e(t('design.contrast.sample')) . '</text>'
+        // 28x18, not 40x24: twelve of these in a 312px column, and the sample only has to
+        // show a pair of colours against each other (D-075).
+        . '<svg class="gauge-sample" viewBox="0 0 28 18" aria-hidden="true">'
+        . '<rect width="28" height="18" fill="' . e($pair['background']) . '" data-pair-background/>'
+        . '<text x="14" y="13" text-anchor="middle" font-size="11" fill="' . e($pair['foreground']) . '" data-pair-foreground>' . e(t('design.contrast.sample')) . '</text>'
         . '</svg>'
         . '<span class="gauge-name">' . e(t('design.pair.' . $pair['pair'])) . '</span>'
         . '<span class="gauge-ratio"><span data-pair-ratio>' . e($ratio) . '</span>:1'

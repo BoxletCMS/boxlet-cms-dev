@@ -109,4 +109,3 @@ foreach ($pairs as $index => $pair) {
 <?php endif; ?>
                 </div>
             </fieldset>
-</fieldset>

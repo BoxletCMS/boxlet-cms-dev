@@ -142,9 +142,13 @@ testBothDrivers('a full install creates the admin, primary locale, settings, .en
     assertEquals('"Test Site"', $siteName['value_json'] ?? null, 'settings.site_name');
     // BOUND TO THE SOURCE, not to a number. This said 9, which was the count on the day it
     // was written; 5d added three decisions and it failed for a change it has nothing to do
-    // with. The rule it means is "the installer stores the COMPLETE set", so it asks the
-    // set: the closed choices plus the two colours, which are open and not in choices().
-    $expected = count(\App\Modules\Design\Tokens::choices()) + 2;
+    // with. The rule it means is "the installer stores the COMPLETE set", so it asks the set.
+    //
+    // A CHARACTER is that set — design_test asserts each one is complete — and asking it
+    // survived `container` ceasing to be one of the closed choices (D-062), which the older
+    // form of this line did not: it counted choices() plus the two colours, and a decision
+    // that is neither went missing from the count.
+    $expected = count(\App\Modules\Design\Presets::get(\App\Modules\Design\Presets::DEFAULT));
     assertEquals($expected, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), 'design decisions stored');
     $stylesheet = json_decode((string) ($db->one('SELECT value_json FROM settings WHERE `key` = ?', ['tokens_css'])['value_json'] ?? ''), true);
     assertTrue(is_string($stylesheet) && is_file($dir . '/cache/' . $stylesheet), 'the default design stylesheet was not compiled');

@@ -4,6 +4,7 @@ use App\Core\Response;
 use App\Modules\Design\Color;
 use App\Modules\Menus\Menu;
 use App\Modules\Settings\SiteChrome;
+use App\Modules\Design\Derived;
 use App\Modules\Design\Design;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
@@ -65,7 +66,7 @@ foreach (Presets::ALL as $name => $preset) {
         assertEquals([], $result['errors'], 'errors');
         assertEquals($preset, $result['decisions'], 'decisions survive validation unchanged');
 
-        $css = (new TokenCompiler())->css(Tokens::derive($preset));
+        $css = (new TokenCompiler())->css(Derived::from($preset));
         foreach (expectedProperties() as $property) {
             assertContains("--{$property}: ", $css, 'compiled tokens');
         }
@@ -110,7 +111,7 @@ test('compiled tokens carry a content hash and include only the pairing\'s fonts
     $dir = tmpPath('compile');
     removeTree($dir);
     $editorial = Presets::get('editorial');
-    $file = (new TokenCompiler())->compile(Tokens::derive($editorial), $dir, Typography::fontFaces($editorial['typography'], '../assets/fonts'));
+    $file = (new TokenCompiler())->compile(Derived::from($editorial), $dir, Typography::fontFaces($editorial['typography'], '../assets/fonts'));
     $css = (string) file_get_contents($dir . '/' . $file);
 
     assertTrue((bool) preg_match('~^tokens\.[0-9a-f]{12}\.css$~', $file), "file name {$file}");
@@ -127,9 +128,9 @@ test('changing a token changes the stylesheet name and removes the old file', fu
     $dir = tmpPath('compile');
     removeTree($dir);
     $compiler = new TokenCompiler();
-    $minimal = Tokens::derive(Presets::get('minimal'));
+    $minimal = Derived::from(Presets::get('minimal'));
     $first = $compiler->compile($minimal, $dir);
-    $second = $compiler->compile(Tokens::derive(['seed' => '#1f6f3f'] + Presets::get('minimal')), $dir);
+    $second = $compiler->compile(Derived::from(['seed' => '#1f6f3f'] + Presets::get('minimal')), $dir);
 
     assertTrue($first !== $second, 'the name did not change with the tokens');
     assertTrue(!is_file($dir . '/' . $first), 'the old stylesheet was kept');
@@ -414,4 +415,68 @@ test('the picture has a toolbar, and it is not there for anyone without a script
     foreach (['published', 'unpublished', 'problem'] as $state) {
         assertContains('data-' . $state . '="', $body, 'the wording for ' . $state);
     }
+});
+
+// ---- Round 5: the two decisions that were coarser than the question (D-062) ------------
+
+test('the content width is a number, and the four old names still mean what they meant', function () {
+    foreach (['narrow' => '42', 'normal' => '56', 'wide' => '68', 'full' => '80'] as $name => $rem) {
+        $decisions = Tokens::validate(['container' => $name] + Presets::get('minimal'))['decisions'];
+        assertEquals($rem, $decisions['container'], "the old name {$name}");
+    }
+
+    // A number of its own, rounded to the step it is offered in.
+    assertEquals('64', Tokens::validate(['container' => '64'] + Presets::get('minimal'))['decisions']['container'], 'a number');
+    assertEquals('64', Tokens::validate(['container' => '63'] + Presets::get('minimal'))['decisions']['container'], 'rounded to the step');
+
+    // Outside the bounds is refused and named, not quietly clamped: the owner asked for
+    // something the design layer does not do, and saying so is the whole point of a refusal.
+    $wide = Tokens::validate(['container' => '200'] + Presets::get('minimal'));
+    assertContains('36', $wide['errors']['container'] ?? '', 'the message names the bounds');
+    assertEquals('56', $wide['decisions']['container'], 'and falls back to the default');
+    assertTrue(isset(Tokens::validate(['container' => 'enormous'] + Presets::get('minimal'))['errors']['container']), 'a word that is not one of the four');
+});
+
+test('the content width reaches the stylesheet as the number that was chosen', function () {
+    $css = (new TokenCompiler())->css(Derived::from(['container' => '64'] + Presets::get('minimal')));
+
+    assertContains('--container-width: 64rem;', $css, 'the width');
+    // The narrow and wide containers follow it, so one decision still moves all three.
+    assertContains('--container-narrow: 43.52rem;', $css, 'the narrow one');
+    assertContains('--container-wide: 83.2rem;', $css, 'the wide one');
+});
+
+test('the text size moves the type and nothing else', function () {
+    $normal = Derived::from(['text_size' => 'normal'] + Presets::get('minimal'));
+    $larger = Derived::from(['text_size' => 'larger'] + Presets::get('minimal'));
+
+    assertEquals('1rem', $normal['text']['base'], 'the base at normal');
+    assertEquals('1.125rem', $larger['text']['base'], 'the base at larger');
+    assertTrue($normal['text']['4xl'] !== $larger['text']['4xl'], 'the largest heading moves too');
+
+    // Everything that is not type stays exactly where it was.
+    foreach (['space', 'radius', 'container', 'page'] as $group) {
+        assertEquals($normal[$group], $larger[$group], $group . ' did not move');
+    }
+});
+
+test('the screen offers a text size and a real slider for the width', function () {
+    adminSite('sqlite');
+    $body = dispatch('/admin/appearance')->body;
+
+    assertContains('id="design-text_size"', $body, 'the text size');
+    assertContains('<input type="range" id="design-container" name="container"', $body, 'the width is a slider');
+    assertContains('min="36"', $body, 'its smallest');
+    assertContains('max="88"', $body, 'its largest');
+    assertContains('step="2"', $body, 'and the step it moves in');
+});
+
+testBothDrivers('a width outside the bounds is refused wherever it arrives, and a good one publishes', function (string $driver) {
+    $db = adminSite($driver);
+
+    $checked = json_decode(dispatch('/admin/appearance/check?' . http_build_query(designFields(['container' => '900'] + Presets::get('minimal'))))->body, true);
+    assertTrue(isset($checked['errors']['container']), 'the check endpoint refuses it');
+
+    assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', appearanceFields(['container' => '48', 'action' => 'save'])));
+    assertEquals('48', Design::load($db)['container'], 'the width that was published');
 });

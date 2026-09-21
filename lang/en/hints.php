@@ -48,6 +48,7 @@ return [
     'hint.design.secondary' => 'Optional. A second colour for contrast sections — bands of colour that break up a long page. Without one, a deep shade of the main colour is used.',
     'hint.design.surface_contrast' => 'How strongly tinted and contrast sections stand apart from plain ones.',
     'hint.design.typography' => 'The pair of typefaces for headings and for text, chosen to work together. The fonts are served from your own site, not from anyone else’s.',
+    'hint.design.text_size' => 'How big the text itself is. The scale below is a different question: how much bigger each heading is than the one under it.',
     'hint.design.scale' => 'How much bigger each heading level is than the one below it. A larger step gives dramatic headlines; a smaller one a quieter page.',
     'hint.design.spacing' => 'The basic unit of space inside and between sections. Everything grows from it evenly.',
     'hint.design.radius' => 'How rounded corners are — on buttons, pictures and cards.',

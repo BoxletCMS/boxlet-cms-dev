@@ -11,6 +11,7 @@
 // quietly ceasing to mean anything.
 
 use App\Modules\Design\Palette;
+use App\Modules\Design\Derived;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
 use App\Modules\Design\Tokens;
@@ -56,10 +57,10 @@ test('a design saved before these decisions loads without error', function (): v
 });
 
 test('an unboxed page has no frame at all, so nothing surrounds it', function (): void {
-    $unboxed = Tokens::derive(Tokens::validate(['boxed' => 'no'] + Presets::get('minimal'))['decisions']);
+    $unboxed = Derived::from(Tokens::validate(['boxed' => 'no'] + Presets::get('minimal'))['decisions']);
     assertEquals('0', $unboxed['page']['frame'], 'frame with boxed: no');
 
-    $boxed = Tokens::derive(Tokens::validate(['boxed' => 'yes'] + Presets::get('soft'))['decisions']);
+    $boxed = Derived::from(Tokens::validate(['boxed' => 'yes'] + Presets::get('soft'))['decisions']);
     assertTrue($boxed['page']['frame'] !== '0', 'a boxed page was given no frame');
 });
 
@@ -72,7 +73,7 @@ test('the page background is a palette colour, never a free one', function (): v
     foreach (Presets::names() as $name) {
         $decisions = Tokens::validate(Presets::get($name))['decisions'];
         $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
-        $derived = Tokens::derive($decisions);
+        $derived = Derived::from($decisions);
 
         assertTrue(
             in_array($derived['page']['bg'], $colors, true),
@@ -85,7 +86,7 @@ test('the page background is a palette colour, never a free one', function (): v
 test('the page tokens compile under every character', function (): void {
     $compiler = new TokenCompiler();
     foreach (Presets::names() as $name) {
-        $css = $compiler->css(Tokens::derive(Tokens::validate(Presets::get($name))['decisions']));
+        $css = $compiler->css(Derived::from(Tokens::validate(Presets::get($name))['decisions']));
         foreach (['--page-bg', '--page-frame', '--page-sheet', '--page-header-width'] as $token) {
             assertContains($token . ':', $css, "{$name}: {$token} is missing from the compiled stylesheet");
         }
@@ -93,9 +94,9 @@ test('the page tokens compile under every character', function (): void {
 });
 
 test('the header takes its own width, not the content\'s', function (): void {
-    $content = Tokens::derive(Tokens::validate(['header_width' => 'content'] + Presets::get('editorial'))['decisions']);
+    $content = Derived::from(Tokens::validate(['header_width' => 'content'] + Presets::get('editorial'))['decisions']);
     assertEquals($content['container']['width'], $content['page']['header-width'], 'header_width: content');
 
-    $full = Tokens::derive(Tokens::validate(['header_width' => 'full'] + Presets::get('editorial'))['decisions']);
+    $full = Derived::from(Tokens::validate(['header_width' => 'full'] + Presets::get('editorial'))['decisions']);
     assertEquals('100%', $full['page']['header-width'], 'header_width: full');
 });

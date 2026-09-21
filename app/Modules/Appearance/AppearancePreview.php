@@ -9,6 +9,7 @@ use App\Core\Response;
 use App\Core\View;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
+use App\Modules\Design\Derived;
 use App\Modules\Design\Palette;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
@@ -104,7 +105,7 @@ final class AppearancePreview
     {
         $decisions = $this->decisions($request->query);
         $fonts = Typography::fontFaces($decisions['typography'], Url::asset('assets/fonts'));
-        $css = (new TokenCompiler())->css(Tokens::derive($decisions), $fonts);
+        $css = (new TokenCompiler())->css(Derived::from($decisions), $fonts);
 
         return new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'no-store']);
     }

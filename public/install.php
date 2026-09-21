@@ -4,9 +4,9 @@ use App\Core\ErrorHandler;
 use App\Core\Request;
 use App\Core\RewriteCheck;
 use App\Core\Session;
+use App\Modules\Design\Derived;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
-use App\Modules\Design\Tokens;
 use App\Modules\Design\Typography;
 use App\Modules\Install\InstallController;
 use App\Support\Url;
@@ -36,7 +36,7 @@ $cache = $root . '/public/cache';
 if (!is_file($storage . '/install.lock') && is_dir($cache) && is_writable($cache)) {
     $defaults = Presets::get(Presets::DEFAULT);
     $fonts = Typography::fontFaces($defaults['typography'], '../assets/fonts');
-    Url::useStylesheet(Url::asset('cache/' . (new TokenCompiler())->compile(Tokens::derive($defaults), $cache, $fonts)));
+    Url::useStylesheet(Url::asset('cache/' . (new TokenCompiler())->compile(Derived::from($defaults), $cache, $fonts)));
 }
 
 // When storage/ is not writable, fall back to PHP's session path so the requirements

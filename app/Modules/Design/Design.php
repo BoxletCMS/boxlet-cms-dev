@@ -65,7 +65,7 @@ final class Design
     public static function publish(Db $db, array $decisions, string $cacheDirectory): string
     {
         $file = (new TokenCompiler())->compile(
-            Tokens::derive($decisions),
+            Derived::from($decisions),
             $cacheDirectory,
             Typography::fontFaces($decisions['typography'], self::FONTS_FROM_CACHE),
         );

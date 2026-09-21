@@ -34,4 +34,3 @@
                 </div>
 <?php endforeach; ?>
             </fieldset>
-</fieldset>

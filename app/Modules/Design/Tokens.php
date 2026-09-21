@@ -13,8 +13,35 @@ final class Tokens
     public const SPACING = ['compact' => 0.875, 'normal' => 1.0, 'roomy' => 1.25, 'generous' => 1.5];
     public const RADIUS = ['none', 'subtle', 'round', 'pill'];
     public const SHADOW = ['none', 'soft', 'hard', 'layered'];
-    /** Container width in rem. */
-    public const CONTAINER = ['narrow' => 42.0, 'normal' => 56.0, 'wide' => 68.0, 'full' => 80.0];
+    /*
+     * CONTENT WIDTH IS A NUMBER, IN REM (PLAN.md D-062, SPEC §5.4).
+     *
+     * It was four names, and four names cannot answer "a little narrower than this". The
+     * measure — how many characters fit on a line — is the single decision that most changes
+     * whether a page is comfortable to read, and it was the one decision the owner could only
+     * nudge in jumps of fourteen rem.
+     *
+     * The four names are still READ: a site saved before this loads with the width its name
+     * meant, so nothing has to be migrated and nothing re-chosen.
+     */
+    public const CONTAINER_NAMES = ['narrow' => 42.0, 'normal' => 56.0, 'wide' => 68.0, 'full' => 80.0];
+    public const CONTAINER_MIN = 36.0;
+    public const CONTAINER_MAX = 88.0;
+    /** Two rem at a time: finer than that is a difference nobody can see. */
+    public const CONTAINER_STEP = 2.0;
+
+    /*
+     * The base text size, as a factor on the whole type scale (D-062).
+     *
+     * SIZE AND SCALE ARE DIFFERENT QUESTIONS. The scale is how much bigger each heading is
+     * than the one below it; this is how big the text itself is. A site for people who are
+     * not twenty-five needs the second, and until now the only way to get it was to pick a
+     * scale that made the headings wrong.
+     *
+     * It moves the TYPE and nothing else — not the spacing, not the corners, not the
+     * measure — because a person reaching for "larger text" is asking for larger text.
+     */
+    public const TEXT_SIZE = ['small' => 0.9375, 'normal' => 1.0, 'large' => 1.0625, 'larger' => 1.125];
     public const SURFACE_CONTRAST = ['low', 'medium', 'high'];
 
     /*
@@ -37,15 +64,6 @@ final class Tokens
     public const PAGE_BACKGROUND = ['surface', 'border', 'contrast'];
 
     /** Type steps as powers of the scale ratio, from small print to the largest heading. */
-    private const TYPE_STEPS = ['sm' => -1, 'base' => 0, 'lg' => 1, 'xl' => 2, '2xl' => 3, '3xl' => 4, '4xl' => 5];
-    private const SPACE_STEPS = ['xs' => 0.25, 's' => 0.5, 'm' => 1, 'l' => 2, 'xl' => 4, '2xl' => 6, '3xl' => 8];
-    private const RADII = [
-        'none' => ['s' => '0', 'm' => '0', 'l' => '0', 'button' => '0'],
-        'subtle' => ['s' => '0.125rem', 'm' => '0.25rem', 'l' => '0.5rem', 'button' => '0.25rem'],
-        'round' => ['s' => '0.375rem', 'm' => '0.75rem', 'l' => '1.25rem', 'button' => '0.75rem'],
-        'pill' => ['s' => '0.5rem', 'm' => '1rem', 'l' => '2rem', 'button' => '999rem'],
-    ];
-
     /**
      * The closed decisions and their allowed values. The two colours are open (#rrggbb).
      *
@@ -59,7 +77,7 @@ final class Tokens
             'spacing' => array_keys(self::SPACING),
             'radius' => self::RADIUS,
             'shadow' => self::SHADOW,
-            'container' => array_keys(self::CONTAINER),
+            'text_size' => array_keys(self::TEXT_SIZE),
             'surface_contrast' => self::SURFACE_CONTRAST,
             'header_width' => self::HEADER_WIDTH,
             'boxed' => self::BOXED,
@@ -101,6 +119,13 @@ final class Tokens
             $decisions[$key] = $value;
         }
 
+        // The one decision that is a number rather than one of a closed set.
+        $width = self::width($input['container'] ?? null);
+        if ($width === null) {
+            $errors['container'] = t('design.error.width', ['min' => self::number(self::CONTAINER_MIN), 'max' => self::number(self::CONTAINER_MAX)]);
+        }
+        $decisions['container'] = self::number($width ?? self::width($fallback['container']) ?? 56.0);
+
         $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
         foreach (Palette::failures($colors, $decisions['secondary'] !== '') as $failure) {
             $message = t('design.error.contrast', [
@@ -112,38 +137,27 @@ final class Tokens
             $errors[$key] = isset($errors[$key]) ? $errors[$key] . ' ' . $message : $message;
         }
 
-        return ['decisions' => $decisions, 'errors' => $errors];
-    }
-
-    /**
-     * Every custom property the decisions produce, for TokenCompiler: group => name =>
-     * value, emitted as --group-name.
-     *
-     * @param array<string, string> $decisions validated decisions
-     * @return array<string, array<string, string>>
-     */
-    public static function derive(array $decisions): array
-    {
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
-        $pairing = Typography::PAIRINGS[$decisions['typography']];
-        $width = self::CONTAINER[$decisions['container']];
-        $hard = $decisions['shadow'] === 'hard';
-
-        return [
-            'color' => $colors,
-            'font' => ['heading' => Typography::stack($pairing['heading']), 'body' => Typography::stack($pairing['body'])],
-            'heading' => ['weight' => $pairing['heading_weight'], 'tracking' => $pairing['tracking'], 'transform' => $pairing['transform']],
-            'body' => ['weight' => $pairing['body_weight']],
-            'leading' => ['body' => $pairing['leading_body'], 'heading' => $pairing['leading_heading']],
-            'text' => self::typeScale((float) $decisions['scale']),
-            'space' => self::spaceScale(self::SPACING[$decisions['spacing']]),
-            'radius' => self::RADII[$decisions['radius']],
-            'shadow' => self::shadows($decisions['shadow'], $colors['text']),
-            // Hard shadows come with heavy rules and outlined cards; everything else is hairline.
-            'border' => ['width' => $hard ? '3px' : '1px', 'card' => $hard ? '3px' : '0px'],
-            'container' => ['width' => self::rem($width), 'narrow' => self::rem($width * 0.68), 'wide' => self::rem($width * 1.3)],
-            'page' => self::page($decisions, $colors, self::SPACING[$decisions['spacing']]),
+        /*
+         * ONE CANONICAL ORDER, whatever order the loops above happened to fill them in.
+         * What is stored — and what a test compares against a character — should not depend
+         * on which validation ran first; `container` stopped being one of the closed sets
+         * (D-062) and moved to the end of the array without anything intending it to.
+         *
+         * `+ $decisions` keeps anything this list forgets, so a decision added later is
+         * mis-ordered rather than lost.
+         */
+        $order = [
+            'seed', 'secondary', 'typography', 'text_size', 'scale', 'spacing', 'radius',
+            'shadow', 'container', 'surface_contrast', 'header_width', 'boxed', 'page_background',
         ];
+        $ordered = [];
+        foreach ($order as $key) {
+            if (array_key_exists($key, $decisions)) {
+                $ordered[$key] = $decisions[$key];
+            }
+        }
+
+        return ['decisions' => $ordered + $decisions, 'errors' => $errors];
     }
 
     /**
@@ -170,103 +184,49 @@ final class Tokens
     {
         $px = static fn (float $rem): int => (int) round($rem * 16);
         $ratio = (float) $decisions['scale'];
+        $base = self::TEXT_SIZE[$decisions['text_size']] ?? 1.0;
         $sizes = [];
-        foreach (self::TYPE_STEPS as $name => $step) {
-            $sizes[$name] = $px($ratio ** $step);
+        foreach (Derived::TYPE_STEPS as $name => $step) {
+            $sizes[$name] = $px($base * $ratio ** $step);
         }
         $unit = self::SPACING[$decisions['spacing']];
-        $width = self::CONTAINER[$decisions['container']];
+        $width = self::width($decisions['container']) ?? 56.0;
 
         return [
             'text' => $sizes,
             // What the largest heading shrinks to on a narrow screen, by the same rule
             // typeScale() uses to build the clamp.
-            'text_phone' => $px(max(1.25, $ratio ** 5 * 0.72)),
+            'text_phone' => $px(max(1.25, $base * $ratio ** 5 * 0.72)),
             'space' => $px($unit),
-            'section' => $px($unit * self::SPACE_STEPS['2xl']),
-            'radius' => $px((float) rtrim(self::RADII[$decisions['radius']]['m'], 'rem')),
+            'section' => $px($unit * Derived::SPACE_STEPS['2xl']),
+            'radius' => $px((float) rtrim(Derived::RADII[$decisions['radius']]['m'], 'rem')),
             'container' => $px($width),
             'container_rem' => $width,
         ];
     }
 
     /**
-     * The page as a sheet (D-031): what sits around it, how far it is inset, and how wide
-     * the header runs.
-     *
-     * THE FRAME IS ZERO WHEN THE PAGE IS NOT BOXED, which is what makes the background
-     * decision harmless rather than conditional: there is no area around the sheet, so the
-     * colour has nothing to paint and no text can land on it. One value decides it, in one
-     * place, instead of every rule asking whether boxing is on.
-     *
-     * @param array<string, string> $decisions
-     * @param array<string, string> $colors
-     * @return array<string, string>
+     * A content width as a number of rem: one of the four old names, or a number within the
+     * bounds, rounded to the step. Null for anything else, which is what makes it an error
+     * rather than a silent default.
      */
-    private static function page(array $decisions, array $colors, float $spacingUnit): array
+    public static function width(mixed $value): ?float
     {
-        $boxed = $decisions['boxed'] === 'yes';
-
-        return [
-            'bg' => $colors[$decisions['page_background']] ?? $colors['surface'],
-            'frame' => $boxed ? self::rem($spacingUnit * 3) : '0',
-            // The sheet keeps the page background; only what surrounds it changes.
-            'sheet' => $colors['background'],
-            'header-width' => $decisions['header_width'] === 'full' ? '100%' : self::rem(self::CONTAINER[$decisions['container']]),
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function typeScale(float $ratio): array
-    {
-        $sizes = [];
-        foreach (self::TYPE_STEPS as $name => $step) {
-            $size = $ratio ** $step;
-            if ($step < 3) {
-                $sizes[$name] = self::rem($size);
-                continue;
-            }
-            // Headings shrink on narrow screens: 72% at a 30rem viewport, full size from 75rem.
-            $min = max(1.25, $size * 0.72);
-            $slope = ($size - $min) / 0.45;
-            $sizes[$name] = sprintf('clamp(%s, %s + %svw, %s)', self::rem($min), self::rem($min - 0.3 * $slope), self::number($slope), self::rem($size));
+        if (is_string($value) && isset(self::CONTAINER_NAMES[$value])) {
+            return self::CONTAINER_NAMES[$value];
+        }
+        if (!is_string($value) && !is_int($value) && !is_float($value)) {
+            return null;
+        }
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $rem = (float) $value;
+        if ($rem < self::CONTAINER_MIN || $rem > self::CONTAINER_MAX) {
+            return null;
         }
 
-        return $sizes;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function spaceScale(float $unit): array
-    {
-        return array_map(static fn (float|int $factor): string => self::rem($unit * $factor), self::SPACE_STEPS);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function shadows(string $character, string $ink): array
-    {
-        $rgb = Color::channels($ink);
-
-        return match ($character) {
-            'soft' => ['s' => "0 1px 3px rgb({$rgb} / 0.08)", 'm' => "0 6px 18px rgb({$rgb} / 0.1)", 'l' => "0 18px 48px rgb({$rgb} / 0.14)"],
-            'hard' => ['s' => "3px 3px 0 {$ink}", 'm' => "6px 6px 0 {$ink}", 'l' => "10px 10px 0 {$ink}"],
-            'layered' => [
-                's' => "0 1px 1px rgb({$rgb} / 0.06), 0 2px 4px rgb({$rgb} / 0.06)",
-                'm' => "0 1px 2px rgb({$rgb} / 0.06), 0 4px 8px rgb({$rgb} / 0.06), 0 12px 24px rgb({$rgb} / 0.08)",
-                'l' => "0 2px 4px rgb({$rgb} / 0.05), 0 8px 16px rgb({$rgb} / 0.07), 0 24px 48px rgb({$rgb} / 0.12)",
-            ],
-            default => ['s' => 'none', 'm' => 'none', 'l' => 'none'],
-        };
-    }
-
-    private static function rem(float $value): string
-    {
-        return self::number($value) . 'rem';
+        return round($rem / self::CONTAINER_STEP) * self::CONTAINER_STEP;
     }
 
     private static function number(float $value): string

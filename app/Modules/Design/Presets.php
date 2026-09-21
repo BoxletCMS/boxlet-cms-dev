@@ -7,9 +7,14 @@ namespace App\Modules\Design;
  * composition it gives a page: the layer-2 section style and layer-3 layout new blocks
  * start from (SPEC §5.4).
  *
- * They differ in structure, not only hue. Tokens change type, scale, spacing, radius,
- * shadow, container and surface contrast; composition changes the shape of the page
- * itself: measure, vertical rhythm, alignment, section boundaries and hero arrangement.
+ * They differ in structure, not only hue. Tokens change type, text size, scale, spacing,
+ * radius, shadow, content width and surface contrast; composition changes the shape of the
+ * page itself: measure, vertical rhythm, alignment, section boundaries and hero arrangement.
+ *
+ * THE CONTENT WIDTH IS A NUMBER OF REM (D-062), not one of four names. The numbers here are
+ * exactly what the names meant, so no character's page moved when the decision changed
+ * shape. Editorial is the one that takes a larger base text size — long-form reading is what
+ * it is for, and a control no character demonstrates is a control nobody finds.
  */
 final class Presets
 {
@@ -19,22 +24,22 @@ final class Presets
         // Long-form reading: high-contrast serifs on a wide scale, a narrow measure,
         // generous air, barely softened corners, no shadows, quiet surfaces.
         'editorial' => [
-            'seed' => '#8a1c2b', 'secondary' => '#1f1a17', 'typography' => 'editorial', 'scale' => '1.333',
-            'spacing' => 'roomy', 'radius' => 'subtle', 'shadow' => 'none', 'container' => 'narrow', 'surface_contrast' => 'low',
+            'seed' => '#8a1c2b', 'secondary' => '#1f1a17', 'typography' => 'editorial', 'text_size' => 'large', 'scale' => '1.333',
+            'spacing' => 'roomy', 'radius' => 'subtle', 'shadow' => 'none', 'container' => '42', 'surface_contrast' => 'low',
             'header_width' => 'content', 'boxed' => 'no', 'page_background' => 'surface',
         ],
         // Restraint: near-neutral graphite, one sans family on a tight scale, even spacing,
         // barely rounded, flat.
         'minimal' => [
-            'seed' => '#3a4250', 'secondary' => '', 'typography' => 'modern', 'scale' => '1.2',
-            'spacing' => 'normal', 'radius' => 'subtle', 'shadow' => 'none', 'container' => 'normal', 'surface_contrast' => 'low',
+            'seed' => '#3a4250', 'secondary' => '', 'typography' => 'modern', 'text_size' => 'normal', 'scale' => '1.2',
+            'spacing' => 'normal', 'radius' => 'subtle', 'shadow' => 'none', 'container' => '56', 'surface_contrast' => 'low',
             'header_width' => 'content', 'boxed' => 'no', 'page_background' => 'surface',
         ],
         // Loud: a condensed-feeling grotesk on the steepest scale, saturated violet,
         // round corners, layered depth, wide sections, strongly separated surfaces.
         'bold' => [
-            'seed' => '#6d28d9', 'secondary' => '#1e1045', 'typography' => 'grotesk', 'scale' => '1.5',
-            'spacing' => 'normal', 'radius' => 'round', 'shadow' => 'layered', 'container' => 'wide', 'surface_contrast' => 'high',
+            'seed' => '#6d28d9', 'secondary' => '#1e1045', 'typography' => 'grotesk', 'text_size' => 'normal', 'scale' => '1.5',
+            'spacing' => 'normal', 'radius' => 'round', 'shadow' => 'layered', 'container' => '68', 'surface_contrast' => 'high',
             'header_width' => 'full', 'boxed' => 'no', 'page_background' => 'contrast',
         ],
         // Gentle: sage green, a rounded family, generous spacing, pill shapes, soft
@@ -43,15 +48,15 @@ final class Presets
         // never goes looking for it. A feature no default demonstrates is a feature nobody
         // finds.
         'soft' => [
-            'seed' => '#3b6b4f', 'secondary' => '#f5ecdc', 'typography' => 'rounded', 'scale' => '1.25',
-            'spacing' => 'generous', 'radius' => 'pill', 'shadow' => 'soft', 'container' => 'normal', 'surface_contrast' => 'medium',
+            'seed' => '#3b6b4f', 'secondary' => '#f5ecdc', 'typography' => 'rounded', 'text_size' => 'normal', 'scale' => '1.25',
+            'spacing' => 'generous', 'radius' => 'pill', 'shadow' => 'soft', 'container' => '56', 'surface_contrast' => 'medium',
             'header_width' => 'content', 'boxed' => 'yes', 'page_background' => 'surface',
         ],
         // Raw: monospace in capitals, compact spacing on a big scale, hard offset shadows
         // and thick rules, square corners, full-width, pure blue on stark yellow.
         'brutalist' => [
-            'seed' => '#1f1fd1', 'secondary' => '#ffe600', 'typography' => 'mono', 'scale' => '1.414',
-            'spacing' => 'compact', 'radius' => 'none', 'shadow' => 'hard', 'container' => 'full', 'surface_contrast' => 'high',
+            'seed' => '#1f1fd1', 'secondary' => '#ffe600', 'typography' => 'mono', 'text_size' => 'normal', 'scale' => '1.414',
+            'spacing' => 'compact', 'radius' => 'none', 'shadow' => 'hard', 'container' => '80', 'surface_contrast' => 'high',
             'header_width' => 'full', 'boxed' => 'no', 'page_background' => 'border',
         ],
     ];

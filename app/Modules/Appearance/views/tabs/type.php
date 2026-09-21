@@ -31,6 +31,16 @@ foreach (App\Modules\Design\Typography::PAIRINGS as $name => $pairing) {
                     <?= field_hint('hint.design.typography') ?>
                     <?= $error('typography') ?>
                 </div>
+                <?php /* SIZE FIRST, THEN SCALE. They are different questions and were one
+                         control for too long: the scale is how much bigger each heading is
+                         than the one under it, and this is how big the text itself is
+                         (D-062). */ ?>
+                <div class="field">
+                    <label for="design-text_size"><?= e(t('design.text_size')) ?></label>
+                    <?= $select('text_size', $labels('text_size', array_keys(App\Modules\Design\Tokens::TEXT_SIZE))) ?>
+                    <?= field_hint('hint.design.text_size') ?>
+                    <?= $error('text_size') ?>
+                </div>
                 <div class="field">
                     <label for="design-scale"><?= e(t('design.scale')) ?></label>
                     <?= $select('scale', $labels('scale', App\Modules\Design\Tokens::SCALES)) ?>
@@ -46,4 +56,3 @@ foreach (App\Modules\Design\Typography::PAIRINGS as $name => $pairing) {
                     'phone' => $readable['text_phone'] . 'px',
                 ])) ?></p>
             </fieldset>
-</fieldset>

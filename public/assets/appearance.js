@@ -72,6 +72,18 @@
     });
   }
 
+  // The number beside a slider, so a value being dragged is readable and not only visible —
+  // the same rule as the hex beside a colour (D-062). In rem, which is the unit the control
+  // is in; the pixels are on the line under the controls, worked out by the server.
+  function showSliderValues() {
+    form.querySelectorAll('[data-slider-for]').forEach(function (slider) {
+      var output = document.getElementById(slider.getAttribute('data-slider-for'));
+      if (output) {
+        output.textContent = slider.value + 'rem';
+      }
+    });
+  }
+
   // The hex next to each colour input, so the value is readable and not only visible.
   function showColourValues() {
     form.querySelectorAll('[data-colour-for]').forEach(function (output) {
@@ -129,6 +141,7 @@
   function changed(event) {
     dirty = true;
     showColourValues();
+    showSliderValues();
     announce('unpublished');
     if (event.type === 'change' && isDiscrete(event.target)) {
       refresh();

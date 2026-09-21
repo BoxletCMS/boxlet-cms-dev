@@ -159,10 +159,53 @@ export default {
       !holding.includes('?') && released === mine,
       `held ${holding.slice(-40)}, released ${released.slice(-40)}`);
 
+    /*
+     * ---- the two controls that were coarser than the question (PLAN.md D-062) ----------
+     *
+     * The width is a slider now, and what it says in rem has to be what the page is actually
+     * laid out to — the one place a number on a control can quietly mean nothing.
+     */
+    await openTab(page, 'shape');
+    const widthNow = await page.$eval('#design-container', (el) => el.value);
+    await page.$eval('#design-container', (el) => {
+      el.value = '44';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await new Promise((resolve) => { setTimeout(resolve, 900); });
+    const measured = await page.evaluate(() => {
+      const frame = document.querySelector('iframe[data-design-preview]');
+      const inside = frame.contentDocument;
+      const container = inside ? inside.querySelector('main section .container') : null;
+      // The content BOX, not the border box: a container carries side padding, and measuring
+      // that instead was the first answer this check gave — 784px for a 704px measure.
+      let content = 0;
+      if (container) {
+        const box = getComputedStyle(container);
+        content = Math.round(container.getBoundingClientRect().width
+          - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight));
+      }
+      return {
+        readout: document.querySelector('#design-container-value').textContent.trim(),
+        token: inside ? getComputedStyle(inside.documentElement).getPropertyValue('--container-width').trim() : '',
+        content,
+      };
+    });
+    report.verdict('the width slider says what the page is laid out to',
+      measured.readout === '44rem' && measured.token === '44rem' && Math.abs(measured.content - 44 * 16) <= 2,
+      `the control says ${measured.readout}, the page's token is ${measured.token}, the content measures ${measured.content}px (44rem is ${44 * 16}px)`);
+    await report.shot(page, 'width-slider');
+    await page.$eval('#design-container', (el, back) => {
+      el.value = back;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, widthNow);
+
     // A choice is immediate: no click on anything called "update", and no waiting.
     const framedBefore = await page.$eval('iframe[data-design-preview]', (el) => el.src);
     await openTab(page, 'shape');
-    await page.select('#design-container', 'narrow');
+    // A select, deliberately: the width is a slider now (D-062), and a slider is the one
+    // control this screen still waits 250ms for.
+    await page.select('#design-spacing', 'generous');
     await page.waitForFunction((was) => document.querySelector('iframe[data-design-preview]').src !== was, {}, framedBefore);
     report.pass('choosing a value refreshes the preview by itself', 'the frame followed the select with no button pressed');
 

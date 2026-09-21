@@ -238,3 +238,27 @@
   flex: 0 1 24rem;
   margin: 0;
 }
+
+/* A slider and the number it is at (PLAN.md D-062). The number is beside the control, not
+   under it: it is what the control MEANS, and a value you have to look away to read is a
+   value you cannot aim. */
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-3);
+}
+
+.slider input[type="range"] {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  accent-color: var(--ui-accent);
+}
+
+.slider-value {
+  min-inline-size: 4.5rem;
+  color: var(--ui-ink);
+  font-size: var(--ui-text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}

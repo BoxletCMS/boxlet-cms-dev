@@ -23,7 +23,7 @@
                     <?= field_hint('hint.design.spacing') ?>
                     <?= $error('spacing') ?>
                 </div>
-<?php foreach (['radius' => App\Modules\Design\Tokens::RADIUS, 'shadow' => App\Modules\Design\Tokens::SHADOW, 'container' => array_keys(App\Modules\Design\Tokens::CONTAINER)] as $key => $values): ?>
+<?php foreach (['radius' => App\Modules\Design\Tokens::RADIUS, 'shadow' => App\Modules\Design\Tokens::SHADOW] as $key => $values): ?>
                 <div class="field">
                     <label for="design-<?= e($key) ?>"><?= e(t('design.' . $key)) ?></label>
                     <?= $select($key, $labels($key, $values)) ?>
@@ -31,6 +31,25 @@
                     <?= $error($key) ?>
                 </div>
 <?php endforeach; ?>
+                <?php /* THE ONE DECISION THAT IS A NUMBER (D-062). Four names could not answer
+                         "a little narrower than this", and the measure is the decision that
+                         most changes whether a page is comfortable to read. The value beside
+                         it is in both units, because rem is the design's unit and pixels are
+                         what a person can picture. */ ?>
+                <div class="field">
+                    <label for="design-container"><?= e(t('design.container')) ?></label>
+                    <div class="slider">
+                        <input type="range" id="design-container" name="container"
+                               min="<?= e((string) (int) App\Modules\Design\Tokens::CONTAINER_MIN) ?>"
+                               max="<?= e((string) (int) App\Modules\Design\Tokens::CONTAINER_MAX) ?>"
+                               step="<?= e((string) (int) App\Modules\Design\Tokens::CONTAINER_STEP) ?>"
+                               value="<?= e($decisions['container']) ?>" data-slider-for="design-container-value">
+                        <output class="slider-value" id="design-container-value" for="design-container"><?= e($decisions['container']) ?>rem</output>
+                    </div>
+                    <?= field_hint('hint.design.container') ?>
+                    <?= $error('container') ?>
+                </div>
+
                 <p class="derived"><?= e(t('design.readable.space', [
                     'space' => $readable['space'] . 'px',
                     'section' => $readable['section'] . 'px',
@@ -40,4 +59,3 @@
                     'container' => $readable['container'] . 'px',
                 ])) ?></p>
             </fieldset>
-</fieldset>

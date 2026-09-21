@@ -23,6 +23,7 @@ use App\Support\Url;
  * @var string $character character loaded into the form, '' when none
  * @var string $activeCharacter character the site composes new blocks with
  * @var bool $hasBlocks whether applying a composition would overwrite anything
+ * @var list<array{id: int, name: string, character: string, decisions: array<string, string>, look: array<string, string>}> $library the designs the owner keeps
  * @var array<string, string> $colors derived palette
  * @var list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}> $pairs
  * @var array{text: array<string, int>, text_phone: int, space: int, section: int, radius: int, container: int, container_rem: float} $readable
@@ -112,6 +113,56 @@ $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
                     <button type="submit" form="design-form" name="action" value="preset:<?= e($preset) ?>" class="button button-secondary"><?= e(t('design.load_preset')) ?></button>
                 </div>
 <?php endforeach; ?>
+            </div>
+        </section>
+
+        <?php /* THE LIBRARY (D-061). The five characters above are Boxlet's; these are the
+                 owner's. Until now an afternoon on colour and type had nowhere to go, and
+                 loading any character threw it away — which is the real source of "too few
+                 options", not the number of controls.
+                 Keeping one does not touch the site, and neither does using one: the screen
+                 fills with it and Publish is still the confirmation. */ ?>
+        <section class="characters library" aria-labelledby="library-heading">
+            <h2 id="library-heading"><?= e(t('appearance.library')) ?></h2>
+            <p class="hint"><?= e(t('appearance.library_hint')) ?></p>
+
+<?php if ($library === []): ?>
+            <p class="hint library-empty"><?= e(t('appearance.library.empty')) ?></p>
+<?php else: ?>
+            <div class="character-strip">
+<?php foreach ($library as $saved): ?>
+<?php $palette = Palette::colors($saved['decisions']['seed'], $saved['decisions']['secondary'], $saved['decisions']['surface_contrast']); ?>
+                <div class="character-card">
+                    <h3><?= e($saved['name']) ?></h3>
+                    <div class="character-chips" aria-hidden="true">
+                        <?= $swatch($palette['accent'], 'saved-' . $saved['id'] . '-accent') ?>
+                        <?= $swatch($palette['contrast'], 'saved-' . $saved['id'] . '-contrast') ?>
+                        <?= $swatch($palette['surface'], 'saved-' . $saved['id'] . '-surface') ?>
+                    </div>
+                    <p class="character-shape"><?= e($saved['character'] === ''
+                        ? t('appearance.library.by_hand')
+                        : t('appearance.library.from', ['character' => t('design.preset.' . $saved['character'])])) ?></p>
+                    <div class="library-actions">
+                        <button type="submit" form="design-form" name="action" value="library:use:<?= e((string) $saved['id']) ?>" class="button button-secondary"><?= e(t('appearance.library.use')) ?></button>
+                        <?php /* Named in full for anyone who cannot see which card it sits on. */ ?>
+                        <button type="submit" form="design-form" name="action" value="library:delete:<?= e((string) $saved['id']) ?>" class="button button-ghost"
+                                title="<?= e(t('appearance.library.delete_one', ['name' => $saved['name']])) ?>">
+                            <?= e(t('appearance.library.delete')) ?><span class="visually-hidden">: <?= e($saved['name']) ?></span>
+                        </button>
+                    </div>
+                </div>
+<?php endforeach; ?>
+            </div>
+<?php endif; ?>
+
+            <div class="library-keep">
+                <div class="field">
+                    <label for="library_name"><?= e(t('appearance.library.name')) ?></label>
+                    <input type="text" id="library_name" name="library_name" form="design-form" maxlength="80"
+                           value="" autocomplete="off">
+                    <?= $error('library_name') ?>
+                </div>
+                <button type="submit" form="design-form" name="action" value="library:save" class="button button-secondary"><?= e(t('appearance.library.save')) ?></button>
             </div>
         </section>
 

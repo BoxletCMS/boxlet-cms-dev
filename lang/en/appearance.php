@@ -33,4 +33,21 @@ return [
     'appearance.state.unpublished' => 'Not published yet',
     'appearance.state.problem' => 'Fix the contrast to publish',
     'appearance.revert' => 'Discard changes',
+
+    // Designs the owner keeps (D-061).
+    'appearance.library' => 'Your designs',
+    'appearance.library_hint' => 'Keep what is on this screen under a name, and come back to it later. Saving one here does not change the site.',
+    'appearance.library.empty' => 'Nothing kept yet. Set the screen the way you want it and save it under a name.',
+    'appearance.library.name' => 'Name for this design',
+    'appearance.library.save' => 'Keep this design',
+    'appearance.library.use' => 'Use this design',
+    'appearance.library.delete' => 'Delete',
+    'appearance.library.delete_one' => 'Delete “:name”',
+    'appearance.library.saved' => 'Kept as “:name”. The site has not changed — press Publish for that.',
+    'appearance.library.overwritten' => '“:name” now holds what is on this screen. The site has not changed.',
+    'appearance.library.loaded' => '“:name” is on the screen. Press Publish to put it on the site.',
+    'appearance.library.deleted' => '“:name” is gone. What is on the screen is untouched.',
+    'appearance.library.name_needed' => 'Give the design a name first.',
+    'appearance.library.from' => 'From :character',
+    'appearance.library.by_hand' => 'Made by hand',
 ];

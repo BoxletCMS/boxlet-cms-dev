@@ -48,8 +48,10 @@ return [
     'activity.form.deleted' => 'Deleted the form “:name”',
     'activity.message.received' => 'A message came in through “:name”',
 
-    'activity.design.saved' => 'Saved the design',
+    'activity.design.saved' => 'Published how the site looks',
     'activity.design.header_saved' => 'Saved the header and footer',
+    'activity.design.kept' => 'Kept the design “:name”',
+    'activity.design.deleted' => 'Deleted the kept design “:name”',
 
     'activity.settings.saved' => 'Saved the site settings',
     'activity.settings.mail_saved' => 'Saved how the site sends mail',

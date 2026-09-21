@@ -192,3 +192,49 @@
     block-size: 60vh;
   }
 }
+
+/* The owner's own designs (PLAN.md D-061), under Boxlet's five. Same cards, so the two
+   strips read as the same kind of thing — a whole look you can put on — with a different
+   heading saying whose they are. */
+
+.library {
+  margin-block-start: calc(var(--ui-5) * -0.5);
+}
+
+/* auto-FILL, not auto-fit: two kept designs are two cards the width of a character, not two
+   cards stretched across the screen. The strip above happens to hold exactly five, so the
+   difference never showed there. */
+.library .character-strip {
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+}
+
+.library-empty {
+  margin-block-end: var(--ui-3);
+}
+
+.library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
+  align-items: center;
+  margin-block-start: auto;
+}
+
+/* Keeping one is a name and a button, on the same line where there is room: it is one
+   action, not a form of its own. */
+.library-keep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ui-3);
+  margin-block-start: var(--ui-3);
+  padding: var(--ui-3);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+}
+
+.library-keep .field {
+  flex: 0 1 24rem;
+  margin: 0;
+}

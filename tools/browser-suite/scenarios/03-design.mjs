@@ -19,7 +19,7 @@
  * character is re-applied afterwards so later scenarios start from a sane design.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openTab } from '../harness.mjs';
+import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openTab, retype } from '../harness.mjs';
 
 const STYLE_GUIDE = 4;
 
@@ -275,6 +275,54 @@ export default {
 
       await report.shot(page, `page-${preset}`);
     }
+
+    /*
+     * ---- the designs the owner keeps (PLAN.md D-061) ------------------------------------
+     *
+     * The whole point is that work survives: keep what is on the screen, load a character
+     * over it, bring the kept one back, and find the same values. Done through the admin as
+     * the owner would, and cleaned up at the end by its own Delete.
+     */
+    const KEPT = 'Suite kept design';
+    await applyCharacter(page, BASE, 'bold', 'save');
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await openTab(page, 'colour');
+    await retype(page, '#design-seed', '#123456').catch(() => {});
+    const keptSeed = await page.$eval('#design-seed', (el) => el.value);
+    await retype(page, '#library_name', KEPT);
+    await clickAndWait(page, 'button[form="design-form"][value="library:save"]', 40000);
+
+    const afterKeeping = await page.evaluate((name) => ({
+      listed: [...document.querySelectorAll('.library .character-card h3')].map((h) => h.textContent.trim()),
+      said: (document.querySelector('.notice') || {}).textContent?.trim() ?? '',
+      stillOnScreen: document.querySelector('#design-seed').value,
+    }), KEPT);
+    report.verdict('a design can be kept, and the screen keeps what was kept',
+      afterKeeping.listed.includes(KEPT) && afterKeeping.stillOnScreen === keptSeed,
+      `${JSON.stringify(afterKeeping.listed)}; screen still ${afterKeeping.stillOnScreen}; said ${JSON.stringify(afterKeeping.said.slice(0, 70))}`);
+    await report.shot(page, 'library');
+
+    // Now throw the screen away with a character, and bring the kept design back.
+    await applyCharacter(page, BASE, 'brutalist', 'save');
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    const useButton = await page.$$eval('.library .character-card', (cards, name) => {
+      const card = cards.find((c) => c.querySelector('h3').textContent.trim() === name);
+      return card ? card.querySelector('[value^="library:use:"]').value : '';
+    }, KEPT);
+    await clickAndWait(page, `button[form="design-form"][value="${useButton}"]`, 40000);
+    await openTab(page, 'colour');
+    const broughtBack = await page.$eval('#design-seed', (el) => el.value);
+    report.verdict('a kept design comes back exactly as it was kept', broughtBack === keptSeed,
+      `kept ${keptSeed}, came back ${broughtBack}`);
+
+    // And deleting it takes only itself.
+    const deleteButton = useButton.replace('library:use:', 'library:delete:');
+    await clickAndWait(page, `button[form="design-form"][value="${deleteButton}"]`, 40000);
+    const left = await page.$$eval('.library .character-card h3', (hs) => hs.map((h) => h.textContent.trim()));
+    report.verdict('the scenario takes its kept design away again', !left.includes(KEPT),
+      `left in the library: ${JSON.stringify(left)}`);
+
+    await applyCharacter(page, BASE, presets[0], 'save');
 
     // ---- one section's surface and rhythm ----------------------------------------------
     await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });

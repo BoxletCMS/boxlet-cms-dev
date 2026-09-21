@@ -89,6 +89,9 @@ final class AppearanceController
                 $name,
             );
         }
+        if (str_starts_with($action, 'library:')) {
+            return $this->library($request, $action, $state);
+        }
 
         $character = $request->input('character');
         $character = Presets::exists($character) ? $character : '';
@@ -130,6 +133,56 @@ final class AppearanceController
     }
 
     /**
+     * The library (D-061): keep what is on the screen, bring one back, throw one away.
+     *
+     * NONE OF THE THREE TOUCHES THE SITE, and each answers with the screen rather than a
+     * redirect — a redirect would hand back the PUBLISHED design, so the owner would press
+     * "keep this design" and watch their work vanish from the screen it was just kept from.
+     *
+     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, words: array<string, array<string, string>>, errors: array<string, string>} $state
+     */
+    private function library(Request $request, string $action, array $state): Response
+    {
+        $db = $this->db();
+        $character = Presets::exists($request->input('character')) ? $request->input('character') : '';
+
+        if ($action === 'library:save') {
+            $name = DesignLibrary::cleanName($request->input('library_name'));
+            if ($name === '') {
+                return $this->screen($state, ['library_name' => t('appearance.library.name_needed')], null, 422, $character);
+            }
+            $written = DesignLibrary::exists($db, $name);
+            DesignLibrary::save($db, $name, $state['decisions'], $state['look'], $character);
+            Activity::record($db, 'design', 'kept', null, $name);
+
+            return $this->screen($state, [], t($written ? 'appearance.library.overwritten' : 'appearance.library.saved', ['name' => $name]), 200, $character);
+        }
+
+        $id = (int) substr($action, (int) strrpos($action, ':') + 1);
+        $saved = DesignLibrary::find($db, $id);
+        if ($saved === null) {
+            return $this->screen($state, [], null, 404, $character);
+        }
+
+        if (str_starts_with($action, 'library:delete:')) {
+            DesignLibrary::delete($db, $id);
+            Activity::record($db, 'design', 'deleted', null, $saved['name']);
+
+            return $this->screen($state, [], t('appearance.library.deleted', ['name' => $saved['name']]), 200, $character);
+        }
+
+        // Using one fills the screen with it: the design AND the header and footer it was
+        // kept with. The menu and the words stay the site's own.
+        return $this->screen(
+            ['decisions' => $saved['decisions'], 'look' => $saved['look']] + $state,
+            [],
+            t('appearance.library.loaded', ['name' => $saved['name']]),
+            200,
+            $saved['character'],
+        );
+    }
+
+    /**
      * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, words: array<string, array<string, string>>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
@@ -152,6 +205,7 @@ final class AppearanceController
             'character' => $character,
             'activeCharacter' => Composition::active($db),
             'hasBlocks' => Composition::hasBlocks($db),
+            'library' => DesignLibrary::all($db),
             'colors' => $colors,
             'pairs' => Palette::pairs($colors, $decisions['secondary'] !== ''),
             'readable' => Tokens::readable($decisions),

@@ -23,6 +23,7 @@ use App\Support\Url;
  * @var string $character character loaded into the form, '' when none
  * @var string $activeCharacter character the site composes new blocks with
  * @var bool $hasBlocks whether applying a composition would overwrite anything
+ * @var bool $confirm whether Publish is asking how to apply the loaded character
  * @var list<array{id: int, name: string, character: string, decisions: array<string, string>, look: array<string, string>}> $library the designs the owner keeps
  * @var array<string, string> $colors derived palette
  * @var list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}> $pairs
@@ -187,20 +188,36 @@ $card = static function (array $decisions, string $name, string $badge, string $
                       data-unpublished="<?= e(t('appearance.state.unpublished')) ?>"
                       data-problem="<?= e(t('appearance.state.problem')) ?>"><?= e(t('appearance.state.published')) ?></span>
 
+                <?php /* ONE BUTTON. Applying a character to a site that has blocks can rewrite
+                         every section, so that needs two explicit answers — but the question
+                         belongs at the moment of publishing, not permanently in the bar
+                         (D-068). */ ?>
                 <div class="preview-actions">
                     <button type="submit" form="design-preview-form" class="button button-quiet" data-preview-button><?= e(t('design.update_preview')) ?></button>
                     <a class="button button-quiet" href="<?= e(Url::admin('appearance')) ?>" data-revert hidden><?= e(t('appearance.revert')) ?></a>
-<?php if ($character !== '' && $hasBlocks): ?>
-                    <button type="submit" form="design-form" name="action" value="save" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
-                    <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
-<?php else: ?>
                     <button type="submit" form="design-form" name="action" value="save" class="button"><?= e(t('appearance.publish')) ?></button>
-<?php endif; ?>
                 </div>
             </div>
 
 <?php if ($notice !== null): ?>
             <p class="notice appearance-notice<?= $errors !== [] ? ' notice-error' : '' ?>" role="<?= $errors !== [] ? 'alert' : 'status' ?>"><?= e($notice) ?></p>
+<?php endif; ?>
+<?php if ($confirm): ?>
+            <?php /* The one destructive choice in the design layer, asked once, with what
+                     each answer does written beside it rather than behind it. */ ?>
+            <div class="appearance-confirm" role="alert">
+                <p class="confirm-question"><?= e(t('design.apply.title', ['character' => t('design.preset.' . $character)])) ?></p>
+                <div class="confirm-options">
+                    <span>
+                        <button type="submit" form="design-form" name="action" value="save_design" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
+                        <span class="hint"><?= e(t('design.apply.design_only_hint')) ?></span>
+                    </span>
+                    <span>
+                        <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
+                        <span class="hint"><?= e(t('design.apply.with_composition_hint')) ?></span>
+                    </span>
+                </div>
+            </div>
 <?php endif; ?>
 
             <?php /* ONE FORM AROUND ALL THREE COLUMNS. The character cards, the library and

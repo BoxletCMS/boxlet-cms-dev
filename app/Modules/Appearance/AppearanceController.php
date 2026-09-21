@@ -100,6 +100,19 @@ final class AppearanceController
         }
 
         $db = $this->db();
+        /*
+         * PUBLISH ASKS ONCE, when the answer is destructive (D-068, handoff §2.1).
+         *
+         * Applying a character to a site that already has blocks can rewrite every section's
+         * style and layout, so that has always needed two explicit buttons. They used to sit
+         * in the bar permanently — three buttons for a choice that matters on the rare
+         * publish after loading a character — so the bar is one Publish now and the question
+         * is asked at the moment it applies.
+         */
+        if ($action === 'save' && $character !== '' && Composition::hasBlocks($db)) {
+            return $this->screen($state, [], null, 200, $character, true);
+        }
+        $composing = $action === 'save_composition';
         // A menu is chosen by name, and a name no menu carries any more is cleared rather
         // than stored: the header would render nothing for it, and a setting that silently
         // means nothing is worse than an empty one the owner can see.
@@ -113,7 +126,7 @@ final class AppearanceController
         $message = t('appearance.published');
         if ($character !== '') {
             Composition::remember($db, $character);
-            if ($action === 'save_composition') {
+            if ($composing) {
                 $count = Composition::apply($db, $this->container->get('blocks'), $character);
                 $message = t('design.saved_with_composition', [
                     'count' => $count,
@@ -199,8 +212,9 @@ final class AppearanceController
      * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, words: array<string, array<string, string>>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
+     * @param bool $confirm whether Publish is asking how to apply that character
      */
-    private function screen(array $state, array $errors, ?string $notice, int $status = 200, string $character = ''): Response
+    private function screen(array $state, array $errors, ?string $notice, int $status = 200, string $character = '', bool $confirm = false): Response
     {
         $db = $this->db();
         $decisions = $state['decisions'];
@@ -219,6 +233,8 @@ final class AppearanceController
             'errors' => $errors,
             'notice' => $notice,
             'character' => $character,
+            // Publish has asked, and the screen is waiting for which of the two it is.
+            'confirm' => $confirm,
             'activeCharacter' => Composition::active($db),
             'hasBlocks' => Composition::hasBlocks($db),
             'library' => DesignLibrary::all($db),

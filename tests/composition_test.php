@@ -124,8 +124,12 @@ testBothDrivers('applying a character resets sections only when that is what was
     $styleOf = static fn (): array => (array) json_decode((string) ($db->one('SELECT style_json FROM page_blocks')['style_json'] ?? ''), true);
     $chosen = $styleOf();
 
-    // Design only: the section keeps what its author chose.
-    adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save']);
+    // Design only: the section keeps what its author chose. Publish ASKS first on a site
+    // that has blocks (D-068), and this is the answer that leaves them alone.
+    $asked = adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save']);
+    assertEquals(200, $asked->status, 'Publish asked rather than applying');
+    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), 'and wrote nothing while it asked');
+    adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save_design']);
     assertEquals($chosen, $styleOf(), 'saving the design alone changed a section style');
     assertEquals('editorial', Composition::active($db), 'active character');
 
@@ -138,20 +142,30 @@ testBothDrivers('applying a character resets sections only when that is what was
     assertEquals(1, (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? -1), "the page itself survived (id {$id})");
 });
 
-test('the choice between design and composition is offered, never taken silently', function () {
+test('the choice between design and composition is asked at Publish, never taken silently', function () {
     $db = adminSite('sqlite');
 
-    // No blocks yet: nothing to overwrite, so there is one plain Save.
-    $empty = adminPost('/admin/appearance', ['action' => 'preset:soft']);
-    assertContains('value="save"', $empty->body, 'save button');
-    assertTrue(!str_contains($empty->body, 'value="save_composition"'), 'a site with no blocks was offered a reset');
+    // No blocks yet: nothing to overwrite, so Publish simply publishes (D-068).
+    $empty = adminPost('/admin/appearance', appearanceFields(['character' => 'soft', 'action' => 'save']));
+    assertRedirectedTo('/admin/appearance', $empty);
 
+    // With blocks, the same press asks, and the bar itself never carries the destructive
+    // button — a choice that matters on one publish in twenty does not live in the bar.
     createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
     $loaded = adminPost('/admin/appearance', ['action' => 'preset:soft']);
     assertContains('name="character" value="soft"', $loaded->body, 'the loaded character');
-    assertContains(e(t('design.apply.design_only')), $loaded->body, 'design-only button');
-    assertContains(e(t('design.apply.with_composition')), $loaded->body, 'composition button');
-    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), 'loading a character saved something');
+    assertTrue(!str_contains($loaded->body, 'value="save_composition"'), 'the bar offered a reset before anyone asked for one');
+
+    // Measured across the ask, not against zero: the publish above wrote a design, and a
+    // test that expects nothing at all would be measuring that instead.
+    $stored = static fn (): string => (string) ($db->one('SELECT value_json FROM design_tokens WHERE group_key = ?', ['seed'])['value_json'] ?? '');
+    $before = $stored();
+    $asked = adminPost('/admin/appearance', appearanceFields(['seed' => '#3b6b4f', 'character' => 'soft', 'action' => 'save']));
+    assertEquals(200, $asked->status, 'Publish asked');
+    assertContains(e(t('design.apply.design_only')), $asked->body, 'design-only answer');
+    assertContains(e(t('design.apply.with_composition')), $asked->body, 'composition answer');
+    assertContains(e(t('design.apply.with_composition_hint')), $asked->body, 'and what the second one does');
+    assertEquals($before, $stored(), 'asking published something');
 });
 
 test('the preview shows the character composition, not only its palette', function () {

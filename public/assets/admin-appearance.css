@@ -782,3 +782,35 @@
 .ramp-step[data-ramp="4"] { inline-size: 32px; }
 .ramp-step[data-ramp="6"] { inline-size: 48px; }
 .ramp-step[data-ramp="8"] { inline-size: 64px; }
+
+/* Publish asking how to apply a character (PLAN.md D-068). Under the bar, across the whole
+   screen, because it is a question about the whole screen and the answer is destructive. */
+
+.appearance-confirm {
+  display: grid;
+  gap: var(--ui-2);
+  padding: var(--ui-3);
+  background: var(--ui-warning-soft);
+  border-block-end: var(--ui-border) solid var(--ui-line);
+}
+
+.confirm-question {
+  margin: 0;
+  font-weight: 650;
+}
+
+.confirm-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-4);
+}
+
+.confirm-options > span {
+  display: grid;
+  gap: var(--ui-1);
+  max-inline-size: 28rem;
+}
+
+.confirm-options .hint {
+  font-size: var(--ui-text-xs);
+}

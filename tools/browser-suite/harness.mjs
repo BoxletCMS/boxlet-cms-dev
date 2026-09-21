@@ -437,11 +437,18 @@ export async function openTab(page, name) {
 export async function applyCharacter(page, base, preset, action = 'save') {
   await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
   await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
-  // BY THE FORM IT NAMES, not by the form it sits in: Save moved out of the controls and
-  // beside the preview, where the sticky column keeps it in reach (D-058). It still submits
-  // the same form — through form="design-form" — and the selector has to say so, or it
-  // matches the character cards' own buttons.
-  await clickAndWait(page, `button[form="design-form"][name="action"][value="${action}"]`);
+  /*
+   * PUBLISH, THEN ANSWER WHAT IT ASKS (D-068). One button in the bar; when the site already
+   * has blocks it comes back asking whether to rewrite their section styles, and the answer
+   * is the same two actions this function has always taken. On a site with no blocks there
+   * is nothing to ask and the first press publishes.
+   */
+  await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
+  const asked = await page.$('.appearance-confirm');
+  if (asked !== null) {
+    const answer = action === 'save' ? 'save_design' : action;
+    await clickAndWait(page, `button[form="design-form"][name="action"][value="${answer}"]`);
+  }
   return alerts(page);
 }
 

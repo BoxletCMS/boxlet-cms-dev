@@ -29,8 +29,12 @@
 
   /** Under a half the text stops being text, so the zoom does not go there. */
   var SMALLEST = 0.5;
-  var width = 1280;
+  /** Widest first: the screen opens on the widest one this column can actually carry. */
+  var WIDTHS = [1280, 834, 390];
+  var width = WIDTHS[0];
   var zoom = 'fit';
+  /** Whether the owner has picked a width. Until they do, the screen picks one for them. */
+  var picked = false;
 
   function scale() {
     if (zoom !== 'fit') {
@@ -57,24 +61,64 @@
     frame.style.marginInlineStart = (spare > 0 ? spare / 2 : 0) + 'px';
   }
 
+  var chooser = tools.querySelector('[data-zoom]');
+
+  /** Which button is down, whoever chose it. */
+  function show(chosen) {
+    width = chosen;
+    tools.querySelectorAll('[data-viewport]').forEach(function (button) {
+      var mine = parseInt(button.getAttribute('data-viewport'), 10) === chosen;
+      button.setAttribute('aria-pressed', mine ? 'true' : 'false');
+    });
+  }
+
   tools.addEventListener('click', function (event) {
     var button = event.target.closest ? event.target.closest('[data-viewport]') : null;
     if (!button) {
       return;
     }
-    width = parseInt(button.getAttribute('data-viewport'), 10) || 1280;
-    tools.querySelectorAll('[data-viewport]').forEach(function (other) {
-      other.setAttribute('aria-pressed', other === button ? 'true' : 'false');
-    });
+    picked = true;
+    show(parseInt(button.getAttribute('data-viewport'), 10) || WIDTHS[0]);
+    /*
+     * A NEW WIDTH COMES WITH FIT (handoff §2.3). Zoom belongs to the width it was chosen
+     * for: 100% of a desktop page in this column is a corner of it, and carrying that over
+     * to the phone shows a phone page at twice its size. Fit is the only answer that means
+     * the same thing at every width.
+     */
+    zoom = 'fit';
+    if (chooser) {
+      chooser.value = 'fit';
+    }
     draw();
   });
 
-  var chooser = tools.querySelector('[data-zoom]');
   if (chooser) {
     chooser.addEventListener('change', function () {
       zoom = chooser.value;
       draw();
     });
+  }
+
+  /*
+   * THE SCREEN OPENS ON A WIDTH THIS COLUMN CAN CARRY (handoff §2.3).
+   *
+   * Desktop at 1280 needs 640px of stage to stay above the floor; below that the picture
+   * would be a page nobody can read, or one silently clipped — which is what the prototype
+   * did twice by trusting a default width instead of measuring. So the width is chosen from
+   * the room there actually is, and only until the owner picks one for themselves.
+   */
+  function fitsTheColumn() {
+    var room = stage.clientWidth;
+    if (room <= 0 || picked) {
+      return;
+    }
+    for (var i = 0; i < WIDTHS.length; i++) {
+      if (room / WIDTHS[i] >= SMALLEST) {
+        show(WIDTHS[i]);
+        return;
+      }
+    }
+    show(WIDTHS[WIDTHS.length - 1]);
   }
 
   /*
@@ -133,6 +177,24 @@
     });
   }
 
-  window.addEventListener('resize', draw);
+  /*
+   * MEASURED WHEN THE SIZE IS KNOWN, not once at load. A stage still being laid out reports
+   * zero, and a screen that picked its width from that would open on the phone every time.
+   * The observer fires when there is something to measure and again whenever the column
+   * changes — the admin's rail folding, a window resized, a panel opening.
+   */
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(function () {
+      fitsTheColumn();
+      draw();
+    }).observe(stage);
+  } else {
+    window.addEventListener('resize', function () {
+      fitsTheColumn();
+      draw();
+    });
+  }
+
+  fitsTheColumn();
   draw();
 })();

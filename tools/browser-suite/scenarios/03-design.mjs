@@ -157,6 +157,48 @@ export default {
     await report.shot(page, 'stage-phone');
     await page.click('[data-viewport="1280"]');
 
+    /*
+     * The two rules about which width the screen is on, both from the handoff's §2.3 and
+     * both the kind of thing that goes quietly wrong: a picture nobody can read, and a zoom
+     * that means something different from the width it was chosen for.
+     */
+    const stageState = () => page.evaluate(() => {
+      const frame = document.querySelector('iframe[data-design-preview]');
+      return {
+        room: Math.round(document.querySelector('[data-stage]').clientWidth),
+        pressed: [...document.querySelectorAll('[data-viewport]')]
+          .filter((b) => b.getAttribute('aria-pressed') === 'true')
+          .map((b) => Number(b.getAttribute('data-viewport')))[0],
+        scale: Number((frame.style.transform.match(/scale\(([\d.]+)\)/) || [0, 1])[1]),
+        zoom: document.querySelector('[data-zoom]').value,
+      };
+    });
+
+    // A column too narrow to carry 1280 above the floor opens on a width it CAN carry.
+    const wide = page.viewport();
+    await page.setViewport({ ...wide, width: 1100 });
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await new Promise((resolve) => { setTimeout(resolve, 600); });
+    const narrow = await stageState();
+    report.verdict('a column that cannot carry the desktop width opens on one it can',
+      narrow.pressed < 1280 && narrow.scale >= 0.5,
+      `${narrow.room}px of stage, opened on ${narrow.pressed} at scale ${narrow.scale}`);
+
+    await page.setViewport(wide);
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await new Promise((resolve) => { setTimeout(resolve, 600); });
+
+    // And a new width comes with Fit: 100% of a desktop page means nothing on a phone.
+    await page.select('[data-zoom]', '0.5');
+    await new Promise((resolve) => { setTimeout(resolve, 300); });
+    await page.click('[data-viewport="390"]');
+    await new Promise((resolve) => { setTimeout(resolve, 400); });
+    const switched = await stageState();
+    report.verdict('changing the width brings the zoom back to Fit',
+      switched.zoom === 'fit' && switched.pressed === 390,
+      `zoom ${switched.zoom} at ${switched.pressed}, scale ${switched.scale}`);
+    await page.click('[data-viewport="1280"]');
+
     // Compare is HELD: the frame shows the published design while the button is down, and
     // the owner's unsaved work the moment it comes up.
     const mine = (await stage()).src;

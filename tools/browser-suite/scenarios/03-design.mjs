@@ -243,6 +243,45 @@ export default {
     await page.evaluate(() => window.scrollTo(0, 0));
 
     /*
+     * ONE LIST OF ROLES (docs/ispravci.md §C1). It used to be two — fifteen colours that
+     * could not be touched, and a folded panel holding the seven that could — so the same
+     * information sat in two places and the half that can be CHANGED was the half that was
+     * closed. What this asserts is that there is ONE list, that every role is in it, and
+     * that what can be done to a role is visible on its own row.
+     */
+    await openTab(page, 'colour');
+    const palette = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('.role')];
+      const reset = document.querySelector('.palette-reset');
+      return {
+        rows: rows.length,
+        editable: rows.filter((r) => r.querySelector('input[type="color"]')).length,
+        said: rows.filter((r) => r.querySelector('.role-derived')).length,
+        // The old shapes: a read-only swatch list, and the folded panel beside it.
+        oldLists: document.querySelectorAll('.swatches, .by-hand').length,
+        freeShown: rows.filter((r) => {
+          const button = r.querySelector('.role-free');
+          return button && getComputedStyle(button).display !== 'none';
+        }).length,
+        resetShown: !!reset && getComputedStyle(reset).display !== 'none',
+        // A square, not a bar: every field's input carries a 2.5rem floor, and a floor
+        // beats a height.
+        square: rows.map((r) => {
+          const box = (r.querySelector('input[type="color"]') || r.querySelector('svg')).getBoundingClientRect();
+          return Math.round(box.width) === Math.round(box.height);
+        }).every(Boolean),
+      };
+    });
+    report.verdict('the palette is one list, and every role is in it',
+      palette.rows === 16 && palette.editable === 7 && palette.said === 9
+        && palette.oldLists === 0 && palette.square,
+      JSON.stringify(palette));
+    // Nothing is taken over yet, so nothing offers to give anything back.
+    report.verdict('a colour offers to go back to the palette only once it is the owner\'s',
+      palette.freeShown === 0 && !palette.resetShown,
+      `at rest: ${palette.freeShown} revert button(s), reset all shown: ${palette.resetShown}`);
+
+    /*
      * THE RELOAD LIST, KEPT HONEST BY THE SERVER (docs/ispravci.md §B).
      *
      * appearance.js swaps the preview's stylesheet instead of reloading it for any decision
@@ -652,7 +691,8 @@ export default {
     // Back to the screen: the checks above left the browser on the site itself.
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     await openTab(page, 'colour');
-    await page.evaluate(() => { document.querySelector('.by-hand').open = true; });
+    // No panel to open any more: the seven roles that can be the owner's are rows in the one
+    // palette list, in the open (D-074).
     const inkBefore = await page.$eval('#design-color_text', (el) => el.value);
     // Choosing a colour is taking the role over, so no switch is pressed here: that is the
     // product's rule now (D-065), and it exists because pressing them separately lost the
@@ -706,10 +746,17 @@ export default {
       + `failing pairs: ${JSON.stringify(byHand.failing)}`);
     await report.shot(page, 'colours-by-hand');
 
-    // Put both back, and leave nothing published: this scenario only looked.
-    await page.click('[data-by-hand-switch="color_background"]');
-    await page.click('[data-by-hand-switch="color_link"]');
-    report.verdict('the switches give a colour back to the palette',
+    /*
+     * Put both back, and leave nothing published: this scenario only looked.
+     *
+     * THROUGH THE CONTROL THE OWNER PRESSES, not the switch behind it. This used to click
+     * the two checkboxes; they are the mechanism the form needs and are clipped to a pixel
+     * now (D-074), and a check that reaches for something nobody can see stops being a check
+     * of the screen. The rule it asserts — a colour can be given back — is unchanged.
+     */
+    await clickAndWait(page, '.palette-reset');
+    await openTab(page, 'colour');
+    report.verdict('the palette takes its colours back when asked',
       await page.$$eval('[data-by-hand-switch]', (boxes) => boxes.every((b) => !b.checked)),
       'every role is the palette\'s again');
 

@@ -567,18 +567,68 @@ testBothDrivers('a colour is the owner\'s only while its switch is on', function
     assertContains('--color-surface: #eceff4;', $css, 'the compiled token');
 });
 
-test('the screen offers the seven colours, folded away until one is the owner\'s', function () {
-    $db = adminSite('sqlite');
+/*
+ * THE SHAPE CHANGED ON PURPOSE (D-074), so this case was split rather than adjusted.
+ *
+ * It used to assert two things at once: that the seven colours the owner may take over are
+ * offered with their switches, and that they sit in a panel folded away until one of them is
+ * theirs. The first is untouched and is asserted here. The second is the rule that was
+ * deliberately dropped — the same palette was in two places, and the half that could be
+ * CHANGED was the half that was closed — so what replaces it is asserted as its own case
+ * below: one list, every role in it, and a way back for a role that has been taken.
+ */
+test('the screen offers the seven colours the owner may take over', function () {
+    adminSite('sqlite');
     $shut = dispatch('/admin/appearance')->body;
 
-    assertContains('<details class="by-hand">', $shut, 'the panel is folded while every colour is worked out');
     foreach (Palette::BY_HAND as $role) {
         assertContains('name="color_' . $role . '"', $shut, 'the ' . $role . ' colour');
         assertContains('name="color_' . $role . '_on"', $shut, 'and its switch');
     }
+});
+
+test('the palette is one list, and a colour the owner has taken can go back to it', function () {
+    $db = adminSite('sqlite');
+    $shut = dispatch('/admin/appearance')->body;
+
+    // The old shape: a read-only list of the derived colours, and a folded panel beside it.
+    assertTrue(!str_contains($shut, 'class="by-hand"'), 'the folded panel is gone');
+    assertTrue(!str_contains($shut, 'class="swatches"'), 'and so is the list that repeated it');
+    assertEquals(
+        count(Palette::colors(Presets::get(Presets::DEFAULT)['seed'], '', 'low')),
+        substr_count($shut, '<li class="role">'),
+        'every role the palette works out is a row',
+    );
+    /*
+     * EVERY WAY BACK IS ALWAYS DRAWN, and whether one SHOWS is a CSS question: the switches
+     * flip under the owner's hand as colours are picked (D-065), so a button the server
+     * decided about would always be a round trip behind. What the HTML can be asked is
+     * whether the actions exist, and — separately — which roles are the owner's.
+     */
+    assertContains('value="colour:free"', $shut, 'the whole palette can be taken back');
+    foreach (Palette::BY_HAND as $role) {
+        assertContains('value="colour:free:' . $role . '"', $shut, 'and so can ' . $role . ' on its own');
+    }
+
+    /*
+     * WHICH ROLES ARE THE OWNER'S is carried by the switch, not by the colour input: an
+     * input always has SOME colour in it, which is the whole reason the switch exists.
+     */
+    $mine = static fn (string $body): bool => str_contains($body, 'name="color_text_on" value="1" checked');
+    assertTrue(!$mine($shut), 'nothing is the owner\'s to begin with');
 
     Design::save($db, Tokens::validate(['color_text' => '#101010', 'color_text_on' => '1'] + Presets::get('minimal'))['decisions'], tmpPath('cache'));
-    assertContains('<details class="by-hand" open>', dispatch('/admin/appearance')->body, 'and it is open once one is');
+    assertTrue($mine(dispatch('/admin/appearance')->body), 'a saved colour comes back as the owner\'s');
+
+    // And the action gives it back ON THE SCREEN, without publishing anything: the site
+    // still has what was last published until Publish is pressed (D-059).
+    $freed = adminPost('/admin/appearance', appearanceFields([
+        'color_text' => '#101010',
+        'color_text_on' => '1',
+        'action' => 'colour:free:text',
+    ]))->body;
+    assertTrue(!$mine($freed), 'and pressing the way back makes it the palette\'s again');
+    assertEquals('#101010', Design::load($db)['color_text'], 'while the site is untouched until Publish');
 });
 
 test('a dark page set by hand works out its own palette, and the preview draws it', function () {

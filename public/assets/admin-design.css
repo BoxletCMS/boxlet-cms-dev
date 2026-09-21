@@ -102,37 +102,6 @@
   max-inline-size: none;
 }
 
-/* Derived palette */
-
-.swatches {
-  display: grid;
-  gap: var(--ui-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.swatches li {
-  display: grid;
-  grid-template-columns: 1.25rem minmax(0, 1fr) auto;
-  gap: var(--ui-2);
-  align-items: center;
-  font-size: var(--ui-text-sm);
-}
-
-.swatches svg {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
-  border-radius: var(--ui-radius-s);
-  border: var(--ui-border) solid var(--ui-line);
-}
-
-.swatches code {
-  color: var(--ui-ink-faint);
-  font-size: var(--ui-text-xs);
-  overflow-wrap: anywhere;
-}
-
 .derived {
   margin: 0;
   color: var(--ui-ink-faint);

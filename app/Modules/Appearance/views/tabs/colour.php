@@ -1,5 +1,8 @@
 <?php
 
+use App\Modules\Design\Palette;
+use App\Modules\Design\Tokens;
+
 /**
  * The colour tab of the Appearance screen (PLAN.md D-059). Included by appearance.php, whose
  * variables and helpers it reads: $decisions, $errors, $colors, $pairs, $readable, and the
@@ -16,7 +19,6 @@
  * @var array<string, string> $colors
  * @var list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}> $pairs
  * @var callable(string, string): string $swatch
- * @var bool $handSet whether any colour is the owner's, which is why the panel starts open
  */
 /**
  * One row of the contrast gauge (D-058): the pair as it would actually look, then its name,
@@ -70,49 +72,74 @@ foreach ($pairs as $index => $pair) {
                     <?= field_hint('hint.design.secondary') ?>
                     <?= $error('secondary') ?>
                 </div>
-                <?= $segmented('surface_contrast', $labels('surface_contrast', App\Modules\Design\Tokens::SURFACE_CONTRAST)) ?>
+                <?= $segmented('surface_contrast', $labels('surface_contrast', Tokens::SURFACE_CONTRAST)) ?>
+
+                <?php /* ONE LIST OF ROLES (D-074).
+                         It was two: fifteen derived colours that could not be touched, and a
+                         folded panel holding the seven that could. The same information in two
+                         places, and the half that can be CHANGED was the half that was closed.
+                         A palette is one thing, so it is one list — the seven that can be the
+                         owner's carry a colour input, the rest say they are worked out. */ ?>
                 <div class="field">
-                    <span class="field-label"><?= e(t('design.derived_colours')) ?></span>
-                    <ul class="swatches">
+                    <div class="field-row">
+                        <span class="field-label" id="design-palette-label"><?= e(t('design.palette')) ?></span>
+                        <?php /* Shown only when there is something to undo — a button that
+                                 would do nothing teaches people not to trust buttons. Which
+                                 is a CSS question, not a render-time one: the switches flip
+                                 under the owner's hand as colours are picked (D-065), and a
+                                 button the server decided about would be a round trip behind
+                                 them. */ ?>
+                        <button type="submit" form="design-form" name="action" value="colour:free" class="button button-quiet palette-reset"><?= e(t('design.by_hand.free_all')) ?></button>
+                    </div>
+                    <span class="hint"><?= e(t('design.palette_hint')) ?></span>
+                    <ul class="roles" role="list" aria-labelledby="design-palette-label">
 <?php foreach ($colors as $name => $hex): ?>
-                        <li><?= $swatch($hex, $name) ?><span><?= e(t('design.color.' . $name)) ?></span><code data-swatch-value="<?= e($name) ?>"><?= e($hex) ?></code></li>
+<?php
+    $mine = in_array($name, Palette::BY_HAND, true);
+    $field = 'color_' . $name;
+    $id = 'design-' . $field;
+    $taken = $mine && $decisions[$field] !== '';
+?>
+                        <li class="role">
+<?php if ($mine): ?>
+                            <?php /* THE SWATCH IS THE CONTROL. A colour beside a button that
+                                     opens a colour picker is two things where there is one:
+                                     the square IS the picker. */ ?>
+                            <input type="color" class="role-swatch" id="<?= e($id) ?>" name="<?= e($field) ?>"
+                                   value="<?= e($taken ? $decisions[$field] : $hex) ?>"
+                                   data-by-hand="<?= e($field) ?>"
+                                   aria-label="<?= e(t('design.color.' . $name)) ?>">
+                            <span class="role-name" aria-hidden="true" title="<?= e(t('design.color.' . $name)) ?>"><?= e(t('design.color.' . $name)) ?></span>
+                            <?php /* BOTH HANDLES, and they never disagree. data-colour-for
+                                     follows the HAND, so the hex keeps up with the picker
+                                     while it is being dragged; data-swatch-value is what the
+                                     server's answer is written into, which is the only
+                                     evidence on the screen that the palette was worked out
+                                     again. For a role the owner has taken they are the same
+                                     colour, and for one they have not, the answer sets the
+                                     input the other reads. */ ?>
+                            <code class="role-value" data-colour-for="<?= e($id) ?>" data-swatch-value="<?= e($name) ?>"><?= e($taken ? $decisions[$field] : $hex) ?></code>
+                            <?php /* The switch is what makes the colour the owner's, and it is
+                                     MECHANISM: a colour input always carries some colour, so
+                                     "is this mine" cannot be read off its value (D-065).
+                                     Clipped, never faded — opacity is what the admin's contrast
+                                     rule forbids for making a control quiet (D-012). */ ?>
+                            <input type="checkbox" name="<?= e($field) ?>_on" value="1"<?= $taken ? ' checked' : '' ?> data-by-hand-switch="<?= e($field) ?>" tabindex="-1" aria-hidden="true">
+                            <button type="submit" form="design-form" name="action" value="colour:free:<?= e($name) ?>" class="icon-button role-free"
+                                    title="<?= e(t('design.by_hand.free', ['role' => t('design.color.' . $name)])) ?>">
+                                <?= icon('history') ?><span class="visually-hidden"><?= e(t('design.by_hand.free', ['role' => t('design.color.' . $name)])) ?></span>
+                            </button>
+<?php else: ?>
+                            <?= $swatch($hex, $name) ?>
+                            <span class="role-name" title="<?= e(t('design.color.' . $name)) ?>"><?= e(t('design.color.' . $name)) ?></span>
+                            <code class="role-value" data-swatch-value="<?= e($name) ?>"><?= e($hex) ?></code>
+                            <span class="role-derived"><?= e(t('design.by_hand.computed')) ?></span>
+<?php endif; ?>
+                            <?= $error($field) ?>
+                        </li>
 <?php endforeach; ?>
                     </ul>
                 </div>
-
-                <?php /* COLOURS BY HAND (D-063), folded away because they are a DISAGREEMENT
-                         with the palette rather than a step in setting one up: the two above
-                         work out all fifteen, and this is for the owner who wants one of them
-                         to be something else.
-                         Only the six independent roles are here. The inks that go ON a colour
-                         — on the accent, on the contrast surface, on the gradient — stay
-                         computed, because choosing them is choosing whether text can be read.
-                         Each says what the palette would otherwise give, so taking one over
-                         starts from the answer rather than from black. */ ?>
-                <details class="by-hand"<?= $handSet ? ' open' : '' ?>>
-                    <summary><?= e(t('design.by_hand')) ?></summary>
-                    <p class="hint"><?= e(t('design.by_hand_intro')) ?></p>
-<?php foreach (App\Modules\Design\Palette::BY_HAND as $role): ?>
-<?php $field = 'color_' . $role; ?>
-                    <div class="field">
-                        <label for="design-<?= e($field) ?>"><?= e(t('design.by_hand.' . $role)) ?></label>
-                        <div class="colour-field">
-                            <input type="color" class="colour-input" id="design-<?= e($field) ?>" name="<?= e($field) ?>"
-                                   value="<?= e($decisions[$field] !== '' ? $decisions[$field] : $colors[$role]) ?>"
-                                   data-by-hand="<?= e($field) ?>">
-                            <output class="colour-value" for="design-<?= e($field) ?>" data-colour-for="design-<?= e($field) ?>"><?= e($decisions[$field] !== '' ? $decisions[$field] : $colors[$role]) ?></output>
-                            <?php /* The switch is what makes it the owner's: the colour input
-                                     always carries SOME colour, so "is this mine or the
-                                     palette's" cannot be read off its value. */ ?>
-                            <label class="checkbox by-hand-on">
-                                <input type="checkbox" name="<?= e($field) ?>_on" value="1"<?= $decisions[$field] !== '' ? ' checked' : '' ?> data-by-hand-switch="<?= e($field) ?>">
-                                <span><?= e(t('design.by_hand.mine')) ?></span>
-                            </label>
-                        </div>
-                        <?= $error($field) ?>
-                    </div>
-<?php endforeach; ?>
-                </details>
 
                 <?php /* THE GAUGE (D-058). Until now the screen could only say that a pair
                          FAILED, which made a palette passing by a hundredth look exactly like

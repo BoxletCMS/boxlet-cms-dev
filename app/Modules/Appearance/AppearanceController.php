@@ -95,6 +95,38 @@ final class AppearanceController
 
         $character = $request->input('character');
         $character = Presets::exists($character) ? $character : '';
+
+        /*
+         * GIVING A COLOUR BACK TO THE PALETTE (D-074).
+         *
+         * AN ACTION, NOT A BOX TO UNTICK. Each hand-set colour needs a switch beside it in
+         * the form, because a colour input always carries SOME colour and "is this mine"
+         * cannot be read off its value (D-065) — but that is a mechanism, not something to
+         * put in front of a person. The row shows one button that says what it does, and it
+         * works with no script at all.
+         *
+         * RE-VALIDATED, NOT TRUSTED. The palette's own colour can fail a pair the owner's
+         * colour passed, and a screen that stopped saying so would give up exactly the
+         * guarantee D-063 moved from derivation to checking.
+         */
+        if (str_starts_with($action, 'colour:free')) {
+            $freeing = $action === 'colour:free'
+                ? Palette::BY_HAND
+                : array_intersect(Palette::BY_HAND, [substr($action, strlen('colour:free:'))]);
+            foreach ($freeing as $role) {
+                $state['decisions']['color_' . $role] = '';
+            }
+            $again = Tokens::validate($state['decisions']);
+
+            return $this->screen(
+                ['decisions' => $again['decisions']] + $state,
+                $again['errors'],
+                $freeing === [] ? null : t(count($freeing) > 1 ? 'design.by_hand.all_freed' : 'design.by_hand.freed'),
+                200,
+                $character,
+            );
+        }
+
         if ($state['errors'] !== []) {
             return $this->screen($state, $state['errors'], t('design.not_saved'), 422, $character);
         }
@@ -250,9 +282,6 @@ final class AppearanceController
             'library' => DesignLibrary::all($db),
             'colors' => $colors,
             'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand),
-            // The panel of hand-set colours starts open when there is one, so the owner is
-            // never looking at a folded panel wondering where their colour went.
-            'handSet' => $byHand !== [],
             'readable' => Tokens::readable($decisions),
             'readouts' => AppearanceForm::readouts($decisions),
             // The chrome half of the screen.

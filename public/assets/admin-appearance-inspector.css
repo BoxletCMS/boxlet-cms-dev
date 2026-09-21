@@ -75,38 +75,141 @@
   accent-color: var(--ui-accent);
 }
 
-/* Colours set by hand (PLAN.md D-063). Folded away, because it is a disagreement with the
-   palette rather than a step in setting one up — and open whenever one of them is the
-   owner's, so nobody looks at a closed panel wondering where their colour went. */
+/* ---- the palette as ONE list of roles (PLAN.md D-074) --------------------------------- */
 
-.by-hand {
-  padding: var(--ui-3);
-  background: var(--ui-panel-sunken);
-  border: var(--ui-border) solid var(--ui-line);
-  border-radius: var(--ui-radius-m);
+/* It used to be two lists: fifteen colours that could not be touched, and a folded panel
+   holding the seven that could. The same information twice, and the half that can be
+   CHANGED was the half that was closed. */
+
+.roles {
+  display: grid;
+  gap: var(--ui-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.by-hand > summary {
-  cursor: pointer;
-  color: var(--ui-ink);
-  font-weight: 600;
-}
-
-.by-hand > .hint {
-  margin-block: var(--ui-2) var(--ui-3);
-}
-
-.by-hand .field + .field {
-  margin-block-start: var(--ui-3);
-}
-
-/* The switch sits with the swatch it governs, not under it: "is this mine" is part of the
-   same answer as "which colour". */
-.by-hand-on {
-  margin-inline-start: var(--ui-2);
+.role {
+  display: grid;
+  /* swatch, name, hex, then what can be said or done about it.
+     THE LAST TWO ARE FIXED, and that is the whole point of the row. Each <li> is its own
+     grid — a list is not one grid unless every row contributes the same cells — so an
+     `auto` column is sized by ITS row alone: the hexes landed at 253px on the seven rows
+     with a picker and at 194px on the nine without, which is a column that is not a column.
+     A hex is always seven characters of mono, and the widest thing the last cell holds is
+     the word for a computed colour. */
+  grid-template-columns: 1.5rem minmax(0, 1fr) 2.9rem 3.75rem;
+  gap: var(--ui-2);
+  align-items: center;
   font-size: var(--ui-text-sm);
-  font-weight: 400;
+}
+
+/* The swatch IS the picker for a role that can be the owner's: a colour beside a button
+   that opens a colour picker is two things where there is one. Sized like the read-only
+   swatch beside it, so the list reads as one list.
+   MIN-BLOCK-SIZE AS WELL AS BLOCK-SIZE: every field's input carries a 2.5rem floor so a
+   text box is comfortable to hit (admin-forms.css), and a floor beats a height — the
+   square came out 24 wide and 40 tall until this said otherwise. */
+.role .role-swatch {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  min-block-size: 1.5rem;
+  max-inline-size: none;
+  flex: none;
+  padding: 0;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-control-line);
+  border-radius: var(--ui-radius-s);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.role svg.role-swatch,
+.role > svg {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-s);
+}
+
+.role-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.role-value {
+  color: var(--ui-ink-faint);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+}
+
+/* A role the owner has taken over reads at full strength; the hex of one the palette works
+   out is a fact about the palette, not a choice anybody made.
+   DRIVEN BY THE SWITCH, not by a class the server writes: appearance.js flips that checkbox
+   the moment a colour is picked (D-065), so the row has to follow without a round trip. */
+.role:has(input[type="checkbox"]:checked) .role-value {
+  color: var(--ui-ink);
+}
+
+/* Said in a word rather than by being quiet: a row that is only paler than its neighbours
+   does not say WHY it cannot be changed. */
+.role-derived {
+  color: var(--ui-ink-faint);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-align: end;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The switch is the mechanism, not the control (D-065): it carries "is this mine" through
+   the form, and the button beside it is what a person presses. CLIPPED, NEVER FADED —
+   opacity is what the admin's contrast rule forbids for making a control quiet (D-012). */
+.role input[type="checkbox"] {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  clip-path: inset(50%);
+}
+
+/* Only a role that HAS been taken over has anything to give back. */
+.role-free {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-s);
+  color: var(--ui-ink-muted);
+  cursor: pointer;
+}
+
+.role:has(input[type="checkbox"]:checked) .role-free {
+  display: inline-flex;
+}
+
+.role-free:hover {
+  border-color: var(--ui-accent);
+  color: var(--ui-ink);
+}
+
+/* Reset all, likewise: it appears with the first colour taken and goes with the last one
+   given back, without the screen being asked for again. */
+.palette-reset {
+  display: none;
+}
+
+.field:has(.roles input[type="checkbox"]:checked) .palette-reset {
+  display: inline-flex;
+}
+
+.role .field-error {
+  grid-column: 1 / -1;
 }
 
 /* ---- a closed set is a row of buttons (PLAN.md D-065) --------------------------------- */

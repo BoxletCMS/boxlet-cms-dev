@@ -121,11 +121,12 @@ final class AppearancePreview
     {
         $result = Tokens::validate(AppearanceForm::decisions($request->query));
         $decisions = $result['decisions'];
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+        $byHand = Tokens::byHand($decisions);
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
         $body = json_encode([
             'errors' => (object) $result['errors'],
             'colors' => $colors,
-            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== ''),
+            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand),
         ], JSON_THROW_ON_ERROR);
 
         return new Response($body, 200, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);

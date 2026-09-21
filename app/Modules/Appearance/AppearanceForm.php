@@ -3,6 +3,7 @@
 namespace App\Modules\Appearance;
 
 use App\Core\Request;
+use App\Modules\Design\Palette;
 use App\Modules\Design\Tokens;
 use App\Modules\Settings\ChromeLook;
 use App\Modules\Settings\ChromeWords;
@@ -61,6 +62,11 @@ final class AppearanceForm
     public static function query(array $state, string $locale, string $character = ''): array
     {
         $query = $state['decisions'] + ['use_secondary' => $state['decisions']['secondary'] !== '' ? '1' : '0'];
+        // Each hand-set colour needs its switch in the query too, or the preview reads a
+        // colour the form only carries as a default and draws something nobody chose.
+        foreach (Palette::BY_HAND as $role) {
+            $query['color_' . $role . '_on'] = ($state['decisions']['color_' . $role] ?? '') !== '' ? '1' : '0';
+        }
         foreach ($state['look'] as $choice => $value) {
             $query[ChromeLook::field($choice)] = $value;
         }
@@ -101,8 +107,11 @@ final class AppearanceForm
     }
 
     /**
-     * Form fields as decisions: the second colour counts only when its checkbox is on,
-     * because a colour input always submits some colour.
+     * Form fields as decisions: a colour counts only when its switch is on, because a colour
+     * input ALWAYS submits some colour and "this one is mine" cannot be read off its value.
+     *
+     * The same rule the second colour has always had, now that five more colours can be the
+     * owner's (D-063).
      *
      * @param array<mixed> $fields
      * @return array<mixed>
@@ -111,6 +120,11 @@ final class AppearanceForm
     {
         if (($fields['use_secondary'] ?? '') !== '1') {
             $fields['secondary'] = '';
+        }
+        foreach (Palette::BY_HAND as $role) {
+            if (($fields['color_' . $role . '_on'] ?? '') !== '1') {
+                $fields['color_' . $role] = '';
+            }
         }
 
         return $fields;

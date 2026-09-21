@@ -35,7 +35,7 @@ final class Derived
      */
     public static function from(array $decisions): array
     {
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], Tokens::byHand($decisions));
         $pairing = Typography::PAIRINGS[$decisions['typography']];
         $width = Tokens::width($decisions['container']) ?? 56.0;
         $hard = $decisions['shadow'] === 'hard';

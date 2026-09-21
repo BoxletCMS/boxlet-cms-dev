@@ -320,6 +320,75 @@ export default {
     }
 
     /*
+     * ---- a colour set by hand (PLAN.md D-063) ------------------------------------------
+     *
+     * Nothing is published here: the screen is set, measured and put back. What is measured
+     * is the thing that would go wrong quietly — every colour that DEPENDS on the one set by
+     * hand has to follow it, on the screen and in the picture.
+     */
+    // Back to the screen: the checks above left the browser on the site itself.
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await openTab(page, 'colour');
+    await page.evaluate(() => { document.querySelector('.by-hand').open = true; });
+    const inkBefore = await page.$eval('#design-color_text', (el) => el.value);
+    await page.$eval('#design-color_background', (el) => {
+      el.value = '#0d0d10';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.click('[data-by-hand-switch="color_background"]');
+    await page.$eval('#design-color_link', (el) => {
+      el.value = '#8ab4f8';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.click('[data-by-hand-switch="color_link"]');
+    /*
+     * WAITED FOR, NOT SLEPT THROUGH. A fixed 1500ms passed once and failed once, on a check
+     * whose whole subject is whether the dependent colours were worked out again: the answer
+     * would have depended on how busy the machine was. The frame's address carries both
+     * switches, and the ink changing is the server's answer having landed.
+     */
+    // The server's answer about THE LINK — the second of the two changes, and the one a
+    // wait on the first would have missed, which is how this check passed once and failed
+    // once with the same code.
+    await page.waitForFunction(
+      () => (document.querySelector('[data-swatch-value="link"]') || {}).textContent?.trim().toLowerCase() === '#8ab4f8',
+      { timeout: 15000 },
+    );
+    // And the picture, once the frame it is drawn in has actually loaded it.
+    await page.waitForFunction(
+      () => {
+        const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+        return inside !== null
+          && getComputedStyle(inside.documentElement).getPropertyValue('--color-background').trim() === '#0d0d10';
+      },
+      { timeout: 15000 },
+    );
+
+    const byHand = await page.evaluate(() => {
+      const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+      const page_ = inside ? getComputedStyle(inside.documentElement).getPropertyValue('--color-background').trim() : '';
+      return {
+        pageColour: page_,
+        text: document.querySelector('#design-color_text').value,
+        surface: document.querySelector('#design-color_surface').value,
+        link: document.querySelector('#design-color_link').value,
+        switches: [...document.querySelectorAll('[data-by-hand-switch]')]
+          .filter((s) => s.checked).map((s) => s.getAttribute('data-by-hand-switch')),
+        failing: [...document.querySelectorAll('.gauge-fails .gauge-name')].map((e) => e.textContent.trim()),
+      };
+    });
+    report.verdict('a page colour set by hand carries the palette with it',
+      byHand.pageColour === '#0d0d10' && byHand.text !== inkBefore && byHand.failing.length === 0,
+      `the page is ${byHand.pageColour}, the text it works out is ${byHand.text} (was ${inkBefore}), `
+      + `the tinted surface ${byHand.surface}, the link ${byHand.link} (${JSON.stringify(byHand.switches)}), `
+      + `failing pairs: ${JSON.stringify(byHand.failing)}`);
+    await report.shot(page, 'colours-by-hand');
+
+    // Put both back, and leave nothing published: this scenario only looked.
+    await page.click('[data-by-hand-switch="color_background"]');
+    await page.click('[data-by-hand-switch="color_link"]');
+
+    /*
      * ---- the designs the owner keeps (PLAN.md D-061) ------------------------------------
      *
      * The whole point is that work survives: keep what is on the screen, load a character

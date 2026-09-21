@@ -262,3 +262,37 @@
   font-variant-numeric: tabular-nums;
   text-align: end;
 }
+
+/* Colours set by hand (PLAN.md D-063). Folded away, because it is a disagreement with the
+   palette rather than a step in setting one up — and open whenever one of them is the
+   owner's, so nobody looks at a closed panel wondering where their colour went. */
+
+.by-hand {
+  padding: var(--ui-3);
+  background: var(--ui-panel-sunken);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+}
+
+.by-hand > summary {
+  cursor: pointer;
+  color: var(--ui-ink);
+  font-weight: 600;
+}
+
+.by-hand > .hint {
+  margin-block: var(--ui-2) var(--ui-3);
+}
+
+.by-hand .field + .field {
+  margin-block-start: var(--ui-3);
+}
+
+/* The switch sits with the swatch it governs, not under it: "is this mine" is part of the
+   same answer as "which colour". */
+.by-hand-on {
+  margin-inline-start: var(--ui-2);
+  font-size: var(--ui-text-sm);
+  font-weight: 400;
+  white-space: nowrap;
+}

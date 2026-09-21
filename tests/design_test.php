@@ -6,6 +6,7 @@ use App\Modules\Menus\Menu;
 use App\Modules\Settings\SiteChrome;
 use App\Modules\Design\Derived;
 use App\Modules\Design\Design;
+use App\Modules\Design\Palette;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
 use App\Modules\Design\Tokens;
@@ -60,7 +61,8 @@ test('OKLCH conversion round-trips sRGB colours', function () {
     }
 });
 
-foreach (Presets::ALL as $name => $preset) {
+foreach (Presets::names() as $name) {
+    $preset = Presets::get($name);
     test("preset {$name} is a complete token set that passes every contrast check", function () use ($preset) {
         $result = Tokens::validate($preset);
         assertEquals([], $result['errors'], 'errors');
@@ -75,8 +77,10 @@ foreach (Presets::ALL as $name => $preset) {
 
 test('the five presets differ in structure, not only in colour', function () {
     $structural = ['typography', 'scale', 'spacing', 'radius', 'shadow', 'container', 'surface_contrast'];
-    foreach (Presets::ALL as $a => $first) {
-        foreach (Presets::ALL as $b => $second) {
+    foreach (Presets::names() as $a) {
+        $first = Presets::get($a);
+        foreach (Presets::names() as $b) {
+            $second = Presets::get($b);
             if ($a < $b) {
                 $different = count(array_filter($structural, static fn (string $key): bool => $first[$key] !== $second[$key]));
                 assertTrue($different >= 4, "{$a} and {$b} differ in only {$different} structural decisions");
@@ -479,4 +483,118 @@ testBothDrivers('a width outside the bounds is refused wherever it arrives, and 
 
     assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', appearanceFields(['container' => '48', 'action' => 'save'])));
     assertEquals('48', Design::load($db)['container'], 'the width that was published');
+});
+
+// ---- Round 6: colours by hand, with the check as the guarantee (D-063) ------------------
+
+test('a colour set by hand is used exactly, and the ones that depend on it are worked out again', function () {
+    $minimal = Presets::get('minimal');
+    $derived = Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast']);
+
+    // A near-black page with near-white text: every "ink on a colour" has to flip with it.
+    $byHand = ['background' => '#0d0d10', 'text' => '#f4f4f6'];
+    $mine = Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast'], $byHand);
+
+    assertEquals('#0d0d10', $mine['background'], 'the background is exactly what was set');
+    assertEquals('#f4f4f6', $mine['text'], 'and so is the text');
+
+    // THE BUG THIS ROUND EXISTS TO PREVENT: on-accent, on-contrast and on-gradient are
+    // chosen from the background and the text. Applied after a hand-set colour they would
+    // still be answers about the colour that has gone.
+    foreach (['on-accent', 'on-contrast', 'on-gradient'] as $dependent) {
+        assertTrue(
+            in_array($mine[$dependent], [$mine['background'], $mine['text']], true),
+            $dependent . ' is one of the palette\'s own inks, and it is ' . $mine[$dependent],
+        );
+        assertTrue($mine[$dependent] !== $derived[$dependent], $dependent . ' did not move with the colours it is made from');
+    }
+});
+
+test('only the six independent roles can be set by hand', function () {
+    $minimal = Presets::get('minimal');
+    $roles = array_keys(Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast']));
+    $onOffer = Palette::BY_HAND;
+    sort($onOffer);
+    $left = array_values(array_diff($roles, Palette::BY_HAND));
+    sort($left);
+
+    assertEquals(['background', 'border', 'link', 'muted', 'surface', 'text'], $onOffer, 'the roles on offer');
+    // Every other role the palette holds, named: the two seeds under their own names, and
+    // the five inks that go ON a colour. Choosing one of those is choosing whether text can
+    // be read, which is the palette's job and the reason the check can be trusted.
+    assertEquals(
+        ['accent', 'contrast', 'contrast-raised', 'gradient-end', 'gradient-start', 'muted-on-contrast', 'on-accent', 'on-contrast', 'on-gradient'],
+        $left,
+        'the roles that are not on offer',
+    );
+});
+
+test('a hand-set colour that cannot be read is refused, and the message names its own control', function () {
+    $minimal = Presets::get('minimal');
+
+    // Pale grey text on the default near-white page: legible to nobody.
+    $result = Tokens::validate(['color_text' => '#cccccc'] + $minimal);
+
+    assertTrue(isset($result['errors']['color_text']), 'the refusal lands on the colour that caused it');
+    assertContains('4.5', $result['errors']['color_text'], 'and says what was needed');
+    assertTrue(!isset($result['errors']['surface_contrast']), 'and not on a control that cannot fix it');
+
+    // The same palette with nothing set by hand passes, so the refusal is the colour's own.
+    assertEquals([], Tokens::validate($minimal)['errors'], 'the character itself is fine');
+});
+
+testBothDrivers('a colour is the owner\'s only while its switch is on', function (string $driver) {
+    $db = adminSite($driver);
+
+    // Sent without the switch: the field still carries a colour, and it is not a choice.
+    adminPost('/admin/appearance', appearanceFields(['color_surface' => '#eceff4', 'action' => 'save']));
+    assertEquals('', Design::load($db)['color_surface'], 'a colour without its switch is not the owner\'s');
+
+    adminPost('/admin/appearance', appearanceFields(['color_surface' => '#eceff4', 'color_surface_on' => '1', 'action' => 'save']));
+    assertEquals('#eceff4', Design::load($db)['color_surface'], 'with the switch, it is');
+
+    // And it reaches the site's stylesheet as itself.
+    $css = (new TokenCompiler())->css(Derived::from(Design::load($db)));
+    assertContains('--color-surface: #eceff4;', $css, 'the compiled token');
+});
+
+test('the screen offers the six colours, folded away until one is the owner\'s', function () {
+    $db = adminSite('sqlite');
+    $shut = dispatch('/admin/appearance')->body;
+
+    assertContains('<details class="by-hand">', $shut, 'the panel is folded while every colour is worked out');
+    foreach (Palette::BY_HAND as $role) {
+        assertContains('name="color_' . $role . '"', $shut, 'the ' . $role . ' colour');
+        assertContains('name="color_' . $role . '_on"', $shut, 'and its switch');
+    }
+
+    Design::save($db, Tokens::validate(['color_text' => '#101010', 'color_text_on' => '1'] + Presets::get('minimal'))['decisions'], tmpPath('cache'));
+    assertContains('<details class="by-hand" open>', dispatch('/admin/appearance')->body, 'and it is open once one is');
+});
+
+test('a dark page set by hand works out its own palette, and the preview draws it', function () {
+    adminSite('sqlite');
+    // ONE COLOUR AND A LINK. Everything else — the tinted surface, the border, the text, the
+    // muted text — follows the page it is on, which is what makes a hand-set background a
+    // design rather than a list of refusals (D-063). The link is the seed, and the seed is
+    // the owner's: a dark page needs a lighter one, and the check says so by name.
+    $dark = ['color_background' => '#0d0d10', 'color_background_on' => '1', 'color_link' => '#8ab4f8', 'color_link_on' => '1'];
+    $query = http_build_query(designFields($dark + Presets::get('minimal')));
+
+    $css = dispatch('/admin/appearance/stylesheet?' . $query)->body;
+    assertContains('--color-background: #0d0d10;', $css, 'the background being tried');
+    assertContains('--color-link: #8ab4f8;', $css, 'and the link');
+
+    $checked = json_decode(dispatch('/admin/appearance/check?' . $query)->body, true);
+    assertEquals('#0d0d10', $checked['colors']['background'] ?? '', 'the gauge measures the same palette');
+    assertEquals([], $checked['errors'], 'nothing in it is unreadable');
+    foreach ($checked['pairs'] as $pair) {
+        assertTrue($pair['passes'], $pair['pair'] . ' is ' . $pair['ratio']);
+    }
+
+    // The same palette WITHOUT the lighter link is refused, and the refusal names the link.
+    $unreadable = json_decode(dispatch('/admin/appearance/check?' . http_build_query(
+        designFields(['color_background' => '#0d0d10', 'color_background_on' => '1'] + Presets::get('minimal'))
+    ))->body, true);
+    assertTrue(isset($unreadable['errors']['seed']), 'the seed is what is too dark now');
 });

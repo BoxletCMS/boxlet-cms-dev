@@ -48,6 +48,27 @@
         code.textContent = colors[name];
       });
     });
+
+    /*
+     * A ROLE LEFT TO THE PALETTE SHOWS WHAT THE PALETTE NOW SAYS (D-063).
+     *
+     * Each of those inputs starts at the colour the server worked out, which stops being
+     * true the moment anything it depends on moves: set a dark page by hand and the five
+     * other swatches still showed the near-white palette they were rendered with, while the
+     * preview beside them was dark. The same stale-dependent bug the palette itself was
+     * rearranged to prevent, this time on the screen.
+     *
+     * A role the owner has taken over is never touched: that colour is theirs.
+     */
+    form.querySelectorAll('[data-by-hand]').forEach(function (input) {
+      var field = input.getAttribute('data-by-hand');
+      var role = field.replace(/^color_/, '');
+      var mine = form.querySelector('[data-by-hand-switch="' + field + '"]');
+      if (mine && !mine.checked && colors[role]) {
+        input.value = colors[role];
+      }
+    });
+    showColourValues();
   }
 
   // The gauge, measured on the server: this only writes the numbers it is handed. A row

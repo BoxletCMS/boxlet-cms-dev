@@ -119,6 +119,22 @@ final class Tokens
             $decisions[$key] = $value;
         }
 
+        /*
+         * COLOURS SET BY HAND (D-063), one decision per role: '' means "work it out", and a
+         * hex means the owner has taken that role over. Empty is the default and the whole
+         * palette is derived, exactly as before — this adds a way to disagree, not a new
+         * thing to fill in.
+         */
+        foreach (Palette::BY_HAND as $role) {
+            $key = 'color_' . $role;
+            $typed = is_string($input[$key] ?? null) ? trim($input[$key]) : '';
+            $colour = $typed === '' ? '' : Color::normalizeHex($typed);
+            if ($colour === null) {
+                $errors[$key] = t('design.error.color');
+            }
+            $decisions[$key] = $colour ?? '';
+        }
+
         // The one decision that is a number rather than one of a closed set.
         $width = self::width($input['container'] ?? null);
         if ($width === null) {
@@ -126,8 +142,18 @@ final class Tokens
         }
         $decisions['container'] = self::number($width ?? self::width($fallback['container']) ?? 56.0);
 
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
-        foreach (Palette::failures($colors, $decisions['secondary'] !== '') as $failure) {
+        /*
+         * THE GUARANTEE MOVES FROM DERIVATION TO CHECKING (SPEC §5.4, D-063).
+         *
+         * Until a colour could be set by hand, the palette could not produce an unreadable
+         * pair: every ink was chosen against the surface it would sit on. With hand-set
+         * colours it can, so the check below is no longer a formality about the seed — it is
+         * the only thing standing between the owner and a site nobody can read. It refuses
+         * the same way it always did, and the message now names the control at fault.
+         */
+        $byHand = self::byHand($decisions);
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
+        foreach (Palette::failures($colors, $decisions['secondary'] !== '', $byHand) as $failure) {
             $message = t('design.error.contrast', [
                 'pair' => t('design.pair.' . $failure['pair']),
                 'ratio' => number_format($failure['ratio'], 2),
@@ -146,10 +172,12 @@ final class Tokens
          * `+ $decisions` keeps anything this list forgets, so a decision added later is
          * mis-ordered rather than lost.
          */
-        $order = [
-            'seed', 'secondary', 'typography', 'text_size', 'scale', 'spacing', 'radius',
-            'shadow', 'container', 'surface_contrast', 'header_width', 'boxed', 'page_background',
-        ];
+        $order = array_merge(
+            ['seed', 'secondary'],
+            array_map(static fn (string $role): string => 'color_' . $role, Palette::BY_HAND),
+            ['typography', 'text_size', 'scale', 'spacing', 'radius', 'shadow', 'container',
+                'surface_contrast', 'header_width', 'boxed', 'page_background'],
+        );
         $ordered = [];
         foreach ($order as $key) {
             if (array_key_exists($key, $decisions)) {
@@ -203,6 +231,26 @@ final class Tokens
             'container' => $px($width),
             'container_rem' => $width,
         ];
+    }
+
+    /**
+     * The colours the owner has taken over, role => hex, leaving out the ones left to the
+     * palette. One reading of the decisions, so nothing has to know the key's shape twice.
+     *
+     * @param array<string, string> $decisions
+     * @return array<string, string>
+     */
+    public static function byHand(array $decisions): array
+    {
+        $byHand = [];
+        foreach (Palette::BY_HAND as $role) {
+            $value = $decisions['color_' . $role] ?? '';
+            if ($value !== '') {
+                $byHand[$role] = $value;
+            }
+        }
+
+        return $byHand;
     }
 
     /**

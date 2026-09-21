@@ -20,7 +20,20 @@ final class Presets
 {
     public const DEFAULT = 'minimal';
 
-    public const ALL = [
+    /** Every character derives its whole palette: a colour set by hand is the owner's, and
+     *  a character that shipped one would be making that choice for them (D-063). */
+    private const NO_COLOURS_BY_HAND = [
+        'color_background' => '', 'color_surface' => '', 'color_border' => '',
+        'color_text' => '', 'color_muted' => '', 'color_link' => '',
+    ];
+
+    /*
+     * PRIVATE, so there is ONE way to obtain a character and it is always the complete set.
+     * The six hand-set colour roles are merged in by get() (D-063), and a literal read
+     * directly is a decision set with six keys missing — which is exactly what a test did,
+     * and it failed for the right reason.
+     */
+    private const ALL = [
         // Long-form reading: high-contrast serifs on a wide scale, a narrow measure,
         // generous air, barely softened corners, no shadows, quiet surfaces.
         'editorial' => [
@@ -124,7 +137,14 @@ final class Presets
      */
     public static function get(string $name): array
     {
-        return self::ALL[$name] ?? self::ALL[self::DEFAULT];
+        $preset = self::ALL[$name] ?? self::ALL[self::DEFAULT];
+
+        // Merged here rather than written out five times: six empty strings repeated in
+        // every character would say nothing except "this character makes no choice", which
+        // is the default for all of them. The order is the one validate() stores in.
+        return ['seed' => $preset['seed'], 'secondary' => $preset['secondary']]
+            + self::NO_COLOURS_BY_HAND
+            + $preset;
     }
 
     public static function exists(string $name): bool

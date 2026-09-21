@@ -191,7 +191,8 @@ final class AppearanceController
     {
         $db = $this->db();
         $decisions = $state['decisions'];
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+        $byHand = Tokens::byHand($decisions);
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
         $shown = Url::primaryLocale() !== '' ? Url::primaryLocale() : ($this->locales()[0] ?? 'en');
 
         return AdminView::render($this->container, __DIR__ . '/views', 'appearance', [
@@ -207,7 +208,10 @@ final class AppearanceController
             'hasBlocks' => Composition::hasBlocks($db),
             'library' => DesignLibrary::all($db),
             'colors' => $colors,
-            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== ''),
+            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand),
+            // The panel of hand-set colours starts open when there is one, so the owner is
+            // never looking at a folded panel wondering where their colour went.
+            'handSet' => $byHand !== [],
             'readable' => Tokens::readable($decisions),
             // The chrome half of the screen.
             'look' => $state['look'],

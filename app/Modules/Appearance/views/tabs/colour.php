@@ -16,6 +16,7 @@
  * @var array<string, string> $colors
  * @var list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}> $pairs
  * @var callable(string, string): string $swatch
+ * @var bool $handSet whether any colour is the owner's, which is why the panel starts open
  */
 /**
  * One row of the contrast gauge (D-058): the pair as it would actually look, then its name,
@@ -83,6 +84,40 @@ foreach ($pairs as $index => $pair) {
 <?php endforeach; ?>
                     </ul>
                 </div>
+
+                <?php /* COLOURS BY HAND (D-063), folded away because they are a DISAGREEMENT
+                         with the palette rather than a step in setting one up: the two above
+                         work out all fifteen, and this is for the owner who wants one of them
+                         to be something else.
+                         Only the six independent roles are here. The inks that go ON a colour
+                         — on the accent, on the contrast surface, on the gradient — stay
+                         computed, because choosing them is choosing whether text can be read.
+                         Each says what the palette would otherwise give, so taking one over
+                         starts from the answer rather than from black. */ ?>
+                <details class="by-hand"<?= $handSet ? ' open' : '' ?>>
+                    <summary><?= e(t('design.by_hand')) ?></summary>
+                    <p class="hint"><?= e(t('design.by_hand_intro')) ?></p>
+<?php foreach (App\Modules\Design\Palette::BY_HAND as $role): ?>
+<?php $field = 'color_' . $role; ?>
+                    <div class="field">
+                        <label for="design-<?= e($field) ?>"><?= e(t('design.by_hand.' . $role)) ?></label>
+                        <div class="colour-field">
+                            <input type="color" class="colour-input" id="design-<?= e($field) ?>" name="<?= e($field) ?>"
+                                   value="<?= e($decisions[$field] !== '' ? $decisions[$field] : $colors[$role]) ?>"
+                                   data-by-hand="<?= e($field) ?>">
+                            <output class="colour-value" for="design-<?= e($field) ?>" data-colour-for="design-<?= e($field) ?>"><?= e($decisions[$field] !== '' ? $decisions[$field] : $colors[$role]) ?></output>
+                            <?php /* The switch is what makes it the owner's: the colour input
+                                     always carries SOME colour, so "is this mine or the
+                                     palette's" cannot be read off its value. */ ?>
+                            <label class="checkbox by-hand-on">
+                                <input type="checkbox" name="<?= e($field) ?>_on" value="1"<?= $decisions[$field] !== '' ? ' checked' : '' ?> data-by-hand-switch="<?= e($field) ?>">
+                                <span><?= e(t('design.by_hand.mine')) ?></span>
+                            </label>
+                        </div>
+                        <?= $error($field) ?>
+                    </div>
+<?php endforeach; ?>
+                </details>
 
                 <?php /* THE GAUGE (D-058). Until now the screen could only say that a pair
                          FAILED, which made a palette passing by a hundredth look exactly like

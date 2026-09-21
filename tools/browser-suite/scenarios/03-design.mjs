@@ -18,7 +18,8 @@
  * refusal runs last because it deliberately submits a broken palette, and the editorial
  * character is re-applied afterwards so later scenarios start from a sane design.
  */
-import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
+import { readFileSync } from 'node:fs';
+import { COPY_BASE as BASE, COPY_ADMIN as ADMIN, CHECKOUT } from '../config.mjs';
 import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openTab, retype } from '../harness.mjs';
 
 const STYLE_GUIDE = 4;
@@ -242,6 +243,101 @@ export default {
     await page.evaluate(() => window.scrollTo(0, 0));
 
     /*
+     * THE RELOAD LIST, KEPT HONEST BY THE SERVER (docs/ispravci.md §B).
+     *
+     * appearance.js swaps the preview's stylesheet instead of reloading it for any decision
+     * that only changes tokens, which is nearly all of them — no white flash, no lost scroll
+     * position, no fonts fetched again every 250ms while a slider is dragged. What it may
+     * NOT do is take that path for a decision that changes the preview's markup, because
+     * then the screen shows something the site will not do.
+     *
+     * Asked of the server, one control at a time, rather than read off anybody's intent:
+     * the preview is fetched with each control moved and the HTML compared. The list is read
+     * out of the file itself so there is one copy of it. One-directional on purpose —
+     * something listed that turns out to be token-only costs a reload, which is exactly what
+     * the screen used to do for everything.
+     */
+    const reloads = new RegExp(
+      readFileSync(`${CHECKOUT}/public/assets/appearance.js`, 'utf8')
+        .match(/var RELOADS = \/(.+?)\/;/)[1],
+    );
+    const escaped = await page.evaluate(async () => {
+      const form = document.querySelector('form[data-design-form]');
+      const url = form.getAttribute('data-preview-url');
+      const serialise = (extra) => {
+        const params = new URLSearchParams();
+        new FormData(form).forEach((value, key) => {
+          if (key !== '_csrf' && key !== 'action') params.append(key, value);
+        });
+        if (extra) params.set(extra[0], extra[1]);
+        return params.toString();
+      };
+      // The stylesheet's href carries the whole query, so it differs for every variant by
+      // construction; that is the one difference that is not markup.
+      const html = async (q) => (await fetch(`${url}?${q}`, { credentials: 'same-origin' }).then((r) => r.text()))
+        .replace(/<link[^>]*appearance\/stylesheet[^>]*>/g, '<link tokens>');
+      const base = await html(serialise());
+
+      const out = [];
+      for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
+        const name = el.name;
+        if (['_csrf', 'action', 'library_name', 'character'].includes(name)) continue;
+        let other = null;
+        if (el.type === 'radio') {
+          const group = [...form.querySelectorAll(`input[name="${CSS.escape(name)}"]`)];
+          other = (group.find((r) => !r.checked) || {}).value;
+        } else if (el.type === 'checkbox') other = el.checked ? '' : '1';
+        else if (el.tagName === 'SELECT') other = ([...el.options].find((o) => o.value !== el.value) || {}).value;
+        else if (el.type === 'range') other = el.value === el.max ? el.min : el.max;
+        else if (el.type === 'color') other = el.value === '#123456' ? '#654321' : '#123456';
+        else if (el.type === 'text') other = 'Zz probe words';
+        if (other === null || other === undefined) continue;
+        if (await html(serialise([name, other])) !== base) out.push(name);
+      }
+      return out;
+    });
+    const missed = escaped.filter((name) => !reloads.test(name));
+    report.verdict('every decision that changes the preview\'s markup asks for a reload',
+      escaped.length > 0 && missed.length === 0,
+      missed.length > 0
+        ? `${missed.join(', ')} change the markup and are not in RELOADS`
+        : `${escaped.length} of the form's controls change the markup, all listed: ${escaped.join(', ')}`);
+
+    /*
+     * AND THE FAST PATH IS REAL. The list above only says what SHOULD reload; this watches
+     * whether the document survives. A mark is put on the frame's own <html>, which nothing
+     * but a navigation can remove — so it is still there after a token-only change and gone
+     * after one that rebuilds the page.
+     */
+    const mark = () => page.evaluate(() => {
+      const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+      if (inside) inside.documentElement.dataset.probe = 'here';
+      return inside !== null;
+    });
+    const marked = () => page.evaluate(() => {
+      const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+      return !!inside && inside.documentElement.dataset.probe === 'here';
+    });
+    const press = async (selector) => {
+      await page.click(selector);
+      await new Promise((resolve) => { setTimeout(resolve, 1200); });
+    };
+
+    await openTab(page, 'shape');
+    await mark();
+    await press('label.segment:has(input[name="radius"][value="pill"])');
+    const survivedTokens = await marked();
+    await openTab(page, 'page');
+    await press('label.segment:has(input[name="header_bleed"][value="full"])');
+    const survivedMarkup = await marked();
+    report.verdict('a change that is only tokens does not reload the page in the frame',
+      survivedTokens && !survivedMarkup,
+      `after a corner radius the document ${survivedTokens ? 'survived' : 'WAS RELOADED'};`
+      + ` after a header bleed it ${survivedMarkup ? 'SURVIVED' : 'was reloaded'}`);
+    await page.click('label.segment:has(input[name="header_bleed"][value="sheet"])');
+    await openTab(page, 'colour');
+
+    /*
      * ---- the toolbar over the picture (PLAN.md D-060) ----------------------------------
      *
      * The one thing worth measuring rather than looking at: the frame must be LAID OUT at
@@ -326,19 +422,50 @@ export default {
       `zoom ${switched.zoom} at ${switched.pressed}, scale ${switched.scale}`);
     await page.click('[data-viewport="1280"]');
 
-    // Compare is HELD: the frame shows the published design while the button is down, and
-    // the owner's unsaved work the moment it comes up.
-    const mine = (await stage()).src;
+    /*
+     * Compare is HELD: the frame shows the published design while the button is down, and
+     * the owner's unsaved work the moment it comes up.
+     *
+     * READ OUT OF THE PICTURE, NOT OFF ITS ADDRESS. This used to assert that the frame's src
+     * lost its query and got it back, which stood for "the picture changed" only while every
+     * change was a reload. Now that a token-only change swaps the stylesheet inside the frame
+     * (D-073), the address is deliberately the same before, during and after — and the old
+     * assertion passed by comparing two identical strings, which is the worst way for a check
+     * to survive. It reads the colour the page is actually painted in instead.
+     */
+    const accent = () => page.evaluate(() => {
+      const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+      return inside ? getComputedStyle(inside.documentElement).getPropertyValue('--color-accent').trim() : '';
+    });
+    // Something unpublished to compare AGAINST: without it both sides are the same picture
+    // and the check says nothing. Put back afterwards, so what this leaves on the screen is
+    // what it found — the checks below read the state the bar is in.
+    await openTab(page, 'colour');
+    const seedWas = await page.$eval('#design-seed', (el) => el.value);
+    await page.$eval('#design-seed', (el) => {
+      el.value = '#2d6a4f';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction(() => {
+      const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+      return inside && getComputedStyle(inside.documentElement).getPropertyValue('--color-accent').trim() === '#2d6a4f';
+    }, { timeout: 15000 });
+    const mine = await accent();
     await page.hover('[data-compare]');
     await page.mouse.down();
-    await new Promise((resolve) => { setTimeout(resolve, 250); });
-    const holding = (await stage()).src;
+    await new Promise((resolve) => { setTimeout(resolve, 600); });
+    const holding = await accent();
     await page.mouse.up();
-    await new Promise((resolve) => { setTimeout(resolve, 250); });
-    const released = (await stage()).src;
+    await new Promise((resolve) => { setTimeout(resolve, 600); });
+    const released = await accent();
     report.verdict('Compare shows the published site while it is held',
-      !holding.includes('?') && released === mine,
-      `held ${holding.slice(-40)}, released ${released.slice(-40)}`);
+      mine === '#2d6a4f' && holding !== mine && released === mine,
+      `the screen's colour ${mine}, held ${holding}, released ${released}`);
+    await page.$eval('#design-seed', (el, back) => {
+      el.value = back;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, seedWas);
+    await new Promise((resolve) => { setTimeout(resolve, 600); });
 
     /*
      * ---- the two controls that were coarser than the question (PLAN.md D-062) ----------
@@ -382,15 +509,27 @@ export default {
       el.dispatchEvent(new Event('change', { bubbles: true }));
     }, widthNow);
 
-    // A choice is immediate: no click on anything called "update", and no waiting.
-    const framedBefore = await page.$eval('iframe[data-design-preview]', (el) => el.src);
+    /*
+     * A choice is immediate: no click on anything called "update", and no waiting.
+     *
+     * Waited on inside the FRAME, for the same reason Compare is: the src no longer changes
+     * when only the tokens do (D-073), so the address is no evidence either way.
+     */
+    const spacingBefore = await page.evaluate(() => {
+      const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+      return inside ? getComputedStyle(inside.documentElement).getPropertyValue('--space-m').trim() : '';
+    });
     await openTab(page, 'shape');
     // A segment, deliberately: the width is a slider (D-062) and a slider is the one control
     // this screen still waits 250ms for. A closed set is a row of radios now (D-065), and
     // pressing one is a change like any other.
     await page.click('label.segment:has(input[name="spacing"][value="generous"])');
-    await page.waitForFunction((was) => document.querySelector('iframe[data-design-preview]').src !== was, {}, framedBefore);
-    report.pass('choosing a value refreshes the preview by itself', 'the frame followed the select with no button pressed');
+    await page.waitForFunction((was) => {
+      const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
+      return inside && getComputedStyle(inside.documentElement).getPropertyValue('--space-m').trim() !== was;
+    }, { timeout: 15000 }, spacingBefore);
+    report.pass('choosing a value refreshes the preview by itself',
+      `the picture followed the press with no button pressed: --space-m was ${spacingBefore}`);
 
     // And the screen says what it now is, rather than leaving the owner to remember.
     const said = await page.evaluate(() => ({

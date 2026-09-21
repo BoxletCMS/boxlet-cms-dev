@@ -18,8 +18,103 @@
   if (!form || !preview) {
     return;
   }
+  var previewUrl = form.getAttribute('data-preview-url');
+  var stylesheetUrl = form.getAttribute('data-stylesheet-url');
   var timer = null;
   var dirty = false;
+
+  /*
+   * WHICH CHANGES NEED THE PAGE BACK, AND WHICH ONLY NEED ITS STYLESHEET.
+   *
+   * Every decision in the four design tabs comes out of TokenCompiler, so the preview's
+   * MARKUP is byte for byte the same and only the stylesheet differs. Reloading it was a
+   * white flash, a lost scroll position, and the fonts and pictures fetched again — every
+   * 250ms while a slider was being dragged.
+   *
+   * THE LIST NAMES WHAT RELOADS, and anything not named takes the fast path, so this is the
+   * one thing here that has to be kept honest as decisions are added. It was MEASURED
+   * rather than reasoned: the preview was fetched with each of the 52 controls moved in
+   * turn and the HTML compared. Nine changed it — the two bleeds, which menu the header
+   * draws, four of the chrome's layout choices, and the footer's small print. `boxed` did
+   * NOT, which is the one this would have got wrong by reasoning: an unboxed page is a
+   * frame of zero rather than a different sheet, deliberately (Derived::page, D-067).
+   *
+   * The whole Chrome tab is named even so, although three of its choices measured as
+   * token-only: they are choices about a thing built out of markup, and the next one added
+   * is more likely to be markup than not. A needless reload is the old behaviour; a missed
+   * one is a screen showing something the site will not do.
+   */
+  var RELOADS = /^(look_|header_button_|footer_text|footer_small_print|(header_menu|header_bleed|footer_bleed|character)$)/;
+  var mustReload = false;
+
+  /**
+   * The stylesheet the preview's tokens arrive in, inside the frame's own document.
+   *
+   * FOUND BY ITS ADDRESS, not by a marker attribute: the frame draws the site's real page
+   * layout, and a hook put there for one admin screen would be carried by every page of
+   * every site Boxlet runs. Same-origin, so the document is readable; null whenever it is
+   * not yet, and the caller then reloads as before.
+   */
+  function tokensLink() {
+    if (!stylesheetUrl) {
+      return null;
+    }
+    var doc = null;
+    try {
+      doc = preview.contentDocument;
+    } catch (e) {
+      return null;
+    }
+    if (!doc) {
+      return null;
+    }
+    var links = doc.querySelectorAll('link[rel="stylesheet"]');
+    for (var i = 0; i < links.length; i++) {
+      if ((links[i].getAttribute('href') || '').indexOf(stylesheetUrl) === 0) {
+        return links[i];
+      }
+    }
+    return null;
+  }
+
+  /** The whole page again, back where the owner had scrolled it to. */
+  function reload(params) {
+    var at = 0;
+    try {
+      at = preview.contentWindow ? preview.contentWindow.scrollY : 0;
+    } catch (e) {
+      at = 0;
+    }
+    preview.addEventListener('load', function once() {
+      preview.removeEventListener('load', once);
+      try {
+        preview.contentWindow.scrollTo(0, at);
+      } catch (e) {
+        // A frame that has navigated elsewhere: the position is not ours to restore.
+      }
+    });
+    preview.src = previewUrl + '?' + params;
+  }
+
+  /*
+   * What the frame is showing, as a query. Kept HERE rather than read back off the frame's
+   * src, because writing that attribute is what navigates: a fast path that recorded where
+   * it was by setting src would reload the very page it just avoided reloading.
+   */
+  var showing = '';
+
+  function draw(params) {
+    var link = mustReload ? null : tokensLink();
+    showing = params;
+    if (!link) {
+      mustReload = false;
+      reload(params);
+      return;
+    }
+    // The old stylesheet stays in force until the new one has loaded, so there is no
+    // moment of unstyled page.
+    link.setAttribute('href', stylesheetUrl + '?' + params);
+  }
 
   function query() {
     var params = new URLSearchParams();
@@ -29,98 +124,6 @@
       }
     });
     return params.toString();
-  }
-
-  function showErrors(errors) {
-    form.querySelectorAll('[data-error-for]').forEach(function (element) {
-      var message = errors[element.getAttribute('data-error-for')];
-      element.textContent = message || '';
-      element.hidden = !message;
-    });
-  }
-
-  function showColors(colors) {
-    Object.keys(colors).forEach(function (name) {
-      form.querySelectorAll('[data-swatch="' + name + '"]').forEach(function (rect) {
-        rect.setAttribute('fill', colors[name]);
-      });
-      form.querySelectorAll('[data-swatch-value="' + name + '"]').forEach(function (code) {
-        code.textContent = colors[name];
-      });
-    });
-
-    /*
-     * A ROLE LEFT TO THE PALETTE SHOWS WHAT THE PALETTE NOW SAYS (D-063).
-     *
-     * Each of those inputs starts at the colour the server worked out, which stops being
-     * true the moment anything it depends on moves: set a dark page by hand and the five
-     * other swatches still showed the near-white palette they were rendered with, while the
-     * preview beside them was dark. The same stale-dependent bug the palette itself was
-     * rearranged to prevent, this time on the screen.
-     *
-     * A role the owner has taken over is never touched: that colour is theirs.
-     */
-    form.querySelectorAll('[data-by-hand]').forEach(function (input) {
-      var field = input.getAttribute('data-by-hand');
-      var role = field.replace(/^color_/, '');
-      var mine = form.querySelector('[data-by-hand-switch="' + field + '"]');
-      if (mine && !mine.checked && colors[role]) {
-        input.value = colors[role];
-      }
-    });
-    showColourValues();
-  }
-
-  // The gauge, measured on the server: this only writes the numbers it is handed. A row
-  // that fails keeps its place in the list rather than jumping to the top — a list that
-  // reorders under the reader is a list nobody can follow.
-  function showPairs(pairs) {
-    pairs.forEach(function (pair) {
-      var row = document.querySelector('[data-pair="' + pair.pair + '"]');
-      if (!row) {
-        return;
-      }
-      row.classList.toggle('gauge-fails', !pair.passes);
-      var ratio = row.querySelector('[data-pair-ratio]');
-      var verdict = row.querySelector('[data-pair-verdict]');
-      var background = row.querySelector('[data-pair-background]');
-      var foreground = row.querySelector('[data-pair-foreground]');
-      if (ratio) ratio.textContent = pair.ratio.toFixed(2);
-      // The two words come from the markup, because they are translated and this file is not.
-      if (verdict) verdict.textContent = verdict.getAttribute(pair.passes ? 'data-pass' : 'data-fail') || verdict.textContent;
-      if (background) background.setAttribute('fill', pair.background);
-      if (foreground) foreground.setAttribute('fill', pair.foreground);
-    });
-  }
-
-  // The number beside a slider, so a value being dragged is readable and not only visible —
-  // the same rule as the hex beside a colour (D-062). In rem, which is the unit the control
-  // is in; the pixels are on the line under the controls, worked out by the server.
-  /*
-   * WHAT EVERY CONTROL COMES TO, as the server says it (D-066). Rendered once into the
-   * markup and written again on every answer, because a readout rendered once goes stale
-   * the moment anything moves — and a readout that lies is worse than none, since it is the
-   * thing being read.
-   */
-  function showReadouts(readouts) {
-    Object.keys(readouts || {}).forEach(function (name) {
-      document.querySelectorAll('[data-readout="' + name.replace(/"/g, '') + '"]').forEach(function (slot) {
-        // A group still following the character says so; that is a state, not a value.
-        if (!slot.classList.contains('readout-following')) {
-          slot.textContent = readouts[name];
-        }
-      });
-    });
-  }
-
-  // The hex next to each colour input, so the value is readable and not only visible.
-  function showColourValues() {
-    form.querySelectorAll('[data-colour-for]').forEach(function (output) {
-      var input = document.getElementById(output.getAttribute('data-colour-for'));
-      if (input) {
-        output.textContent = input.value;
-      }
-    });
   }
 
   /**
@@ -135,7 +138,7 @@
   function refresh() {
     window.clearTimeout(timer);
     var params = query();
-    preview.src = form.getAttribute('data-preview-url') + '?' + params;
+    draw(params);
     fetch(form.getAttribute('data-check-url') + '?' + params, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' }
@@ -145,10 +148,8 @@
       })
       .then(function (result) {
         if (result) {
-          showErrors(result.errors);
-          showColors(result.colors);
-          showPairs(result.pairs || []);
-          showReadouts(result.readouts);
+          // Handed on rather than written here: appearance-readouts.js draws it.
+          document.dispatchEvent(new CustomEvent('appearance:answer', { detail: result }));
           // A palette that would be refused is not "not published yet" — it is something to
           // fix, and the screen says which of the two it is.
           announce(Object.keys(result.errors || {}).length > 0 ? 'problem' : 'unpublished');
@@ -158,6 +159,30 @@
         // The preview frame still updates; the server re-checks on Save.
       });
   }
+
+  /*
+   * COMPARE, HELD (D-060). The published design is this same preview with NO query at all:
+   * with nothing submitted, the server draws what is stored.
+   *
+   * It is answered here rather than in appearance-stage.js, which raises it, because this
+   * file is the one that knows what the frame is showing — and because a comparison you
+   * have to keep holding must come back instantly, which a reload never does. The stage
+   * owns the frame's box; this owns what is inside it.
+   */
+  var comparing = false;
+  document.addEventListener('appearance:compare', function (event) {
+    var held = !!(event.detail && event.detail.held);
+    if (held === comparing) {
+      return;
+    }
+    comparing = held;
+    var link = tokensLink();
+    if (link) {
+      link.setAttribute('href', held ? stylesheetUrl : stylesheetUrl + '?' + showing);
+    } else {
+      preview.setAttribute('src', held ? previewUrl : previewUrl + '?' + showing);
+    }
+  });
 
   /** A control the person has finished with: a choice, rather than a value being dragged. */
   function isDiscrete(target) {
@@ -170,8 +195,12 @@
 
   function changed(event) {
     dirty = true;
-    showColourValues();
     announce('unpublished');
+    // Remembered rather than decided at refresh time: a quarter-second of dragging can
+    // carry several controls, and one of them wanting the page back settles it for all.
+    if (RELOADS.test((event.target && event.target.name) || '')) {
+      mustReload = true;
+    }
     if (event.type === 'change' && isDiscrete(event.target)) {
       refresh();
       return;
@@ -221,4 +250,8 @@
   if (previewButton) {
     previewButton.remove();
   }
+
+  // What the frame is showing before anything has been changed: the form as the server drew
+  // it. Compare has to be able to come back to it without a refresh having happened first.
+  showing = query();
 })();

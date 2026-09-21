@@ -231,7 +231,8 @@ $card = static function (array $decisions, string $name, string $badge, string $
                      every control post the same screen — that is what stopped a character
                      load from clearing the header (D-059) — so the form IS the layout. */ ?>
             <form id="design-form" method="post" action="<?= e(Url::admin('appearance')) ?>" class="appearance-body design-form" data-design-form
-                  data-check-url="<?= e(Url::admin('appearance', 'check')) ?>" data-preview-url="<?= e(Url::admin('appearance', 'preview')) ?>">
+                  data-check-url="<?= e(Url::admin('appearance', 'check')) ?>" data-preview-url="<?= e(Url::admin('appearance', 'preview')) ?>"
+                  data-stylesheet-url="<?= e(Url::admin('appearance', 'stylesheet')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="character" value="<?= e($character) ?>">
 
@@ -319,6 +320,7 @@ $card = static function (array $decisions, string $name, string $badge, string $
         <?php /* Without JavaScript this form sends the current values to the preview frame. */ ?>
         <form id="design-preview-form" method="get" action="<?= e(Url::admin('appearance', 'preview')) ?>" target="design-preview" class="visually-hidden"></form>
         <script src="<?= e(Url::versioned('assets/appearance.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-readouts.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-tabs.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-rail.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-stage.js')) ?>" defer></script>

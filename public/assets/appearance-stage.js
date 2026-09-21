@@ -147,24 +147,30 @@
 
   /*
    * COMPARE IS HELD, NOT TOGGLED. A comparison you have to keep holding is one you cannot
-   * walk away from and mistake for the site. The published state is the preview address with
-   * no query at all: with nothing submitted, it draws what is stored.
+   * walk away from and mistake for the site.
+   *
+   * SAID, NOT DONE HERE. This file owns the frame's BOX — its width, its height, the scale
+   * it is drawn at — and appearance.js owns what is inside it: it is the one that knows
+   * what the frame is showing, and the one that can put the published design up by swapping
+   * a stylesheet instead of reloading the document. Reaching in to set src from here meant
+   * a full reload on every press of a button meant to be held down.
    */
   var compare = tools.querySelector('[data-compare]');
   if (compare) {
-    var mine = null;
+    var mine = false;
+    var say = function (held) {
+      mine = held;
+      compare.setAttribute('aria-pressed', held ? 'true' : 'false');
+      document.dispatchEvent(new CustomEvent('appearance:compare', { detail: { held: held } }));
+    };
     var hold = function () {
-      if (mine === null) {
-        mine = frame.getAttribute('src');
-        frame.setAttribute('src', frame.getAttribute('src').split('?')[0]);
-        compare.setAttribute('aria-pressed', 'true');
+      if (!mine) {
+        say(true);
       }
     };
     var release = function () {
-      if (mine !== null) {
-        frame.setAttribute('src', mine);
-        mine = null;
-        compare.setAttribute('aria-pressed', 'false');
+      if (mine) {
+        say(false);
       }
     };
     compare.addEventListener('pointerdown', hold);

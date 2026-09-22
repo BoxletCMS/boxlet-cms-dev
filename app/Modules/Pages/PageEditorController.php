@@ -79,6 +79,8 @@ final class PageEditorController
             $type = $request->input('add_type');
             $character = Composition::active($db);
             $blocks[] = [
+                // A block that does not exist yet is named for this render only (D-094).
+                'key' => BlockForm::key(null, count($blocks)),
                 'id' => null,
                 'type' => $type,
                 'content' => $registry->fresh($type),
@@ -88,17 +90,19 @@ final class PageEditorController
 
             return $this->form($page, $title, $slug, $blocks);
         }
-        if (preg_match('~^(up|down)-(\d+)$~', $action, $move)) {
-            return $this->form($page, $title, $slug, BlockForm::move($blocks, (int) $move[2], $move[1]));
+        // These three name a BLOCK, not a position (D-094): a form rendered before
+        // something moved would otherwise act on whatever has taken that slot since.
+        if (preg_match('~^(up|down)-([bn][0-9]{1,9})$~', $action, $move)) {
+            return $this->form($page, $title, $slug, BlockForm::move($blocks, $move[2], $move[1]));
         }
         // A repeater's own controls, for a browser with no JavaScript (PLAN.md O-11). The
         // field name is matched against what a field name may be, and then against what
         // the block actually declares, inside BlockForm — a posted name is not a key.
-        if (preg_match('~^item-(up|down)-(\d+)-([a-z][a-z0-9_]*)-(\d+)$~', $action, $move)) {
-            return $this->again($request, $page, $title, $slug, BlockForm::moveItem($registry, $blocks, (int) $move[2], $move[3], (int) $move[4], $move[1]));
+        if (preg_match('~^item-(up|down)-([bn][0-9]{1,9})-([a-z][a-z0-9_]*)-(\d+)$~', $action, $move)) {
+            return $this->again($request, $page, $title, $slug, BlockForm::moveItem($registry, $blocks, $move[2], $move[3], (int) $move[4], $move[1]));
         }
-        if (preg_match('~^item-add-(\d+)-([a-z][a-z0-9_]*)$~', $action, $add)) {
-            return $this->again($request, $page, $title, $slug, BlockForm::addItem($registry, $blocks, (int) $add[1], $add[2]));
+        if (preg_match('~^item-add-([bn][0-9]{1,9})-([a-z][a-z0-9_]*)$~', $action, $add)) {
+            return $this->again($request, $page, $title, $slug, BlockForm::addItem($registry, $blocks, $add[1], $add[2]));
         }
         /*
          * BACK TO WHAT THIS PAGE WAS (PLAN.md D-088).
@@ -271,7 +275,7 @@ final class PageEditorController
      * answers 200.
      *
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      */
     private function again(Request $request, array $page, string $title, string $slug, array $blocks): Response
     {
@@ -288,7 +292,7 @@ final class PageEditorController
      * before this point — parsing, validation, storage — is the same for both.
      *
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     private function reject(Request $request, array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
@@ -301,7 +305,7 @@ final class PageEditorController
     }
 
     /**
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
     private function storedBlocks(int $pageId): array
     {
@@ -310,7 +314,7 @@ final class PageEditorController
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     private function form(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200): Response

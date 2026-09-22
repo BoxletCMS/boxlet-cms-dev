@@ -99,8 +99,12 @@ export default {
     // Move: the last block up, read as type:id so a swap between two blocks of the same
     // type is still visible.
     const beforeMove = await fingerprints(page);
-    const lastIndex = afterAdd - 1;
-    await clickAndWait(page, `button[name="action"][value="up-${lastIndex}"]`);
+    // Since D-094 the action names the BLOCK, not the slot, so the value is read off the
+    // last group rather than counted. Written this way it goes on working whatever the
+    // key scheme is, which is the point of not putting a literal in a test.
+    const lastUp = await page.$$eval('[data-block] button[data-editor-action="up"]',
+      (els) => els[els.length - 1].value);
+    await clickAndWait(page, `button[name="action"][value="${lastUp}"]`);
     const afterMove = await fingerprints(page);
     report.verdict('without JavaScript: a block can be moved',
       JSON.stringify(beforeMove) !== JSON.stringify(afterMove),
@@ -124,8 +128,19 @@ export default {
       }
     });
 
-    const removeIndex = (await blockTypes(page)).indexOf('text');
-    await page.click(`input[name="blocks[${removeIndex}][_delete]"]`);
+    // The checkbox of the first text block, found through its group rather than built from
+    // a position: a field is named for its block since D-094.
+    const removeField = await page.$$eval('[data-block]', (groups) => {
+        const found = groups.find((group) => {
+          const type = group.querySelector('input[type="hidden"][name$="[type]"]');
+
+          return type !== null && type.value === 'text';
+        });
+        const box = found && found.querySelector('input[name$="[_delete]"]');
+
+        return box ? box.name : null;
+      });
+    await page.click(`input[name="${removeField}"]`);
     await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
 
     const saveAlerts = await alerts(page);

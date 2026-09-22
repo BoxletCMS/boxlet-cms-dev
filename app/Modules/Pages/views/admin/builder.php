@@ -13,7 +13,7 @@ use App\Support\Url;
  * @var array<string, mixed> $page
  * @var string $titleValue
  * @var string $slugValue
- * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+ * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
  * @var list<array{id: int, created_at: string}> $revisions what this page was, newest first (D-088)

@@ -13,6 +13,29 @@ use App\Support\SafeUrl;
  */
 final class BlockForm
 {
+    /** What a key may look like when it arrives from a form: b42, n7. */
+    private const KEY = '~^[bn][0-9]{1,9}$~';
+
+    /**
+     * A BLOCK'S NAME IN THE EDITOR (PLAN.md D-094), stable while the block exists.
+     *
+     * `b42` for a block the database knows, `n7` for one added in this session. It is
+     * DERIVED, never stored: a saved block's key is its id, and a new block's only has to
+     * last until the save that gives it one.
+     *
+     * It replaces the position in field names and in error keys, because a position cannot
+     * name a block once a page is a tree of sections and columns (D-093). In the flat
+     * editor nothing visible changes — measured in D-082, where errors were found to follow
+     * blocks correctly already — and that is the point of doing it as its own step.
+     *
+     * @param int $ordinal only used for a block with no id, and only to tell two new blocks
+     *                     apart within one render
+     */
+    public static function key(?int $id, int $ordinal): string
+    {
+        return $id === null ? 'n' . $ordinal : 'b' . $id;
+    }
+
     /**
      * Blocks in submitted order, with every value cleaned for its field type, and errors
      * keyed "position.field". A block marked _delete is left out. An existing block keeps
@@ -25,15 +48,22 @@ final class BlockForm
      * would have returned had the browser sent every field, so nothing downstream — the
      * canvas, a rejected save, the write — needs to know which blocks did that.
      *
-     * @param array<int, array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $stored
+     * @param array<int, array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $stored
      *        block id => the block as stored, for this page's blocks
-     * @return array{blocks: list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>, errors: array<string, string>}
+     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>, errors: array<string, string>}
      */
     public static function parse(Blocks $registry, mixed $posted, array $stored): array
     {
         $blocks = [];
         $errors = [];
-        foreach (is_array($posted) ? $posted : [] as $raw) {
+        $ordinal = 0;
+        foreach (is_array($posted) ? $posted : [] as $sent => $raw) {
+            /* THE KEY THE FORM SENT, if it looks like one (D-094). It is echoed back into
+               the markup on a rejected save, and error keys are built from it, so it is
+               matched against a shape rather than trusted. A body that does not carry keys
+               at all — an older form, a hand-made request — still parses: the block is
+               named from its id, or numbered. */
+            $key = is_string($sent) && preg_match(self::KEY, $sent) === 1 ? $sent : null;
             if (!is_array($raw) || ($raw['_delete'] ?? '') === '1') {
                 continue;
             }
@@ -53,22 +83,25 @@ final class BlockForm
 
             if (!$registry->has($type)) {
                 if ($id !== null) {
-                    $blocks[] = ['id' => $id, 'type' => $type, 'content' => null, 'style' => [], 'layout' => ''];
+                    $blocks[] = ['key' => $key ?? self::key($id, $ordinal++), 'id' => $id, 'type' => $type, 'content' => null, 'style' => [], 'layout' => ''];
                 }
                 continue;
             }
 
-            $position = count($blocks);
+            $name = $key ?? self::key($id, $ordinal++);
             $content = [];
-            foreach ($registry->get($type)['fields'] as $name => $field) {
-                [$value, $error] = self::field($field, $raw[$name] ?? null);
-                $content[$name] = $value;
+            foreach ($registry->get($type)['fields'] as $field => $declared) {
+                [$value, $error] = self::field($declared, $raw[$field] ?? null);
+                $content[$field] = $value;
                 if ($error !== null) {
-                    $errors["{$position}.{$name}"] = $error;
+                    // Keyed by the BLOCK, not by where it sits: a position cannot name a
+                    // block once a page is a tree (D-093), and a key survives a reorder.
+                    $errors["{$name}.{$field}"] = $error;
                 }
             }
             $layout = $registry->layout($type, $raw['layout'] ?? null);
             $blocks[] = [
+                'key' => $name,
                 'id' => $id,
                 'type' => $type,
                 'content' => self::fillRows($registry, $type, $content, $layout),
@@ -116,11 +149,36 @@ final class BlockForm
     }
 
     /**
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * Where the block called $key sits in this list, or null when no block does.
+     *
+     * The three no-JS actions below name a BLOCK rather than a position (D-094): a form
+     * that was rendered before something moved would otherwise act on whatever has taken
+     * that slot since. A key that names nothing does nothing, which is the honest answer to
+     * a stale button.
+     *
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      */
-    public static function move(array $blocks, int $position, string $direction): array
+    private static function at(array $blocks, string $key): ?int
     {
+        foreach ($blocks as $position => $block) {
+            if ($block['key'] === $key) {
+                return $position;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     */
+    public static function move(array $blocks, string $key, string $direction): array
+    {
+        $position = self::at($blocks, $key);
+        if ($position === null) {
+            return $blocks;
+        }
         $target = $direction === 'up' ? $position - 1 : $position + 1;
         if (isset($blocks[$position], $blocks[$target])) {
             [$blocks[$position], $blocks[$target]] = [$blocks[$target], $blocks[$position]];
@@ -133,13 +191,14 @@ final class BlockForm
      * One repeater item moved within its block — D-011's pattern one level down, where the
      * same route serves the drag and the buttons a browser without JavaScript uses.
      *
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
-    public static function moveItem(Blocks $registry, array $blocks, int $position, string $field, int $item, string $direction): array
+    public static function moveItem(Blocks $registry, array $blocks, string $key, string $field, int $item, string $direction): array
     {
-        [$content, $declared] = self::repeaterAt($registry, $blocks, $position, $field);
-        if ($content === null || $declared === null) {
+        $position = self::at($blocks, $key);
+        [$content, $declared] = $position === null ? [null, null] : self::repeaterAt($registry, $blocks, $position, $field);
+        if ($content === null || $declared === null || $position === null) {
             return $blocks;
         }
         $items = is_array($content[$field] ?? null) ? array_values($content[$field]) : [];
@@ -166,13 +225,14 @@ final class BlockForm
      * it: the button that cannot do anything should do nothing, not hand back an error
      * for something the editor itself just did.
      *
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
-    public static function addItem(Blocks $registry, array $blocks, int $position, string $field): array
+    public static function addItem(Blocks $registry, array $blocks, string $key, string $field): array
     {
-        [$content, $declared] = self::repeaterAt($registry, $blocks, $position, $field);
-        if ($content === null || $declared === null) {
+        $position = self::at($blocks, $key);
+        [$content, $declared] = $position === null ? [null, null] : self::repeaterAt($registry, $blocks, $position, $field);
+        if ($content === null || $declared === null || $position === null) {
             return $blocks;
         }
         $items = is_array($content[$field] ?? null) ? array_values($content[$field]) : [];
@@ -197,7 +257,7 @@ final class BlockForm
      * one. An action naming a field the block does not declare moves nothing rather than
      * reaching into stored content with whatever was posted.
      *
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @return array{0: array<string, mixed>|null, 1: array<string, mixed>|null}
      */
     private static function repeaterAt(Blocks $registry, array $blocks, int $position, string $field): array

@@ -21,9 +21,9 @@
 (function () {
   'use strict';
 
-  // The placeholders item.php renders instead of real indices. A <template>'s contents are
-  // not live nodes, so no renumber() ever reaches inside one: a template that had baked in
-  // a block's position would add items to the wrong block after the first move.
+  // The placeholders item.php renders instead of a real key and index. A <template>'s
+  // contents are not live nodes, so nothing ever reaches inside one to correct them: a
+  // template that had baked in a block's name would add items to the wrong block.
   var BLOCK = '__INDEX__';
   var ITEM = '__ITEM__';
 
@@ -35,9 +35,10 @@
   }
 
   /**
-   * The position of the block this repeater sits in, read from the group's own hidden
-   * type input rather than from an attribute that would go stale: blocks[n][type] is
-   * rewritten by both editors' renumber(), so it is always current.
+   * The KEY of the block this repeater sits in, read from the group's own hidden type
+   * input rather than from an attribute that would go stale. It used to be a position that
+   * both editors' renumber() rewrote; since D-094 it is a name the block keeps, and reading
+   * it from the field that will be submitted is still the way to be sure it is the one.
    *
    * `type` is reserved as a field name by the block contract — for an item's fields as
    * much as a block's — so nothing inside the group can match this but the block's own.

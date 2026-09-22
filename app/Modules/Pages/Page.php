@@ -11,7 +11,7 @@ use App\Modules\Media\MediaReference;
 /**
  * Pages and their blocks. All SQL is portable between MySQL and SQLite (SPEC §5.0).
  *
- * @phpstan-type BlockRow array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}
+ * @phpstan-type BlockRow array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}
  */
 final class Page
 {
@@ -118,7 +118,7 @@ final class Page
      * Both editors render from this, so the visual canvas and the fallback form always
      * agree about what is on the page.
      *
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
     public static function editable(Db $db, Blocks $registry, int $pageId): array
     {
@@ -126,6 +126,9 @@ final class Page
         foreach (self::blocks($db, $pageId) as $block) {
             $known = $registry->has($block['type']);
             $blocks[] = [
+                // A stored block's key is its id (D-094); nothing about it has to be
+                // remembered between renders.
+                'key' => BlockForm::key($block['id'], 0),
                 'id' => $block['id'],
                 'type' => $block['type'],
                 'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
@@ -163,6 +166,8 @@ final class Page
             $db->query('UPDATE pages SET content_group_id = id WHERE id = ?', [$id]);
             foreach ($blockTypes as $sort => $type) {
                 $block = [
+                    // Never rendered in an editor, so the key only has to exist and differ.
+                    'key' => BlockForm::key(null, $sort),
                     'id' => null,
                     'type' => $type,
                     'content' => $registry->fresh($type),

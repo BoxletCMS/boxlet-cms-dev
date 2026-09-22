@@ -106,8 +106,8 @@ test('saving refuses more items than the block takes', function (): void {
     $posted = [['type' => 'cards', 'items' => [['heading' => 'A'], ['heading' => 'B'], ['heading' => 'C']]]];
 
     $parsed = BlockForm::parse($registry, $posted, []);
-    assertTrue(isset($parsed['errors']['0.items']), 'over the maximum was accepted silently');
-    assertContains('at most', $parsed['errors']['0.items'], 'the message');
+    assertTrue(isset($parsed['errors']['n0.items']), 'over the maximum was accepted silently');
+    assertContains('at most', $parsed['errors']['n0.items'], 'the message');
 });
 
 test('an item marked for deletion is left out', function (): void {
@@ -157,11 +157,14 @@ test('a media id inside an item is found by the traversal both halves use', func
  * @param array<string, mixed> $content
  * @param array<string, string> $errors
  */
-function renderRepeaterBlock(Blocks $registry, array $content, int|string $index = 0, array $errors = []): string
+function renderRepeaterBlock(Blocks $registry, array $content, string $key = 'n0', array $errors = []): string
 {
     return (new View(dirname(__DIR__) . '/app/Modules/Pages/views'))->render('admin/block', 'en', [
-        'index' => $index,
+        // Since D-094 the index only says which group the panel shows; the KEY is what
+        // names the fields, so that is what this helper takes.
+        'index' => 0,
         'block' => [
+            'key' => $key,
             'id' => null,
             'type' => 'cards',
             'content' => $registry->normalize('cards', $content),
@@ -178,21 +181,21 @@ function renderRepeaterBlock(Blocks $registry, array $content, int|string $index
 
 test('the editor names an item two levels deep, so a block and an item reorder apart', function (): void {
     $registry = repeaterRegistry();
-    $html = renderRepeaterBlock($registry, ['items' => [['heading' => 'A'], ['heading' => 'B']]], 2);
+    $html = renderRepeaterBlock($registry, ['items' => [['heading' => 'A'], ['heading' => 'B']]], 'b2');
 
     // THE POINT OF THE NAMING. blocks[n] is rewritten when a block moves and [items][m]
     // when an item moves, and neither touches the other — both editors' renumber() regexes
     // are anchored at the start, so they stop before the item index by construction.
-    assertContains('name="blocks[2][items][0][heading]"', $html, 'the first item');
-    assertContains('name="blocks[2][items][1][heading]"', $html, 'the second item');
-    assertContains('name="blocks[2][items][0][image]"', $html, 'a media field inside an item');
+    assertContains('name="blocks[b2][items][0][heading]"', $html, 'the first item');
+    assertContains('name="blocks[b2][items][1][heading]"', $html, 'the second item');
+    assertContains('name="blocks[b2][items][0][image]"', $html, 'a media field inside an item');
     assertContains('value="A"', $html, 'the stored value of the first item');
 
     // Ids carry both indices too, or two items would share one and every label would point
     // at the first of them.
-    assertContains('id="block-2-items-0-heading"', $html, 'the first item\'s id');
-    assertContains('id="block-2-items-1-heading"', $html, 'the second item\'s id');
-    assertContains('for="block-2-items-1-heading"', $html, 'the label follows the id');
+    assertContains('id="block-b2-items-0-heading"', $html, 'the first item\'s id');
+    assertContains('id="block-b2-items-1-heading"', $html, 'the second item\'s id');
+    assertContains('for="block-b2-items-1-heading"', $html, 'the label follows the id');
 
     // What repeater.js binds to.
     assertContains('data-repeater="items"', $html, 'the field name for the script');
@@ -214,10 +217,10 @@ test('every repeater control works without JavaScript', function (): void {
     // no-js-only checkbox a block uses. A control that only works with scripts would make
     // the plain editor — the thing you reach for when the visual one will not load —
     // unable to edit a Columns block at all.
-    assertContains('value="item-add-0-items"', $html, 'Add is not a submit');
-    assertContains('value="item-up-0-items-0"', $html, 'Move up is not a submit');
-    assertContains('value="item-down-0-items-0"', $html, 'Move down is not a submit');
-    assertContains('name="blocks[0][items][0][_delete]"', $html, 'the no-JavaScript removal');
+    assertContains('value="item-add-n0-items"', $html, 'Add is not a submit');
+    assertContains('value="item-up-n0-items-0"', $html, 'Move up is not a submit');
+    assertContains('value="item-down-n0-items-0"', $html, 'Move down is not a submit');
+    assertContains('name="blocks[n0][items][0][_delete]"', $html, 'the no-JavaScript removal');
 
     // The Add button must NOT be js-only: that was the first draft, and it left a browser
     // without scripts able to remove and reorder items but never to make one.
@@ -230,13 +233,13 @@ test('an empty repeater says so rather than showing nothing', function (): void 
 
     assertContains(e(t('pages.field.repeater_empty')), $html, 'the empty state');
     assertEquals(0, substr_count($html, 'class="repeater-item"'), 'an item was rendered for an empty list');
-    assertContains('value="item-add-0-items"', $html, 'the empty state offers no way to add one');
+    assertContains('value="item-add-n0-items"', $html, 'the empty state offers no way to add one');
 });
 
 test('a repeater error is shown once, under the group', function (): void {
     $registry = repeaterRegistry(2);
     $message = t('pages.field.repeater_max', ['max' => 2]);
-    $html = renderRepeaterBlock($registry, ['items' => [['heading' => 'A']]], 0, ['0.items' => $message]);
+    $html = renderRepeaterBlock($registry, ['items' => [['heading' => 'A']]], 'n0', ['n0.items' => $message]);
 
     assertContains(e($message), $html, 'the refusal');
     assertEquals(1, substr_count($html, 'class="field-error"'), 'the message is repeated per item');
@@ -312,6 +315,7 @@ test('guard (source, not behaviour): a picker can be raised on markup that arriv
 test('moving an item swaps it with its neighbour, and only within its own block', function (): void {
     $registry = repeaterRegistry();
     $blocks = [[
+        'key' => 'b1',
         'id' => null,
         'type' => 'cards',
         'content' => $registry->normalize('cards', ['items' => [['heading' => 'A'], ['heading' => 'B'], ['heading' => 'C']]]),
@@ -327,13 +331,13 @@ test('moving an item swaps it with its neighbour, and only within its own block'
         return array_column($content['items'], 'heading');
     };
 
-    assertEquals(['A', 'C', 'B'], $headings(BlockForm::moveItem($registry, $blocks, 0, 'items', 1, 'down')), 'moved down');
-    assertEquals(['B', 'A', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 0, 'items', 1, 'up')), 'moved up');
+    assertEquals(['A', 'C', 'B'], $headings(BlockForm::moveItem($registry, $blocks, 'b1', 'items', 1, 'down')), 'moved down');
+    assertEquals(['B', 'A', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 'b1', 'items', 1, 'up')), 'moved up');
 
     // The edges do nothing rather than wrapping around or dropping an item.
-    assertEquals(['A', 'B', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 0, 'items', 0, 'up')), 'the first moved up');
-    assertEquals(['A', 'B', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 0, 'items', 2, 'down')), 'the last moved down');
-    assertEquals(['A', 'B', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 0, 'items', 9, 'up')), 'an item that is not there');
+    assertEquals(['A', 'B', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 'b1', 'items', 0, 'up')), 'the first moved up');
+    assertEquals(['A', 'B', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 'b1', 'items', 2, 'down')), 'the last moved down');
+    assertEquals(['A', 'B', 'C'], $headings(BlockForm::moveItem($registry, $blocks, 'b1', 'items', 9, 'up')), 'an item that is not there');
 });
 
 // The action arrives from a form, so the field name in it is somebody's input. It must be
@@ -342,17 +346,18 @@ test('moving an item swaps it with its neighbour, and only within its own block'
 test('an action naming a field the block does not declare moves nothing', function (): void {
     $registry = repeaterRegistry();
     $content = $registry->normalize('cards', ['items' => [['heading' => 'A'], ['heading' => 'B']]]);
-    $blocks = [['id' => null, 'type' => 'cards', 'content' => $content, 'style' => [], 'layout' => 'two']];
+    $blocks = [['key' => 'b1', 'id' => null, 'type' => 'cards', 'content' => $content, 'style' => [], 'layout' => 'two']];
 
-    assertEquals($blocks, BlockForm::moveItem($registry, $blocks, 0, 'nonsense', 0, 'down'), 'an unknown field name');
-    assertEquals($blocks, BlockForm::addItem($registry, $blocks, 0, 'nonsense'), 'an unknown field name, adding');
-    assertEquals($blocks, BlockForm::moveItem($registry, $blocks, 7, 'items', 0, 'down'), 'a block that is not there');
-    assertEquals($blocks, BlockForm::addItem($registry, $blocks, 7, 'items'), 'a block that is not there, adding');
+    assertEquals($blocks, BlockForm::moveItem($registry, $blocks, 'b1', 'nonsense', 0, 'down'), 'an unknown field name');
+    assertEquals($blocks, BlockForm::addItem($registry, $blocks, 'b1', 'nonsense'), 'an unknown field name, adding');
+    assertEquals($blocks, BlockForm::moveItem($registry, $blocks, 'b7', 'items', 0, 'down'), 'a block that is not there');
+    assertEquals($blocks, BlockForm::addItem($registry, $blocks, 'b7', 'items'), 'a block that is not there, adding');
 });
 
 test('adding an item appends an empty one, and stops at the maximum', function (): void {
     $registry = repeaterRegistry(2);
     $blocks = [[
+        'key' => 'b1',
         'id' => null,
         'type' => 'cards',
         'content' => $registry->normalize('cards', ['items' => [['heading' => 'A']]]),
@@ -360,7 +365,7 @@ test('adding an item appends an empty one, and stops at the maximum', function (
         'layout' => 'two',
     ]];
 
-    $added = BlockForm::addItem($registry, $blocks, 0, 'items');
+    $added = BlockForm::addItem($registry, $blocks, 'b1', 'items');
     $content = $added[0]['content'];
     if ($content === null) {
         fail('the block lost its content');
@@ -372,7 +377,7 @@ test('adding an item appends an empty one, and stops at the maximum', function (
 
     // Full: the button that cannot do anything does nothing, rather than growing the list
     // and handing back a refusal for something the editor itself just did.
-    assertEquals($added, BlockForm::addItem($registry, $added, 0, 'items'), 'added past the maximum');
+    assertEquals($added, BlockForm::addItem($registry, $added, 'b1', 'items'), 'added past the maximum');
 });
 
 testBothDrivers('a picture inside an item is resolved for rendering, and cleared when it is gone', function (string $driver): void {

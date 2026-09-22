@@ -138,10 +138,10 @@ test('the link field stores a chosen page, and asks for text only for an address
     assertEquals(['label' => '', 'url' => 'page:12'], $parsed['blocks'][0]['content']['cta'] ?? null, 'what was stored');
 
     $parsed = $parse(['page' => '', 'url' => '/contact', 'label' => '']);
-    assertEquals(t('pages.field.link_label'), $parsed['errors']['0.cta'] ?? null, 'an address with no label was let through');
+    assertEquals(t('pages.field.link_label'), $parsed['errors']['n0.cta'] ?? null, 'an address with no label was let through');
 
     $parsed = $parse(['page' => 'nope', 'url' => 'javascript:alert(1)', 'label' => 'x']);
-    assertEquals(t('pages.field.link_url'), $parsed['errors']['0.cta'] ?? null, 'a bad address was let through');
+    assertEquals(t('pages.field.link_url'), $parsed['errors']['n0.cta'] ?? null, 'a bad address was let through');
 });
 
 testBothDrivers('the header button can point at a page', function (string $driver) {

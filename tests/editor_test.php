@@ -25,10 +25,12 @@ function editorForm(Response $response): string
 test('the editor is a plain form: named inputs per block, _end last, no inline script', function () {
     $db = adminSite('sqlite');
     $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>A</p>']]]);
+    $blockId = (int) ($db->one('SELECT id FROM page_blocks')['id'] ?? 0);
     $response = dispatch("/admin/pages/{$id}/form");
 
     assertEquals(200, $response->status, 'status');
-    assertContains('name="blocks[0][body]"', $response->body, 'editor');
+    // A field is named for its BLOCK, not for where the block sits (D-094): b42, not 0.
+    assertContains('name="blocks[b' . $blockId . '][body]"', $response->body, 'editor');
     assertTrue((bool) preg_match('~name="_end" value="1">\s*</form>~', $response->body), '_end is not the last field of the form');
     assertContains('<template data-block-template="hero">', $response->body, 'block templates for adding');
     assertTrue(!preg_match('~<script(?![^>]*\bsrc=)~', $response->body), 'the editor contains an inline script');
@@ -44,7 +46,8 @@ test('without JavaScript, Add shows a new block and saves nothing', function () 
     assertEquals(200, $response->status, 'status');
     $form = editorForm($response);
     assertEquals(2, substr_count($form, 'class="block-editor"'), 'blocks in the form');
-    assertContains('name="blocks[1][type]" value="hero"', $form, 'the new hero block');
+    // The block being added has no id yet, so it is named for this render only.
+    assertContains('name="blocks[n1][type]" value="hero"', $form, 'the new hero block');
     assertContains('value="Typed, not saved"', $form, 'the typed value is kept in the form');
     assertEquals(['text'], blockTypes($db, $id), 'stored blocks');
     assertEquals('', storedContent($db, $blockId)['heading'] ?? null, 'stored heading');
@@ -58,12 +61,18 @@ test('without JavaScript, Move down swaps blocks in the form and saves nothing',
     ]);
     [$text, $hero] = array_map('strval', array_column($db->all('SELECT id FROM page_blocks ORDER BY sort'), 'id'));
     $blocks = [['id' => $text, 'type' => 'text', 'body' => '<p>A</p>'], ['id' => $hero, 'type' => 'hero', 'heading' => 'H']];
+    // The action names the block to move, not the slot it is in (D-094): a form rendered
+    // before something else moved would otherwise act on whatever has taken that slot.
 
-    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'down-0', '_end' => '1']);
+    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'down-b' . $text, '_end' => '1']);
     assertEquals(200, $response->status, 'status');
     $form = editorForm($response);
-    assertContains('name="blocks[0][type]" value="hero"', $form, 'hero moved to the top');
-    assertContains('name="blocks[1][type]" value="text"', $form, 'text moved down');
+    assertContains('name="blocks[b' . $hero . '][type]" value="hero"', $form, 'hero moved to the top');
+    assertContains('name="blocks[b' . $text . '][type]" value="text"', $form, 'text moved down');
+    assertTrue(
+        strpos($form, 'blocks[b' . $hero . ']') < strpos($form, 'blocks[b' . $text . ']'),
+        'the order on screen is the order of the groups, which is what the save reads',
+    );
     assertEquals(['text', 'hero'], blockTypes($db, $id), 'stored order');
 });
 
@@ -80,8 +89,9 @@ test('without JavaScript, a media field is a list of pictures and never an id', 
 
     $form = editorForm(dispatch("/admin/pages/{$id}/form"));
 
-    assertContains('name="blocks[0][image]"', $form, 'the media field');
-    assertTrue(!preg_match('~<input[^>]*name="blocks\[0\]\[image\]"~', $form), 'the media field is still a bare input');
+    $heroId = (int) ($db->one("SELECT id FROM page_blocks WHERE block_type = 'hero'")['id'] ?? 0);
+    assertContains('name="blocks[b' . $heroId . '][image]"', $form, 'the media field');
+    assertTrue(!preg_match('~<input[^>]*name="blocks\[b' . $heroId . '\]\[image\]"~', $form), 'the media field is still a bare input');
     assertContains(e(t('pages.field.media_none')), $form, 'the option for no picture');
     assertContains('<option value="' . $first . '" selected>', $form, 'the stored picture is not selected');
     // Newest first, asserted as an ORDER. Checking only that both options are present

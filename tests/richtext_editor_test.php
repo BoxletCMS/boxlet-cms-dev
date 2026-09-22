@@ -71,11 +71,21 @@ test('guard (source, not behaviour): a rich text edit announces itself', functio
     );
 });
 
-test('guard (source, not behaviour): renumbering knows nothing about the rich text editor', function () {
+test('guard (source, not behaviour): naming a group knows nothing about the rich text editor', function () {
+    // Ids used to be rewritten on every add, move and remove, and this guard existed so
+    // that rewriting could never need to know about the editor bound to them. Since D-094 a
+    // group is named ONCE, when it is born, by admin.js — so the thing to guard is that
+    // one function, and that builder.js has stopped doing it at all.
+    assertContains('function nameGroup(group, key)', (string) file_get_contents(dirname(__DIR__) . '/public/assets/admin.js'),
+        'the one place a field group is named has gone or been renamed');
+    assertTrue(
+        !str_contains((string) file_get_contents(dirname(__DIR__) . '/public/assets/builder.js'), "element.name = element.name.replace"),
+        'builder.js rewrites names again, which is what stable keys removed',
+    );
+
     foreach (['builder.js', 'admin.js'] as $file) {
         $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/' . $file);
 
-        assertContains("'block-' + index + '-'", $js, "{$file}: the id renumbering is gone");
         // If an id the editor binds to encodes the position again, this file has to learn
         // about the editor to keep the binding intact — the shape of the bug, not the fix.
         // Named for both, so the guard survives the editor changing under it.
@@ -154,8 +164,14 @@ test('guard (source, not behaviour): the editor still renders the shapes richtex
     assertContains('data-rt="h3"', $body, 'a heading level button');
     assertContains('data-rt="undo"', $body, 'the history buttons');
     assertContains('data-richtext-source', $body, 'the textarea it upgrades');
-    // The textarea keeps its position-shaped id: label[for] follows it, and renumbering
-    // it is correct. Only the ids the editor binds to had to stop encoding position.
-    assertTrue((bool) preg_match('~<label for="block-\d+-body">~', $body), 'the label no longer points at the field');
-    assertTrue((bool) preg_match('~<textarea id="block-\d+-body"~', $body), 'the textarea id changed shape');
+    /*
+     * The label has to point at the textarea. Asserted as that RELATION rather than as the
+     * shape of an id: the shape changed with D-094, from block-3-body to block-b42-body,
+     * and a guard written against the shape reported "the label no longer points at the
+     * field" when the label pointed at the field perfectly well.
+     */
+    if (preg_match('~<label for="(block-[a-z0-9]+-body)">~', $body, $labelled) !== 1) {
+        fail('no label for a body field');
+    }
+    assertContains('<textarea id="' . $labelled[1] . '"', $body, 'the label points at no textarea');
 });

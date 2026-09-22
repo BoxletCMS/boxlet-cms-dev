@@ -3,7 +3,7 @@
 use App\Modules\Design\Composition;
 
 /**
- * One block's field group in the page editor. Also rendered with $index '__INDEX__'
+ * One block's field group in the page editor. Also rendered with the key '__INDEX__'
  * inside a <template> that admin.js clones. admin.js never knows which fields a block
  * has: it only rewrites blocks[n] and block-n- as groups are added, removed or moved.
  *
@@ -11,8 +11,8 @@ use App\Modules\Design\Composition;
  * fields one level down and a second copy is how a field type added later works here and
  * silently does not there (PLAN.md O-11).
  *
- * @var int|string $index
- * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
+ * @var int|string $index which group the panel shows; NOT part of any field name
+ * @var array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
  * @var array<string, string> $errors
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
@@ -20,8 +20,14 @@ use App\Modules\Design\Composition;
  * @var array{source: array<string, mixed>|null, stale: array<int, array{source: int, type: string, content: array<string, mixed>}>, missing: int, sourceLabel: string}|null $translation set by the builder only; undefined elsewhere
  */
 $known = $registry->has($block['type']);
-$prefix = 'blocks[' . $index . ']';
-$idPrefix = 'block-' . $index . '-';
+/* NAMED BY THE BLOCK, NOT BY WHERE IT SITS (PLAN.md D-094). `blocks[b42][heading]` rather
+   than `blocks[3][heading]`, and errors keyed `b42.heading`. The submitted ORDER still
+   decides the order on the page — it always did; the index never carried that meaning —
+   and a key goes on meaning the same block once a page is a tree of sections (D-093).
+   $index stays, but only as which group the panel currently shows. */
+$key = $block['key'];
+$prefix = 'blocks[' . $key . ']';
+$idPrefix = 'block-' . $key . '-';
 // Section style opens when it differs from what the active character would give this
 // block, so a hand-tuned section announces itself and a composed one stays quiet.
 $composed = $known ? Composition::style($character, $block['type']) : [];
@@ -69,7 +75,7 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
 <?php if ($known): ?>
 <?php foreach ($registry->get($block['type'])['fields'] as $name => $field): ?>
 <?php
-    $fieldError = $errors[$index . '.' . $name] ?? null;
+    $fieldError = $errors[$key . '.' . $name] ?? null;
 
     if ($field['type'] === 'repeater') {
         $repeaterName = (string) $name;
@@ -152,8 +158,8 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
 <?php endif; ?>
                 </div>
                 <div class="block-editor-controls">
-                    <button type="submit" name="action" value="up-<?= e($index) ?>" class="button button-ghost" data-editor-action="up"><?= e(t('pages.move_up')) ?></button>
-                    <button type="submit" name="action" value="down-<?= e($index) ?>" class="button button-ghost" data-editor-action="down"><?= e(t('pages.move_down')) ?></button>
+                    <button type="submit" name="action" value="up-<?= e($key) ?>" class="button button-ghost" data-editor-action="up"><?= e(t('pages.move_up')) ?></button>
+                    <button type="submit" name="action" value="down-<?= e($key) ?>" class="button button-ghost" data-editor-action="down"><?= e(t('pages.move_down')) ?></button>
                     <button type="button" class="button button-ghost button-danger js-only" data-editor-action="remove"><?= e(t('pages.remove')) ?></button>
                     <label class="checkbox no-js-only">
                         <input type="checkbox" name="<?= e($prefix) ?>[_delete]" value="1">

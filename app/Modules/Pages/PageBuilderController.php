@@ -136,7 +136,7 @@ final class PageBuilderController
      * below, without the error posture — nothing here failed.
      *
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      */
     public function again(array $page, string $title, string $slug, array $blocks): Response
     {
@@ -154,7 +154,7 @@ final class PageBuilderController
      * and storage it runs first are the same for both editors.
      *
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      */
     public function rejected(array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
@@ -174,7 +174,7 @@ final class PageBuilderController
      * What the canvas should draw: normally the stored page, but after a save that did
      * not validate, the blocks as they were submitted.
      *
-     * @return list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
      */
     private function canvasBlocks(int $pageId): array
     {
@@ -195,6 +195,9 @@ final class PageBuilderController
             }
             $content = $block['content'] ?? null;
             $blocks[] = [
+                // Drawn, never saved: pending_canvas holds a refused save, and these ids
+                // were left behind with it. The key only has to be unique in this drawing.
+                'key' => BlockForm::key(null, count($blocks)),
                 'id' => null,
                 'type' => $block['type'],
                 'content' => is_array($content) ? $content : null,
@@ -208,7 +211,7 @@ final class PageBuilderController
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
      * @param bool $fromStorage whether $blocks are the page as STORED. It defaults to
      *        false because the unsafe answer must be the default: builder-save.js lets an

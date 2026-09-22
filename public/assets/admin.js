@@ -82,6 +82,60 @@
     }
   });
 
+  /* Above the plain editor's own guard on purpose: the VISUAL editor has the same job
+     to do when it places a block, and admin.js loads on every admin screen. Below it,
+     this pair existed only on the screen that needed it least. */
+  /*
+   * A FIELD GROUP IS NAMED ONCE, WHEN IT IS BORN (PLAN.md D-094).
+   *
+   * Names used to follow POSITION, so every add, move and remove rewrote every name and id
+   * on the page, in two editors, with three regexes that had to agree. They no longer do:
+   * a block is `blocks[b42]` or `blocks[n7]` for as long as it exists, and the order it is
+   * saved in comes from the order the groups appear in the request — which is what carried
+   * that meaning all along, the index never did.
+   *
+   * So this runs on a clone of a <template>, whose names all read `__INDEX__`, and on a
+   * group the server has just sent. Shared with the visual editor, which has the same job
+   * to do when it inserts or duplicates a block.
+   */
+  function nameGroup(group, key) {
+    group.querySelectorAll('[name]').forEach(function (element) {
+      element.name = element.name.replace(/^blocks\[[^\]]*\]/, 'blocks[' + key + ']');
+    });
+    group.querySelectorAll('[id]').forEach(function (element) {
+      element.id = element.id.replace(/^block-[^-]+-/, 'block-' + key + '-');
+    });
+    group.querySelectorAll('label[for]').forEach(function (label) {
+      label.htmlFor = label.htmlFor.replace(/^block-[^-]+-/, 'block-' + key + '-');
+    });
+    // The no-JS controls name their block too: up-b42, item-add-b42-items.
+    group.querySelectorAll('button[name="action"][value]').forEach(function (button) {
+      button.value = button.value
+        .replace(/^(up|down)-[^-]+$/, '$1-' + key)
+        .replace(/^(item-(?:up|down|add))-[^-]+-/, '$1-' + key + '-');
+    });
+  }
+
+  /**
+   * A key no group on this page is using.
+   *
+   * Counted up from the highest `n` already here rather than from zero, because the server
+   * renders new blocks as n0, n1 … and a second n0 would be two blocks with one name.
+   */
+  function mintKey() {
+    var highest = -1;
+    document.querySelectorAll('[data-block] input[type="hidden"][name$="[type]"]').forEach(function (input) {
+      var found = input.name.match(/^blocks\[n([0-9]+)\]/);
+      if (found && Number(found[1]) > highest) {
+        highest = Number(found[1]);
+      }
+    });
+
+    return 'n' + (highest + 1);
+  }
+
+  window.boxletBlocks = { name: nameGroup, mint: mintKey };
+
   var form = document.querySelector('form[data-page-editor]');
   if (!form) {
     return;
@@ -117,19 +171,9 @@
     });
   }
 
-  // Makes every blocks[n] name and block-n- id follow the order on screen.
+
+  // Nothing follows position any more; what is left is telling the page it changed.
   function renumber() {
-    groups().forEach(function (group, index) {
-      group.querySelectorAll('[name]').forEach(function (element) {
-        element.name = element.name.replace(/^blocks\[[^\]]*\]/, 'blocks[' + index + ']');
-      });
-      group.querySelectorAll('[id]').forEach(function (element) {
-        element.id = element.id.replace(/^block-[^-]+-/, 'block-' + index + '-');
-      });
-      group.querySelectorAll('label[for]').forEach(function (label) {
-        label.htmlFor = label.htmlFor.replace(/^block-[^-]+-/, 'block-' + index + '-');
-      });
-    });
     markDirty();
   }
 
@@ -156,7 +200,12 @@
         return; // let the form submit; the server adds the block
       }
       event.preventDefault();
-      list.appendChild(template.content.cloneNode(true));
+      var clone = template.content.cloneNode(true);
+      var born = clone.querySelector('[data-block]');
+      if (born) {
+        nameGroup(born, mintKey());
+      }
+      list.appendChild(clone);
       renumber();
       var added = groups().pop();
       var field = added && added.querySelector('input:not([type="hidden"]), textarea, select');

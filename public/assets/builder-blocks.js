@@ -51,7 +51,18 @@
     });
   }
 
+  /* A block arriving from the server is named blocks[n0]; a page may already hold an n0,
+     and two blocks with one name is one block after the save. So a group is named the
+     moment it is placed, with the same key the canvas pairs it by (D-094). */
   function place(index, section, group) {
+    /* Read off the GROUP, which is always an element: an inserted block arrives as a
+       DocumentFragment, and asking a fragment for an attribute throws — which the caller's
+       catch then reported as "the block could not be added", a network message for a
+       programming mistake. */
+    var key = group.getAttribute('data-block-key');
+    if (key && window.boxletBlocks) {
+      window.boxletBlocks.name(group, key);
+    }
     var doc = api.frame.contentDocument;
     var list = api.sections();
     var main = doc.querySelector('[data-bx-blocks]');
@@ -97,7 +108,8 @@
         if (!parts.canvas || !parts.fields) {
           throw new Error('malformed');
         }
-        var key = 'n' + keyCounter++;
+        // Minted where every other new group's key is, so nothing can collide.
+        var key = window.boxletBlocks ? window.boxletBlocks.mint() : 'n' + keyCounter++;
         var fragment = api.frame.contentDocument.importNode(parts.canvas.content, true);
         fragment.querySelector('section').setAttribute('data-bx-key', key);
 
@@ -111,8 +123,13 @@
         api.commit();
         place(at, fragment, group);
       })
-      .catch(function () {
+      .catch(function (error) {
         api.say(api.panel.getAttribute('data-text-failed'));
+        // The message above is about the network, and this is anything at all. A mistake
+        // in the code above read as "check your connection" until it was traced by hand.
+        if (window.console) {
+          window.console.error('boxlet: could not insert the block', error);
+        }
       })
       .then(function () {
         button.removeAttribute('aria-busy');
@@ -266,7 +283,7 @@
 
     if (action === 'duplicate') {
       api.commit();
-      var key = 'n' + keyCounter++;
+      var key = window.boxletBlocks ? window.boxletBlocks.mint() : 'n' + keyCounter++;
       var copy = section.cloneNode(true);
       copy.setAttribute('data-bx-key', key);
       copy.classList.remove('bx-selected');

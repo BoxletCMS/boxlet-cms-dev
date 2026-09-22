@@ -23,7 +23,9 @@ test('the insert endpoint returns a section and a field group for every block ty
         assertContains('<template data-block-canvas>', $response->body, "{$type}: the canvas fragment");
         assertContains('<template data-block-fields>', $response->body, "{$type}: the field fragment");
         assertContains('class="block block-' . $type . ' ', $response->body, "{$type}: the rendered section");
-        assertContains('name="blocks[0][type]" value="' . $type . '"', $response->body, "{$type}: the field group");
+        // The endpoint names a new block n0 and the BROWSER renames it the moment it places
+        // it, because only the browser knows which keys the page already uses (D-094).
+        assertContains('name="blocks[n0][type]" value="' . $type . '"', $response->body, "{$type}: the field group");
     }
 
     // Asking for a block is not adding one: only Save writes.

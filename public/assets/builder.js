@@ -73,20 +73,19 @@
     }
   };
 
-  // Names and ids follow position, so the server receives blocks[0..n] in the order they
-  // appear on the page. The same rule the fallback editor follows.
+  /*
+   * WHICH GROUP THE PANEL SHOWS — and nothing else any more (PLAN.md D-094).
+   *
+   * This used to rewrite every name and id on the page after every add, move and remove,
+   * so that the server received blocks[0..n] in screen order. A block now carries its own
+   * name for as long as it exists, and the order comes from the order the groups appear in
+   * the request, which is what carried it all along. Two of the three renumbering regexes
+   * in this admin are gone with it; the third, in repeater.js, still has real work, because
+   * an ITEM's place inside its block is genuinely positional.
+   */
   api.renumber = function () {
     api.groupNodes().forEach(function (group, index) {
       group.setAttribute('data-block-group', String(index));
-      group.querySelectorAll('[name]').forEach(function (element) {
-        element.name = element.name.replace(/^blocks\[[^\]]*\]/, 'blocks[' + index + ']');
-      });
-      group.querySelectorAll('[id]').forEach(function (element) {
-        element.id = element.id.replace(/^block-[^-]+-/, 'block-' + index + '-');
-      });
-      group.querySelectorAll('label[for]').forEach(function (label) {
-        label.htmlFor = label.htmlFor.replace(/^block-[^-]+-/, 'block-' + index + '-');
-      });
     });
     api.dirty = true;
   };

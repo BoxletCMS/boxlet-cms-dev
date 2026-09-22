@@ -46,7 +46,11 @@ export default {
     // Applying a character below uses action=save ("design only"), which leaves section
     // styles alone, so this survives all five.
     await page.goto(`${BASE}/admin/pages/${PAGE}/form`, { waitUntil: 'networkidle2' });
-    await page.select('select[name="blocks[1][style][surface]"]', 'contrast');
+    // The second block's surface, found by position among the groups rather than by a name
+    // with a position in it: a field is named for its block since D-094.
+    const surfaceField = await page.$$eval('[data-block] select[name$="[style][surface]"]',
+      (els) => els[1].name);
+    await page.select(`select[name="${surfaceField}"]`, 'contrast');
     await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
 
     const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })

@@ -61,6 +61,8 @@ final class DemoSite
                     $content['form'] = $form;
                 }
                 $blocks[] = [
+                    // Never rendered in an editor: the key only has to exist and differ.
+                    'key' => \App\Modules\Pages\BlockForm::key(null, count($blocks)),
                     'id' => null,
                     'type' => $type,
                     'content' => $registry->normalize($type, $content),

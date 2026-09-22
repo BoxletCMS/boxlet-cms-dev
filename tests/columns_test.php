@@ -91,13 +91,14 @@ testBothDrivers('the editor inserts a Columns block with its three columns outli
     $response = adminPost("/admin/pages/{$page}/block", ['type' => 'columns']);
     assertEquals(200, $response->status, 'status');
     assertEquals(3, substr_count($response->body, 'columns-item is-empty'), 'empty columns on the canvas');
-    assertContains('name="blocks[0][items][2][heading]"', $response->body, 'the third item\'s fields in the inspector');
+    assertContains('name="blocks[n0][items][2][heading]"', $response->body, 'the third item\'s fields in the inspector');
 });
 
 test('a Columns block with no columns is refused on save', function () {
     $parsed = BlockForm::parse(blockRegistry(), [['type' => 'columns', 'heading' => 'Empty']], []);
 
-    assertEquals(t('pages.field.required'), $parsed['errors']['0.items'] ?? null, 'a block of no columns was let through');
+    // Errors are keyed by the BLOCK since D-094; a block with no id is n0.
+    assertEquals(t('pages.field.required'), $parsed['errors']['n0.items'] ?? null, 'a block of no columns was let through');
 });
 
 test('the library shows Columns as a row of sample columns', function () {

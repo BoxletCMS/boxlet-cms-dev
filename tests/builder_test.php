@@ -28,8 +28,14 @@ test('the visual editor holds every block\'s fields in one form, with _end last'
     foreach ([0, 1, 2] as $index) {
         assertContains('data-block-group="' . $index . '"', $response->body, "group {$index}");
     }
-    assertContains('name="blocks[0][heading]"', $response->body, 'hero field');
-    assertContains('name="blocks[1][body]"', $response->body, 'text field');
+    // data-block-group above is still positional — it is which group the panel shows.
+    // A field NAME is not: it carries the block's own key (D-094), so a reorder renames
+    // nothing and an error keyed to a block stays with that block. Read out of the page
+    // rather than looked up, which also proves the keys are the stored ids and in order.
+    preg_match_all('~name="blocks\[(b[0-9]+)\]\[type\]" value="([a-z_]+)"~', $response->body, $named, PREG_SET_ORDER);
+    assertEquals(['hero', 'text', 'image_text'], array_column($named, 2), 'every block, named by its own key, in order');
+    assertContains('name="blocks[' . $named[0][1] . '][heading]"', $response->body, 'hero field');
+    assertContains('name="blocks[' . $named[1][1] . '][body]"', $response->body, 'text field');
     assertTrue((bool) preg_match('~name="_end" value="1">\s*</form>~', $response->body), '_end is not the last field');
     assertContains('name="editor" value="builder"', $response->body, 'the editor marker');
     assertContains('data-canvas', $response->body, 'the canvas frame');

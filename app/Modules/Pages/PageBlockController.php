@@ -56,6 +56,9 @@ final class PageBlockController
 
         $character = Composition::active($this->db());
         $block = [
+            // The browser names the group the moment it places it (D-094), because only it
+            // knows which keys the page is already using. This is the placeholder until then.
+            'key' => BlockForm::key(null, 0),
             'id' => null,
             'type' => $type,
             'content' => $registry->fresh($type),
@@ -75,6 +78,7 @@ final class PageBlockController
             // rather than carrying the null through.
             if ($first !== null && is_array($first['content'])) {
                 $block = [
+                    'key' => $first['key'],
                     'id' => null,
                     'type' => $first['type'],
                     'content' => $first['content'],

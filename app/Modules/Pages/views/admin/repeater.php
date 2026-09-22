@@ -12,8 +12,9 @@
  * repeater.js intercepts it where scripts run, and the repeater is fully usable either
  * way — add, remove and reorder (D-011, one route for both paths).
  *
- * @var int|string $index the block's position
- * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
+ * @var int|string $index the block's position; NOT part of any field name
+ * @var string $key   what the block is called in field names and error keys (D-094)
+ * @var array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
  * @var string $repeaterName
  * @var array<string, mixed> $repeaterField the validated repeater declaration
  * @var list<array<string, mixed>> $items the stored items, already normalized
@@ -37,7 +38,7 @@ $repeaterError = $fieldError;
 <?php foreach ($items as $itemIndex => $itemValue): ?>
 <?php
     $blockType = $block['type'];
-    $blockIndex = $index;
+    $blockIndex = $key;
     require __DIR__ . '/item.php';
 ?>
 <?php endforeach; ?>
@@ -46,7 +47,7 @@ $repeaterError = $fieldError;
                              shows nothing at all reads as a feature that failed to load. */ ?>
                     <p class="hint" data-repeater-empty<?= $items === [] ? '' : ' hidden' ?>><?= e(t('pages.field.repeater_empty')) ?></p>
                     <div class="repeater-controls">
-                        <button type="submit" name="action" value="item-add-<?= e($index) ?>-<?= e($repeaterName) ?>" class="button button-secondary" data-repeater-action="add"><?= e(t('pages.field.repeater_add')) ?></button>
+                        <button type="submit" name="action" value="item-add-<?= e($key) ?>-<?= e($repeaterName) ?>" class="button button-secondary" data-repeater-action="add"><?= e(t('pages.field.repeater_add')) ?></button>
                     </div>
 <?php if ($repeaterError !== null): ?>
                     <p class="field-error" role="alert"><?= e($repeaterError) ?></p>

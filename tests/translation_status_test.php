@@ -102,7 +102,7 @@ testBothDrivers('a block added to the source is counted as missing from the tran
     $db = adminSite($driver);
     [$source, $english] = croatianWithTwoTranslations($db);
     $blocks = Page::editable($db, blockRegistry(), $source);
-    $blocks[] = ['id' => null, 'type' => 'text', 'content' => blockRegistry()->normalize('text', ['body' => '<p>Novo.</p>']), 'style' => [], 'layout' => 'single'];
+    $blocks[] = ['key' => 'n0', 'id' => null, 'type' => 'text', 'content' => blockRegistry()->normalize('text', ['body' => '<p>Novo.</p>']), 'style' => [], 'layout' => 'single'];
     Page::update($db, blockRegistry(), $source, ['title' => 'O nama', 'slug' => 'o-nama', 'parent_id' => null, 'status' => 'published', 'seo_json' => '{}'], $blocks);
 
     assertEquals(1, TranslationStatus::of($db, blockRegistry(), $english)['missing'], 'missing blocks');

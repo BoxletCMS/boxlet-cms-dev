@@ -13,7 +13,7 @@ use App\Support\Url;
  * @var string $titleValue
  * @var string $slugValue
  * @var list<array{id: int, title: string, depth: int}> $parents
- * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+ * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
  * @var string $character the character new blocks are composed with
@@ -134,6 +134,9 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php
     $index = '__INDEX__';
     $block = [
+        // admin.js mints a key over this when it clones the template (D-094); it used to
+        // write a position here, and the two are the same substitution.
+        'key' => '__INDEX__',
         'id' => null,
         'type' => $type,
         'content' => $registry->fresh($type),

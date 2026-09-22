@@ -168,6 +168,7 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
         $rows = [];
         foreach ($blocks as $block) {
             $rows[] = [
+                'key' => \App\Modules\Pages\BlockForm::key(null, count($rows)),
                 'id' => null,
                 'type' => $block['type'],
                 'content' => $registry->normalize($block['type'], $block['content']),

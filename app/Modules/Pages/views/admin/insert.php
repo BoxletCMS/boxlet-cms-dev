@@ -9,7 +9,7 @@
  * images or applying styles until the editor moves them where they belong.
  *
  * @var int $index
- * @var array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
+ * @var array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
  * @var array<string, string> $errors
  * @var string $character
  * @var \App\Core\Blocks $registry

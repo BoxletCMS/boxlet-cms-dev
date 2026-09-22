@@ -96,7 +96,7 @@ final class PageRevision
      * this one. The shape is checked too — a row written by an older version of this file,
      * or edited by hand, is refused rather than half-applied.
      *
-     * @return array{title: string, slug: string, parent_id: int|null, status: string, seo_json: string, blocks: list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>}|null
+     * @return array{title: string, slug: string, parent_id: int|null, status: string, seo_json: string, blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>}|null
      */
     public static function find(Db $db, Blocks $registry, int $pageId, int $revisionId): ?array
     {
@@ -118,17 +118,22 @@ final class PageRevision
         }
 
         $blocks = [];
+        $ordinal = 0;
         foreach ($data['blocks'] as $block) {
             if (!is_array($block) || !is_string($block['type'] ?? null) || !$registry->has($block['type'])) {
                 // A block whose type has gone since is left out rather than restored as a
                 // hole: normalize() cannot give it a shape and render() cannot draw it.
                 continue;
             }
+            $id = isset($block['id']) && is_int($block['id']) ? $block['id'] : null;
             $blocks[] = [
+                // Derived here rather than read from the row: a key is what the editor
+                // calls a block for one visit (D-094), not something a revision records.
+                'key' => BlockForm::key($id, $ordinal++),
                 // The id is kept so a block that still exists is UPDATED rather than
                 // duplicated; one that has since been removed has no row to match and
                 // Page::update() inserts it, which is exactly what restoring it means.
-                'id' => isset($block['id']) && is_int($block['id']) ? $block['id'] : null,
+                'id' => $id,
                 'type' => $block['type'],
                 'content' => $registry->normalize($block['type'], is_array($block['content'] ?? null) ? $block['content'] : []),
                 'style' => \App\Modules\Design\SectionStyle::normalize($block['style'] ?? null),

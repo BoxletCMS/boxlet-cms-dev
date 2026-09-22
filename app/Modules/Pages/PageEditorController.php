@@ -100,6 +100,39 @@ final class PageEditorController
         if (preg_match('~^item-add-(\d+)-([a-z][a-z0-9_]*)$~', $action, $add)) {
             return $this->again($request, $page, $title, $slug, BlockForm::addItem($registry, $blocks, (int) $add[1], $add[2]));
         }
+        /*
+         * BACK TO WHAT THIS PAGE WAS (PLAN.md D-088).
+         *
+         * Whatever is on screen is deliberately DISCARDED: the person pressed "restore",
+         * and restoring to a revision while keeping the edits that are open would be
+         * neither one page nor the other.
+         *
+         * It records the current page first, so a restore can itself be undone — pressing
+         * it by mistake must not be the one action in this editor with no way back.
+         *
+         * Then it is an ordinary save, through Page::update() like any other: the same
+         * media resolution, the same sitemap refresh, the same activity line. A restore
+         * with a path of its own would be the one path nobody exercises until it matters.
+         */
+        if (preg_match('~^restore-(\d+)$~', $action, $restore)) {
+            $revision = PageRevision::find($db, $registry, $id, (int) $restore[1]);
+            if ($revision === null) {
+                return $this->reject($request, $page, $title, $slug, $blocks, [], t('pages.restore_gone'));
+            }
+            PageRevision::record($db, $registry, $id);
+            Page::update($db, $registry, $id, [
+                'title' => $revision['title'],
+                'slug' => $revision['slug'],
+                'parent_id' => $revision['parent_id'],
+                'status' => $revision['status'],
+                'seo_json' => $revision['seo_json'],
+            ], $revision['blocks']);
+            Activity::record($db, 'page', 'saved', $id, $revision['title']);
+            Sitemap::refresh($this->container);
+            $this->container->get('session')->set('flash', t('pages.restored'));
+
+            return Response::redirect(Url::admin('pages', $id));
+        }
 
         // The plain editor sends no settings fields, so each falls back to what the page
         // already has. Only the visual editor's page panel submits them.
@@ -122,6 +155,10 @@ final class PageEditorController
             return $this->reject($request, $settings + $page, $title, $slug, $blocks, $errors, t('pages.editor.errors'));
         }
 
+        // What the page was, before it stops being that (D-088). Recorded here rather than
+        // inside Page::update() because a revision is an editing event: the demo seed calls
+        // update() too, and a fresh install does not want history nobody made.
+        PageRevision::record($db, $registry, $id);
         Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks);
         Activity::record($db, 'page', 'saved', $id, $title);
         Sitemap::refresh($this->container);

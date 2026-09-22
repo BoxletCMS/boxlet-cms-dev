@@ -278,6 +278,38 @@
   display: none;
 }
 
+/* Earlier versions (D-088). A line is a time and a way back, and the way back is a real
+   button with a border, not a word that only looks like one when the pointer is near it. */
+/* Shown whether hints are on or off: it says what Restore does, not what a field means. */
+.history-note {
+  margin: var(--ui-2) 0 0;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+  line-height: 1.45;
+}
+
+.history-list {
+  display: grid;
+  gap: var(--ui-1);
+  margin: var(--ui-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-2);
+  padding-block: var(--ui-1);
+}
+
+.history-when {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
 .panel-actions {
   display: flex;
   flex-wrap: wrap;

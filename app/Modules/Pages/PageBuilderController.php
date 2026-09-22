@@ -239,6 +239,10 @@ final class PageBuilderController
             'errors' => $errors,
             'notice' => $notice,
             'fromStorage' => $fromStorage,
+            // What this page was before the last few saves (D-088). Ids and times only:
+            // drawing five lines does not need five whole pages of JSON.
+            'revisions' => PageRevision::all($this->db(), $id),
+            'zone' => \App\Support\Dates::zone($this->db()),
             'character' => Composition::active($this->db()),
             'registry' => $this->registry(),
             'canvasUrl' => Url::admin('pages', $id, 'canvas'),

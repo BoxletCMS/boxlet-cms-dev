@@ -16,6 +16,8 @@ use App\Support\Url;
  * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
+ * @var list<array{id: int, created_at: string}> $revisions what this page was, newest first (D-088)
+ * @var string $zone the site's time zone, for showing when a revision was made
  * @var bool $fromStorage whether these field groups are the page as stored (D-081)
  * @var string $character
  * @var \App\Core\Blocks $registry
@@ -193,6 +195,33 @@ foreach ($errors as $key => $message) {
                         </div>
                         </div>
                     </details>
+
+                    <?php /* WHAT THIS PAGE WAS BEFORE THE LAST FEW SAVES (D-088). Folded, like
+                             the settings above it: it is the thing you want on the day you
+                             need it and never otherwise. Empty until the page has been saved
+                             once, and then it says so rather than showing an empty box.
+                             Each button is an ordinary submit, so this works without a
+                             script — which is the point of a way back. */ ?>
+<?php if ($revisions !== []): ?>
+                    <details class="panel-page" data-page-history>
+                        <summary><?= e(t('pages.history')) ?></summary>
+                        <?php /* NOT a .hint, deliberately. Hints are off until asked for
+                                 (D-087), and this is not a description of a field — it is
+                                 what pressing Restore does to the page, and that belongs in
+                                 front of somebody at the moment they decide, not behind a
+                                 toggle. The sentence that matters is the second one: a
+                                 restore can itself be undone. */ ?>
+                        <p class="history-note"><?= e(t('pages.history_hint', ['count' => \App\Modules\Pages\PageRevision::KEEP])) ?></p>
+                        <ul class="history-list">
+<?php foreach ($revisions as $revision): ?>
+                            <li class="history-item">
+                                <span class="history-when"><?= e(\App\Support\Dates::localToSecond($revision['created_at'], $zone)) ?></span>
+                                <button type="submit" name="action" value="restore-<?= e($revision['id']) ?>" class="button button-ghost"><?= e(t('pages.restore')) ?></button>
+                            </li>
+<?php endforeach; ?>
+                        </ul>
+                    </details>
+<?php endif; ?>
 
                     <?php /* Shown while nothing is selected. Each picture is the block
                              itself, rendered by the server (BlockPreview). */ ?>

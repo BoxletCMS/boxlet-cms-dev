@@ -211,6 +211,13 @@ return [
     'pages.library_hint' => 'Each picture is the block as this site renders it.',
     'pages.insert_here' => 'Add a block here',
     'pages.insert_at_end' => 'Add a block at the end',
+    // What this page was before the last few saves (D-088).
+    'pages.history' => 'Earlier versions',
+    'pages.history_hint' => 'The last :count saves of this page. Restoring one is itself a save, so it can be undone.',
+    'pages.restore' => 'Restore',
+    'pages.restored' => 'The page is back as it was.',
+    'pages.restore_gone' => 'That version is no longer kept. Only the last few saves of a page are.',
+
     'pages.panel.content' => 'Content',
     'pages.panel.section' => 'Section',
     'pages.undo' => 'Undo',

@@ -106,11 +106,12 @@ final class Translations
              */
             $sections = Sections::copy($db, $sourceId, $id, $now);
 
-            // In the order the page draws them, which is the section's place and then the
-            // block's place inside it (D-095) — the block's own sort stopped carrying that.
+            // In the order the page draws them: the section's place, then the column, then
+            // the block's place down that column (D-095, D-093 step 3) — the block's own sort
+            // stopped carrying the page order and now carries only the last of the three.
             foreach ($db->all(
                 'SELECT b.* FROM page_blocks b LEFT JOIN page_sections s ON s.id = b.section_id
-                 WHERE b.page_id = ? ORDER BY s.sort, b.sort, b.id',
+                 WHERE b.page_id = ? ORDER BY s.sort, b.column_index, b.sort, b.id',
                 [$sourceId],
             ) as $block) {
                 $type = (string) $block['block_type'];
@@ -118,12 +119,16 @@ final class Translations
                 $hash = $registry->has($type) && is_array($content) ? self::blockHash($registry, $type, $content) : null;
                 $from = $block['section_id'] === null ? null : (int) $block['section_id'];
                 $db->query(
-                    "INSERT INTO page_blocks (page_id, section_id, block_group_id, block_type, sort, content_json, style_json, layout,
-                                              translation_status, source_hash, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, '{}', ?, 'reviewed', ?, ?, ?)",
+                    "INSERT INTO page_blocks (page_id, section_id, column_index, block_group_id, block_type, sort, content_json,
+                                              style_json, layout, translation_status, source_hash, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, '{}', ?, 'reviewed', ?, ?, ?)",
                     [
                         $id,
                         $from === null ? null : ($sections[$from] ?? null),
+                        // Which column, and not only which section: without it every block
+                        // of a translated page would stand in the first column, so a
+                        // Croatian page would silently be a different arrangement.
+                        (int) $block['column_index'],
                         (int) ($block['block_group_id'] ?? $block['id']),
                         $type,
                         (int) $block['sort'],

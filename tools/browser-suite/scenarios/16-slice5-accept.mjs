@@ -81,16 +81,22 @@ export default {
         return frame && frame.contentDocument
           && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
       }, { timeout: 20000 });
-      const index = await page.$$eval('[data-block-group]', (groups) => {
+      // Two different things, and they stopped being the same on D-094: data-block-group is
+      // WHERE the block is drawn, and the key in a field name is WHICH block it is. This read
+      // took the group and used it as both, so the select below had matched nothing since.
+      const found = await page.$$eval('[data-block-group]', (groups) => {
         const hero = groups.find((g) => g.querySelector('input[name$="[type]"]')?.value === 'hero');
-        return hero ? hero.getAttribute('data-block-group') : null;
+        if (!hero) { return null; }
+        const field = hero.querySelector('input[name$="[type]"]');
+        return { index: hero.getAttribute('data-block-group'), key: (field.name.match(/^blocks\[([^\]]+)\]/) || [])[1] };
       });
-      if (index === null) { report.fail('place it in a hero', `page ${PAGE} has no hero`); return; }
+      if (found === null || !found.key) { report.fail('place it in a hero', `page ${PAGE} has no hero`); return; }
+      const { index, key } = found;
       // Chosen on the canvas first, as a person does: only the selected block is redrawn.
       const frame = page.frames().find((f) => f.url().includes('/canvas'));
       await (await frame.$(`[data-bx-index="${index}"]`)).click();
       await page.waitForFunction((i) => !document.querySelector(`[data-block-group="${i}"]`).hidden, { timeout: 8000 }, index);
-      await page.select(`[data-block-group="${index}"] select[name="blocks[${index}][image]"]`, String(card.id));
+      await page.select(`[data-block-group="${index}"] select[name="blocks[${key}][image]"]`, String(card.id));
       // The canvas redraws the block from the server: wait for the picture, not a clock.
       await page.waitForFunction((i, wanted) => {
         const frame = document.querySelector('iframe[data-canvas]');

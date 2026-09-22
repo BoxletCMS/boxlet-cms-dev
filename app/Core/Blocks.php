@@ -232,8 +232,14 @@ final class Blocks
      * @param string       $layout  stored layout; one the block no longer declares renders as its default
      * @param array<int, Picture> $media id => resolved picture
      * @param bool         $eager   the first section on the page, which is never lazy-loaded
-     * @param string       $wrapper the element to wrap it in: a page block is a section, but
-     *                              site chrome is a header or a footer (PLAN.md D-030)
+     * @param string       $wrapper the element to wrap it in: site chrome is a header or a
+     *                              footer (PLAN.md D-030), and a page block inside a section
+     *                              that holds more than one is `none` — a plain div carrying
+     *                              only its own layer 3, because the section around it has
+     *                              already drawn the surface, the rhythm and the container
+     *                              (D-093 step 3). `section` remains for the case a section
+     *                              holds exactly one block, where the two are the same
+     *                              element and every existing page is drawn unchanged.
      * @param array<string, mixed> $resolved values the renderer resolved for this template;
      *                              today: the menu. A page block is rendered without it, and
      *                              a second kind of value belongs in an argument about this
@@ -252,7 +258,7 @@ final class Blocks
         // Three elements are all the design has a meaning for, and one <header> and one
         // <footer> per page is the rule (D-028) — enforced by the callers, since a registry
         // cannot know how many times it will be asked.
-        if (!in_array($wrapper, ['section', 'header', 'footer'], true)) {
+        if (!in_array($wrapper, ['section', 'header', 'footer', 'none'], true)) {
             throw new RuntimeException("Unknown wrapper element: {$wrapper}");
         }
 
@@ -271,6 +277,25 @@ final class Blocks
             throw $e;
         }
         $inner = (string) ob_get_clean();
+
+        /*
+         * A BLOCK INSIDE A SECTION THAT HOLDS OTHERS carries its layer 3 and nothing else.
+         *
+         * Not `.block`: that class is section language — it sets --section-rhythm and
+         * --section-width, the block padding and position: relative, and it is what
+         * `main > .block:first-child` and `.block:has(+ .divider-slant)` mean by a section.
+         * Wearing it here would give every block in a column a second band of padding and
+         * make the divider rules count blocks instead of sections.
+         *
+         * Nothing else has to change for this to be safe, and that is measured, not hoped:
+         * every rule in blocks.css that reads `layout-*` is a DESCENDANT selector, and
+         * `block-{type}` is used as a selector only for the header and the footer. So both
+         * classes may sit one level lower than they used to and not one rule stops matching.
+         */
+        if ($wrapper === 'none') {
+            return '<div class="' . e('block-' . $type . ' layout-' . $layout) . "\">\n" . $inner . "</div>\n";
+        }
+
         $classes = implode(' ', array_merge(['block', 'block-' . $type, 'layout-' . $layout], SectionStyle::classes($style)));
 
         return '<' . $wrapper . ' class="' . e($classes) . "\">\n"
@@ -280,6 +305,10 @@ final class Blocks
 
     /**
      * A section's background picture (D-024), laid under the content.
+     *
+     * Public because Sections::render() draws the same picture when a section holds more
+     * than one block and this method is no longer on the path — the second caller that
+     * makes it an entry point rather than a helper reached from outside.
      *
      * An element rather than a CSS background-image: the URL is a per-section value and
      * nothing is inlined as a style attribute (SPEC §5.4). As an element it also carries
@@ -298,7 +327,7 @@ final class Blocks
      * @param array<string, string|int|null> $style normalized
      * @param array<int, Picture>            $media
      */
-    private static function sectionPicture(array $style, array $media, bool $eager): string
+    public static function sectionPicture(array $style, array $media, bool $eager): string
     {
         // ONLY under surface: image. D-024 is explicit — the sixth key "is used only when
         // surface is image" — and drawing it under any other surface is not a cosmetic

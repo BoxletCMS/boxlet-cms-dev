@@ -9,9 +9,9 @@ use App\Modules\Design\SectionStyle;
  * The section a block sits in, and the layer-2 style it owns (PLAN.md D-093, migration 0026).
  *
  * A page is a list of sections; a section holds blocks in its columns; depth is exactly two.
- * **In this step every section holds exactly one block**, so nothing on any screen changes —
- * what changed is where the style lives. Columns come next, and this is the file they will
- * grow in.
+ * This class is the RECORD — what a page's sections are, and how they are written, copied
+ * and pruned. What one looks like is SectionRender, and how many columns it has and in what
+ * proportion is SectionLayout.
  *
  * WHY THE STYLE BELONGS HERE. surface, rhythm, width, align, divider and the background
  * picture have always been section language applied per block, because there was nothing
@@ -24,33 +24,71 @@ use App\Modules\Design\SectionStyle;
  */
 final class Sections
 {
-    /** The only layout a section has until columns arrive. */
-    public const ONE = 'one';
-
     /**
-     * Every section of a page: id => ['sort' => int, 'layout' => string, 'style' => array].
+     * Every section of a page: id => ['sort', 'layout', 'stack', 'style'].
      *
      * Read in one statement rather than per block, for the reason MediaPicture::forBlocks()
      * gives about pictures: a page draws in a fixed number of queries or it does not scale.
      *
-     * @return array<int, array{sort: int, layout: string, style: array<string, string|int|null>}>
+     * @return array<int, array{sort: int, layout: string, stack: string, style: array<string, string|int|null>}>
      */
     public static function forPage(Db $db, int $pageId): array
     {
         $sections = [];
         foreach ($db->all(
-            'SELECT id, sort, layout, style_json FROM page_sections WHERE page_id = ? ORDER BY sort, id',
+            'SELECT id, sort, layout, stack, style_json FROM page_sections WHERE page_id = ? ORDER BY sort, id',
             [$pageId],
         ) as $row) {
             $style = json_decode((string) $row['style_json'], true);
             $sections[(int) $row['id']] = [
                 'sort' => (int) $row['sort'],
-                'layout' => (string) $row['layout'],
+                'layout' => SectionLayout::normalize($row['layout']),
+                'stack' => SectionLayout::normalizeStack($row['stack']),
                 'style' => SectionStyle::normalize(is_array($style) ? $style : []),
             ];
         }
 
         return $sections;
+    }
+
+    /**
+     * A page's blocks gathered under the sections that hold them, in drawing order.
+     *
+     * The flat list stays the list: MediaPicture, PageLinks and FormBlocks each resolve a
+     * whole page in one query and have no use for its arrangement, so grouping happens
+     * once, here, at the moment of drawing — rather than every reader learning a shape it
+     * does not need.
+     *
+     * A block whose section has vanished is dropped rather than drawn loose. That cannot
+     * happen after 0026 (Page::update() is the only writer and Sections::prune() only ever
+     * removes empty ones); if a later bug makes one, a block missing from the page is a
+     * fault somebody reports, where a block drawn with no surface or rhythm looks like a
+     * design mistake and gets lived with.
+     *
+     * @param array<int, array{sort: int, layout: string, stack: string, style: array<string, string|int|null>}> $sections
+     * @param list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string, section: int, column: int}> $blocks
+     * @return list<array{id: int, section: array{sort: int, layout: string, stack: string, style: array<string, string|int|null>}, blocks: list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string, section: int, column: int}>}>
+     */
+    public static function group(array $sections, array $blocks): array
+    {
+        $held = [];
+        foreach ($blocks as $block) {
+            if (isset($sections[$block['section']])) {
+                $held[$block['section']][] = $block;
+            }
+        }
+
+        $grouped = [];
+        foreach ($sections as $id => $section) {
+            // A section holding nothing is not drawn. prune() removes them on save, so this
+            // is the same rule read at the other end rather than a second opinion.
+            if (!isset($held[$id])) {
+                continue;
+            }
+            $grouped[] = ['id' => $id, 'section' => $section, 'blocks' => $held[$id]];
+        }
+
+        return $grouped;
     }
 
     /**
@@ -60,32 +98,62 @@ final class Sections
      * picture that has been deleted since becomes null on save wherever the save came from —
      * the rule D-024 set, kept in one place now that there is one place for it.
      *
+     * The arrangement is optional and null means "leave it as it is", because most writers
+     * are saying something about the style and nothing about the columns: a block edited in
+     * the plain page editor must not quietly collapse the section it sits in back to one
+     * column. A new section with nothing said about it is one column that stacks.
+     *
      * @param array<string, string|int|null> $style
      * @return int the section's id, for the block row to point at
      */
-    public static function save(Db $db, int $pageId, ?int $sectionId, int $sort, array $style, string $now): int
-    {
+    public static function save(
+        Db $db,
+        int $pageId,
+        ?int $sectionId,
+        int $sort,
+        array $style,
+        string $now,
+        ?string $layout = null,
+        ?string $stack = null,
+    ): int {
         $json = self::json(SectionStyle::resolve($db, SectionStyle::normalize($style)));
 
         // A section id from a form is somebody's input until it is shown to belong to this
         // page; a stale one makes a new section rather than writing over a stranger's.
         $existing = $sectionId === null ? null : $db->one(
-            'SELECT id FROM page_sections WHERE id = ? AND page_id = ?',
+            'SELECT id, layout, stack FROM page_sections WHERE id = ? AND page_id = ?',
             [$sectionId, $pageId],
         );
         if ($existing !== null) {
             $db->query(
-                'UPDATE page_sections SET sort = ?, style_json = ?, updated_at = ? WHERE id = ? AND page_id = ?',
-                [$sort, $json, $now, $sectionId, $pageId],
+                'UPDATE page_sections SET sort = ?, layout = ?, stack = ?, style_json = ?, updated_at = ?
+                 WHERE id = ? AND page_id = ?',
+                [
+                    $sort,
+                    SectionLayout::normalize($layout ?? $existing['layout']),
+                    SectionLayout::normalizeStack($stack ?? $existing['stack']),
+                    $json,
+                    $now,
+                    $sectionId,
+                    $pageId,
+                ],
             );
 
             return (int) $sectionId;
         }
 
         $db->query(
-            'INSERT INTO page_sections (page_id, sort, layout, style_json, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?)',
-            [$pageId, $sort, self::ONE, $json, $now, $now],
+            'INSERT INTO page_sections (page_id, sort, layout, stack, style_json, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+                $pageId,
+                $sort,
+                SectionLayout::normalize($layout),
+                SectionLayout::normalizeStack($stack),
+                $json,
+                $now,
+                $now,
+            ],
         );
 
         return (int) $db->lastInsertId();
@@ -127,13 +195,21 @@ final class Sections
     {
         $map = [];
         foreach ($db->all(
-            'SELECT id, sort, layout, style_json FROM page_sections WHERE page_id = ? ORDER BY sort, id',
+            'SELECT id, sort, layout, stack, style_json FROM page_sections WHERE page_id = ? ORDER BY sort, id',
             [$fromPageId],
         ) as $row) {
             $db->query(
-                'INSERT INTO page_sections (page_id, sort, layout, style_json, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?)',
-                [$toPageId, (int) $row['sort'], (string) $row['layout'], (string) $row['style_json'], $now, $now],
+                'INSERT INTO page_sections (page_id, sort, layout, stack, style_json, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [
+                    $toPageId,
+                    (int) $row['sort'],
+                    (string) $row['layout'],
+                    (string) $row['stack'],
+                    (string) $row['style_json'],
+                    $now,
+                    $now,
+                ],
             );
             $map[(int) $row['id']] = (int) $db->lastInsertId();
         }

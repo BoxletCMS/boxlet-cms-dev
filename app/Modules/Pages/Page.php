@@ -86,7 +86,7 @@ final class Page
      * Stored blocks in order, exactly as stored: callers validate layout and style
      * against the registry when they use them.
      *
-     * @return list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string}>
+     * @return list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string, section: int, column: int}>
      */
     public static function blocks(Db $db, int $pageId): array
     {
@@ -103,9 +103,9 @@ final class Page
          */
         $blocks = [];
         $rows = $db->all(
-            'SELECT b.id, b.block_type, b.content_json, s.style_json, b.layout
+            'SELECT b.id, b.block_type, b.content_json, s.style_json, b.layout, b.section_id, b.column_index
              FROM page_blocks b LEFT JOIN page_sections s ON s.id = b.section_id
-             WHERE b.page_id = ? ORDER BY s.sort, b.sort, b.id',
+             WHERE b.page_id = ? ORDER BY s.sort, b.column_index, b.sort, b.id',
             [$pageId],
         );
         foreach ($rows as $row) {
@@ -117,6 +117,12 @@ final class Page
                 'content' => is_array($content) ? $content : [],
                 'style' => is_array($style) ? $style : [],
                 'layout' => (string) $row['layout'],
+                // Which section, and which of its columns (D-093 step 3). The order above
+                // reads column before sort for the reason a newspaper is read that way: a
+                // column is finished before the next one starts, so a flat list of a page's
+                // blocks is the order somebody reads them in.
+                'section' => $row['section_id'] === null ? 0 : (int) $row['section_id'],
+                'column' => (int) $row['column_index'],
             ];
         }
 

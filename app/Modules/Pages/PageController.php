@@ -52,16 +52,26 @@ final class PageController
 
         $html = '';
         $first = true;
-        foreach ($blocks as $block) {
-            // A block whose type was removed from app/Blocks cannot render; skip it.
-            if (!$registry->has($block['type'])) {
+        foreach (Sections::group(Sections::forPage($db, (int) $page['id']), $blocks) as $group) {
+            $drawable = [];
+            foreach ($group['blocks'] as $block) {
+                // A block whose type was removed from app/Blocks cannot render; skip it.
+                if (!$registry->has($block['type'])) {
+                    continue;
+                }
+                $block['content'] = PageLinks::content($registry, $block['type'], $block['content'], $links);
+                $drawable[] = $block;
+            }
+            // A section whose every block is of a type this install no longer has would be
+            // an empty band of surface and rhythm — the same thing prune() refuses to leave
+            // behind on save, refused here on the way out for the rows it cannot see.
+            if ($drawable === []) {
                 continue;
             }
             // Only the first section that actually draws is eager. Everything below the
             // fold is lazy, which is the whole point of loading="lazy" — and the first
             // picture is usually the one a visitor is waiting to see.
-            $content = PageLinks::content($registry, $block['type'], $block['content'], $links);
-            $html .= $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first, 'section', ['forms' => $forms], $locale);
+            $html .= SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], $locale);
             $first = false;
         }
 

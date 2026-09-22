@@ -3,6 +3,7 @@
 use App\Core\Db;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\SectionLayout;
 use App\Modules\Pages\Sections;
 
 /*
@@ -41,7 +42,7 @@ testBothDrivers('every block has a section of its own, carrying its style', func
     // Each has its own row: a style set on one must not reach the other, which is the whole
     // reason the style is not a property of the page.
     assertTrue(sectionRowOf($db, $hero)['id'] !== sectionRowOf($db, $text)['id'], 'two blocks share one section');
-    assertEquals(Sections::ONE, (string) sectionRowOf($db, $hero)['layout'], 'a migrated section holds one column');
+    assertEquals(SectionLayout::ONE, (string) sectionRowOf($db, $hero)['layout'], 'a migrated section holds one column');
 });
 
 testBothDrivers('the section carries the page order, and the block its place inside it', function (string $driver) {

@@ -275,3 +275,110 @@ main > .block:first-child {
   border-start-start-radius: 0;
   border-start-end-radius: 0;
 }
+
+/* Columns (PLAN.md D-093 step 3)
+
+   A section that holds more than one block, or that was given a shape to hold them in,
+   draws this container inside its .container. A section of one column holding one block
+   does NOT: there the section IS the block's element, exactly as it has always been, so
+   every page written before columns existed is drawn by the rules above and nothing here
+   can reach it.
+
+   The proportions are a closed set declared twice — here as grid tracks and in
+   SectionLayout::LAYOUTS as weights — and a test reads this file and refuses a pair that
+   disagree. CSS is not generated from PHP in this project, so the choice is two
+   declarations with a guard over them or a percentage in the database, and D-093 refuses
+   the percentage. */
+
+.section-cols {
+  display: grid;
+  gap: var(--space-xl) var(--space-l);
+  align-items: start;
+}
+
+.cols-one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cols-halves {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cols-thirds {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cols-quarters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cols-wide-left {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.cols-wide-right {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
+.cols-sidebar {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+}
+
+/* minmax(0, …) on every track, never a bare fr: a grid track's minimum is auto, so one
+   long word or a wide picture inside a column pushes the track past its share and the
+   whole section stops keeping its proportions. */
+
+/* A column stacks its own blocks with the rhythm of a section's content, not of a page's
+   bands: two blocks in one column are one thought, and the space between them should not
+   read as the space between two sections. */
+.section-column {
+  display: grid;
+  align-content: start;
+  gap: var(--space-l);
+}
+
+/* The section's own centring reaches into the columns. .align-center centres what is
+   directly inside .container, which for a section with columns is the column container
+   itself — centring that does nothing, because a grid track is already as wide as its
+   share. What the author meant is the content of each column. */
+.align-center .section-column > * {
+  margin-inline: auto;
+}
+
+/* Below the width two columns of words can hold, the columns become rows.
+
+   64rem and not 40rem: the question is not whether this is a phone but whether a column
+   still has room for a readable line, and half of a tablet does not. Four columns give up
+   sooner — at that width they are already two rows of two, the same concession
+   .layout-four makes in blocks.css for the same reason. */
+@media (max-width: 64rem) {
+  .cols-quarters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-cols:not(.stack-stay) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Bottom to top, for the one arrangement an owner needs and cannot otherwise express: a
+     picture to the left of text reads correctly side by side and wrongly stacked, because
+     the picture then arrives before the words it illustrates.
+
+     column-reverse and not `order` on the children: order would have to be set per column
+     and would be wrong the moment a column is added, and it leaves the reading order of
+     assistive technology following the source while the eye follows the screen. Reversing
+     the flow keeps one rule for any number of columns — and this is the deliberate case
+     where source order and visual order differ, which is why it is a choice the author
+     makes and never a default. */
+  .stack-reverse {
+    display: flex;
+    flex-direction: column-reverse;
+    row-gap: var(--space-xl);
+  }
+
+  /* Four columns staying side by side on a phone is unreadable whatever was asked for, so
+     `stay` keeps its proportions only where there is something left to keep. */
+  .cols-quarters.stack-stay {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

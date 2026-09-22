@@ -904,9 +904,22 @@ export default {
     const before = await sectionClasses(page);
 
     await page.goto(`${BASE}/admin/pages/${STYLE_GUIDE}/form`, { waitUntil: 'networkidle2' });
+    // The SECOND section on the page. Its field name is blocks[<key>][style][surface] and
+    // the key is a name, not a number, since D-094 — so it is read off the form in document
+    // order rather than guessed. This line said blocks[1] and had matched nothing since that
+    // day: the scenario failed itself, which is why the whole browser suite is run at the end
+    // of a slice and not only the scenarios a change looks like it touches.
     const target = 1;
-    await page.select(`select[name="blocks[${target}][style][surface]"]`, 'contrast');
-    await page.select(`select[name="blocks[${target}][style][rhythm]"]`, 'airy');
+    const key = await page.$$eval('select[name$="[style][surface]"]', (els, at) => {
+      const el = els[at];
+      return el ? (el.name.match(/^blocks\[([^\]]+)\]/) || [])[1] : null;
+    }, target);
+    if (!key) {
+      report.fail('the scenario itself', `the form has no section ${target} to restyle`);
+      return;
+    }
+    await page.select(`select[name="blocks[${key}][style][surface]"]`, 'contrast');
+    await page.select(`select[name="blocks[${key}][style][rhythm]"]`, 'airy');
     await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
 
     await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });

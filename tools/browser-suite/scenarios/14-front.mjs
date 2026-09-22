@@ -121,17 +121,23 @@ export default {
     // seeing on a real page.
     await page.goto(formUrl, { waitUntil: 'networkidle2' });
 
-    // Any block but the first. The index comes from the field NAME — blocks[3][image] — and
-    // not from a data-block-group attribute: those belong to the visual builder at
+    // Any block but the first. The block comes from the field NAME — blocks[b12][image] —
+    // and not from a data-block-group attribute: those belong to the visual builder at
     // /admin/pages/{id}, and on this plain form there are none at all, so every lookup
     // through them returns null and quietly falls back to block 0. Which is the bug this is
     // here to avoid: with both pictures in section 0 the lazy rule below is never tested.
+    //
+    // THE KEY IS A NAME, NOT A NUMBER, since D-094: `b{id}` for a stored block and `n{n}`
+    // for one added in this session. This read used to parse the number out of blocks[3]
+    // and had matched nothing since — the check has been failing itself, silently, the way
+    // the comment above says it once did for a different reason. So the rule is positional
+    // where position is what it means: the fields are in document order, and any field
+    // whose key differs from the first one's belongs to a later block.
     const target = await page.$$eval(CONTENT_FIELD, (els) => {
-      const indexed = els
-        .map((el) => ({ name: el.name, index: Number((el.name.match(/^blocks\[(\d+)\]/) || [])[1]) }))
-        .filter((f) => Number.isInteger(f.index) && f.index > 0)
-        .sort((a, b) => a.index - b.index);
-      return indexed[0] || null;
+      const keyed = els.map((el) => ({ name: el.name, key: (el.name.match(/^blocks\[([^\]]+)\]/) || [])[1] }))
+        .filter((f) => typeof f.key === 'string');
+      const first = keyed[0];
+      return first ? keyed.find((f) => f.key !== first.key) || null : null;
     });
 
     if (target === null) {

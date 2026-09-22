@@ -64,6 +64,43 @@ final class Composition
     }
 
     /**
+     * The section style a SECTION starts from under this character (PLAN.md D-096).
+     *
+     * A character says what it does to a block TYPE — "Editorial gives a hero a tinted
+     * surface, a form a plain one". A section holding a hero and a form has no type, so
+     * the sentence has no answer, and the rule the owner chose is: compose from the type
+     * the section's blocks AGREE on, and fall back to the character's own section
+     * defaults when they do not.
+     *
+     * WHY THIS AND NOT THE FIRST BLOCK'S TYPE. Every page that exists is made of sections
+     * holding one block, so "the type they agree on" is that block's type and not a single
+     * page composes differently — the rhythm of tinted and plain bands that makes a
+     * character feel designed survives untouched. A band of three text blocks still
+     * composes as text, which is the arrangement this whole step exists to make possible.
+     * Only two different kinds of block side by side fall back, and they fall back to
+     * something the character states about sections rather than to a guess.
+     *
+     * @param list<string> $types the block types the section holds, in any order
+     * @return array<string, string|int|null>
+     */
+    public static function section(?string $character, array $types): array
+    {
+        $distinct = array_values(array_unique($types));
+        if (count($distinct) === 1) {
+            return self::style($character, $distinct[0]);
+        }
+        if ($character === null || !isset(Presets::COMPOSITION[$character])) {
+            return SectionStyle::DEFAULTS;
+        }
+
+        // Nothing laid over the character's section language: no surface from one of the
+        // types and no divider from another, because choosing between them is the guess
+        // this rule exists to refuse. An empty section composes here too — it has no type
+        // to agree on, and the character's own defaults are the only honest answer.
+        return SectionStyle::normalize(Presets::COMPOSITION[$character]['section']);
+    }
+
+    /**
      * The layout a block of this type starts from, always one the block declares.
      */
     public static function layout(Blocks $registry, ?string $character, string $blockType): string
@@ -86,40 +123,50 @@ final class Composition
         $changed = 0;
 
         /*
-         * SECTION BY SECTION, COMPOSED FROM THE BLOCK IT HOLDS (D-095).
+         * SECTION BY SECTION, COMPOSED FROM THE TYPES IT HOLDS (D-095, D-096).
          *
          * This used to be one UPDATE per block type, site-wide. The style now lives on the
-         * section, and a character composes layer 2 from a BLOCK TYPE — `surfaces[$type]`,
-         * `dividers[$type]` — so the two only meet through the block a section holds. While
-         * a section holds one block that is exact. **When a section can hold several, what
-         * "Editorial gives a hero a tinted surface" means for a section holding a hero and a
-         * form is an open question (PLAN.md D-093), and this is the code that will have to
-         * answer it.**
+         * section, and a character composes layer 2 from a BLOCK TYPE, so the two meet only
+         * through the blocks a section holds: one type, or several of the same type, compose
+         * as that type; a section of mixed types composes from the character's own section
+         * language and takes no surface or divider from either (D-096).
          *
-         * A section holding a block this installation cannot draw is left alone, which is
-         * the rule the per-type loop followed for the same reason: its style is the only
-         * record of what it was.
+         * A block this installation cannot draw is left out of the reckoning AND left alone.
+         * Its stored style is the only record of what it was, and a type nobody can render
+         * is not evidence about what the section should look like — so a section holding one
+         * uninstalled block is skipped entirely, exactly as the per-type loop skipped it.
          */
-        $rows = $db->all(
+        $sections = [];
+        foreach ($db->all(
             'SELECT s.id, b.block_type FROM page_sections s
              LEFT JOIN page_blocks b ON b.section_id = s.id
-             ORDER BY s.id',
-        );
-        foreach ($rows as $row) {
+             ORDER BY s.id, b.column_index, b.sort, b.id',
+        ) as $row) {
+            $id = (int) $row['id'];
+            $sections[$id] ??= [];
             $type = (string) ($row['block_type'] ?? '');
-            if (!$registry->has($type)) {
+            if ($registry->has($type)) {
+                $sections[$id][] = $type;
+            }
+        }
+
+        foreach ($sections as $id => $types) {
+            if ($types === []) {
                 continue;
             }
-            $changed += 1;
+            $changed += count($types);
             $db->query(
                 'UPDATE page_sections SET style_json = ?, updated_at = ? WHERE id = ?',
-                [json_encode(self::style($character, $type), JSON_THROW_ON_ERROR), $now, (int) $row['id']],
+                [json_encode(self::section($character, $types), JSON_THROW_ON_ERROR), $now, $id],
             );
-            // The layout is the block's own layer 3 and stays on the block row.
-            $db->query(
-                'UPDATE page_blocks SET layout = ?, updated_at = ? WHERE section_id = ? AND block_type = ?',
-                [self::layout($registry, $character, $type), $now, (int) $row['id'], $type],
-            );
+            // The layout is the block's own layer 3 and stays on the block row, so it is
+            // composed per type however many types the section turned out to hold.
+            foreach (array_unique($types) as $type) {
+                $db->query(
+                    'UPDATE page_blocks SET layout = ?, updated_at = ? WHERE section_id = ? AND block_type = ?',
+                    [self::layout($registry, $character, $type), $now, $id, $type],
+                );
+            }
         }
 
         return $changed;

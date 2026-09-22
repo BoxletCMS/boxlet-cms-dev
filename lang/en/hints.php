@@ -5,6 +5,11 @@
 // with no entry here shows no description rather than its key.
 
 return [
+    // The toggle itself (D-087). Here rather than in appearance.php, because two screens
+    // carry it now and a string named after one of them would be wrong on the other.
+    'hints.show' => 'Show hints',
+    'hints.hide' => 'Hide hints',
+
     // Blocks: hint.block.{type}.{field}
     'hint.block.hero.heading' => 'The large headline at the top of this section. A few words that say what the page is about.',
     'hint.block.hero.subheading' => 'One or two sentences under the headline that explain it.',

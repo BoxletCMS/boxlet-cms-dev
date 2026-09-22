@@ -130,6 +130,34 @@
   text-underline-offset: 0.15em;
 }
 
+/* HINTS ON DEMAND (D-078, D-087). Here rather than on one screen's stylesheet because two
+   screens carry the toggle now, and scoped by the attribute rather than by the screen:
+   every other screen in the admin keeps its hints, because it is these narrow columns that
+   are short of room. Legible at rest, like every control — a border and muted ink on the
+   panel, not something that appears when the pointer is near it. */
+.hints-toggle {
+  justify-self: end;
+  padding: var(--ui-1) var(--ui-2);
+  background: transparent;
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink-muted);
+  font: inherit;
+  font-size: var(--ui-text-xs);
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.hints-toggle:hover {
+  border-color: var(--ui-accent);
+  color: var(--ui-ink);
+}
+
+[data-hints-root][data-hints="off"] .hint {
+  display: none;
+}
+
 .admin :focus-visible {
   outline: 2px solid var(--ui-accent);
   outline-offset: 2px;

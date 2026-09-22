@@ -110,7 +110,10 @@ foreach ($errors as $key => $message) {
                 </div>
 
                 <?php /* The scripts cannot call t(), so the strings they show come with them. */ ?>
-                <aside class="builder-panel" data-insert-url="<?= e($insertUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>">
+                <?php /* data-hints-root sits here rather than on the selected-block panel because the
+         field groups are its SIBLING, and the rule that hides a hint has to reach
+         them (D-087). */ ?>
+                <aside class="builder-panel" data-hints-root="builder" data-insert-url="<?= e($insertUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>">
 <?php if ($translation['stale'] !== [] || $translation['missing'] > 0): ?>
                     <?php /* A translation behind its source says so before anything else
                              (D-043, step 3); each stale block also carries its own mark. */ ?>
@@ -215,6 +218,27 @@ foreach ($errors as $key => $message) {
                             <h2 data-selected-name></h2>
                             <button type="button" class="button button-ghost" data-deselect><?= e(t('pages.panel.done')) ?></button>
                         </div>
+                        <?php /* CONTENT AND SECTION, SIDE BY SIDE (D-086). The section's style
+                                 was at the foot of the group's scroll, behind every content
+                                 field: measured on this page, the first style control sat
+                                 4296px down on a Columns block in a window 1000px tall. It is
+                                 the thing most often changed while looking at the page.
+                                 Without a script neither tab is pressed and both halves show,
+                                 which is the group exactly as the plain editor draws it. */ ?>
+                        <div class="panel-tabs">
+                            <div class="panel-tablist" role="tablist" data-panel-tabs>
+                                <button type="button" class="panel-tab" role="tab" data-panel-tab="content" aria-selected="true"><?= e(t('pages.panel.content')) ?></button>
+                                <button type="button" class="panel-tab" role="tab" data-panel-tab="section" aria-selected="false"><?= e(t('pages.panel.section')) ?></button>
+                            </div>
+                            <?php /* The same toggle the Appearance screen has (D-078, D-087):
+                                     off by default, remembered in this browser, and not there
+                                     at all without a script — where the hints then show, which
+                                     is the state that explains itself. */ ?>
+                            <button type="button" class="hints-toggle" data-hints-toggle hidden
+                                    aria-pressed="false"
+                                    data-show="<?= e(t('hints.show')) ?>"
+                                    data-hide="<?= e(t('hints.hide')) ?>"><?= e(t('hints.show')) ?></button>
+                        </div>
                         <?php /* Moving, copying and removing the block live on the block itself
                                  now, as icons in the canvas (D-040); this panel is its fields.
                                  The identical controls inside each field group belong to the
@@ -277,3 +301,4 @@ foreach ($errors as $key => $message) {
         <script src="<?= e(Url::versioned('assets/builder-undo.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-save.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-library.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/hints.js')) ?>" defer></script>

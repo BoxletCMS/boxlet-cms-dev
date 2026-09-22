@@ -80,6 +80,63 @@
   font-size: var(--ui-text-base);
 }
 
+/* CONTENT AND SECTION (D-086). Every control is legible at rest, pressed or not: the
+   unpressed tab is ordinary text on the panel and the pressed one carries the accent and
+   an underline, so which is which is readable without hovering anything.
+
+   The rules below hide one half of the field group, and they hang off the panel rather
+   than off the group so the SAME group markup serves the plain editor untouched. Without a
+   script nothing sets data-panel-tab, nothing matches, and both halves show. */
+.panel-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-2);
+  margin-block: var(--ui-2);
+  border-bottom: var(--ui-border) solid var(--ui-line);
+}
+
+.panel-tablist {
+  display: flex;
+  gap: var(--ui-1);
+}
+
+.panel-tab {
+  padding: var(--ui-2) var(--ui-3);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ui-ink-muted);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.panel-tab:hover {
+  color: var(--ui-ink);
+}
+
+.panel-tab[aria-selected="true"] {
+  color: var(--ui-accent);
+  border-bottom-color: var(--ui-accent);
+}
+
+.builder[data-panel-tab="content"] .panel-block [data-panel-part="section"],
+.builder[data-panel-tab="section"] .panel-block .block-body > :not([data-panel-part="section"]) {
+  display: none;
+}
+
+/* It sits on the tab row's rule, so it must not look like a tab that is pressed. */
+.panel-tabs .hints-toggle {
+  margin-block-end: var(--ui-1);
+}
+
+/* Behind its own tab the style is not a thing to unfold: the tab already did that. */
+.builder[data-panel-tab] .panel-block [data-panel-part="section"] > summary {
+  display: none;
+}
+
 .panel-library .hint {
   margin-bottom: var(--ui-3);
 }
@@ -264,10 +321,18 @@
   min-block-size: 17rem;
 }
 
-/* The panel is narrow: two-column field rows do not fit in it. */
+/* The panel is narrow: two-column field rows do not fit in it.
+
+   display and gap are set here for the same reason .block-body's are above: they live in
+   admin-pages.css, which the builder does not load, so only grid-template-columns was
+   arriving and the grid it templates never existed. It did not show while the style was a
+   folded <details> at the foot of a long scroll; behind its own tab (D-086) it did, as six
+   controls with every hint touching the next field's label. */
 .panel-block .field-row,
 .panel-block .block-style-grid {
+  display: grid;
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-6);
 }
 
 .panel-block .field input,

@@ -346,7 +346,7 @@ $card = static function (array $decisions, string $name, string $badge, string $
                     </div>
                 </div>
 
-                <div class="appearance-inspector" data-inspector>
+                <div class="appearance-inspector" data-inspector data-hints-root="appearance">
                     <div class="tabs" data-tabs>
                         <div class="tab-strip" data-tab-strip>
 <?php foreach ($tabs as $index => $name): ?>
@@ -371,8 +371,8 @@ $card = static function (array $decisions, string $name, string $badge, string $
                                  and the script is not. */ ?>
                         <button type="button" class="hints-toggle" data-hints-toggle hidden
                                 aria-pressed="false"
-                                data-show="<?= e(t('appearance.hints_show')) ?>"
-                                data-hide="<?= e(t('appearance.hints_hide')) ?>"><?= e(t('appearance.hints_show')) ?></button>
+                                data-show="<?= e(t('hints.show')) ?>"
+                                data-hide="<?= e(t('hints.hide')) ?>"><?= e(t('hints.show')) ?></button>
 <?php foreach ($tabs as $name): ?>
                         <div class="tab-panel" id="panel-<?= e($name) ?>" data-panel="<?= e($name) ?>" aria-labelledby="tab-<?= e($name) ?>">
                             <?php include __DIR__ . '/tabs/' . $name . '.php'; ?>
@@ -391,6 +391,6 @@ $card = static function (array $decisions, string $name, string $badge, string $
         <script src="<?= e(Url::versioned('assets/appearance.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-readouts.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-tabs.js')) ?>" defer></script>
-        <script src="<?= e(Url::versioned('assets/appearance-hints.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/hints.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-rail.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-stage.js')) ?>" defer></script>

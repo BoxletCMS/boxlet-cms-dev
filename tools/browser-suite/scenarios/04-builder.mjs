@@ -131,6 +131,88 @@ const undoChecks = async (page, report) => {
     `${steady} groups before, ${await groups(page)} after`);
 };
 
+
+/*
+ * Content and Section in the panel (D-086).
+ *
+ * The measurement that asked for this: with the panel's first field on screen at y=287, the
+ * first section-style control sat at y=4296 on a Columns block, in a window 1000px tall.
+ *
+ * Painted-ness is asserted on the <details> itself, never on a field inside it. A field in a
+ * CLOSED <details> still reports a 40px box at a plausible y, because the browser lays out
+ * what it does not paint — a measurement that said "shown" about an empty tab.
+ */
+const panelChecks = async (page, report) => {
+  await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+  const ready = await page.waitForFunction(() => {
+    const frame = document.querySelector('iframe[data-canvas]');
+    return frame && frame.contentDocument
+      && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
+  }, { timeout: 20000 }).then(() => true).catch(() => false);
+  if (!ready) {
+    report.fail('panel: the canvas loads', 'the canvas had no sections after 20s');
+    return;
+  }
+  await settle();
+  await page.evaluate(() => document.querySelector('iframe[data-canvas]').contentDocument
+    .querySelectorAll('[data-bx-blocks] > section')[0].click());
+  await settle();
+
+  const read = () => page.evaluate(() => {
+    const group = [...document.querySelectorAll('[data-block-group]')].find((g) => !g.hidden);
+    if (!group) return null;
+    const part = group.querySelector('[data-panel-part="section"]');
+    const content = group.querySelector('.block-body > .field:not([data-panel-part])');
+    const first = part && part.querySelector('select');
+    return {
+      tab: document.querySelector('form[data-builder]').getAttribute('data-panel-tab'),
+      // The <details>, not a field inside it: see the head of this block.
+      sectionPainted: part ? part.offsetHeight > 0 : false,
+      contentPainted: content ? content.offsetHeight > 0 : false,
+      firstStyleTop: first && part && part.offsetHeight > 0
+        ? Math.round(first.getBoundingClientRect().top) : null,
+      viewport: window.innerHeight,
+      // THE TRAP (PLAN.md D-080): builder-inspector.css hides the plain editor's own move
+      // and remove controls inside the panel, and that is what makes the branch in
+      // PageEditorController::again() safe. Rearranging the panel must not reveal them.
+      plainControlsShown: [...group.querySelectorAll('.block-editor-controls, .drag-handle')]
+        .some((el) => el.offsetHeight > 0),
+    };
+  });
+
+  const onContent = await read();
+  report.verdict('the Content tab shows the fields and not the section style',
+    onContent !== null && onContent.tab === 'content'
+      && onContent.contentPainted && !onContent.sectionPainted,
+    JSON.stringify(onContent));
+
+  await page.click('[data-panel-tab="section"]');
+  await settle();
+  const onSection = await read();
+  report.verdict('the Section tab shows the style, and shows it on the first screen',
+    onSection !== null && onSection.sectionPainted && !onSection.contentPainted
+      && onSection.firstStyleTop !== null && onSection.firstStyleTop < onSection.viewport,
+    JSON.stringify(onSection));
+
+  report.verdict('the plain editor\'s own block controls stay hidden in the panel',
+    onContent !== null && onSection !== null
+      && !onContent.plainControlsShown && !onSection.plainControlsShown,
+    `content ${onContent && onContent.plainControlsShown}, section ${onSection && onSection.plainControlsShown}`);
+
+  // The same view serves the plain editor, where nothing was split: one scroll, with the
+  // style folded at its foot.
+  await page.goto(`${BASE}/admin/pages/${PAGE}/form`, { waitUntil: 'networkidle2' });
+  const plain = await page.evaluate(() => {
+    const part = document.querySelector('[data-panel-part="section"]');
+    return {
+      tabs: document.querySelectorAll('[data-panel-tabs]').length,
+      summaryPainted: part && part.querySelector('summary') ? part.querySelector('summary').offsetHeight > 0 : false,
+    };
+  });
+  report.verdict('the plain editor is untouched: no tabs, the style still folds',
+    plain.tabs === 0 && plain.summaryPainted, JSON.stringify(plain));
+};
+
 export default {
   name: 'builder',
 
@@ -313,5 +395,6 @@ export default {
     }
 
     await undoChecks(page, report);
+    await panelChecks(page, report);
   },
 };

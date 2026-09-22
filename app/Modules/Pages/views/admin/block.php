@@ -100,7 +100,12 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
                     <?= field_hint('hint.layout') ?>
                 </div>
 <?php endif; ?>
-                <details class="block-style"<?= $block['style'] !== $composed ? ' open' : '' ?>>
+                <?php /* data-panel-part names this half of the group so the visual editor can
+                         put it behind its own Section tab (D-086). An ATTRIBUTE and nothing
+                         else: this view is the plain editor's too, and there the group stays
+                         one scroll with the style folded at the foot of it, exactly as it
+                         has always been. */ ?>
+                <details class="block-style" data-panel-part="section"<?= $block['style'] !== $composed ? ' open' : '' ?>>
                     <summary><?= e(t('style.title')) ?></summary>
                     <div class="block-style-grid">
 <?php foreach (\App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $styleValues): ?>

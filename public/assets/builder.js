@@ -91,8 +91,65 @@
     api.dirty = true;
   };
 
+  /*
+   * CONTENT AND SECTION (PLAN.md D-086).
+   *
+   * The section's style sat at the foot of the group's scroll, behind every content field:
+   * measured on the demo page, with the panel's first field on screen at y=287, the first
+   * style control was at y=1308 on a Hero and y=4296 on a Columns block, in a window 1000px
+   * tall. Four screens down, past twelve repeater items, for the thing most often changed
+   * while looking at the page.
+   *
+   * The split is a class on the panel and two rules in the stylesheet, not a rearrangement
+   * of the group: block.php is the PLAIN editor's view too, and there the group stays one
+   * scroll with the style folded at its foot. Moving markup around would have meant two
+   * shapes of one thing, and the plain editor is the fallback that has to keep working.
+   *
+   * Which tab is open is remembered for the session, not per block: somebody adjusting how
+   * a page looks moves from block to block doing the same thing, and being thrown back to
+   * Content on every selection would undo that.
+   */
+  var tabs = form.querySelector('[data-panel-tabs]');
+
+  function showTab(name) {
+    form.setAttribute('data-panel-tab', name);
+    /* The style is a <details> because the plain editor folds it; behind a tab it must be
+       open, since the tab is what unfolded it and its own summary is hidden. Without this
+       the Section tab was EMPTY — and a check that read getBoundingClientRect() on a field
+       inside the closed <details> reported a box 40px tall at y=340, because the browser
+       lays out what it does not paint. The screenshot was right and the measurement was
+       wrong; what is asserted now is the height of the <details> itself. */
+    form.querySelectorAll('[data-panel-part="section"]').forEach(function (part) {
+      part.open = true;
+    });
+    if (!tabs) {
+      return;
+    }
+    tabs.querySelectorAll('[data-panel-tab]').forEach(function (tab) {
+      tab.setAttribute('aria-selected', tab.getAttribute('data-panel-tab') === name ? 'true' : 'false');
+    });
+  }
+
+  if (tabs) {
+    tabs.addEventListener('click', function (event) {
+      var tab = event.target.closest('[data-panel-tab]');
+      if (tab) {
+        showTab(tab.getAttribute('data-panel-tab'));
+      }
+    });
+    showTab('content');
+  }
+
   api.show = function (index) {
     selected = index;
+    /* Re-applied on every selection because a field group can arrive as FRESH MARKUP — an
+       undo puts all of them back, an insert brings a new one from the server — and such a
+       group's <details> is open only when block.php happened to render it open, which is
+       when its style differs from the character's. On the Section tab a closed one shows
+       nothing. It survived the first check by that accident; this is the rule. */
+    if (tabs) {
+      showTab(form.getAttribute('data-panel-tab') || 'content');
+    }
     api.groupNodes().forEach(function (group) {
       group.hidden = Number(group.getAttribute('data-block-group')) !== index;
     });

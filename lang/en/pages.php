@@ -211,6 +211,8 @@ return [
     'pages.library_hint' => 'Each picture is the block as this site renders it.',
     'pages.insert_here' => 'Add a block here',
     'pages.insert_at_end' => 'Add a block at the end',
+    'pages.panel.content' => 'Content',
+    'pages.panel.section' => 'Section',
     'pages.undo' => 'Undo',
     'pages.removed' => ':block removed.',
     'pages.inserting' => 'Adding…',

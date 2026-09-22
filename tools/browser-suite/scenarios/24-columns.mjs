@@ -92,12 +92,30 @@ export default {
       typed !== null && typed.firstHeading === 'Design' && typed.empty === 2, JSON.stringify(typed));
 
     // ---- a fourth column, four in a row --------------------------------------------------------
-    await page.click(`${group} [data-repeater-action="add"]`);
+    // This used to press Add and THEN choose the row size, which is the manual way round.
+    // Choosing four in a row now asks for the fourth column itself (D-091), reported by the
+    // owner as the control not working: three columns, an empty cell, and no field to type
+    // into. So the Add is gone from this check and what it proves has changed with it.
+    const itemFields = () => page.$$eval(`${group} [data-repeater-item]`, (els) => els.length);
+    const beforeRowSize = await itemFields();
     await page.select(`${group} select[name$="[layout]"]`, 'four');
     await wait(SETTLE);
     const four = await columnsOnCanvas(page, index);
-    report.verdict('a fourth column is added, and four in a row puts them on one line',
-      four !== null && four.count === 4 && four.layout === 'four' && four.rows === 1, JSON.stringify(four));
+    const afterRowSize = await itemFields();
+    report.verdict('choosing four in a row adds the fourth column, in the panel and on the page',
+      four !== null && four.count === 4 && four.layout === 'four' && four.rows === 1
+        && beforeRowSize === 3 && afterRowSize === 4,
+      `${beforeRowSize} fields -> ${afterRowSize}; canvas ${JSON.stringify(four)}`);
+
+    // A narrower row is a choice about arrangement, not an instruction to delete a column.
+    await page.select(`${group} select[name$="[layout]"]`, 'two');
+    await wait(SETTLE);
+    const narrowed = await columnsOnCanvas(page, index);
+    report.verdict('going back to two in a row keeps every column',
+      narrowed !== null && narrowed.count === 4 && narrowed.layout === 'two' && await itemFields() === 4,
+      `canvas ${JSON.stringify(narrowed)}, ${await itemFields()} fields`);
+    await page.select(`${group} select[name$="[layout]"]`, 'four');
+    await wait(SETTLE);
 
     // ---- a picture in the first column --------------------------------------------------------
     // A photograph by name, never merely the first card: that is the site's logo.

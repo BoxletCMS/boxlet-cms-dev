@@ -26,7 +26,7 @@ final class BlockDefinition
     public const SUPPORTED_FIELD_TYPES = ['text', 'textarea', 'richtext', 'media', 'link', 'select', 'repeater', 'form'];
 
     /** A repeater's own fields cannot hold another repeater, and it must say how many items it takes. */
-    private const REPEATER_KEYS = ['type', 'required', 'translatable', 'fields', 'max'];
+    private const REPEATER_KEYS = ['type', 'required', 'translatable', 'fields', 'max', 'per_layout'];
 
     public const NAME = '~^[a-z][a-z0-9_]*$~';
     public const SLUG = '~^[a-z][a-z0-9_-]*$~';
@@ -90,6 +90,16 @@ final class BlockDefinition
         }
         if (count(array_unique($layouts)) !== count($layouts)) {
             self::fail($type, "'layouts' contains a duplicate");
+        }
+        // A per_layout naming a layout this block does not have would silently never apply,
+        // which is the kind of typo that is found months later by somebody wondering why a
+        // control does nothing. Checked here because it needs both halves.
+        foreach ($fields as $name => $field) {
+            foreach (array_keys($field['per_layout'] ?? []) as $layout) {
+                if (!in_array($layout, $layouts, true)) {
+                    self::fail($type, "field '{$name}': 'per_layout' names '{$layout}', which is not one of this block's layouts");
+                }
+            }
         }
         $defaults = $definition['defaults'];
         if (!is_array($defaults) || array_keys($defaults) !== ['layout'] || !in_array($defaults['layout'], $layouts, true)) {
@@ -223,8 +233,37 @@ final class BlockDefinition
                 $items[(string) $itemName] = self::validateField($type, $itemName, $itemField);
             }
 
+            /*
+             * HOW MANY ITEMS A LAYOUT WANTS (PLAN.md D-091, SPEC §5.3).
+             *
+             * Optional. Choosing "four in a row" on a Columns block with three columns left
+             * an empty cell and no way to fill it except knowing to press Add; the owner
+             * read that as the control not working, and he was right. With this the block
+             * SAYS what a layout asks for, so nothing generic has to guess that "four"
+             * means four — the editor and the save both read it from here.
+             *
+             * Only ever tops up. Going back to "two in a row" keeps the four columns, since
+             * a row size is a choice about arrangement and deleting somebody's writing is
+             * not one of its consequences.
+             */
+            $perLayout = $field['per_layout'] ?? null;
+            if ($perLayout !== null) {
+                if (!is_array($perLayout) || $perLayout === []) {
+                    self::fail($type, "{$at}: 'per_layout' must be a map of layout name => how many items it wants");
+                }
+                foreach ($perLayout as $layout => $wanted) {
+                    if (!is_string($layout) || !preg_match(self::SLUG, $layout)) {
+                        self::fail($type, "{$at}: 'per_layout' keys must be layout names matching [a-z][a-z0-9_-]*");
+                    }
+                    if (!is_int($wanted) || $wanted < 1 || $wanted > $max) {
+                        self::fail($type, "{$at}: 'per_layout[{$layout}]' must be an integer between 1 and the repeater's max of {$max}");
+                    }
+                }
+            }
+
             $normalized['fields'] = $items;
             $normalized['max'] = $max;
+            $normalized['per_layout'] = is_array($perLayout) ? $perLayout : [];
         }
 
         return $normalized;

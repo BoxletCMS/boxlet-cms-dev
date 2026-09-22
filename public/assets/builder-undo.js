@@ -42,6 +42,10 @@
   var SHOWN = 6000;
 
   var history = [];
+  /* The control that is there whether or not anything has happened (D-092). The strip below
+     only appears after a removal, which meant somebody who had removed nothing never learnt
+     that undo existed — reported by the owner, who asked whether it was keyboard-only. */
+  var button = document.querySelector('[data-undo-button]');
   var strip = document.querySelector('[data-undo-strip]');
   var stripText = strip && strip.querySelector('[data-undo-text]');
   var hiding = null;
@@ -53,6 +57,14 @@
   /* Whether the field that has focus has been typed in since it got it — which is what
      tells a cursor the author placed from one api.show() left behind. */
   var typed = false;
+
+  /* Disabled rather than hidden when the stack is empty: a control that disappears teaches
+     nobody that it is there, and the point of this one is that it can be found. */
+  function offer() {
+    if (button) {
+      button.disabled = history.length === 0;
+    }
+  }
 
   function main() {
     var doc = api.frame.contentDocument;
@@ -139,6 +151,7 @@
     } else {
       hide();
     }
+    offer();
   };
 
   api.undo = function () {
@@ -170,6 +183,7 @@
     api.tellCanvas('refresh', {});
     api.show(state.selected);
     api.tellCanvas('select', { index: state.selected });
+    offer();
   };
 
   window.addEventListener('message', function (event) {
@@ -187,6 +201,7 @@
         if (history.length > DEPTH) {
           history.shift();
         }
+        offer();
       }
       beforeDrag = null;
     } else if (event.data.type === 'undo') {
@@ -219,6 +234,12 @@
     event.preventDefault();
     api.undo();
   });
+
+  if (button) {
+    button.addEventListener('click', function () {
+      api.undo();
+    });
+  }
 
   if (strip) {
     strip.addEventListener('click', function (event) {

@@ -20,6 +20,9 @@ return [
             // Four rows of three: a team page or a list of services, and still an editor a
             // person can scroll through.
             'max' => 12,
+            // What each row size asks for: choosing "four in a row" with three columns adds
+            // the fourth, in the panel and on the page (D-091). It only ever tops up.
+            'per_layout' => ['two' => 2, 'three' => 3, 'four' => 4],
             'fields' => [
                 'image' => ['type' => 'media'],
                 'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.columns.item_heading'],

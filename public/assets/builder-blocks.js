@@ -337,6 +337,54 @@
   // On blur, and shortly after typing stops: often enough to feel live, rarely enough
   // not to render on every keystroke. 300ms is the figure in the 2h brief — at 500 it
   // read as lag rather than as the page following you.
+  /*
+   * A ROW SIZE THAT ASKS FOR MORE COLUMNS GETS THEM (PLAN.md D-091).
+   *
+   * Choosing "four in a row" on a block with three columns left an empty cell in the grid
+   * and no fourth field to type into. The server tops the content up when it parses, so
+   * the canvas would have drawn the fourth column on its own — and the panel would still
+   * have had three, which is half the complaint.
+   *
+   * WHAT "FOUR" MEANS IS NOT KNOWN HERE. The block declares it, the view writes it onto
+   * the option as data-wants, and this reads the number off the option that was chosen. It
+   * presses the repeater's own Add rather than building an item: one way to add a row,
+   * which the fallback editor uses too and which already knows about numbering, the
+   * maximum and the empty-state message.
+   */
+  api.groups.addEventListener('change', function (event) {
+    var option = event.target.tagName === 'SELECT' && /\[layout\]$/.test(event.target.name || '')
+      ? event.target.options[event.target.selectedIndex]
+      : null;
+    var wants = option && option.getAttribute('data-wants');
+    if (!wants) {
+      return;
+    }
+    var group = event.target.closest('[data-block-group]');
+    var asked = {};
+    try {
+      asked = JSON.parse(wants);
+    } catch (error) {
+      return;
+    }
+    Object.keys(asked).forEach(function (field) {
+      var repeater = group && group.querySelector('[data-repeater="' + field + '"]');
+      var add = repeater && repeater.querySelector('[data-repeater-action="add"]');
+      if (!repeater || !add) {
+        return;
+      }
+      // Counted again each time: Add refuses at the maximum, and a loop that trusted its
+      // own arithmetic would spin when it did.
+      var guard = 0;
+      while (repeater.querySelectorAll('[data-repeater-item]').length < asked[field] && guard < 32) {
+        if (add.disabled) {
+          break;
+        }
+        add.click();
+        guard += 1;
+      }
+    });
+  });
+
   api.groups.addEventListener('change', redraw);
   api.groups.addEventListener('input', function () {
     window.clearTimeout(timer);

@@ -29,6 +29,8 @@ const ICONS = [
     // the names are Lucide's so that adding a block means adding a line here and running this
     // again — not drawing anything. 'image' above already serves the Image and text block.
     'panel-top', 'type', 'columns-3', 'clipboard-list',
+    // Undo in the page editor's bar (D-092).
+    'undo-2',
 ];
 
 if (PHP_SAPI !== 'cli') {

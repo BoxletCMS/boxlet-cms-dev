@@ -75,7 +75,10 @@ export default {
 
     // ---- pressing it puts the page back -----------------------------------------------------
     await page.evaluate(() => { document.querySelector('[data-page-history]').open = true; });
-    await clickAndWait(page, '[data-page-history] button[name="action"]', 30000);
+    // The FIRST row, named as the first row: newest first, so this is the version the page
+    // had before the save above. Unscoped, this matched every Restore on the list once the
+    // copy had more than one, and the harness refused it — which is what that guard is for.
+    await clickAndWait(page, '[data-page-history] .history-item:first-child button[name="action"]', 30000);
     const restored = await titleNow();
     report.verdict('restoring an earlier version puts the page back', restored === before,
       `was ${JSON.stringify(before)}, saved as ${JSON.stringify(marker)}, restored to ${JSON.stringify(restored)}`);

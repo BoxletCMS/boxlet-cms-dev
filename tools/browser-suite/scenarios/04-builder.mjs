@@ -65,6 +65,23 @@ const undoChecks = async (page, report) => {
   const startCount = await groups(page);
   const startLabels = await labels();
 
+  /*
+   * UNDO IS A CONTROL, SO IT IS THERE BEFORE ANYTHING HAPPENS (D-092). It used to have only
+   * a shortcut and a strip shown for six seconds after a removal, so somebody who had
+   * removed nothing never learnt it existed — which is what the owner reported.
+   */
+  const undoButton = () => page.$eval('[data-undo-button]', (b) => {
+    const svg = b.querySelector('svg');
+    const box = svg && svg.getBoundingClientRect();
+
+    return { disabled: b.disabled, drawn: !!(box && box.width > 0 && box.height > 0), label: b.title };
+  }).catch(() => null);
+
+  const atRest = await undoButton();
+  report.verdict('undo has a button before anything has happened, shown as unavailable',
+    atRest !== null && atRest.drawn && atRest.disabled && atRest.label.length > 0,
+    JSON.stringify(atRest));
+
   // A removal takes the block out of BOTH halves, and an undo has to bring back the text
   // the author had typed into another block — which lives in a property, not in the
   // markup a snapshot serialises, and was lost until sync() was written for it.
@@ -87,6 +104,10 @@ const undoChecks = async (page, report) => {
     removedCount === startCount - 1 && !strip.hidden && strip.text.length > 0,
     `${startCount} groups -> ${removedCount}, strip ${JSON.stringify(strip)}`);
   await report.shot(page, '05-undo-offered');
+
+  const offered = await undoButton();
+  report.verdict('the button offers itself once there is something to undo',
+    offered !== null && !offered.disabled, JSON.stringify(offered));
 
   await undo();
   const backCount = await groups(page);

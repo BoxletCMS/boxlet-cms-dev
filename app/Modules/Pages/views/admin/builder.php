@@ -74,6 +74,17 @@ foreach ($errors as $key => $message) {
                          title, so only one field named "title" is ever submitted. */ ?>
                 <p class="builder-title" data-title-echo><?= e($titleValue !== '' ? $titleValue : t('pages.new')) ?></p>
 
+                <?php /* UNDO, VISIBLE AT REST (D-092). It had only a keyboard shortcut and a
+                         strip that appeared for six seconds after a removal — so somebody who
+                         had not removed anything never saw that undo existed at all, which is
+                         what the owner reported. CLAUDE.md: no control is ever invisible at
+                         rest, and a notification that comes and goes is not a resting state.
+                         Disabled until there is something to undo, never hidden: a control
+                         that vanishes teaches nobody that it is there. Without a script it is
+                         not rendered at all, because then nothing can undo anything. */ ?>
+                <button type="button" class="button button-ghost button-icon js-only" data-undo-button disabled
+                        title="<?= e(t('pages.undo')) ?>"><?= icon('undo-2') ?><span class="visually-hidden"><?= e(t('pages.undo')) ?></span></button>
+
                 <div class="builder-devices" role="group" aria-label="<?= e(t('pages.device.label')) ?>">
 <?php /* Icons, each named for a screen reader and on hover (D-039). */ ?>
 <?php foreach (['phone' => ['24rem', 'smartphone'], 'tablet' => ['48rem', 'tablet'], 'desktop' => ['100%', 'monitor']] as $device => [$width, $deviceIcon]): ?>

@@ -89,12 +89,24 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
 ?>
 <?php endforeach; ?>
 <?php $layouts = $registry->get($block['type'])['layouts']; ?>
+<?php
+    /* WHAT EACH LAYOUT ASKS FOR (D-091), field name => how many items, from the block's own
+       declaration. Written onto the options so the editor can top a repeater up when the
+       row size is chosen, without anything in the browser having to know that a layout
+       called "four" means four. */
+    $wants = [];
+    foreach ($registry->get($block['type'])['fields'] as $fieldName => $declared) {
+        foreach (is_array($declared['per_layout'] ?? null) ? $declared['per_layout'] : [] as $forLayout => $count) {
+            $wants[$forLayout][$fieldName] = $count;
+        }
+    }
+?>
 <?php if (count($layouts) > 1): ?>
                 <div class="field">
                     <label for="<?= e($idPrefix) ?>layout"><?= e(t('pages.layout')) ?></label>
                     <select id="<?= e($idPrefix) ?>layout" name="<?= e($prefix) ?>[layout]">
 <?php foreach ($layouts as $layoutOption): ?>
-                        <option value="<?= e($layoutOption) ?>"<?= $layoutOption === $block['layout'] ? ' selected' : '' ?>><?= e(t('block.' . $block['type'] . '.layout.' . $layoutOption)) ?></option>
+                        <option value="<?= e($layoutOption) ?>"<?= $layoutOption === $block['layout'] ? ' selected' : '' ?><?= isset($wants[$layoutOption]) ? ' data-wants="' . e((string) json_encode($wants[$layoutOption])) . '"' : '' ?>><?= e(t('block.' . $block['type'] . '.layout.' . $layoutOption)) ?></option>
 <?php endforeach; ?>
                     </select>
                     <?= field_hint('hint.layout') ?>

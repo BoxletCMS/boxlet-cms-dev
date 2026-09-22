@@ -133,3 +133,48 @@ test('each block\'s preview says its own words, and a block without a sample sti
     $definition = ['fields' => ['heading' => ['type' => 'text', 'sample' => null]]];
     assertEquals(t('preview.heading'), BlockPreview::sample($definition)['heading'] ?? null, 'the fallback');
 });
+
+/*
+ * A ROW SIZE ASKS FOR ITS COLUMNS (PLAN.md D-091).
+ *
+ * Choosing "four in a row" on a block with three columns drew three columns and an empty
+ * cell, and gave no fourth field to type into. The owner reported it as the control not
+ * working, and he was right. The block declares what each row size wants; nothing generic
+ * knows that a layout called "four" means four.
+ */
+test('choosing a wider row adds the columns it asks for, and a narrower one keeps them', function () {
+    $registry = blockRegistry();
+    $three = [['heading' => 'One'], ['heading' => 'Two'], ['heading' => 'Three']];
+
+    $parsed = BlockForm::parse($registry, [['type' => 'columns', 'layout' => 'four', 'items' => $three]], []);
+    $items = $parsed['blocks'][0]['content']['items'] ?? [];
+    assertEquals(4, count($items), 'four in a row, with three columns given');
+    assertEquals('', $items[3]['heading'] ?? null, 'the column it added is empty');
+    assertEquals('Three', $items[2]['heading'] ?? null, 'the columns that were there are untouched');
+
+    // Going back to a smaller row is a choice about arrangement. Deleting somebody's
+    // writing is not one of its consequences.
+    $back = BlockForm::parse($registry, [['type' => 'columns', 'layout' => 'two', 'items' => $items]], []);
+    assertEquals(4, count($back['blocks'][0]['content']['items'] ?? []), 'two in a row threw columns away');
+});
+
+test('a row that is already full is left alone', function () {
+    $registry = blockRegistry();
+    // Seven columns at four in a row is a full row and a short one, which is ordinary.
+    $seven = array_fill(0, 7, ['heading' => 'x']);
+    $parsed = BlockForm::parse($registry, [['type' => 'columns', 'layout' => 'four', 'items' => $seven]], []);
+
+    assertEquals(7, count($parsed['blocks'][0]['content']['items'] ?? []), 'items after parsing seven');
+});
+
+test('the layout options carry what they ask for, so the editor need not guess', function () {
+    $db = adminSite('sqlite');
+    $page = createPage($db, 'en', 'grid', 'Grid');
+    $response = adminPost("/admin/pages/{$page}/block", ['type' => 'columns']);
+
+    assertEquals(200, $response->status, 'status');
+    // The view writes the block's own declaration onto the option; builder-blocks.js reads
+    // the number off whichever option was chosen.
+    assertContains('data-wants="{&quot;items&quot;:4}"', $response->body, 'the four-in-a-row option');
+    assertContains('data-wants="{&quot;items&quot;:2}"', $response->body, 'the two-in-a-row option');
+});

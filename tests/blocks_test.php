@@ -31,7 +31,14 @@ test('the shipped blocks are columns, form, hero, image_text and text, and all v
 test('a valid definition passes and gets its optional flags filled in', function () {
     $definition = Blocks::validate('sample', validBlock());
 
-    assertEquals(['type' => 'text', 'required' => true, 'translatable' => false], $definition['fields']['heading'], 'heading field');
+    // 'sample' joined the optional flags when a field gained the right to say what it
+    // shows in a library preview (D-083, SPEC §5.3). It is filled in like the others, so a
+    // definition that declares none still has the key and nothing has to test for it.
+    assertEquals(
+        ['type' => 'text', 'required' => true, 'translatable' => false, 'sample' => null],
+        $definition['fields']['heading'],
+        'heading field',
+    );
 });
 
 // Each case breaks one thing; the message must name the block and, for a field, the field.

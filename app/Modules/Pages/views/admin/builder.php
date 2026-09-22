@@ -275,3 +275,4 @@ foreach ($errors as $key => $message) {
         <script src="<?= e(Url::versioned('assets/builder-blocks.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-undo.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-save.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-library.js')) ?>" defer></script>

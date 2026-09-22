@@ -210,4 +210,29 @@ return [
     'preview.heading' => 'A heading sits here',
     'preview.body' => 'A sentence or two of body copy, set the way this site sets it.',
     'preview.link' => 'A link',
+
+    // What each block says in its own library card (D-083). The generic three above are the
+    // fallback and what a block added later gets for free; these exist so the five cards are
+    // told apart by what they SAY as well as by their shape. The register is deliberate:
+    // they describe the part rather than pretending to be a real page, because a card that
+    // reads as finished copy invites the reader to judge the copy.
+    'preview.hero.heading' => 'The line that says what this is',
+    'preview.hero.subheading' => 'A sentence under it, for what the line leaves out.',
+    'preview.hero.cta' => 'The one thing to do',
+    'preview.text.heading' => 'A section heading',
+    'preview.text.body' => 'A paragraph or two, set the way this site sets writing.',
+    'preview.image_text.heading' => 'A heading beside the picture',
+    'preview.image_text.body' => 'What the picture is about, in a paragraph.',
+    'preview.image_text.link' => 'Read more',
+    'preview.columns.heading' => 'Three of something',
+    'preview.columns.intro' => 'A line above the three, if they need one.',
+    'preview.columns.item_heading' => 'One of the three',
+    'preview.columns.item_body' => 'A line or two about it.',
+    'preview.columns.item_link' => 'More',
+    'preview.form.heading' => 'Get in touch',
+    'preview.form.intro' => 'A line telling people what happens when they write.',
+    'preview.form.name' => 'Your name',
+    'preview.form.email' => 'Your email',
+    'preview.form.message' => 'Your message',
+    'preview.form.submit' => 'Send',
 ];

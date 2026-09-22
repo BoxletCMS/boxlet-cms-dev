@@ -7,8 +7,8 @@ return [
     'icon' => 'text',
     'version' => 1,
     'fields' => [
-        'heading' => ['type' => 'text', 'translatable' => true],
-        'body' => ['type' => 'richtext', 'required' => true, 'translatable' => true],
+        'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.text.heading'],
+        'body' => ['type' => 'richtext', 'required' => true, 'translatable' => true, 'sample' => 'preview.text.body'],
     ],
     'layouts' => ['single', 'columns'],
     'defaults' => ['layout' => 'single'],

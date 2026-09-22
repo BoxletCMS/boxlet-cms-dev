@@ -126,12 +126,24 @@
 }
 
 /* The preview renders at desktop width and is scaled down, so the card shows the block
-   as a visitor sees it rather than as a narrow phone layout. */
+   as a visitor sees it rather than as a narrow phone layout.
+
+   THE CARD IS AS TALL AS THE BLOCK. It was a fixed 16/9 window, so a Text block drew 201px
+   of block and 692px of empty document, and every card was the same size whatever it held
+   — which loses the one thing a picture of a block can say that its name cannot: how much
+   room it takes. builder-library.js measures the rendered block and sets --library-block;
+   without it every card keeps the min-block-size, which is short and the same for all.
+
+   One scale, named once: it sets how wide the preview's viewport is (100% / scale) and
+   how much of the measured block a pixel of card is worth. */
 .library-frame {
+  --library-scale: 0.4;
   position: relative;
   display: block;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
+  block-size: calc(var(--library-block, 14rem) * var(--library-scale));
+  min-block-size: 3.5rem;
+  max-block-size: 14rem;
   background: var(--ui-panel-sunken);
   border-radius: var(--ui-radius-s);
 }
@@ -139,11 +151,28 @@
 .library-frame iframe {
   position: absolute;
   inset: 0 auto auto 0;
-  inline-size: 400%;
-  block-size: 400%;
+  inline-size: calc(100% / var(--library-scale));
+  block-size: calc(100% / var(--library-scale));
   border: 0;
-  transform: scale(0.25);
+  transform: scale(var(--library-scale));
   transform-origin: 0 0;
+  pointer-events: none;
+}
+
+/* A block taller than the card is cut off, and a cut through a line of text reads as
+   damage. It fades out instead, so the edge says "there is more" rather than "this broke".
+   The gradient is the panel's own surface, never a literal.
+
+   ONLY WHEN THERE IS SOMETHING TO CUT. Drawn unconditionally it covered most of a short
+   card — the Text card is 3.5rem tall and the fade was 2.5rem of it — so five cards that
+   fitted perfectly well all looked like they were dissolving. builder-library.js marks the
+   frames that actually overflow. */
+.library-frame[data-cut]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  block-size: 1.5rem;
+  background: linear-gradient(to bottom, transparent, var(--ui-panel));
   pointer-events: none;
 }
 

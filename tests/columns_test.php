@@ -106,5 +106,30 @@ test('the library shows Columns as a row of sample columns', function () {
     $file = BlockPreview::file(blockRegistry(), 'columns', 'tokens.test.css', $dir);
     $html = (string) file_get_contents($dir . '/previews/' . $file);
 
-    assertEquals(3, substr_count($html, '<h3 class="columns-item-heading">' . e(t('preview.heading')) . '</h3>'), 'sample columns');
+    // The words changed deliberately when a field gained its own 'sample' (D-083); what
+    // this test is for has not. It is still: three items, drawn from the repeater.
+    assertEquals(3, substr_count($html, '<h3 class="columns-item-heading">' . e(t('preview.columns.item_heading')) . '</h3>'), 'sample columns');
+});
+
+test('each block\'s preview says its own words, and a block without a sample still gets one', function () {
+    $dir = tmpPath('previews-samples');
+    removeTree($dir);
+    $registry = blockRegistry();
+
+    $headings = [];
+    foreach ($registry->types() as $type) {
+        $file = BlockPreview::file($registry, $type, 'tokens.test.css', $dir);
+        $headings[$type] = (string) file_get_contents($dir . '/previews/' . $file);
+    }
+
+    // Before this, sampleFields() mapped every text field to one generic string, so all
+    // five cards read "A heading sits here" and only their shape told them apart.
+    assertTrue(str_contains($headings['hero'], e(t('preview.hero.heading'))), 'the hero says its own line');
+    assertTrue(str_contains($headings['form'], e(t('preview.form.heading'))), 'the form says its own line');
+    assertTrue(!str_contains($headings['hero'], e(t('preview.form.heading'))), 'and they are not the same line');
+
+    // A field that declares nothing keeps the generic sample: that is what lets a block
+    // added later have a preview without anyone writing copy for it.
+    $definition = ['fields' => ['heading' => ['type' => 'text', 'sample' => null]]];
+    assertEquals(t('preview.heading'), BlockPreview::sample($definition)['heading'] ?? null, 'the fallback');
 });

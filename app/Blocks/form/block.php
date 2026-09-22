@@ -11,8 +11,8 @@ return [
     'icon' => 'form',
     'version' => 1,
     'fields' => [
-        'heading' => ['type' => 'text', 'translatable' => true],
-        'intro' => ['type' => 'textarea', 'translatable' => true],
+        'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.form.heading'],
+        'intro' => ['type' => 'textarea', 'translatable' => true, 'sample' => 'preview.form.intro'],
         'form' => ['type' => 'form'],
     ],
     // Stacked: the heading above the form. Beside: the heading and sentence in one column

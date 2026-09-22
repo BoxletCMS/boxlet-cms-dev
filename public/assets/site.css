@@ -109,12 +109,34 @@ code {
    sections.css), so it stays visible on a pale surface and on a dark one alike. A fill
    picked to suit one surface reads as a hole on another. */
 .media-placeholder {
+  position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
   background: var(--section-placeholder);
   border: var(--border-width) solid var(--section-placeholder-edge);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-m);
+}
+
+/* A FLAT RECTANGLE READS AS DAMAGE; A RECTANGLE WITH A PICTURE IN IT READS AS A PICTURE
+   AREA (PLAN.md D-083). It is the same difference as between a blank frame on a wall and a
+   hole in it, and it matters most in the library, where a preview at two fifths of size
+   showed nothing but a grey slab where every block's picture goes.
+
+   Drawn as a MASK filled from the section's own token, never as a coloured image: the
+   glyph then takes the colour of whatever surface it lands on, which is the rule the whole
+   front end follows. One declaration serves the page, the canvas and the library preview,
+   because all three render the same block through this same class. */
+.media-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  translate: -50% -50%;
+  inline-size: min(2.5rem, 24%);
+  aspect-ratio: 1;
+  background: var(--section-placeholder-edge);
+  -webkit-mask: var(--placeholder-glyph) center / contain no-repeat;
+  mask: var(--placeholder-glyph) center / contain no-repeat;
 }
 
 .richtext > :first-child {

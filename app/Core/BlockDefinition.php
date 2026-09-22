@@ -32,7 +32,10 @@ final class BlockDefinition
     public const SLUG = '~^[a-z][a-z0-9_-]*$~';
 
     private const KEYS = ['type', 'icon', 'version', 'fields', 'layouts', 'defaults'];
-    private const FIELD_KEYS = ['type', 'required', 'translatable', 'options'];
+    /** A t() key: dotted lower-case segments, like preview.hero.heading. */
+    private const LANG_KEY = '~^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$~';
+
+    private const FIELD_KEYS = ['type', 'required', 'translatable', 'options', 'sample'];
 
     /** Names the page editor uses for its own inputs inside blocks[n]. */
     private const RESERVED_FIELD_NAMES = ['id', 'type'];
@@ -152,10 +155,24 @@ final class BlockDefinition
                 self::fail($type, "{$at}: '{$flag}' must be true or false");
             }
         }
+        /*
+         * WHAT THIS FIELD SAYS IN A LIBRARY PREVIEW (PLAN.md D-083, SPEC §5.3).
+         *
+         * Optional, and a LANGUAGE KEY rather than words: a preview is drawn in the admin's
+         * language and sample copy is copy. Without it the preview falls back to the
+         * generic sample for the field's type, which is what every field had and why all
+         * five cards read the same sentence.
+         */
+        if (array_key_exists('sample', $field)
+            && (!is_string($field['sample']) || !preg_match(self::LANG_KEY, $field['sample']))) {
+            self::fail($type, "{$at}: 'sample' must be a language key, like 'preview.hero.heading'");
+        }
+
         $normalized = [
             'type' => $fieldType,
             'required' => $field['required'] ?? false,
             'translatable' => $field['translatable'] ?? false,
+            'sample' => is_string($field['sample'] ?? null) ? $field['sample'] : null,
         ];
 
         if ($fieldType === 'select') {

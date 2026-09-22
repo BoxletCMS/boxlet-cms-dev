@@ -12,8 +12,8 @@ return [
     'icon' => 'columns',
     'version' => 1,
     'fields' => [
-        'heading' => ['type' => 'text', 'translatable' => true],
-        'intro' => ['type' => 'textarea', 'translatable' => true],
+        'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.columns.heading'],
+        'intro' => ['type' => 'textarea', 'translatable' => true, 'sample' => 'preview.columns.intro'],
         'items' => [
             'type' => 'repeater',
             'required' => true,
@@ -22,9 +22,9 @@ return [
             'max' => 12,
             'fields' => [
                 'image' => ['type' => 'media'],
-                'heading' => ['type' => 'text', 'translatable' => true],
-                'body' => ['type' => 'richtext', 'translatable' => true],
-                'link' => ['type' => 'link', 'translatable' => true],
+                'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.columns.item_heading'],
+                'body' => ['type' => 'richtext', 'translatable' => true, 'sample' => 'preview.columns.item_body'],
+                'link' => ['type' => 'link', 'translatable' => true, 'sample' => 'preview.columns.item_link'],
             ],
         ],
         'image_shape' => ['type' => 'select', 'options' => ['wide', 'square', 'round']],

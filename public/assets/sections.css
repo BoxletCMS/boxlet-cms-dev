@@ -23,6 +23,16 @@
   --section-placeholder: color-mix(in srgb, var(--section-text) 10%, transparent);
   --section-placeholder-edge: color-mix(in srgb, var(--section-text) 40%, transparent);
 
+  /* The picture glyph the empty media area wears (D-083). It is a MASK, so what the SVG
+     paints is opacity and what the reader sees is --section-placeholder-edge, mixed from
+     the section's own text colour. The shapes are FILLED and name no colour at all —
+     SVG fills black by itself — because a front-end stylesheet with a literal colour in
+     it is a bug even where the colour cannot reach the screen, and a rule nobody has to
+     make an exception to is worth more than four saved characters. Declared here beside
+     the tints it is drawn with, so the whole appearance of an empty picture area is one
+     thing to read. */
+  --placeholder-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M5.5 3h13A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5v-13A2.5 2.5 0 0 1 5.5 3Zm0 1.6a.9.9 0 0 0-.9.9v13a.9.9 0 0 0 .9.9h13a.9.9 0 0 0 .9-.9v-13a.9.9 0 0 0-.9-.9Z'/%3E%3Ccircle cx='9' cy='9' r='1.9'/%3E%3Cpath d='M5.6 18.4h12.8l-4.6-6-3 3.8-1.8-2.1z'/%3E%3C/svg%3E");
+
   /* How much of the surface's own colour is washed over a background picture, so the
      words on top stay readable whatever the photograph is (D-024). A token rather than a
      number in a rule: a character that needs more of it says so in one place. */

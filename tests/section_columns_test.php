@@ -288,3 +288,121 @@ testBothDrivers('applying a character composes each section once, from what it h
         'each block took its own type\'s layout',
     );
 });
+
+testBothDrivers('a save that names its sections puts two blocks in one, side by side', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'Left']],
+        ['type' => 'form', 'content' => []],
+    ]);
+    [$hero, $form] = blockIdsInOrder($db, $id);
+
+    // THE SHAPE THE EDITOR WILL SEND. One section named m0, two blocks naming it, the form
+    // in the second column. Nothing here reaches past the model: this is Page::update()'s
+    // own contract, exercised the way the form will exercise it.
+    Page::update($db, blockRegistry(), $id, [
+        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+    ], [
+        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'hero', 'content' => ['heading' => 'Left'], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 0],
+        ['key' => 'b' . $form, 'id' => $form, 'type' => 'form', 'content' => [], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 1],
+    ], [
+        ['key' => 'm0', 'id' => null, 'layout' => 'halves', 'stack' => 'reverse', 'style' => ['surface' => 'tinted']],
+    ]);
+
+    $sections = Sections::forPage($db, $id);
+    assertEquals(1, count($sections), 'the two blocks stand in one section');
+    $section = reset($sections) ?: fail('no section');
+    assertEquals('halves', $section['layout'], 'the arrangement the save asked for');
+    assertEquals('reverse', $section['stack'], 'and what it does on a phone');
+    assertEquals('tinted', $section['style']['surface'], 'and the style, once, for both blocks');
+
+    $blocks = Page::blocks($db, $id);
+    assertEquals([0, 1], array_map(static fn (array $b): int => $b['column'], $blocks), 'the columns they landed in');
+    assertEquals([$hero, $form], array_map(static fn (array $b): int => $b['id'], $blocks), 'both blocks kept, in order');
+    // Its place DOWN its column, which is 0 for both because neither has anything above it.
+    assertEquals(
+        [0, 0],
+        array_map(static fn (array $r): int => (int) $r['sort'], $db->all('SELECT sort FROM page_blocks WHERE page_id = ? ORDER BY column_index', [$id])),
+        'the place each block has down its own column',
+    );
+
+    // And the page draws them as columns, which is the point of all of it.
+    $html = SectionRender::draw(blockRegistry(), $section, array_map(
+        static fn (array $b): array => ['type' => $b['type'], 'content' => $b['content'], 'layout' => $b['layout'], 'column' => $b['column']],
+        $blocks,
+    ), [], true, [], 'en');
+    assertTrue(str_contains($html, 'cols-halves stack-reverse'), 'the section drew its columns');
+});
+
+testBothDrivers('two blocks in one column keep the order they were sent in', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'One']],
+        ['type' => 'text', 'content' => ['body' => '<p>Two</p>']],
+    ]);
+    [$hero, $text] = blockIdsInOrder($db, $id);
+
+    // Both in column 0 of one section, the text ABOVE the hero — a reordering that the flat
+    // editor expressed as page order and that now has to be expressed inside a column.
+    Page::update($db, blockRegistry(), $id, [
+        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+    ], [
+        ['key' => 'b' . $text, 'id' => $text, 'type' => 'text', 'content' => ['body' => '<p>Two</p>'], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 0],
+        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'hero', 'content' => ['heading' => 'One'], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 0],
+    ], [
+        ['key' => 'm0', 'id' => null, 'layout' => 'one', 'stack' => 'stack', 'style' => []],
+    ]);
+
+    assertEquals(
+        [$text, $hero],
+        array_map(static fn (array $b): int => $b['id'], Page::blocks($db, $id)),
+        'the order the save sent them in',
+    );
+    assertEquals(
+        [0, 1],
+        array_map(static fn (array $r): int => (int) $r['sort'], $db->all('SELECT sort FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id])),
+        'their places down the one column',
+    );
+});
+
+testBothDrivers('a block naming a section nobody sent is given one of its own, not dropped', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'Kept']],
+    ]);
+    [$hero] = blockIdsInOrder($db, $id);
+
+    Page::update($db, blockRegistry(), $id, [
+        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+    ], [
+        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'hero', 'content' => ['heading' => 'Kept'], 'style' => [], 'layout' => '', 'section' => 'm9', 'column' => 0],
+    ], [
+        ['key' => 'm0', 'id' => null, 'layout' => 'halves', 'stack' => 'stack', 'style' => []],
+    ]);
+
+    // The block survives. An empty section does not: prune() takes the halves section the
+    // save asked for, because nothing ended up standing in it.
+    assertEquals([$hero], array_map(static fn (array $b): int => $b['id'], Page::blocks($db, $id)), 'the block was dropped');
+    assertEquals(1, count(Sections::forPage($db, $id)), 'sections left standing');
+});
+
+testBothDrivers('a block whose type is gone keeps its section style through a save', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy']],
+    ]);
+    [$hero] = blockIdsInOrder($db, $id);
+    $db->query('UPDATE page_blocks SET block_type = ? WHERE id = ?', ['gone_away', $hero]);
+
+    // What the editor sends for a block it cannot draw: a null content, no style — it was
+    // never rendered a field for one. Its stored style is the only record of what it was.
+    Page::update($db, blockRegistry(), $id, [
+        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+    ], [
+        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'gone_away', 'content' => null, 'style' => [], 'layout' => ''],
+    ]);
+
+    $style = sectionStyleOf($db, $hero);
+    assertEquals('contrast', $style['surface'] ?? null, 'the surface of a block nobody can draw');
+    assertEquals('airy', $style['rhythm'] ?? null, 'and its rhythm');
+});

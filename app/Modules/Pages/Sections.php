@@ -103,7 +103,12 @@ final class Sections
      * the plain page editor must not quietly collapse the section it sits in back to one
      * column. A new section with nothing said about it is one column that stacks.
      *
-     * @param array<string, string|int|null> $style
+     * THE STYLE IS OPTIONAL FOR THE SAME REASON: null leaves it. A section holding a block
+     * this installation can no longer draw is saved by a form that never rendered its
+     * style, and its stored style is the only record of what it was — so silence about it
+     * has to mean "as it was" and not "the defaults", which would quietly repaint it.
+     *
+     * @param array<string, string|int|null>|null $style
      * @return int the section's id, for the block row to point at
      */
     public static function save(
@@ -111,20 +116,23 @@ final class Sections
         int $pageId,
         ?int $sectionId,
         int $sort,
-        array $style,
+        ?array $style,
         string $now,
         ?string $layout = null,
         ?string $stack = null,
     ): int {
-        $json = self::json(SectionStyle::resolve($db, SectionStyle::normalize($style)));
-
         // A section id from a form is somebody's input until it is shown to belong to this
         // page; a stale one makes a new section rather than writing over a stranger's.
         $existing = $sectionId === null ? null : $db->one(
-            'SELECT id, layout, stack FROM page_sections WHERE id = ? AND page_id = ?',
+            'SELECT id, layout, stack, style_json FROM page_sections WHERE id = ? AND page_id = ?',
             [$sectionId, $pageId],
         );
         if ($existing !== null) {
+            $kept = json_decode((string) $existing['style_json'], true);
+            $json = self::json(SectionStyle::resolve(
+                $db,
+                SectionStyle::normalize($style ?? (is_array($kept) ? $kept : [])),
+            ));
             $db->query(
                 'UPDATE page_sections SET sort = ?, layout = ?, stack = ?, style_json = ?, updated_at = ?
                  WHERE id = ? AND page_id = ?',
@@ -150,7 +158,7 @@ final class Sections
                 $sort,
                 SectionLayout::normalize($layout),
                 SectionLayout::normalizeStack($stack),
-                $json,
+                self::json(SectionStyle::resolve($db, SectionStyle::normalize($style ?? []))),
                 $now,
                 $now,
             ],

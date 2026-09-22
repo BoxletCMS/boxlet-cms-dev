@@ -193,7 +193,11 @@ final class Page
                     'style' => Composition::style($character, $type),
                     'layout' => Composition::layout($registry, $character, $type),
                 ];
-                self::insertBlock($db, $registry, $id, $block, $sort, $now);
+                // One block, one section, in its only column — a new page has no
+                // arrangement to express yet, and the template that gives it one will say
+                // so by passing sections to update() rather than by growing this loop.
+                $section = Sections::save($db, $id, null, $sort, $block['style'], $now);
+                self::insertBlock($db, $registry, $id, $block, $section, 0, 0, $now);
             }
 
             return $id;
@@ -217,12 +221,20 @@ final class Page
      * a rejected save hands back to the editor: one name for the column, the settings
      * array and the re-rendered form means those three can never drift apart.
      *
+     * THE SECTIONS ARE OPTIONAL, and null means "one block, one section, arrangement left
+     * as it is" (SectionForm::oneEach). The demo seed, the test fixtures and every caller
+     * written before columns existed have nothing to say about an arrangement, and making
+     * each of them say it would put the same sentence in a dozen places. A caller that
+     * DOES send sections is believed completely: their order is the page's order, and a
+     * block belongs to the section its key names.
+     *
      * @param array{title: string, slug: string, parent_id: int|null, status: string, seo_json: string} $page
      * @param list<BlockRow> $blocks
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
-    public static function update(Db $db, Blocks $registry, int $id, array $page, array $blocks): void
+    public static function update(Db $db, Blocks $registry, int $id, array $page, array $blocks, ?array $sections = null): void
     {
-        $db->transaction(static function () use ($db, $registry, $id, $page, $blocks): void {
+        $db->transaction(static function () use ($db, $registry, $id, $page, $blocks, $sections): void {
             $now = gmdate('Y-m-d H:i:s');
             // A page that changes parent joins a different set of siblings, where its old
             // position means nothing and collides with whoever already holds it. It goes
@@ -252,31 +264,72 @@ final class Page
             );
 
             /*
-             * THE STYLE GOES TO THE SECTION (D-095). A block's section is written first, so
-             * the block row has one to point at, and $sort is the SECTION's place on the
-             * page — a block's own sort is its place inside its section, which is 0 while a
-             * section holds one block.
+             * THE SECTIONS ARE WRITTEN FIRST, so every block row has one to point at, and
+             * their submitted order is the page's order (D-093 step 3). A block's own sort
+             * is its place DOWN its column — not its place on the page, which stopped being
+             * true at D-095 and stops being expressible at all now that two blocks can
+             * stand side by side.
              */
             $existing = [];
             foreach ($db->all('SELECT id, section_id FROM page_blocks WHERE page_id = ?', [$id]) as $row) {
                 $existing[(int) $row['id']] = $row['section_id'] === null ? null : (int) $row['section_id'];
             }
-            foreach ($blocks as $sort => $block) {
+            if ($sections === null) {
+                ['sections' => $sections, 'blocks' => $blocks] = SectionForm::oneEach($blocks, $existing);
+            }
+
+            $held = [];
+            foreach ($sections as $sort => $section) {
+                $sectionId = Sections::save(
+                    $db,
+                    $id,
+                    $section['id'],
+                    $sort,
+                    $section['style'],
+                    $now,
+                    $section['layout'],
+                    $section['stack'],
+                );
+                $held[$section['key']] = ['id' => $sectionId, 'layout' => $section['layout']];
+            }
+
+            // WHERE EACH BLOCK LANDS. The column is clamped to what its section actually
+            // has, and the place down that column is counted as the blocks go by, so the
+            // submitted order within a column is the stored order — the same rule the page
+            // order has always followed, one level down.
+            $slot = [];
+            foreach ($blocks as $ordinal => $block) {
+                $target = $held[$block['section'] ?? ''] ?? null;
+                if ($target === null) {
+                    // A block naming no section anybody sent. Rather than dropping it or
+                    // guessing a neighbour, it is given one of its own at the end of the
+                    // page: visible, obviously wrong, and nothing is lost.
+                    $target = [
+                        'id' => Sections::save($db, $id, null, count($sections) + $ordinal, $block['style'], $now),
+                        'layout' => SectionLayout::ONE,
+                    ];
+                }
+                $column = SectionLayout::clamp((int) ($block['column'] ?? 0), $target['layout']);
+                $at = $slot[$target['id']][$column] ?? 0;
+                $slot[$target['id']][$column] = $at + 1;
+
                 if ($block['id'] !== null && array_key_exists($block['id'], $existing)) {
-                    $sectionId = $existing[$block['id']];
                     unset($existing[$block['id']]);
-                    // A block whose type is no longer installed keeps its content and its
-                    // style untouched; only where it sits can still be changed.
-                    $section = $block['content'] === null
-                        ? self::keepSection($db, $id, $sectionId, $sort, $now)
-                        : Sections::save($db, $id, $sectionId, $sort, $block['style'], $now);
+                    // A block whose type is no longer installed keeps its content untouched;
+                    // only where it sits can still be changed.
                     if ($block['content'] === null) {
-                        $db->query('UPDATE page_blocks SET section_id = ?, sort = 0 WHERE id = ? AND page_id = ?', [$section, $block['id'], $id]);
+                        $db->query(
+                            'UPDATE page_blocks SET section_id = ?, column_index = ?, sort = ? WHERE id = ? AND page_id = ?',
+                            [$target['id'], $column, $at, $block['id'], $id],
+                        );
                     } else {
                         $db->query(
-                            'UPDATE page_blocks SET section_id = ?, sort = 0, content_json = ?, layout = ?, updated_at = ? WHERE id = ? AND page_id = ?',
+                            'UPDATE page_blocks SET section_id = ?, column_index = ?, sort = ?, content_json = ?, layout = ?, updated_at = ?
+                             WHERE id = ? AND page_id = ?',
                             [
-                                $section,
+                                $target['id'],
+                                $column,
+                                $at,
                                 self::json(MediaReference::resolve($db, $registry, $block['type'], $block['content'])),
                                 $block['layout'],
                                 $now,
@@ -286,7 +339,7 @@ final class Page
                         );
                     }
                 } elseif ($block['content'] !== null) {
-                    self::insertBlock($db, $registry, $id, $block, $sort, $now);
+                    self::insertBlock($db, $registry, $id, $block, $target['id'], $column, $at, $now);
                 }
             }
             foreach (array_keys($existing) as $blockId) {
@@ -296,19 +349,6 @@ final class Page
             // around an empty container.
             Sections::prune($db, $id);
         });
-    }
-
-    /**
-     * The section of a block this installation can no longer draw: its place may move, its
-     * style may not. Reading the style back and writing it again keeps Sections::save() the
-     * single writer, rather than a second UPDATE here that would drift from it.
-     */
-    private static function keepSection(Db $db, int $pageId, ?int $sectionId, int $sort, string $now): int
-    {
-        $sections = Sections::forPage($db, $pageId);
-        $style = $sectionId !== null && isset($sections[$sectionId]) ? $sections[$sectionId]['style'] : [];
-
-        return Sections::save($db, $pageId, $sectionId, $sort, $style, $now);
     }
 
     public static function setStatus(Db $db, int $id, bool $published): void
@@ -350,8 +390,11 @@ final class Page
 
     /**
      * @param BlockRow $block
+     * @param int $section the section it joins, already written
+     * @param int $column  which of that section's columns
+     * @param int $sort    its place DOWN that column
      */
-    private static function insertBlock(Db $db, Blocks $registry, int $pageId, array $block, int $sort, string $now): void
+    private static function insertBlock(Db $db, Blocks $registry, int $pageId, array $block, int $section, int $column, int $sort, string $now): void
     {
         // Pictures are validated here rather than in normalize(), which is pure and called
         // from places with no database (D-024, extended to block content). An id naming a
@@ -359,15 +402,14 @@ final class Page
         // pictures existed, and a block shows its placeholder. Leaving a dangling id would
         // let the next picture to take that number be adopted by the page silently.
         $content = MediaReference::resolve($db, $registry, $block['type'], $block['content'] ?? []);
-        // Its own section, at $sort on the page; the block sits at 0 inside it (D-095).
+        // The section it was told to join, written by the caller before any block was.
         // style_json is written empty and never read again — migration 0026 left the column
         // in place because a committed migration is not edited, and a test refuses to find
         // it read anywhere.
-        $section = Sections::save($db, $pageId, null, $sort, $block['style'], $now);
         $db->query(
-            'INSERT INTO page_blocks (page_id, section_id, block_type, sort, content_json, style_json, layout, created_at, updated_at)
-             VALUES (?, ?, ?, 0, ?, \'{}\', ?, ?, ?)',
-            [$pageId, $section, $block['type'], self::json($content), $block['layout'], $now, $now],
+            'INSERT INTO page_blocks (page_id, section_id, column_index, block_type, sort, content_json, style_json, layout, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, \'{}\', ?, ?, ?)',
+            [$pageId, $section, $column, $block['type'], $sort, self::json($content), $block['layout'], $now, $now],
         );
         $blockId = (int) $db->lastInsertId();
         $db->query('UPDATE page_blocks SET block_group_id = id WHERE id = ?', [$blockId]);

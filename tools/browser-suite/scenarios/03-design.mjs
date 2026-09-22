@@ -288,11 +288,30 @@ export default {
         && new Set(drawn.lines.map((l) => l.drawn)).size === 4
         && Math.max(...drawn.lines.map((l) => l.drawn)) <= 40,
       `${drawn.lines.map((l) => `${l.said}→${l.drawn}`).join(' ')}; factors differ by ${spread.toFixed(3)}`);
-    // Two faces, because a pairing is two faces and that is what is being chosen.
+    /*
+     * AND IT IS SET IN THE PAIRING BEING CHOSEN.
+     *
+     * The pairing is CHOSEN here rather than taken from whatever the screen opened on. This
+     * asserted two families, which is a property of `editorial` and not of the specimen:
+     * three of the six pairings — modern, rounded, mono — are one family for both halves,
+     * so the verdict passed or failed on which character the copy happened to be left on by
+     * the run before. The rule it means to state is that the heading lines take the heading
+     * face and the body lines take the body face, and `classic` is a pairing where those two
+     * can be told apart.
+     */
+    await page.evaluate(() => {
+      var card = document.querySelector('input[name="typography"][value="classic"]');
+      card.checked = true;
+      card.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await new Promise((resolve) => { setTimeout(resolve, 400); });
+    const paired = await specimen();
     report.verdict('the specimen is set in the pairing being chosen',
-      new Set(drawn.lines.map((l) => l.family)).size === 2
-        && drawn.lines[0].family !== drawn.lines[3].family,
-      `${drawn.face}: ${drawn.lines.map((l) => l.family).join(', ')}`);
+      paired.face === 'classic'
+        && paired.lines[0].family === paired.lines[1].family
+        && paired.lines[2].family === paired.lines[3].family
+        && paired.lines[0].family !== paired.lines[3].family,
+      `${paired.face}: ${paired.lines.map((l) => l.family).join(', ')}`);
 
     // And it MOVES. Dragging the scale is the case that used to change nothing on screen.
     const scaleWas = await page.$eval('#design-scale', (el) => el.value);
@@ -915,6 +934,75 @@ export default {
     report.verdict('"save and reset section styles" rewrites them',
       afterReset[target] !== handTuned,
       `section ${target}: "${handTuned}" -> "${afterReset[target]}"`);
+
+    // ---- the four things the owner saw (D-078) -------------------------------------------
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    const seen = await page.evaluate(() => {
+      const stage = document.querySelector('.preview-stage');
+      const select = document.querySelector('.zoom select');
+      const name = document.querySelector('#library_name');
+      const rail = name && name.closest('.appearance-rail');
+      const toggle = document.querySelector('[data-hints-toggle]');
+      return {
+        // The frame is scaled but laid out at full size, so the stage used to report a
+        // width it could not use: a scrollbar under a picture that fitted.
+        stage: { client: stage.clientWidth, scroll: stage.scrollWidth },
+        // Both of these were the browser's own controls, not the admin's.
+        zoomGround: select ? getComputedStyle(select).backgroundColor : null,
+        nameGround: name ? getComputedStyle(name).backgroundColor : null,
+        nameBox: name ? getComputedStyle(name).boxSizing : null,
+        // And the name reached the edge of the column it sits in.
+        nameGap: name && rail ? Math.round(rail.getBoundingClientRect().right - name.getBoundingClientRect().right) : null,
+        // What a control of this admin looks like, taken from two that already are: the chip
+        // beside the zoom, and a field input on the same screen. The question is whether the
+        // two in the report match their neighbours, which is the question the owner asked.
+        // An UNPRESSED chip: the pressed one carries --ui-accent-soft to say it is the current
+        // width, which is a state and not what a control of this admin is made of.
+        chipGround: getComputedStyle(document.querySelector('.viewport:not([aria-pressed="true"])')).backgroundColor,
+        fieldGround: getComputedStyle(document.querySelector('.appearance-inspector .field input, .appearance-inspector .field select')).backgroundColor,
+        hints: {
+          shown: toggle ? !toggle.hidden : false,
+          state: document.querySelector('[data-inspector]').getAttribute('data-hints'),
+          visible: [...document.querySelectorAll('.appearance-inspector .hint')].filter((h) => h.getClientRects().length > 0).length,
+          total: document.querySelectorAll('.appearance-inspector .hint').length,
+        },
+      };
+    });
+    report.verdict('the picture does not scroll sideways when it fits',
+      seen.stage.scroll <= seen.stage.client,
+      `stage ${seen.stage.client}px wide reports ${seen.stage.scroll}px of scrollable width`);
+    /*
+     * EACH ONE LOOKS LIKE THE CONTROLS BESIDE IT, which is what "the browser's, not the
+     * admin's" means on a screen.
+     *
+     * THREE EARLIER SHAPES OF THIS VERDICT WERE WRONG ABOUT THE INSTRUMENT and not about the
+     * screen, which is worth the note: comparing with .appearance's own background, which
+     * paints nothing; reading --ui-panel off documentElement, where it is not, because the
+     * admin's tokens are declared on .admin; and then comparing with the FIRST viewport chip,
+     * which is the pressed one and carries the accent. The screen measured the same each
+     * time. A verdict that fails is a claim about the instrument until the instrument is
+     * checked (CLAUDE.md).
+     */
+    report.verdict('the zoom and the design name are the admin\'s own controls',
+      seen.zoomGround === seen.chipGround && seen.nameGround === seen.fieldGround && seen.nameBox === 'border-box',
+      `zoom ${seen.zoomGround} beside a chip's ${seen.chipGround}; name ${seen.nameGround} (${seen.nameBox}) beside a field's ${seen.fieldGround}`);
+    report.verdict('the design name keeps clear of the edge of its column',
+      seen.nameGap !== null && seen.nameGap > 0, `${seen.nameGap}px`);
+    report.verdict('the hints are off until they are asked for, and can be',
+      seen.hints.shown && seen.hints.state === 'off' && seen.hints.visible === 0 && seen.hints.total > 10,
+      JSON.stringify(seen.hints));
+
+    await page.click('[data-hints-toggle]');
+    const asked = await page.evaluate(() => ({
+      state: document.querySelector('[data-inspector]').getAttribute('data-hints'),
+      visible: [...document.querySelectorAll('.appearance-inspector .hint')].filter((h) => h.getClientRects().length > 0).length,
+    }));
+    // Only the OPEN tab's hints are rendered — the other four panels are closed — so what
+    // this asserts is that asking brought some back, against none while it was off.
+    report.verdict('asking for the hints brings them back',
+      asked.state === 'on' && asked.visible > 0 && seen.hints.visible === 0,
+      `${seen.hints.visible} shown while off -> ${asked.visible} when asked, of ${seen.hints.total} in the column`);
+    await page.click('[data-hints-toggle]');
 
     // ---- or a colour of your own (D-076) -------------------------------------------------
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });

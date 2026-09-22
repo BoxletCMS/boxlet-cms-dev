@@ -61,6 +61,26 @@
     // to.
     var spare = stage.clientWidth - width * factor;
     frame.style.marginInlineStart = (spare > 0 ? spare / 2 : 0) + 'px';
+    /*
+     * AND THE BOX IS PULLED BACK TO WHAT IS DRAWN (PLAN.md D-078).
+     *
+     * The frame is laid out at FULL size and then scaled, so its layout box stays the width
+     * it was given while the picture is smaller: measured at 1040px of stage reporting
+     * 1280px of scrollable width, at every width the screen has. The stage grew a permanent
+     * horizontal scrollbar with a band of nothing to the right of the page.
+     *
+     * THE ASYMMETRY WAS THERE TO READ. The height is already divided by the factor so it
+     * lands back on the stage; the width never was. Only the OUTER box was ever wrong: the
+     * transform has to stay, because the frame's inner viewport is the width the owner
+     * chose, which is what the three viewport buttons are for.
+     *
+     * NEGATIVE END MARGINS ON BOTH AXES, so the margin box is exactly what is drawn. The
+     * vertical one is not decoration: a horizontal scrollbar takes height off the stage,
+     * which changes the frame's height, which fires the ResizeObserver again. Taking the
+     * scrollbar away takes the loop with it.
+     */
+    frame.style.marginInlineEnd = (width * factor - width) + 'px';
+    frame.style.marginBlockEnd = (tall > 0 ? tall - tall / factor : 0) + 'px';
     // What the picture IS: the page's own width and height, and how much of full size is on
     // screen. The strip had the slot for it from the first day and nothing ever filled it,
     // so the zoom was a number in a dropdown and the height was a guess.

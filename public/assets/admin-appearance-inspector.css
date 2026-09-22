@@ -76,6 +76,36 @@
   gap: var(--ui-4);
 }
 
+/* ---- hints on demand (PLAN.md D-078) -------------------------------------------------- */
+
+/* Quiet, at the end of its own line, and READABLE at rest: it says what it does in words,
+   so it is not a control anybody has to discover. */
+.hints-toggle {
+  justify-self: end;
+  padding: var(--ui-1) var(--ui-2);
+  background: transparent;
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink-muted);
+  font: inherit;
+  font-size: var(--ui-text-xs);
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.hints-toggle:hover {
+  border-color: var(--ui-accent);
+  color: var(--ui-ink);
+}
+
+/* SCOPED TO THIS SCREEN. Every other screen in the admin keeps its hints: it is this
+   column that is short of room, and a preference set here should not quietly empty the
+   Settings screen. */
+.appearance-inspector[data-hints="off"] .hint {
+  display: none;
+}
+
 /* Focus is the admin's own one rule (admin.css), not a second one here. */
 
 /* Every slider on this screen, wherever it sits: the helper renders one as a child of the

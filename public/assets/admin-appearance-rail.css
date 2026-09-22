@@ -133,9 +133,10 @@
 }
 
 /* A text input carries an intrinsic width of about twenty characters, which is wider than
-   this column and was the last eight pixels of horizontal scrollbar under the rail. */
+   this column and was the last eight pixels of horizontal scrollbar under the rail. The
+   rest — the ground, the border, the corners, the box-sizing — is .field's, since D-078
+   put the input in one; a second copy here would be a second answer waiting to differ. */
 .rail-keep input {
-  inline-size: 100%;
   min-inline-size: 0;
 }
 

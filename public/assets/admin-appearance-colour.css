@@ -192,17 +192,22 @@
   list-style: none;
 }
 
+/* 1.75rem of sample, not 2.5rem (PLAN.md D-078). D-075 shrank the SVG's viewBox from 40×24
+   to 28×18 and said the sample was smaller; it was not, because this rule still gave the box
+   40×24 and an SVG scales its contents to the box it is given. Sixteen rows share a 312px
+   column and the sample only has to show a pair of colours against each other, so the box
+   moves too and the name gets the twelve pixels. */
 .gauge-row {
   display: grid;
-  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
   gap: var(--ui-2);
   align-items: center;
   font-size: var(--ui-text-sm);
 }
 
 .gauge-sample {
-  inline-size: 2.5rem;
-  block-size: 1.5rem;
+  inline-size: 1.75rem;
+  block-size: 1.125rem;
   border-radius: var(--ui-radius-s);
   border: var(--ui-border) solid var(--ui-line);
 }

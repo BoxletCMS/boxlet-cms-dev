@@ -47,9 +47,32 @@
   font-weight: 650;
 }
 
+/* THE ZOOM IS A CONTROL OF THIS SCREEN, NOT THE BROWSER'S (PLAN.md D-078). It carried a
+   padding and a size and nothing else, so what was drawn was the browser's own dark-mode
+   select: measured at rgb(107, 107, 107) on a 1px rgb(133, 133, 133) border with square
+   corners, sitting between three chips and Compare. It reads as something that escaped from
+   another screen.
+   THE ARROW STAYS THE BROWSER'S. appearance: none takes it away, and then nothing on the
+   control says it opens a list — which is the rule about a control that is invisible at
+   rest, applied to the one part of it that says what it is. */
 .zoom select {
   padding: var(--ui-1) var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
   font-size: var(--ui-text-xs);
+  cursor: pointer;
+}
+
+.zoom select:hover {
+  border-color: var(--ui-control-line);
+}
+
+.zoom select:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
 }
 
 /* Compare is a chip like the widths, not a word floating beside them: it is the same kind
@@ -92,9 +115,13 @@
      840×772 is what is drawn. So the stage scrolled 404px down onto nothing, and in the
      stacked state that was the second scroll inside the first. Measured, not reasoned: the
      frame's own rectangle is exactly the stage's.
-     Vertically there is nothing to scroll to by construction — draw() gives the frame the
-     height that lands back on the stage exactly — and sideways there is, whenever the
-     chosen width is wider than the room. */
+     THAT WAS TRUE OF ONE AXIS. The height was divided by the factor so it landed back on
+     the stage; the width was not, so the box stayed the width it was given while the
+     picture shrank, and this box reported a scrollable width it could not use — a
+     horizontal scrollbar under a picture that fitted, with a band of nothing to the right
+     of it. draw() now pulls the margin box back to what is drawn on both axes (D-078), so
+     sideways there is something to scroll to only when the chosen width really is wider
+     than the room, which is the case [data-stage-tight] already says in words. */
   overflow-x: auto;
   overflow-y: hidden;
   min-height: 0;

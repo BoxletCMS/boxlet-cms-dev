@@ -311,10 +311,17 @@ $card = static function (array $decisions, string $name, string $badge, string $
 <?php endforeach; ?>
 
                     <div class="rail-keep">
-                        <label class="visually-hidden" for="library_name"><?= e(t('appearance.library.name')) ?></label>
-                        <input type="text" id="library_name" name="library_name" maxlength="80" value="" autocomplete="off"
-                               placeholder="<?= e(t('appearance.library.name')) ?>">
-                        <?= $error('library_name') ?>
+                        <?php /* A .field, so it is the admin's own input rather than the
+                                 browser's (D-078). It carried only a width, so what was
+                                 drawn was a 2px inset border on rgb(59, 59, 59) with a
+                                 content-box width of 100% — which is how it came to touch
+                                 the edge of the column. */ ?>
+                        <div class="field">
+                            <label class="visually-hidden" for="library_name"><?= e(t('appearance.library.name')) ?></label>
+                            <input type="text" id="library_name" name="library_name" maxlength="80" value="" autocomplete="off"
+                                   placeholder="<?= e(t('appearance.library.name')) ?>">
+                            <?= $error('library_name') ?>
+                        </div>
                         <button type="submit" form="design-form" name="action" value="library:save" class="button button-secondary"><?= e(t('appearance.library.save')) ?></button>
                     </div>
                 </div>
@@ -339,7 +346,7 @@ $card = static function (array $decisions, string $name, string $badge, string $
                     </div>
                 </div>
 
-                <div class="appearance-inspector">
+                <div class="appearance-inspector" data-inspector>
                     <div class="tabs" data-tabs>
                         <div class="tab-strip" data-tab-strip>
 <?php foreach ($tabs as $index => $name): ?>
@@ -350,6 +357,22 @@ $card = static function (array $decisions, string $name, string $badge, string $
                                title="<?= e(t('appearance.tab.' . $name)) ?>"><?= e(t('appearance.tab.' . $name)) ?></a>
 <?php endforeach; ?>
                         </div>
+
+                        <?php /* HINTS ON DEMAND (PLAN.md D-078). A line of explanation under
+                                 every control is what teaches this screen and also what
+                                 fills a 312px column; the owner asked for the space back.
+                                 They are off until asked for, and the answer is remembered
+                                 in this browser and nowhere else — it is how one person
+                                 likes to work, not a decision about the site.
+                                 WITHOUT A SCRIPT THE HINTS SHOW and this button is not
+                                 there: the state that explains itself is the safe one, and
+                                 a toggle that cannot toggle is worse than no toggle. */ ?>
+                        <?php /* Both words live in the markup, because they are translated
+                                 and the script is not. */ ?>
+                        <button type="button" class="hints-toggle" data-hints-toggle hidden
+                                aria-pressed="false"
+                                data-show="<?= e(t('appearance.hints_show')) ?>"
+                                data-hide="<?= e(t('appearance.hints_hide')) ?>"><?= e(t('appearance.hints_show')) ?></button>
 <?php foreach ($tabs as $name): ?>
                         <div class="tab-panel" id="panel-<?= e($name) ?>" data-panel="<?= e($name) ?>" aria-labelledby="tab-<?= e($name) ?>">
                             <?php include __DIR__ . '/tabs/' . $name . '.php'; ?>
@@ -368,5 +391,6 @@ $card = static function (array $decisions, string $name, string $badge, string $
         <script src="<?= e(Url::versioned('assets/appearance.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-readouts.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-tabs.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-hints.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-rail.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-stage.js')) ?>" defer></script>

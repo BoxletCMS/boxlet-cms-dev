@@ -25,6 +25,8 @@ return [
     // The last word of a card's summary: whether the page is a sheet or runs to the edges.
     'appearance.boxed' => 'boxed',
     'appearance.full_bleed' => 'full bleed',
+    'appearance.hints_show' => 'Show hints',
+    'appearance.hints_hide' => 'Hide hints',
     'appearance.tab.colour' => 'Colour',
     'appearance.tab.type' => 'Type',
     'appearance.tab.shape' => 'Shape',

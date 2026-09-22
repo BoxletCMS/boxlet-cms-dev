@@ -65,9 +65,25 @@
     return button;
   }
 
+  /**
+   * Which of the bar's buttons has the keyboard, if any.
+   *
+   * Read BEFORE anything is removed: drawInserts() empties the whole overlay, so by the
+   * time drawTools() looked for the old bar it was already gone and focus had already
+   * fallen to the body. That is why the first attempt at keeping focus did not work, and
+   * why this is a function rather than two lines inside drawTools().
+   */
+  function focusedAction() {
+    var bar = overlay.querySelector('.bx-tools');
+    var active = document.activeElement;
+
+    return bar && active && bar.contains(active) ? active.getAttribute('data-block-action') : null;
+  }
+
   function drawInserts() {
     var labels = document.body.getAttribute('data-insert-labels') || 'Add a block here|Add a block at the end';
     var parts = labels.split('|');
+    var focused = focusedAction();
     overlay.textContent = '';
     var list = blocks();
     list.forEach(function (section, index) {
@@ -75,7 +91,7 @@
     });
     var last = list[list.length - 1];
     overlay.appendChild(insertButton(list.length, last ? last.offsetTop + last.offsetHeight : 0, parts[1]));
-    drawTools();
+    drawTools(focused);
   }
 
   /**
@@ -103,8 +119,20 @@
    */
   var ACTIONS = [['up', 'arrow-up'], ['down', 'arrow-down'], ['duplicate', 'copy'], ['remove', 'trash-2']];
 
-  function drawTools() {
+  /**
+   * KEEP THE KEYBOARD WHERE IT WAS. Every action rebuilds this bar, and rebuilding it threw
+   * focus back to the document body — measured: press Move down once and the next press
+   * needs the mouse. Which is also why there is no separate shortcut for reordering: the
+   * button is the shortcut, once pressing it twice is possible.
+   *
+   * @param focused the action whose button had the keyboard, when the caller had to read it
+   *                before clearing the overlay; omitted, it is read here.
+   */
+  function drawTools(focused) {
     var old = overlay.querySelector('.bx-tools');
+    if (focused === undefined) {
+      focused = focusedAction();
+    }
     if (old) {
       old.remove();
     }
@@ -139,9 +167,29 @@
       button.appendChild(svg);
       tools.appendChild(button);
     });
-    tools.style.top = Math.round(section.offsetTop + 12) + 'px';
-    tools.style.left = Math.round(section.offsetLeft + section.offsetWidth - 12) + 'px';
+    /*
+     * ON THE BLOCK'S TOP EDGE, NOT INSIDE IT (PLAN.md D-085).
+     *
+     * It used to sit 12px down from the top, over the block's own first line. Measured on
+     * the demo page, against the real line boxes of the text rather than the boxes of the
+     * elements holding it: it covered the words of 2 of the 7 blocks — the ones whose
+     * heading runs the full width. Straddling the edge puts it in the gap between blocks,
+     * where the only thing under it is the boundary it belongs to.
+     *
+     * The first block has no gap above it, so there the bar is pushed down until it is
+     * fully on the canvas rather than clipped by it. The insertion controls are centred and
+     * this is at the right, so the two do not meet — measured, not assumed.
+     */
     overlay.appendChild(tools);
+    var height = tools.offsetHeight;
+    tools.style.top = Math.round(Math.max(0, section.offsetTop - height / 2)) + 'px';
+    tools.style.left = Math.round(section.offsetLeft + section.offsetWidth - 12) + 'px';
+    if (focused !== null) {
+      var again = tools.querySelector('[data-block-action="' + focused + '"]:not([disabled])');
+      if (again) {
+        again.focus();
+      }
+    }
   }
 
   function refresh() {

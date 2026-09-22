@@ -107,7 +107,22 @@
       var labelled = group.querySelector('[data-block-label]');
       selectedName.textContent = labelled ? labelled.getAttribute('data-block-label') : '';
     }
-    if (group) {
+    /*
+     * PUT THE CURSOR IN THE BLOCK'S FIRST FIELD — UNLESS THE PERSON IS IN THE CANVAS.
+     *
+     * Selecting a block from the library should leave you ready to type, which is what this
+     * is for. But selection also happens as a CONSEQUENCE of something done in the canvas —
+     * a click on a section, a press of Move down — and there this reached into the panel and
+     * took the keyboard out of the canvas. Measured: focus a tool button, press it, and the
+     * next press needs the mouse, because focus had left the iframe altogether. It is also
+     * what made ⌘Z after a duplicate do nothing (D-079): the cursor was in a field the
+     * author had never asked for.
+     *
+     * When focus is inside the canvas the parent's activeElement IS the iframe, so the rule
+     * costs one comparison: the editor never takes the keyboard away from where the person
+     * is working.
+     */
+    if (group && document.activeElement !== api.frame) {
       var field = group.querySelector('input:not([type="hidden"]), textarea, select');
       if (field) {
         field.focus({ preventScroll: true });

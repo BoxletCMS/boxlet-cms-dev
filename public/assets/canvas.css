@@ -16,6 +16,11 @@
   margin: 0;
   /* The overlay is positioned against the body, in document coordinates. */
   position: relative;
+  /* Room for the first block's controls above it, for the same reason the line below
+     gives for the last one (D-085): without a gap, the block's own toolbar sat on its
+     first line of text and the first insertion control had to be clamped into the block.
+     Every other block has the boundary above it to sit on; the first had nothing. */
+  padding-top: 1.75rem;
   /* Room for the last insertion control without the page ending under it. */
   padding-bottom: 4rem;
 }

@@ -24,7 +24,7 @@ testBothDrivers("a section's surface and rhythm are saved and change only that s
         ['type' => 'text', 'content' => ['body' => '<p>One</p>']],
         ['type' => 'text', 'content' => ['body' => '<p>Two</p>']],
     ]);
-    [$one, $two] = array_map('strval', array_column($db->all('SELECT id FROM page_blocks ORDER BY sort'), 'id'));
+    [$one, $two] = array_map('strval', blockIdsInOrder($db));
 
     $response = adminPost("/admin/pages/{$id}", [
         'title' => 'About',
@@ -38,7 +38,8 @@ testBothDrivers("a section's surface and rhythm are saved and change only that s
     ]);
     assertRedirectedTo("/admin/pages/{$id}", $response);
 
-    $stored = json_decode((string) ($db->one('SELECT style_json FROM page_blocks WHERE id = ?', [(int) $two])['style_json'] ?? ''), true);
+    // The style is the SECTION's since D-095; sectionStyleOf() is the one place that knows.
+    $stored = sectionStyleOf($db, (int) $two);
     // Derived from DEFAULTS rather than written out, so a change to the shape of a section
     // style touches the constant and not this literal. The assertions are unchanged: an
     // unknown width still falls back, and only the edited section moves. The sixth key

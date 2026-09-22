@@ -243,9 +243,8 @@ testBothDrivers('an id naming a picture that is gone becomes null on save', func
     ]);
 
     $stored = [];
-    foreach ($db->all('SELECT style_json FROM page_blocks WHERE page_id = ? ORDER BY sort', [$pageId]) as $row) {
-        $style = json_decode((string) $row['style_json'], true);
-        $stored[] = is_array($style) ? ($style['image'] ?? null) : null;
+    foreach (blocksWithStyle($db, $pageId) as $row) {
+        $stored[] = $row['style']['image'] ?? null;
     }
 
     assertEquals([11, null], $stored, 'an id for a picture that does not exist was stored anyway');

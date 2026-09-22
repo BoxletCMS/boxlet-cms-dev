@@ -90,14 +90,27 @@ final class Page
      */
     public static function blocks(Db $db, int $pageId): array
     {
+        /*
+         * THE STYLE COMES FROM THE SECTION (D-095), joined rather than fetched per block:
+         * a page draws in a fixed number of queries or it does not scale.
+         *
+         * The order is the section's place on the page, then the block's place inside it.
+         * While a section holds one block those are the same order this always returned.
+         *
+         * A LEFT join, and a null style falls to the defaults: a block without a section
+         * cannot happen after migration 0026, and if a later bug makes one, it draws plainly
+         * rather than not at all.
+         */
         $blocks = [];
         $rows = $db->all(
-            'SELECT id, block_type, content_json, style_json, layout FROM page_blocks WHERE page_id = ? ORDER BY sort, id',
+            'SELECT b.id, b.block_type, b.content_json, s.style_json, b.layout
+             FROM page_blocks b LEFT JOIN page_sections s ON s.id = b.section_id
+             WHERE b.page_id = ? ORDER BY s.sort, b.sort, b.id',
             [$pageId],
         );
         foreach ($rows as $row) {
             $content = json_decode((string) $row['content_json'], true);
-            $style = json_decode((string) $row['style_json'], true);
+            $style = json_decode((string) ($row['style_json'] ?? ''), true);
             $blocks[] = [
                 'id' => (int) $row['id'],
                 'type' => (string) $row['block_type'],
@@ -232,22 +245,33 @@ final class Page
                 ],
             );
 
+            /*
+             * THE STYLE GOES TO THE SECTION (D-095). A block's section is written first, so
+             * the block row has one to point at, and $sort is the SECTION's place on the
+             * page — a block's own sort is its place inside its section, which is 0 while a
+             * section holds one block.
+             */
             $existing = [];
-            foreach ($db->all('SELECT id FROM page_blocks WHERE page_id = ?', [$id]) as $row) {
-                $existing[(int) $row['id']] = true;
+            foreach ($db->all('SELECT id, section_id FROM page_blocks WHERE page_id = ?', [$id]) as $row) {
+                $existing[(int) $row['id']] = $row['section_id'] === null ? null : (int) $row['section_id'];
             }
             foreach ($blocks as $sort => $block) {
-                if ($block['id'] !== null && isset($existing[$block['id']])) {
+                if ($block['id'] !== null && array_key_exists($block['id'], $existing)) {
+                    $sectionId = $existing[$block['id']];
                     unset($existing[$block['id']]);
+                    // A block whose type is no longer installed keeps its content and its
+                    // style untouched; only where it sits can still be changed.
+                    $section = $block['content'] === null
+                        ? self::keepSection($db, $id, $sectionId, $sort, $now)
+                        : Sections::save($db, $id, $sectionId, $sort, $block['style'], $now);
                     if ($block['content'] === null) {
-                        $db->query('UPDATE page_blocks SET sort = ? WHERE id = ? AND page_id = ?', [$sort, $block['id'], $id]);
+                        $db->query('UPDATE page_blocks SET section_id = ?, sort = 0 WHERE id = ? AND page_id = ?', [$section, $block['id'], $id]);
                     } else {
                         $db->query(
-                            'UPDATE page_blocks SET sort = ?, content_json = ?, style_json = ?, layout = ?, updated_at = ? WHERE id = ? AND page_id = ?',
+                            'UPDATE page_blocks SET section_id = ?, sort = 0, content_json = ?, layout = ?, updated_at = ? WHERE id = ? AND page_id = ?',
                             [
-                                $sort,
+                                $section,
                                 self::json(MediaReference::resolve($db, $registry, $block['type'], $block['content'])),
-                                self::json(SectionStyle::resolve($db, $block['style'])),
                                 $block['layout'],
                                 $now,
                                 $block['id'],
@@ -262,7 +286,23 @@ final class Page
             foreach (array_keys($existing) as $blockId) {
                 $db->query('DELETE FROM page_blocks WHERE id = ? AND page_id = ?', [$blockId, $id]);
             }
+            // A section left holding nothing would go on drawing its surface and its rhythm
+            // around an empty container.
+            Sections::prune($db, $id);
         });
+    }
+
+    /**
+     * The section of a block this installation can no longer draw: its place may move, its
+     * style may not. Reading the style back and writing it again keeps Sections::save() the
+     * single writer, rather than a second UPDATE here that would drift from it.
+     */
+    private static function keepSection(Db $db, int $pageId, ?int $sectionId, int $sort, string $now): int
+    {
+        $sections = Sections::forPage($db, $pageId);
+        $style = $sectionId !== null && isset($sections[$sectionId]) ? $sections[$sectionId]['style'] : [];
+
+        return Sections::save($db, $pageId, $sectionId, $sort, $style, $now);
     }
 
     public static function setStatus(Db $db, int $id, bool $published): void
@@ -312,12 +352,16 @@ final class Page
         // picture that does not exist becomes null: a section renders as it did before
         // pictures existed, and a block shows its placeholder. Leaving a dangling id would
         // let the next picture to take that number be adopted by the page silently.
-        $block['style'] = SectionStyle::resolve($db, $block['style']);
         $content = MediaReference::resolve($db, $registry, $block['type'], $block['content'] ?? []);
+        // Its own section, at $sort on the page; the block sits at 0 inside it (D-095).
+        // style_json is written empty and never read again — migration 0026 left the column
+        // in place because a committed migration is not edited, and a test refuses to find
+        // it read anywhere.
+        $section = Sections::save($db, $pageId, null, $sort, $block['style'], $now);
         $db->query(
-            'INSERT INTO page_blocks (page_id, block_type, sort, content_json, style_json, layout, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [$pageId, $block['type'], $sort, self::json($content), self::json($block['style']), $block['layout'], $now, $now],
+            'INSERT INTO page_blocks (page_id, section_id, block_type, sort, content_json, style_json, layout, created_at, updated_at)
+             VALUES (?, ?, ?, 0, ?, \'{}\', ?, ?, ?)',
+            [$pageId, $section, $block['type'], self::json($content), $block['layout'], $now, $now],
         );
         $blockId = (int) $db->lastInsertId();
         $db->query('UPDATE page_blocks SET block_group_id = id WHERE id = ?', [$blockId]);

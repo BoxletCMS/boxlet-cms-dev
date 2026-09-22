@@ -105,11 +105,11 @@ testBothDrivers('new blocks are composed by the active character', function (str
 
     assertEquals('brutalist', Composition::active($db), 'active character');
     adminPost('/admin/pages', ['title' => 'Landing', 'locale' => 'en', 'template' => templateId($db, 'landing')]);
-    $blocks = $db->all('SELECT block_type, style_json, layout FROM page_blocks ORDER BY sort');
+    $blocks = blocksWithStyle($db);
 
     foreach ($blocks as $block) {
-        $style = json_decode((string) $block['style_json'], true);
-        $type = (string) $block['block_type'];
+        $style = $block['style'];
+        $type = $block['type'];
         assertEquals('full', $style['width'] ?? null, "{$type} width");
         assertEquals('tight', $style['rhythm'] ?? null, "{$type} rhythm");
     }
@@ -121,7 +121,8 @@ testBothDrivers('applying a character resets sections only when that is what was
     $id = createPage($db, 'en', 'about', 'About', true, [
         ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy'], 'layout' => 'center'],
     ]);
-    $styleOf = static fn (): array => (array) json_decode((string) ($db->one('SELECT style_json FROM page_blocks')['style_json'] ?? ''), true);
+    // The style is the SECTION's since D-095; the page has exactly one block.
+    $styleOf = static fn (): array => blocksWithStyle($db, $id)[0]['style'] ?? [];
     $chosen = $styleOf();
 
     // Design only: the section keeps what its author chose. Publish ASKS first on a site

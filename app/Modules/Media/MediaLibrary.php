@@ -86,7 +86,7 @@ final class MediaLibrary
             // A picture chosen as the section's own surface (D-024). Same narrowing, same
             // confirmation: style_json carries "image":7 exactly as content_json does, and
             // the LIKE cannot tell it from "image":70 either.
-            $style = json_decode((string) $row['style_json'], true);
+            $style = json_decode((string) ($row['style_json'] ?? ''), true);
             if (is_array($style) && isset($style[SectionStyle::IMAGE])
                 && is_int($style[SectionStyle::IMAGE]) && $style[SectionStyle::IMAGE] === $mediaId) {
                 $used[(int) $row['page_id']] = (string) $row['title'];
@@ -109,10 +109,14 @@ final class MediaLibrary
     public function usage(): array
     {
         $pages = [];
-        foreach ($this->rows('SELECT page_id, block_type, content_json, style_json FROM page_blocks') as $row) {
+        // The style is the SECTION's since D-095, joined on so this stays one traversal.
+        foreach ($this->rows(
+            'SELECT b.page_id, b.block_type, b.content_json, s.style_json
+             FROM page_blocks b LEFT JOIN page_sections s ON s.id = b.section_id',
+        ) as $row) {
             $content = json_decode((string) $row['content_json'], true);
             $ids = is_array($content) ? MediaReference::idsIn($this->registry, (string) $row['block_type'], $content) : [];
-            $style = json_decode((string) $row['style_json'], true);
+            $style = json_decode((string) ($row['style_json'] ?? ''), true);
             if (is_array($style) && is_int($style[SectionStyle::IMAGE] ?? null)) {
                 $ids[] = $style[SectionStyle::IMAGE];
             }
@@ -263,14 +267,18 @@ final class MediaLibrary
         }
 
         // The section surface is one more source, which is why this was written as a
-        // list of conditions rather than a single pattern.
-        $conditions[] = 'b.style_json LIKE ?';
+        // list of conditions rather than a single pattern. Since D-095 it is the SECTION's
+        // style_json, and getting this wrong is not a display bug: usedBy() is what refuses
+        // to delete a picture, so a missed source would unlink one still painted behind a
+        // section.
+        $conditions[] = 's.style_json LIKE ?';
         $params[] = '%"' . SectionStyle::IMAGE . '":' . $mediaId . '%';
 
         return $this->rows(
-            'SELECT b.page_id, b.block_type, b.content_json, b.style_json, p.title
+            'SELECT b.page_id, b.block_type, b.content_json, s.style_json, p.title
              FROM page_blocks b
              JOIN pages p ON p.id = b.page_id
+             LEFT JOIN page_sections s ON s.id = b.section_id
              WHERE ' . implode(' OR ', $conditions),
             $params,
         );

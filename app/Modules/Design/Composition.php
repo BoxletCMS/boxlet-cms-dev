@@ -84,20 +84,41 @@ final class Composition
     {
         $now = gmdate('Y-m-d H:i:s');
         $changed = 0;
-        foreach ($db->all('SELECT DISTINCT block_type FROM page_blocks') as $row) {
-            $type = (string) $row['block_type'];
+
+        /*
+         * SECTION BY SECTION, COMPOSED FROM THE BLOCK IT HOLDS (D-095).
+         *
+         * This used to be one UPDATE per block type, site-wide. The style now lives on the
+         * section, and a character composes layer 2 from a BLOCK TYPE — `surfaces[$type]`,
+         * `dividers[$type]` — so the two only meet through the block a section holds. While
+         * a section holds one block that is exact. **When a section can hold several, what
+         * "Editorial gives a hero a tinted surface" means for a section holding a hero and a
+         * form is an open question (PLAN.md D-093), and this is the code that will have to
+         * answer it.**
+         *
+         * A section holding a block this installation cannot draw is left alone, which is
+         * the rule the per-type loop followed for the same reason: its style is the only
+         * record of what it was.
+         */
+        $rows = $db->all(
+            'SELECT s.id, b.block_type FROM page_sections s
+             LEFT JOIN page_blocks b ON b.section_id = s.id
+             ORDER BY s.id',
+        );
+        foreach ($rows as $row) {
+            $type = (string) ($row['block_type'] ?? '');
             if (!$registry->has($type)) {
-                continue; // a block this installation no longer has: leave it untouched
+                continue;
             }
-            $changed += (int) ($db->one('SELECT COUNT(*) AS n FROM page_blocks WHERE block_type = ?', [$type])['n'] ?? 0);
+            $changed += 1;
             $db->query(
-                'UPDATE page_blocks SET style_json = ?, layout = ?, updated_at = ? WHERE block_type = ?',
-                [
-                    json_encode(self::style($character, $type), JSON_THROW_ON_ERROR),
-                    self::layout($registry, $character, $type),
-                    $now,
-                    $type,
-                ],
+                'UPDATE page_sections SET style_json = ?, updated_at = ? WHERE id = ?',
+                [json_encode(self::style($character, $type), JSON_THROW_ON_ERROR), $now, (int) $row['id']],
+            );
+            // The layout is the block's own layer 3 and stays on the block row.
+            $db->query(
+                'UPDATE page_blocks SET layout = ?, updated_at = ? WHERE section_id = ? AND block_type = ?',
+                [self::layout($registry, $character, $type), $now, (int) $row['id'], $type],
             );
         }
 

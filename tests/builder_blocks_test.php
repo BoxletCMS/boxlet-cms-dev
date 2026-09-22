@@ -135,7 +135,7 @@ testBothDrivers('a block added in the middle is stored in that position', functi
         ['type' => 'hero', 'content' => ['heading' => 'One']],
         ['type' => 'text', 'content' => ['body' => '<p>Three</p>']],
     ]);
-    [$hero, $text] = array_map('strval', array_column($db->all('SELECT id FROM page_blocks ORDER BY sort'), 'id'));
+    [$hero, $text] = array_map('strval', blockIdsInOrder($db));
 
     // What the browser sends after inserting between them: the new block has no id.
     $response = adminPost("/admin/pages/{$id}", [

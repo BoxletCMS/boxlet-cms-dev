@@ -97,21 +97,37 @@ final class Translations
             );
             $id = (int) $db->lastInsertId();
 
-            foreach ($db->all('SELECT * FROM page_blocks WHERE page_id = ? ORDER BY sort, id', [$sourceId]) as $block) {
+            /*
+             * THE SECTIONS COME TOO (D-095). A translation is a copy, and since the layer-2
+             * style lives on the section, copying only the blocks would leave the translated
+             * page with no arrangement at all — every surface, rhythm and divider gone.
+             * The map turns each source section into the copy's own, so no two locales share
+             * a section row.
+             */
+            $sections = Sections::copy($db, $sourceId, $id, $now);
+
+            // In the order the page draws them, which is the section's place and then the
+            // block's place inside it (D-095) — the block's own sort stopped carrying that.
+            foreach ($db->all(
+                'SELECT b.* FROM page_blocks b LEFT JOIN page_sections s ON s.id = b.section_id
+                 WHERE b.page_id = ? ORDER BY s.sort, b.sort, b.id',
+                [$sourceId],
+            ) as $block) {
                 $type = (string) $block['block_type'];
                 $content = json_decode((string) $block['content_json'], true);
                 $hash = $registry->has($type) && is_array($content) ? self::blockHash($registry, $type, $content) : null;
+                $from = $block['section_id'] === null ? null : (int) $block['section_id'];
                 $db->query(
-                    "INSERT INTO page_blocks (page_id, block_group_id, block_type, sort, content_json, style_json, layout,
+                    "INSERT INTO page_blocks (page_id, section_id, block_group_id, block_type, sort, content_json, style_json, layout,
                                               translation_status, source_hash, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 'reviewed', ?, ?, ?)",
+                     VALUES (?, ?, ?, ?, ?, ?, '{}', ?, 'reviewed', ?, ?, ?)",
                     [
                         $id,
+                        $from === null ? null : ($sections[$from] ?? null),
                         (int) ($block['block_group_id'] ?? $block['id']),
                         $type,
                         (int) $block['sort'],
                         (string) $block['content_json'],
-                        (string) $block['style_json'],
                         (string) ($block['layout'] ?? ''),
                         $hash,
                         $now,

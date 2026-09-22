@@ -15,11 +15,10 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     assertEquals(0, (int) ($db->one("SELECT COUNT(*) AS n FROM pages WHERE status <> 'published'")['n'] ?? -1), 'unpublished demo pages');
 
     $used = ['layout' => []] + array_fill_keys(array_keys(SectionStyle::OPTIONS), []);
-    foreach ($db->all('SELECT block_type, style_json, layout FROM page_blocks') as $row) {
-        $used['layout'][] = $row['block_type'] . '/' . $row['layout'];
-        $style = json_decode((string) $row['style_json'], true);
+    foreach (blocksWithStyle($db) as $row) {
+        $used['layout'][] = $row['type'] . '/' . $row['layout'];
         foreach (SectionStyle::OPTIONS as $key => $values) {
-            $used[$key][] = is_array($style) ? ($style[$key] ?? '') : '';
+            $used[$key][] = $row['style'][$key] ?? '';
         }
     }
     foreach ($registry->types() as $type) {
@@ -86,10 +85,10 @@ testBothDrivers('a block that seeds only its surface matches the composition eve
 
     $character = App\Modules\Design\Composition::active($db);
     $stored = [];
-    foreach ($db->all('SELECT block_type, style_json FROM page_blocks ORDER BY id') as $row) {
+    foreach (blocksWithStyle($db) as $row) {
         $stored[] = [
-            'type' => (string) $row['block_type'],
-            'style' => SectionStyle::normalize(json_decode((string) $row['style_json'], true)),
+            'type' => $row['type'],
+            'style' => SectionStyle::normalize($row['style']),
         ];
     }
 

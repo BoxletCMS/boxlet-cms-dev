@@ -38,7 +38,7 @@ function assertRedirectedTo(string $location, Response $response): void
  */
 function blockTypes(Db $db, int $pageId): array
 {
-    return array_map('strval', array_column($db->all('SELECT block_type FROM page_blocks WHERE page_id = ? ORDER BY sort', [$pageId]), 'block_type'));
+    return array_map(static fn (array $b): string => $b['type'], blocksWithStyle($db, $pageId));
 }
 
 function storedContent(Db $db, int $blockId): mixed
@@ -87,7 +87,7 @@ testBothDrivers('saving reorders, edits, removes and adds blocks', function (str
     $db = adminSite($driver);
     adminPost('/admin/pages', ['title' => 'Spring sale', 'locale' => 'en', 'template' => templateId($db, 'landing')]);
     $id = (int) ($db->one('SELECT id FROM pages')['id'] ?? 0);
-    [$hero, $imageText, $text] = array_map('intval', array_column($db->all('SELECT id FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'id'));
+    [$hero, $imageText, $text] = blockIdsInOrder($db, $id);
 
     $response = adminPost("/admin/pages/{$id}", [
         'title' => 'Spring sale',

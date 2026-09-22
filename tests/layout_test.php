@@ -40,6 +40,6 @@ test('new blocks start in their default layout', function () {
     $db = adminSite('sqlite');
     adminPost('/admin/pages', ['title' => 'Landing', 'locale' => 'en', 'template' => templateId($db, 'landing')]);
 
-    $layouts = array_column($db->all('SELECT layout FROM page_blocks ORDER BY sort'), 'layout');
+    $layouts = array_map(static fn (array $b): string => $b['layout'], blocksWithStyle($db));
     assertEquals(['center', 'image-left', 'single'], $layouts, 'layouts of hero, image_text, text');
 });

@@ -60,7 +60,9 @@ testBothDrivers('editing one block of the source marks only that block, in every
 
     foreach (['English' => $english, 'German' => $german] as $name => $translation) {
         $stale = TranslationStatus::of($db, blockRegistry(), $translation)['stale'];
-        $second = (int) ($db->one('SELECT id FROM page_blocks WHERE page_id = ? AND sort = 1', [$translation])['id'] ?? 0);
+        // The second block as the PAGE draws it: since D-095 a block's own sort is its
+        // place inside its section, and the section carries the page's order.
+        $second = blockIdsInOrder($db, $translation)[1] ?? 0;
         assertEquals([$second], array_keys($stale), "{$name}: the stale blocks");
 
         // On the canvas, exactly one section carries the mark; in the inspector, one notice.

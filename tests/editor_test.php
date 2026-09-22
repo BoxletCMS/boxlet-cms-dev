@@ -59,7 +59,7 @@ test('without JavaScript, Move down swaps blocks in the form and saves nothing',
         ['type' => 'text', 'content' => ['body' => '<p>A</p>']],
         ['type' => 'hero', 'content' => ['heading' => 'H']],
     ]);
-    [$text, $hero] = array_map('strval', array_column($db->all('SELECT id FROM page_blocks ORDER BY sort'), 'id'));
+    [$text, $hero] = array_map('strval', blockIdsInOrder($db));
     $blocks = [['id' => $text, 'type' => 'text', 'body' => '<p>A</p>'], ['id' => $hero, 'type' => 'hero', 'heading' => 'H']];
     // The action names the block to move, not the slot it is in (D-094): a form rendered
     // before something else moved would otherwise act on whatever has taken that slot.
@@ -226,7 +226,7 @@ test('a block that sends only its skeleton keeps its content and takes its new p
         ['type' => 'text', 'content' => ['heading' => 'First', 'body' => '<p>One</p>']],
         ['type' => 'text', 'content' => ['heading' => 'Second', 'body' => '<p>Two</p>']],
     ]);
-    $ids = array_map('intval', array_column($db->all('SELECT id FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'id'));
+    $ids = blockIdsInOrder($db, $id);
 
     // The second block whole and first; the first as a skeleton and second. Nobody edited
     // anything, so both must come out of this save with the text they went in with.
@@ -242,7 +242,7 @@ test('a block that sends only its skeleton keeps its content and takes its new p
     ]);
 
     assertEquals(302, $response->status, 'status');
-    $order = array_map('intval', array_column($db->all('SELECT id FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'id'));
+    $order = blockIdsInOrder($db, $id);
     assertEquals([$ids[1], $ids[0]], $order, 'the skeleton took the place its position asked for');
     assertEquals('First', storedContent($db, $ids[0])['heading'] ?? null, 'the untouched block kept its heading');
     assertEquals('<p>One</p>', storedContent($db, $ids[0])['body'] ?? null, 'the untouched block kept its body');
@@ -278,7 +278,7 @@ test('a skeleton naming a block of some other page adds nothing', function () {
 test('a skeleton save is worth having: the same page costs a fraction of the fields', function () {
     $db = adminSite('sqlite');
     $id = createPage($db, 'en', 'about', 'About', false, array_fill(0, 6, ['type' => 'text', 'content' => ['heading' => 'H', 'body' => '<p>B</p>']]));
-    $ids = array_map('intval', array_column($db->all('SELECT id FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'id'));
+    $ids = blockIdsInOrder($db, $id);
 
     $whole = [];
     $skeletons = [];

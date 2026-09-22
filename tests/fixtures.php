@@ -296,3 +296,68 @@ final class CapturingTransport extends Symfony\Component\Mailer\Transport\Abstra
         }
     }
 }
+
+/**
+ * The layer-2 style of the section a block sits in (D-095).
+ *
+ * It used to be `page_blocks.style_json`; migration 0026 moved it to the section and left
+ * that column empty on purpose, so a test still reading it would quietly compare defaults.
+ * Every test asks here instead, which is also the one place to change when a section starts
+ * holding more than one block.
+ *
+ * @return array<string, mixed>
+ */
+function sectionStyleOf(Db $db, int $blockId): array
+{
+    $row = $db->one(
+        'SELECT s.style_json FROM page_blocks b JOIN page_sections s ON s.id = b.section_id WHERE b.id = ?',
+        [$blockId],
+    );
+    $style = $row === null ? null : json_decode((string) $row['style_json'], true);
+
+    return is_array($style) ? $style : [];
+}
+
+/**
+ * Every block of a page with the style of its section, in page order.
+ *
+ * @param int|null $pageId null for every page, which a test that made exactly one uses
+ * @return list<array{id: int, type: string, style: array<string, mixed>, layout: string}>
+ */
+function blocksWithStyle(Db $db, ?int $pageId = null): array
+{
+    $out = [];
+    $where = $pageId === null ? '' : 'WHERE b.page_id = ? ';
+    foreach ($db->all(
+        'SELECT b.id, b.block_type, s.style_json, b.layout FROM page_blocks b
+         LEFT JOIN page_sections s ON s.id = b.section_id ' . $where
+         // The page first: across several pages each section's sort starts again at 0, so
+         // ordering by it alone interleaves two pages into one list.
+         . 'ORDER BY b.page_id, s.sort, b.sort, b.id',
+        $pageId === null ? [] : [$pageId],
+    ) as $row) {
+        $style = json_decode((string) ($row['style_json'] ?? ''), true);
+        $out[] = [
+            'id' => (int) $row['id'],
+            'type' => (string) $row['block_type'],
+            'style' => is_array($style) ? $style : [],
+            'layout' => (string) $row['layout'],
+        ];
+    }
+
+    return $out;
+}
+
+/**
+ * A page's block ids in the order the page draws them (D-095).
+ *
+ * `ORDER BY sort` on page_blocks stopped meaning this when the section took over the
+ * page's order: a block's own sort is now its place INSIDE its section, and is 0 while a
+ * section holds one block. Several tests caught that by failing, which is what they are for.
+ *
+ * @return list<int>
+ */
+function blockIdsInOrder(Db $db, ?int $pageId = null): array
+{
+    return array_map(static fn (array $row): int => $row['id'], blocksWithStyle($db, $pageId));
+}

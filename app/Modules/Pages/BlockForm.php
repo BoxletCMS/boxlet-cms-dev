@@ -19,10 +19,17 @@ final class BlockForm
      * its stored type whatever the form claims. A layout the block does not declare
      * falls back to its default rather than being stored.
      *
-     * @param array<int, string> $storedTypes block id => type, for this page's blocks
+     * A BLOCK MAY SEND ITS SKELETON INSTEAD OF ITS FIELDS (PLAN.md D-081). A group the
+     * author never touched posts its id, the marker _unchanged, and nothing else; its
+     * content, style and layout are taken from $stored. The result is the same block this
+     * would have returned had the browser sent every field, so nothing downstream — the
+     * canvas, a rejected save, the write — needs to know which blocks did that.
+     *
+     * @param array<int, array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $stored
+     *        block id => the block as stored, for this page's blocks
      * @return array{blocks: list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>, errors: array<string, string>}
      */
-    public static function parse(Blocks $registry, mixed $posted, array $storedTypes): array
+    public static function parse(Blocks $registry, mixed $posted, array $stored): array
     {
         $blocks = [];
         $errors = [];
@@ -31,10 +38,18 @@ final class BlockForm
                 continue;
             }
             $id = is_string($raw['id'] ?? null) && ctype_digit($raw['id']) ? (int) $raw['id'] : null;
-            if ($id !== null && !isset($storedTypes[$id])) {
+            if ($id !== null && !isset($stored[$id])) {
                 $id = null; // not a block of this page: treat it as new
             }
-            $type = $id !== null ? $storedTypes[$id] : (is_string($raw['type'] ?? null) ? $raw['type'] : '');
+            if (($raw['_unchanged'] ?? '') === '1') {
+                // Nothing to restore it from, so there is nothing it can mean. Adding an
+                // empty block here would turn a lost id into content the author never wrote.
+                if ($id !== null) {
+                    $blocks[] = $stored[$id];
+                }
+                continue;
+            }
+            $type = $id !== null ? $stored[$id]['type'] : (is_string($raw['type'] ?? null) ? $raw['type'] : '');
 
             if (!$registry->has($type)) {
                 if ($id !== null) {

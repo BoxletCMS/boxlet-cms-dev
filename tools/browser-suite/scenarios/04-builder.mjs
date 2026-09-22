@@ -135,6 +135,15 @@ export default {
   name: 'builder',
 
   async run({ page, report }) {
+    // The body of the last save, so what the browser actually sent can be counted rather
+    // than described (D-081).
+    let sent = null;
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && new RegExp(`/admin/pages/${PAGE}$`).test(request.url())) {
+        sent = request.postData() || '';
+      }
+    });
+
     if (!await login(page, BASE, ADMIN.email, ADMIN.password)) {
       report.fail('builder: log in', `could not log in; at ${page.url()}`);
       return;
@@ -221,6 +230,29 @@ export default {
     await report.shot(page, '03-saved');
     report.verdict('the page saves from the visual editor', saved,
       `after save at ${page.url()}; the new text is ${stored ? 'on the page' : 'NOT on the page'}`);
+
+    // ---- what that save actually cost (D-081) ---------------------------------------------
+    // One block was edited and one was added; every other block on the page was left alone
+    // and must have sent its id and a marker instead of its fields. This is the measurement
+    // the slice stands on: the wall is a count of fields, so the claim is a count of fields.
+    if (sent === null) {
+      report.fail('only the blocks that changed sent their fields', 'no save request was captured');
+    } else {
+      const keys = [...new URLSearchParams(sent).keys()];
+      const blockKeys = keys.filter((k) => k.startsWith('blocks['));
+      const skeletons = keys.filter((k) => k.endsWith('[_unchanged]')).length;
+      const whole = new Set(blockKeys.filter((k) => !/\[(id|_unchanged)\]$/.test(k))
+        .map((k) => k.slice(0, k.indexOf(']') + 1))).size;
+      report.verdict('only the blocks that changed sent their fields',
+        skeletons > 0 && whole > 0 && skeletons > whole,
+        `${skeletons} blocks sent a skeleton, ${whole} sent their fields, `
+        + `${blockKeys.length} block fields in the request`);
+      // A skeleton is an id and a marker; a block's own fields are many. If the two ever
+      // cost the same, the browser is sending everything and this has quietly stopped.
+      report.verdict('a skeleton costs two fields, whatever the block is',
+        blockKeys.filter((k) => /\[(id|_unchanged)\]$/.test(k)).length >= skeletons * 2,
+        `${skeletons} skeletons account for ${skeletons * 2} of ${blockKeys.length} block fields`);
+    }
 
     // The other half of the live-update item: after a save, the canvas does show it.
     await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });

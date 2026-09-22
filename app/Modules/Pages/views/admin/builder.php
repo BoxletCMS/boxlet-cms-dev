@@ -16,6 +16,7 @@ use App\Support\Url;
  * @var list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
+ * @var bool $fromStorage whether these field groups are the page as stored (D-081)
  * @var string $character
  * @var \App\Core\Blocks $registry
  * @var string $canvasUrl
@@ -56,7 +57,11 @@ foreach ($errors as $key => $message) {
 <?php endif; ?>
         <?php /* Not data-page-editor: that marks the fallback form, whose reordering
                  controls admin.js drives. This form's blocks live in the canvas. */ ?>
-        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="builder" data-builder>
+        <?php /* data-blocks-stored says these field groups are the page as it is stored, so
+                 an untouched one may send its skeleton and be restored from storage on save
+                 (D-081). It is absent after a rejected save and after a repeater's own
+                 controls, where the fields hold submitted work the database has never seen. */ ?>
+        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="builder" data-builder<?= $fromStorage ? ' data-blocks-stored' : '' ?>>
             <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <?php /* Tells the save endpoint which editor to re-render if validation fails. */ ?>
@@ -269,3 +274,4 @@ foreach ($errors as $key => $message) {
         <script src="<?= e(Url::versioned('assets/builder.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-blocks.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-undo.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-save.js')) ?>" defer></script>

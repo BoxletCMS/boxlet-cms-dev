@@ -60,11 +60,16 @@ final class PageEditorController
         }
 
         $registry = $this->registry();
-        $storedTypes = [];
-        foreach (Page::blocks($db, $id) as $stored) {
-            $storedTypes[$stored['id']] = $stored['type'];
+        // The blocks as stored, by id: the type an existing block keeps whatever the form
+        // claims, and the content a block that sent only its skeleton is restored from
+        // (D-081).
+        $stored = [];
+        foreach ($this->storedBlocks($id) as $block) {
+            if ($block['id'] !== null) {
+                $stored[$block['id']] = $block;
+            }
         }
-        $parsed = BlockForm::parse($registry, $request->body['blocks'] ?? [], $storedTypes);
+        $parsed = BlockForm::parse($registry, $request->body['blocks'] ?? [], $stored);
         $blocks = $parsed['blocks'];
         $title = trim($request->input('title'));
         $slug = trim($request->input('slug'));

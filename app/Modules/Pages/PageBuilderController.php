@@ -58,6 +58,10 @@ final class PageBuilderController
             (string) $page['title'],
             (string) $page['slug'],
             Page::editable($this->db(), $this->registry(), (int) $page['id']),
+            [],
+            null,
+            200,
+            true,
         );
     }
 
@@ -206,8 +210,16 @@ final class PageBuilderController
      * @param array<string, mixed> $page
      * @param list<array{id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
      * @param array<string, string> $errors
+     * @param bool $fromStorage whether $blocks are the page as STORED. It defaults to
+     *        false because the unsafe answer must be the default: builder-save.js lets an
+     *        untouched block send a skeleton instead of its fields, and the server then
+     *        restores it from storage — which is right only if what is on screen came from
+     *        storage in the first place. After a rejected save it did not, and a block the
+     *        author edited but did not touch again would be rolled back silently (D-081).
+     *        Only edit() may pass true; anything added later that re-renders submitted
+     *        blocks is safe without having to know this exists.
      */
-    private function shell(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200): Response
+    private function shell(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200, bool $fromStorage = false): Response
     {
         $id = (int) $page['id'];
 
@@ -226,6 +238,7 @@ final class PageBuilderController
             'blocks' => $blocks,
             'errors' => $errors,
             'notice' => $notice,
+            'fromStorage' => $fromStorage,
             'character' => Composition::active($this->db()),
             'registry' => $this->registry(),
             'canvasUrl' => Url::admin('pages', $id, 'canvas'),

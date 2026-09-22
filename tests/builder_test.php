@@ -275,3 +275,36 @@ test('a rejected save comes back in the editor it was sent from', function () {
     assertContains('<template data-block-template=', $fromForm->body, 'the plain form came back');
     assertEquals('<p>Kept</p>', storedContent($db, (int) $blockId)['body'] ?? null, 'nothing was stored');
 });
+
+/*
+ * THE TRAP UNDER D-081, held open by a test because reasoning alone found it late.
+ *
+ * builder-save.js lets a block the author never touched send its id and a marker instead
+ * of its fields, and the server restores it from storage. That is only true while what is
+ * on screen CAME from storage. A save that fails validation re-renders the submitted
+ * blocks — valid edits included, because a save is refused whole — so a baseline taken
+ * there would call an edited block unchanged and roll it back on the next save.
+ *
+ * The signal is one attribute, and the default is the safe answer.
+ */
+test('the builder offers the skeleton saving only while the form is the stored page', function () {
+    $db = adminSite('sqlite');
+    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['heading' => 'H', 'body' => '<p>A</p>']]]);
+    $blockId = (int) ($db->one('SELECT id FROM page_blocks')['id'] ?? 0);
+
+    $opened = dispatch("/admin/pages/{$id}");
+    assertContains('data-blocks-stored', $opened->body, 'the editor opened on the stored page');
+
+    // A save refused for an empty title comes back with the blocks as submitted.
+    $rejected = adminPost("/admin/pages/{$id}", [
+        'title' => '',
+        'slug' => 'about',
+        'editor' => 'builder',
+        'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'heading' => 'Edited, never saved', 'body' => '<p>A</p>']],
+        'action' => 'save',
+        '_end' => '1',
+    ]);
+    assertEquals(422, $rejected->status, 'status');
+    assertContains('Edited, never saved', $rejected->body, 'the submitted heading is still in the form');
+    assertTrue(!str_contains($rejected->body, 'data-blocks-stored'), 'a rejected save must not offer the skeleton saving');
+});

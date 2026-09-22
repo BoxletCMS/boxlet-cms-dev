@@ -203,3 +203,98 @@ test('a save with as many fields as max_input_vars is refused, even with _end pr
     assertEquals(422, adminPost("/admin/pages/{$id}", $body)->status, 'status');
     assertEquals('About', $db->one('SELECT title FROM pages')['title'] ?? null, 'stored title');
 });
+
+/*
+ * A BLOCK MAY SEND ITS SKELETON INSTEAD OF ITS FIELDS (PLAN.md D-081). This is the server
+ * half of it: what arrives is an id and _unchanged, and what must come out is the block
+ * exactly as stored, at the place the skeleton sat in. Everything the browser does to
+ * decide which blocks may do that is measured in tools/browser-suite.
+ */
+test('a block that sends only its skeleton keeps its content and takes its new place', function () {
+    $db = adminSite('sqlite');
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'text', 'content' => ['heading' => 'First', 'body' => '<p>One</p>']],
+        ['type' => 'text', 'content' => ['heading' => 'Second', 'body' => '<p>Two</p>']],
+    ]);
+    $ids = array_map('intval', array_column($db->all('SELECT id FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'id'));
+
+    // The second block whole and first; the first as a skeleton and second. Nobody edited
+    // anything, so both must come out of this save with the text they went in with.
+    $response = adminPost("/admin/pages/{$id}", [
+        'title' => 'About',
+        'slug' => 'about',
+        'blocks' => [
+            ['id' => (string) $ids[1], 'type' => 'text', 'heading' => 'Second', 'body' => '<p>Two</p>'],
+            ['id' => (string) $ids[0], '_unchanged' => '1'],
+        ],
+        'action' => 'save',
+        '_end' => '1',
+    ]);
+
+    assertEquals(302, $response->status, 'status');
+    $order = array_map('intval', array_column($db->all('SELECT id FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'id'));
+    assertEquals([$ids[1], $ids[0]], $order, 'the skeleton took the place its position asked for');
+    assertEquals('First', storedContent($db, $ids[0])['heading'] ?? null, 'the untouched block kept its heading');
+    assertEquals('<p>One</p>', storedContent($db, $ids[0])['body'] ?? null, 'the untouched block kept its body');
+});
+
+test('a skeleton naming a block of some other page adds nothing', function () {
+    $db = adminSite('sqlite');
+    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>A</p>']]]);
+    $other = createPage($db, 'en', 'contact', 'Contact', false, [['type' => 'text', 'content' => ['body' => '<p>B</p>']]]);
+    $mine = (int) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$id])['id'] ?? 0);
+    $theirs = (int) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$other])['id'] ?? 0);
+
+    // Without the id there is nothing to restore the block from, so the only honest answer
+    // is no block at all: an empty one here would be content the author never wrote.
+    $response = adminPost("/admin/pages/{$id}", [
+        'title' => 'About',
+        'slug' => 'about',
+        'blocks' => [
+            ['id' => (string) $mine, '_unchanged' => '1'],
+            ['id' => (string) $theirs, '_unchanged' => '1'],
+            ['_unchanged' => '1'],
+        ],
+        'action' => 'save',
+        '_end' => '1',
+    ]);
+
+    assertEquals(302, $response->status, 'status');
+    assertEquals(['text'], blockTypes($db, $id), 'only the page\'s own block survives');
+    assertEquals('<p>A</p>', storedContent($db, $mine)['body'] ?? null, 'and it kept its body');
+    assertEquals('<p>B</p>', storedContent($db, $theirs)['body'] ?? null, 'the other page\'s block is untouched');
+});
+
+test('a skeleton save is worth having: the same page costs a fraction of the fields', function () {
+    $db = adminSite('sqlite');
+    $id = createPage($db, 'en', 'about', 'About', false, array_fill(0, 6, ['type' => 'text', 'content' => ['heading' => 'H', 'body' => '<p>B</p>']]));
+    $ids = array_map('intval', array_column($db->all('SELECT id FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'id'));
+
+    $whole = [];
+    $skeletons = [];
+    foreach ($ids as $blockId) {
+        $whole[] = ['id' => (string) $blockId, 'type' => 'text', 'heading' => 'H', 'body' => '<p>B</p>', 'layout' => 'contained', 'style' => ['surface' => 'page']];
+        $skeletons[] = ['id' => (string) $blockId, '_unchanged' => '1'];
+    }
+    $count = static function (array $blocks) use (&$count): int {
+        $n = 0;
+        foreach ($blocks as $value) {
+            $n += is_array($value) ? $count($value) : 1;
+        }
+
+        return $n;
+    };
+
+    // The wall is a field count, so the claim is about a field count — and the claim is
+    // not a ratio, which would only be true of whatever block this fixture happens to use.
+    // A skeleton costs TWO fields whatever the block is, so what a page costs when nothing
+    // was touched stops depending on how big its blocks are. Measured in the browser on
+    // the real demo page: seven blocks, 115 block fields whole, 14 as skeletons.
+    assertEquals(count($ids) * 2, $count($skeletons), 'a skeleton is an id and a marker, nothing else');
+    assertTrue($count($whole) > $count($skeletons), "whole blocks cost {$count($whole)} fields, skeletons {$count($skeletons)}");
+
+    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $skeletons, 'action' => 'save', '_end' => '1']);
+    assertEquals(302, $response->status, 'status');
+    assertEquals(array_fill(0, 6, 'text'), blockTypes($db, $id), 'every block is still there');
+    assertEquals('H', storedContent($db, $ids[3])['heading'] ?? null, 'and still has its content');
+});

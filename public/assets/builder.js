@@ -35,6 +35,16 @@
     dirty: false,
   };
 
+  /*
+   * Record the page before a structural change, so it can be put back (D-079).
+   *
+   * A stub here and the real one in builder-undo.js, which loads last: every caller then
+   * says what it means — "this is a change worth remembering" — without asking whether
+   * the file that remembers is present. Without it the editor works and forgets, which is
+   * exactly where it stood before.
+   */
+  api.commit = function () {};
+
   api.groupNodes = function () {
     return Array.prototype.slice.call(groups.querySelectorAll('[data-block-group]'));
   };

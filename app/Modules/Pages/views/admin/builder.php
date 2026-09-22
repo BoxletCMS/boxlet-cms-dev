@@ -90,10 +90,22 @@ foreach ($errors as $key => $message) {
             <div class="builder-body">
                 <div class="builder-canvas" data-canvas-frame>
                     <iframe src="<?= e($canvasUrl) ?>" title="<?= e(t('pages.canvas')) ?>" data-canvas></iframe>
+
+                    <?php /* A WAY BACK, IN WORDS, AFTER THE ONE ACTION THAT DESTROYS WORK
+                             (D-079). The shortcut exists and is not discoverable, and the
+                             people who most need it are the ones who do not know it is
+                             there. It sits over the canvas rather than in the panel because
+                             that is where the block was when it went.
+                             Hidden until a script fills it: with none, nothing is removed
+                             from the page without a save, so there is nothing to offer. */ ?>
+                    <div class="builder-undo" data-undo-strip role="status" hidden>
+                        <span data-undo-text></span>
+                        <button type="button" class="button button-ghost" data-undo-now><?= e(t('pages.undo')) ?></button>
+                    </div>
                 </div>
 
                 <?php /* The scripts cannot call t(), so the strings they show come with them. */ ?>
-                <aside class="builder-panel" data-insert-url="<?= e($insertUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>">
+                <aside class="builder-panel" data-insert-url="<?= e($insertUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>">
 <?php if ($translation['stale'] !== [] || $translation['missing'] > 0): ?>
                     <?php /* A translation behind its source says so before anything else
                              (D-043, step 3); each stale block also carries its own mark. */ ?>
@@ -252,6 +264,8 @@ foreach ($errors as $key => $message) {
         </template>
 <?php endforeach; ?>
 <?php endforeach; ?>
-        <?php /* Deferred, so they run in this order: the shell, then the changes. */ ?>
+        <?php /* Deferred, so they run in this order: the shell, then the changes, then the
+                 history — which replaces the shell's own do-nothing commit() (D-079). */ ?>
         <script src="<?= e(Url::versioned('assets/builder.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-blocks.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-undo.js')) ?>" defer></script>

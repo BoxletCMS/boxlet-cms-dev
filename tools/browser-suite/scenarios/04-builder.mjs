@@ -21,6 +21,116 @@ const posted = (page, index) => page.$eval(
   (el) => el.value,
 );
 
+// The editor answers a structural change over postMessage and then re-renders; these
+// waits are there for the same reason the rest of this scenario is driven slowly.
+const settle = (ms = 900) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
+/*
+ * Undo (D-079). Last in the scenario and after the last save, so a check that fails
+ * part-way cannot leave an extra block in a form that is about to be submitted; every
+ * step here also ends with the page back as it was.
+ */
+const undoChecks = async (page, report) => {
+  await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+  const ready = await page.waitForFunction(() => {
+    const frame = document.querySelector('iframe[data-canvas]');
+    return frame && frame.contentDocument
+      && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
+  }, { timeout: 20000 }).then(() => true).catch(() => false);
+  if (!ready) {
+    report.fail('undo: the canvas loads', 'the canvas had no sections after 20s');
+    return;
+  }
+  await settle();
+
+  const select = async (index) => {
+    await page.evaluate((i) => document.querySelector('iframe[data-canvas]').contentDocument
+      .querySelectorAll('[data-bx-blocks] > section')[i].click(), index);
+    await settle();
+  };
+  const tool = async (action) => {
+    await page.evaluate((a) => document.querySelector('iframe[data-canvas]').contentDocument
+      .querySelector(`[data-block-action="${a}"]`).click(), action);
+    await settle(1300);
+  };
+  const undo = async () => {
+    await page.keyboard.down('Control');
+    await page.keyboard.press('z');
+    await page.keyboard.up('Control');
+    await settle();
+  };
+  const labels = () => page.$$eval('[data-block-group]', (els) => els
+    .map((g) => g.querySelector('[data-block-label]')?.getAttribute('data-block-label')).join(','));
+
+  const startCount = await groups(page);
+  const startLabels = await labels();
+
+  // A removal takes the block out of BOTH halves, and an undo has to bring back the text
+  // the author had typed into another block — which lives in a property, not in the
+  // markup a snapshot serialises, and was lost until sync() was written for it.
+  await select(0);
+  const field = await page.$eval('[data-block-group="0"] input[type="text"]', (el) => el.name);
+  const marker = `undo-${Date.now()}`;
+  await page.evaluate((name, value) => {
+    const el = document.querySelector(`[name="${CSS.escape(name)}"]`);
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, field, marker);
+  await settle(1300);
+
+  await select(2);
+  await tool('remove');
+  const removedCount = await groups(page);
+  const strip = await page.$eval('[data-undo-strip]',
+    (el) => ({ hidden: el.hidden, text: el.textContent.trim() }));
+  report.verdict('removing a block offers a way back',
+    removedCount === startCount - 1 && !strip.hidden && strip.text.length > 0,
+    `${startCount} groups -> ${removedCount}, strip ${JSON.stringify(strip)}`);
+  await report.shot(page, '05-undo-offered');
+
+  await undo();
+  const backCount = await groups(page);
+  const kept = await page.evaluate((name, value) => {
+    const el = document.querySelector(`[name="${CSS.escape(name)}"]`);
+    return el ? el.value === value : 'the field is gone';
+  }, field, marker);
+  report.verdict('undo restores a removed block without discarding typed text',
+    backCount === startCount && kept === true,
+    `${removedCount} groups -> ${backCount}, the typed text survived: ${kept}`);
+
+  // api.show() focuses the first field of the selected block, so after a duplicate the
+  // cursor already sits in one. The shortcut still has to reach the page: it belongs to a
+  // field only once that field has been typed in.
+  await select(1);
+  await tool('duplicate');
+  const dupCount = await groups(page);
+  await undo();
+  report.verdict('undo reaches the page although the editor left the cursor in a field',
+    dupCount === startCount + 1 && await groups(page) === startCount,
+    `${startCount} groups -> ${dupCount} -> ${await groups(page)}`);
+
+  await select(1);
+  await tool('down');
+  const movedLabels = await labels();
+  await undo();
+  report.verdict('undo puts a moved block back',
+    movedLabels !== startLabels && await labels() === startLabels,
+    `moved to ${movedLabels}, undone to ${await labels()}`);
+
+  // The rule the head of builder-undo.js states: a field the author has written in keeps
+  // its own undo, and the page must not move under them.
+  const steady = await groups(page);
+  await page.evaluate((name) => {
+    const el = document.querySelector(`[name="${CSS.escape(name)}"]`);
+    el.focus();
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, field);
+  await undo();
+  report.verdict('the shortcut inside a field the author is typing in stays with the field',
+    await groups(page) === steady,
+    `${steady} groups before, ${await groups(page)} after`);
+};
+
 export default {
   name: 'builder',
 
@@ -169,5 +279,7 @@ export default {
         afterBuilderSave === marker,
         `set ${JSON.stringify(marker)}, read back ${JSON.stringify(afterBuilderSave)}`);
     }
+
+    await undoChecks(page, report);
   },
 };

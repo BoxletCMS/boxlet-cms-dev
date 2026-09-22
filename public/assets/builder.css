@@ -143,6 +143,7 @@ button.menu-popover-item:focus-visible {
 }
 
 .builder-canvas {
+  position: relative;
   display: grid;
   justify-items: center;
   overflow: auto;
@@ -150,9 +151,45 @@ button.menu-popover-item:focus-visible {
   background: var(--ui-bg);
 }
 
+/* THE WAY BACK AFTER A REMOVAL (PLAN.md D-079), over the canvas rather than in the panel:
+   the block was here, so this is where its absence is noticed. Sticky at the foot of the
+   pane so it is on screen wherever the page is scrolled to, and READABLE AT REST — it is
+   an offer with a few seconds to take it, not a decoration that fades in. */
+.builder-undo {
+  /* The same grid cell as the iframe, not a row of its own: as a row it took all the
+     height the canvas was not using and became a tall empty box with the sentence lost at
+     the bottom of it. Stacked in the one cell and ended, it is the strip it looks like. */
+  grid-area: 1 / 1;
+  align-self: end;
+  position: sticky;
+  z-index: 3;
+  inset-block-end: var(--ui-3);
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: var(--ui-3);
+  padding: var(--ui-2) var(--ui-2) var(--ui-2) var(--ui-4);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-l);
+  box-shadow: var(--ui-shadow-m);
+  color: var(--ui-ink);
+  font-size: var(--ui-text-sm);
+}
+
+/* The button is the point of the strip, so it is not the quietest thing in it. */
+.builder-undo .button {
+  color: var(--ui-accent);
+  font-weight: 650;
+}
+
 /* The canvas carries a frame and a shadow so it reads as the site inside the tool,
    which matters most at phone width where it no longer fills the pane. */
 .builder-canvas iframe {
+  /* Named as well, because auto-placement steps AROUND an explicitly placed item: with
+     only the strip at 1 / 1 the iframe was pushed into a second row and the strip sat
+     above the page instead of over the foot of it. */
+  grid-area: 1 / 1;
   inline-size: 100%;
   block-size: 100%;
   min-block-size: 30rem;

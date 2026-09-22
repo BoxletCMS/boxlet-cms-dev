@@ -172,6 +172,21 @@
   });
 
   document.addEventListener('keydown', function (event) {
+    /* Escape and the undo shortcut are the editor's, not the page's, and the page is what
+       has focus whenever the pointer is in here. Nothing in this document is editable —
+       the fields are all in the parent — so neither can be taken from anything (D-079). */
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      select(-1);
+
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      tell('undo', {});
+
+      return;
+    }
     if (event.key !== 'Enter' && event.key !== ' ') {
       return;
     }
@@ -201,6 +216,13 @@
       draggable: 'section.block',
       animation: 120,
       ghostClass: 'bx-dragging',
+      /* A drag is reported when it ends, and by then this document has already moved:
+         a snapshot taken then would record the result, not what to go back to. So the
+         start is announced too, and the builder holds that state until it knows the
+         drag changed something (D-079). */
+      onStart: function () {
+        tell('drag-start', {});
+      },
       onEnd: function () {
         renumber();
         drawInserts();

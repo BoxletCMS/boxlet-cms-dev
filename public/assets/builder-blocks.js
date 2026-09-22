@@ -18,6 +18,11 @@
   var timer = null;
   // The newest redraw sent per block key, so a slow answer cannot overwrite a fast one.
   var drawing = {};
+  /* And an era, bumped whenever the page is replaced wholesale (undo, D-079). The ticket
+     above pins an answer to its block; this pins it to the page that asked for it, which
+     a per-key ticket cannot do — put the page back and the next request for that key
+     would take the number the answer in flight already holds. */
+  var era = 0;
 
   function post(params) {
     var body = new URLSearchParams();
@@ -102,6 +107,8 @@
 
         api.say('');
         api.target = null;
+        // Nothing changed until now: the request could still have failed.
+        api.commit();
         place(at, fragment, group);
       })
       .catch(function () {
@@ -147,13 +154,14 @@
     var key = section.getAttribute('data-bx-key');
     var ticket = (drawing[key] || 0) + 1;
     drawing[key] = ticket;
+    var asked = era;
 
     post(Object.assign({ type: type.value, index: String(index) }, values(group)))
       .then(function (parts) {
         var doc = api.frame.contentDocument;
         var current = doc && doc.querySelector('[data-bx-key="' + key + '"]');
-        if (drawing[key] !== ticket || !parts.canvas || !current) {
-          return; // superseded by a later edit, or the block is gone
+        if (drawing[key] !== ticket || era !== asked || !parts.canvas || !current) {
+          return; // superseded by a later edit or an undo, or the block is gone
         }
         var fragment = doc.importNode(parts.canvas.content, true);
         var fresh = fragment.querySelector('section');
@@ -239,6 +247,14 @@
     }
 
     if (action === 'remove') {
+      // The one action that destroys work, so it is the one that says it can be undone:
+      // the shortcut is not discoverable, and the people who most need it are the ones
+      // who do not know it is there (D-079).
+      var labelled = group.querySelector('[data-block-label]');
+      api.commit(api.panel.getAttribute('data-text-removed').replace(
+        ':block',
+        labelled ? labelled.getAttribute('data-block-label') : '',
+      ));
       section.remove();
       group.remove();
       api.renumber();
@@ -249,6 +265,7 @@
     }
 
     if (action === 'duplicate') {
+      api.commit();
       var key = 'n' + keyCounter++;
       var copy = section.cloneNode(true);
       copy.setAttribute('data-bx-key', key);
@@ -273,6 +290,7 @@
     if (to < 0 || to >= list.length) {
       return;
     }
+    api.commit();
     var groups = api.groupNodes();
     if (action === 'up') {
       list[to].before(section);
@@ -288,6 +306,19 @@
   }
 
   api.act = act;
+
+  /* Undo puts the field groups back as HTML, which leaves every rich text and picker in
+     them dead markup for the same reason a clone's is — hence the second caller these two
+     were written for, and the reason they are reachable from outside this file (D-079). */
+  api.unsetLive = function (root) {
+    unsetRichText(root);
+    unsetPicker(root);
+  };
+
+  /* Forget every answer still in flight: it was asked for by a page that is now gone. */
+  api.forget = function () {
+    era += 1;
+  };
 
   api.form.addEventListener('click', function (event) {
     var add = event.target.closest && event.target.closest('[data-add-type]');

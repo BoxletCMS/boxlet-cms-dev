@@ -201,6 +201,8 @@ return [
     'pages.library_hint' => 'Each picture is the block as this site renders it.',
     'pages.insert_here' => 'Add a block here',
     'pages.insert_at_end' => 'Add a block at the end',
+    'pages.undo' => 'Undo',
+    'pages.removed' => ':block removed.',
     'pages.inserting' => 'Adding…',
     'pages.insert_failed' => 'The block could not be added. Check your connection and try again.',
 

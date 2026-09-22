@@ -276,9 +276,9 @@ testBothDrivers('applying a character composes each section once, from what it h
         $sections[$first]['style'],
         'the mixed section composed from the character',
     );
-    // Counted in blocks, so the number the admin reports still means "blocks restyled"
-    // whatever arrangement they are standing in.
-    assertEquals(2, $changed, 'blocks reported as changed');
+    // Counted in SECTIONS, because that is the word the message uses: "…:count sections
+    // were reset". Two blocks standing in one section are one section restyled.
+    assertEquals(1, $changed, 'the number the message reports');
     // Layer 3 is still the block's own and is composed per type, however many types stand
     // in the section.
     $layouts = $db->all('SELECT block_type, layout FROM page_blocks WHERE page_id = ? ORDER BY id', [$id]);

@@ -115,7 +115,7 @@ final class Composition
      * character's composition. Destructive: it discards per-section choices, so it only
      * ever runs when the user picked it explicitly over saving the design alone.
      *
-     * @return int the number of blocks changed
+     * @return int the number of SECTIONS restyled, which is what the message reports
      */
     public static function apply(Db $db, Blocks $registry, string $character): int
     {
@@ -154,7 +154,13 @@ final class Composition
             if ($types === []) {
                 continue;
             }
-            $changed += count($types);
+            // SECTIONS, because that is the word the message uses: "…:count sections were
+            // reset to the Editorial composition" (lang/en/design.php). While a section held
+            // one block the two counts were the same number and nothing said which it was.
+            // They stop being the same the moment a section holds two, and a number that
+            // quietly means something else than the sentence around it is worse than no
+            // number.
+            $changed += 1;
             $db->query(
                 'UPDATE page_sections SET style_json = ?, updated_at = ? WHERE id = ?',
                 [json_encode(self::section($character, $types), JSON_THROW_ON_ERROR), $now, $id],

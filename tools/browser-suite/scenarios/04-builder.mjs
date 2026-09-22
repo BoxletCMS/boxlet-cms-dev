@@ -213,6 +213,69 @@ const panelChecks = async (page, report) => {
     plain.tabs === 0 && plain.summaryPainted, JSON.stringify(plain));
 };
 
+
+/*
+ * PUT THE PAGE BACK (D-090).
+ *
+ * This scenario adds a block and SAVES it, and for a long time it never took it away
+ * again. Run eight times in one session it left the development site's home page with
+ * seventeen text blocks where the demo has one — on the site the owner opens to look at
+ * his own work. A check that writes has to own what it writes, or the suite quietly
+ * becomes the thing that ruins the site it is testing.
+ *
+ * It removes by the exact key the added block carries, never by matching the words in it:
+ * the demo's own text block would match a search for "text", and a cleanup that deletes
+ * by resemblance is how a real page goes.
+ */
+const tidyUp = async (page, report) => {
+  await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+  const ready = await page.waitForFunction(() => {
+    const frame = document.querySelector('iframe[data-canvas]');
+    return frame && frame.contentDocument
+      && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
+  }, { timeout: 20000 }).then(() => true).catch(() => false);
+  if (!ready) {
+    report.fail('the scenario puts the page back', 'the canvas did not load for the cleanup');
+    return;
+  }
+  await settle();
+
+  // Every block this scenario has ever added carries the heading it typed. Read the ids of
+  // the field groups that hold it, then remove those groups by id — the text finds them,
+  // the id is what is acted on, and a block the demo shipped has no such heading.
+  const before = await groups(page);
+  const removed = await page.evaluate((marker) => {
+    const doomed = [...document.querySelectorAll('[data-block-group]')].filter((group) => {
+      const heading = group.querySelector('input[name$="[heading]"]');
+      return heading !== null && heading.value === marker;
+    });
+    doomed.forEach((group) => {
+      const index = group.getAttribute('data-block-group');
+      const section = document.querySelector('iframe[data-canvas]').contentDocument
+        .querySelector(`[data-bx-index="${index}"]`);
+      if (section) section.remove();
+      group.remove();
+    });
+    window.boxletBuilder.renumber();
+    window.boxletBuilder.tellCanvas('refresh', {});
+
+    return doomed.length;
+  }, 'Checklist block');
+
+  if (removed === 0) {
+    report.pass('the scenario puts the page back', 'nothing of this scenario\'s was left on the page');
+    return;
+  }
+  await settle(1200);
+  await clickAndWait(page, 'form[data-builder] button[name="action"][value="save"]:not(.visually-hidden)');
+  await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+  await settle(2500);
+  const after = await groups(page);
+  report.verdict('the scenario puts the page back',
+    after === before - removed,
+    `${before} blocks, ${removed} of this scenario's removed, ${after} left`);
+};
+
 export default {
   name: 'builder',
 
@@ -396,5 +459,6 @@ export default {
 
     await undoChecks(page, report);
     await panelChecks(page, report);
+    await tidyUp(page, report);
   },
 };

@@ -21,7 +21,7 @@ use App\Support\Url;
  * @var \App\Core\Blocks $registry
  * @var string $canvasUrl
  * @var string $insertUrl
- * @var list<array{type: string, label: string, preview: string}> $library
+ * @var list<array{type: string, label: string, icon: string, summary: string, preview: string}> $library
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
  * @var list<array{id: int, title: string, depth: int}> $parents
  * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
@@ -202,7 +202,8 @@ foreach ($errors as $key => $message) {
                                 <span class="library-frame">
                                     <iframe src="<?= e($item['preview']) ?>" title="<?= e($item['label']) ?>" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
                                 </span>
-                                <span class="library-name"><?= e($item['label']) ?></span>
+                                <span class="library-name"><?= icon($item['icon']) ?><?= e($item['label']) ?></span>
+                                <span class="library-summary"><?= e($item['summary']) ?></span>
                             </button>
 <?php endforeach; ?>
                         </div>

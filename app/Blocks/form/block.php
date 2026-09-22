@@ -8,7 +8,7 @@
 // and a sentence, and the section styles every block has.
 return [
     'type' => 'form',
-    'icon' => 'form',
+    'icon' => 'clipboard-list',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.form.heading'],

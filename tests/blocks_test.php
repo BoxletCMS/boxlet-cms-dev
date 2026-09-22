@@ -206,9 +206,58 @@ test('no block template or front-end stylesheet hard-codes a colour, size, font 
     // literal values and may never read a site token (tests/admin_test.php).
     // \s*+ is possessive: without it the lookahead could match after backtracking over a space.
     $mustUseVar = '~^\s*(color|background|background-color|border-color|font-family|font-size|box-shadow|border-radius)\s*:\s*+(?!var\(|inherit|transparent|none|currentColor|0;)([^;]+);~mi';
+    // A colour hides from the line above when it is percent-encoded, which is what a data:
+    // URI does to '#'. sections.css carried stroke='%23000' inside a mask for a while and
+    // this test passed over it; the rule was never "no # character", it was "no colour of
+    // its own" (D-084).
+    $encoded = '~%23[0-9a-fA-F]{3,8}\b~';
     foreach (['site.css', 'blocks.css', 'chrome.css', 'sections.css'] as $css) {
         $source = (string) file_get_contents($root . '/public/assets/' . $css);
         assertTrue(!preg_match($literal, $source, $match), "{$css} contains the literal " . ($match[0] ?? ''));
+        assertTrue(!preg_match($encoded, $source, $match), "{$css} contains the encoded colour " . ($match[0] ?? ''));
         assertTrue(!preg_match($mustUseVar, $source, $match), "{$css} sets " . trim($match[0] ?? '') . ' without a custom property');
     }
+});
+
+/*
+ * A BLOCK'S ICON HAS TO EXIST (PLAN.md D-084).
+ *
+ * icon() writes <use href="…icons.svg#i-name">, and a name the sprite does not carry draws
+ * NOTHING — no error, no warning, an empty square. tools/icons/build.php says as much and
+ * ends with "check the screen", which is a rule nobody remembers on the day they add a
+ * block. The sprite is a committed file, so this can simply read it.
+ *
+ * It also guards the other direction that matters: the five icons were 'hero', 'text',
+ * 'image-text', 'columns' and 'form', none of which were ever in the sprite, and nobody
+ * noticed for as long as nothing drew them.
+ */
+test('every shipped block names an icon the sprite actually has', function () {
+    $sprite = (string) file_get_contents(dirname(__DIR__) . '/public/assets/vendor/icons.svg');
+    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+
+    $missing = [];
+    foreach ($registry->types() as $type) {
+        $name = (string) $registry->get($type)['icon'];
+        if (!str_contains($sprite, 'id="i-' . $name . '"')) {
+            $missing[] = "{$type} asks for '{$name}'";
+        }
+    }
+
+    assertEquals([], $missing, 'icons named by a block but not in public/assets/vendor/icons.svg');
+});
+
+test('every shipped block says in one line what it is for', function () {
+    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+
+    $summaries = [];
+    foreach ($registry->types() as $type) {
+        $key = 'block.' . $type . '.summary';
+        $summary = t($key);
+        // t() answers with the key itself when lang/ has no such string, which on the screen
+        // is a card reading "block.hero.summary" under its name.
+        assertTrue($summary !== $key, "{$type} has no {$key} in lang/");
+        $summaries[] = $summary;
+    }
+
+    assertEquals(count($summaries), count(array_unique($summaries)), 'two blocks share one summary');
 });

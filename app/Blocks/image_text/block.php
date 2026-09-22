@@ -5,7 +5,7 @@
 // image stores a media id; until the Media module (Slice 5) it renders a placeholder.
 return [
     'type' => 'image_text',
-    'icon' => 'image-text',
+    'icon' => 'image',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.image_text.heading'],

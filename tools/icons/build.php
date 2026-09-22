@@ -25,6 +25,10 @@ const ICONS = [
     'chevron-left', 'image', 'list', 'list-checks', 'palette', 'panels-top-left',
     // The theme switch (D-054); 'contrast' is Lucide's half-filled circle, for "match the system".
     'sun', 'moon', 'contrast',
+    // What each shipped block calls itself (D-084). A block's 'icon' names one of these, and
+    // the names are Lucide's so that adding a block means adding a line here and running this
+    // again — not drawing anything. 'image' above already serves the Image and text block.
+    'panel-top', 'type', 'columns-3', 'clipboard-list',
 ];
 
 if (PHP_SAPI !== 'cli') {

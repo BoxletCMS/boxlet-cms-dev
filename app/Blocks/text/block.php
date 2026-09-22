@@ -4,7 +4,7 @@
 // block.text.layout.<layout>.
 return [
     'type' => 'text',
-    'icon' => 'text',
+    'icon' => 'type',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.text.heading'],

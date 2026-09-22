@@ -9,6 +9,16 @@
 return [
     // Blocks: block.<type> names the block, block.<type>.<field> its fields, and
     // block.<type>.<field>.<option> the options of a select.
+    // WHAT EACH BLOCK IS FOR, one line, under its name in the library (D-084). The picture
+    // shows the shape and the name is a label; neither says when to reach for it. Written to
+    // finish the sentence "use this for…", and kept to one line because a card that needs a
+    // paragraph is a block that needs a better name.
+    'block.hero.summary' => 'The top of a page: one large line, a sentence and a button.',
+    'block.text.summary' => 'Writing on its own, in one column or two.',
+    'block.image_text.summary' => 'A picture with words beside it, either way round.',
+    'block.columns.summary' => 'Two to four equal columns, for services, a team or a list.',
+    'block.form.summary' => 'A form you made on the Forms screen, with a heading above it.',
+
     'block.hero' => 'Hero',
     'block.hero.heading' => 'Heading',
     'block.hero.subheading' => 'Subheading',

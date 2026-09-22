@@ -302,7 +302,7 @@ final class PageBuilderController
      * block and this site's design (BlockPreview). Missing files are generated here, the
      * same guard the compiled stylesheet uses.
      *
-     * @return list<array{type: string, label: string, preview: string}>
+     * @return list<array{type: string, label: string, icon: string, summary: string, preview: string}>
      */
     private function library(): array
     {
@@ -315,6 +315,12 @@ final class PageBuilderController
             $library[] = [
                 'type' => $type,
                 'label' => t('block.' . $type),
+                // Declared in every block definition since the first one, validated at boot,
+                // and until now drawn nowhere (D-084).
+                'icon' => (string) $registry->get($type)['icon'],
+                // What the block is FOR. The picture shows its shape and the label names it;
+                // neither says when to reach for it.
+                'summary' => t('block.' . $type . '.summary'),
                 'preview' => Url::asset('cache/previews/' . BlockPreview::file($registry, $type, $stylesheet, $cache)),
             ];
         }

@@ -57,6 +57,16 @@ export default {
           : false,
         placeholders: doc ? doc.querySelectorAll('.media-placeholder').length : 0,
         form: doc ? doc.querySelectorAll('.site-form-field').length : 0,
+        // A <use> pointing at a symbol the sprite does not have draws an empty box of zero
+        // size and no error, which is what "check the screen" in tools/icons/build.php is
+        // asking for. Here the screen is checked.
+        icon: (() => {
+          const svg = card.querySelector('.library-name .icon');
+          const box = svg && svg.getBoundingClientRect();
+
+          return box && box.width > 0 && box.height > 0 ? Math.round(box.width) : 0;
+        })(),
+        summary: (card.querySelector('.library-summary') || { textContent: '' }).textContent.trim(),
       };
     }));
     report.pass('the library draws its cards', cards.map((c) => `${c.name} ${c.height}px`).join(', '));
@@ -88,6 +98,22 @@ export default {
     const form = cards.find((c) => c.form > 0);
     report.verdict('the Form card shows a form', form !== undefined,
       form ? `${form.name} draws ${form.form} fields` : 'no card drew a single form field');
+
+    // 'icon' was declared in every block definition from the first one, validated at boot,
+    // and drawn nowhere — and all five names were absent from the sprite, which nobody could
+    // notice while nothing drew them (D-084).
+    const noIcon = cards.filter((c) => c.icon === 0);
+    report.verdict('every card draws the icon its block declares', noIcon.length === 0,
+      noIcon.length === 0
+        ? cards.map((c) => `${c.name} ${c.icon}px`).join(', ')
+        : `drawn as nothing: ${noIcon.map((c) => c.name).join(', ')}`);
+
+    // The picture shows the block's shape and the name labels it. Neither says when to reach
+    // for it, which is the question somebody scrolling a library is actually asking.
+    const summaries = cards.map((c) => c.summary).filter((t) => t.length > 0);
+    report.verdict('every card says in one line what its block is for',
+      summaries.length === cards.length && new Set(summaries).size === cards.length,
+      cards.map((c) => `${c.name}: ${JSON.stringify(c.summary)}`).join(' | '));
 
     // A flat rectangle where a picture goes reads as damage rather than as a picture area.
     const withPlaceholder = cards.filter((c) => c.placeholders > 0);

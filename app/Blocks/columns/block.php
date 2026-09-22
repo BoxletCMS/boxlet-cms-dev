@@ -9,7 +9,7 @@
 // six items in a row of three is two rows, which is how a team or a list of services is set.
 return [
     'type' => 'columns',
-    'icon' => 'columns',
+    'icon' => 'columns-3',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.columns.heading'],

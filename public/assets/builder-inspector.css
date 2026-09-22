@@ -176,8 +176,28 @@
   pointer-events: none;
 }
 
+/* The name carries the block's own icon (D-084): declared in every definition since the
+   first one and drawn nowhere until now. It is decoration beside text that already says the
+   same thing, so it is hidden from assistive technology by icon() itself. */
 .library-name {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
   font-weight: 550;
+}
+
+.library-name .icon {
+  flex: none;
+  color: var(--ui-ink-muted);
+}
+
+/* One line saying what the block is FOR. The picture shows its shape and the name labels it;
+   neither says when to reach for it, which is the question somebody scrolling a library is
+   actually asking. */
+.library-summary {
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+  line-height: 1.35;
 }
 
 .panel-block .block-editor {

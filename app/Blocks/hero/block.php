@@ -4,7 +4,7 @@
 // block.hero.layout.<layout>.
 return [
     'type' => 'hero',
-    'icon' => 'hero',
+    'icon' => 'panel-top',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'required' => true, 'translatable' => true, 'sample' => 'preview.hero.heading'],

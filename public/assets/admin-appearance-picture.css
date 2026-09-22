@@ -113,3 +113,14 @@
   inline-size: 100%;
   block-size: 100%;
 }
+
+/* ---- the buttons under the picture (PLAN.md O-24) ------------------------------------ */
+
+/* The actions sit at the end of the bar, and wrap under it on a narrow screen rather than
+   squeezing the label that says what the frame is. */
+.preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
+  margin-inline-start: auto;
+}

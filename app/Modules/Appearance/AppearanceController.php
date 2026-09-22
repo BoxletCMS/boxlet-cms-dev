@@ -55,17 +55,6 @@ final class AppearanceController
     }
 
     /**
-     * An old address, kept while bookmarks and habits catch up (D-059). The screens merged;
-     * their addresses have not been taken away in the same breath.
-     *
-     * @param array<string, string> $params
-     */
-    public function moved(Request $request, string $locale, array $params): Response
-    {
-        return Response::redirect(Url::admin('appearance'));
-    }
-
-    /**
      * Publish, or load a character into the form. A loaded character changes nothing on the
      * site until it is published: Publish is the confirmation.
      *
@@ -274,7 +263,6 @@ final class AppearanceController
             // which this screen rearranges, and several of those override a base rule of the
             // same specificity in the three before it, so the cascade is decided here (D-072).
             'styles' => [
-                'admin-design.css',
                 'admin-appearance.css',
                 'admin-appearance-rail.css',
                 'admin-appearance-picture.css',

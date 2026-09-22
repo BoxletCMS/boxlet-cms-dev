@@ -10,8 +10,8 @@
  * values on an SVG or as an input's value, never as a declaration here: a stylesheet of the
  * admin's that held a site colour is the bug tests/contrast_test.php exists to catch.
  *
- * The contrast gauge is still in admin-design.css with the last rules of the old screen
- * (PLAN.md O-24); it belongs here and moves when that file goes. */
+ * The contrast gauge is here too: it is the palette measured, and it was the last thing
+ * left in the old Design screen's stylesheet (PLAN.md O-24). */
 /* ---- the palette as ONE list of roles (PLAN.md D-074) --------------------------------- */
 
 /* It used to be two lists: fifteen colours that could not be touched, and a folded panel
@@ -176,4 +176,70 @@
 
 .own-colour:has(input[type="checkbox"]:checked) .own-colour-free {
   display: inline-flex;
+}
+
+/* ---- the contrast gauge (PLAN.md D-058) ---------------------------------------------- */
+
+/* The contrast gauge (PLAN.md D-058): every pair, what it looks like, what it measures.
+   The sample is an SVG whose two fills are the site's colours — the only site colour that
+   ever reaches this screen, and it reaches it as data, never as a stylesheet value. */
+
+.gauge-list {
+  display: grid;
+  gap: var(--ui-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gauge-row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  gap: var(--ui-2);
+  align-items: center;
+  font-size: var(--ui-text-sm);
+}
+
+.gauge-sample {
+  inline-size: 2.5rem;
+  block-size: 1.5rem;
+  border-radius: var(--ui-radius-s);
+  border: var(--ui-border) solid var(--ui-line);
+}
+
+.gauge-ratio {
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  white-space: nowrap;
+}
+
+/* The verdict is a word, never a colour alone: a red dot says nothing to a reader who
+   cannot see red, and nothing at all to one reading it aloud. */
+.gauge-verdict {
+  color: var(--ui-success);
+}
+
+.gauge-fails .gauge-verdict {
+  color: var(--ui-danger);
+  font-weight: 600;
+}
+
+.gauge-more {
+  margin-block-start: var(--ui-2);
+  font-size: var(--ui-text-sm);
+}
+
+.gauge-more summary {
+  cursor: pointer;
+  color: var(--ui-ink-muted);
+  padding-block: var(--ui-1);
+}
+
+.gauge-more summary:hover {
+  color: var(--ui-ink);
+}
+
+.gauge-more .gauge-list {
+  margin-block-start: var(--ui-2);
 }

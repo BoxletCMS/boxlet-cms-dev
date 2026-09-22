@@ -276,12 +276,6 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // The six typefaces, for the cards that choose between them (D-065).
     $router->get('/admin/appearance/typefaces', [AppearancePreview::class, 'typefaces'], $requireAdmin);
 
-    // The two addresses that led here, while bookmarks and habits catch up. They are a
-    // redirect and nothing else: neither screen exists any more. Taking them away entirely
-    // is an open item (O-22), along with the ⌘K entries that still name them.
-    $router->get('/admin/design', [AppearanceController::class, 'moved'], $requireAdmin);
-    $router->get('/admin/chrome', [AppearanceController::class, 'moved'], $requireAdmin);
-
     // Pages: the home page of a locale has the empty slug. Slugs are one path segment.
     // A visitor sending a form (D-046). Unprefixed: the form knows its own language.
     $router->visitorPost('/form/{id:\d+}', [FormSubmitController::class, 'submit']);

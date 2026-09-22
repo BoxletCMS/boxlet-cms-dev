@@ -339,3 +339,26 @@
 .appearance-inspector .tab-panel {
   gap: var(--ui-3);
 }
+
+/* ---- what the form itself is, and the line under a control (PLAN.md O-24) ------------ */
+
+/* Moved from admin-design.css when that file went: the form is this screen's form, and the
+   derived line is one of its readouts. Nothing about them was the old screen's. */
+
+.design-form,
+.design-form .fieldset {
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+.design-form .field input,
+.design-form .field select {
+  max-inline-size: none;
+}
+
+.derived {
+  margin: 0;
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-xs);
+  overflow-wrap: anywhere;
+}

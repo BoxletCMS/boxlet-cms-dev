@@ -364,8 +364,17 @@ test('the merged screen carries both halves, and the old addresses lead to it', 
     assertContains('name="header_menu"', $body, 'the chrome half');
     assertContains('name="footer_text_en"', $body, 'the words');
 
+    /*
+     * AND THE TWO OLD ADDRESSES ARE GONE (PLAN.md O-22).
+     *
+     * They were redirects for one release, which is the grace a bookmark gets. The rule
+     * changed deliberately: this asserted that each one LED here and now asserts that
+     * neither exists, because a redirect kept for ever is a second address for one screen —
+     * the arrangement the merge was for. The ⌘K entry never named them; it names Appearance
+     * and carries "design" and "chrome" among its words, so searching still finds it.
+     */
     foreach (['/admin/design', '/admin/chrome'] as $old) {
-        assertEquals('/admin/appearance', dispatch($old)->headers['Location'] ?? null, $old . ' leads here');
+        assertEquals(404, dispatch($old)->status, $old . ' is not an address any more');
     }
 });
 

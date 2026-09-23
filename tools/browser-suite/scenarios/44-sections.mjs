@@ -180,10 +180,14 @@ export default {
     await wait(500);
     const was = await bandClasses();
     await page.evaluate(() => {
-      const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
-        .querySelector('select[name$="[style][surface]"]');
-      select.value = select.value === 'contrast' ? 'tinted' : 'contrast';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
+      // A radio group since D-107, so the surface is PRESSED. Which of the two is pressed
+      // depends on what the band already wears, because the check is that the canvas moves.
+      const group = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden);
+      const now = group.querySelector('input[name$="[style][surface]"]:checked');
+      const want = now && now.value === 'contrast' ? 'tinted' : 'contrast';
+      const radio = group.querySelector(`input[name$="[style][surface]"][value="${want}"]`);
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
     });
     await wait(SETTLE);
     const afterStyle = await bandClasses();
@@ -211,13 +215,31 @@ export default {
     // canvas caught up only on save.
     await page.click('[data-panel-tab="section"]');
     await wait(400);
-    await page.evaluate(() => {
-      const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
-        .querySelector('select[name$="[layout]"]');
-      select.value = 'halves';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    // What the band wears before the arrangement is touched, to prove it still wears it.
+    const beforeColumns = await bandClasses();
+    await page.evaluate((want) => {
+      // A radio group since D-107: the arrangement is PRESSED, not picked from a list.
+      const radio = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
+        .querySelector(`input[name$="[layout]"][value="${want}"]`);
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }, 'halves');
     await wait(SETTLE * 2);
+
+    /* ---- AND IT CHANGED NOTHING ELSE (PLAN.md D-107) --------------------------------
+       Changing the arrangement redraws the whole band on the server, so every one of its
+       other choices is posted and comes back — and every one of them was posted WRONG the
+       day the panel became radios: three places serialised a group of fields and none of
+       them skipped an unchecked radio, so the last option of every closed set won. The band
+       came back gradient, centred, full width and curve-edged, and the owner watched his
+       page turn purple: "provjeri zašto se nakon promjene broja kolumni cijela sekcija
+       stilizira". Asserted as "nothing but the columns moved", which is the claim. */
+    const keptLook = await bandClasses();
+    const withoutColumns = (classes) => classes.split(' ')
+      .filter((c) => c !== 'bx-selected' && !/^(section-cols|cols-|stack-)/.test(c)).sort().join(' ');
+    report.verdict('changing the arrangement leaves every other choice the band had',
+      withoutColumns(keptLook) === withoutColumns(beforeColumns),
+      `${beforeColumns} -> ${keptLook}`);
     const rearranged = await frameNow.evaluate(() => {
       const cols = document.querySelector('.cols-halves');
       const band = cols ? cols.closest('[data-bx-section]').getAttribute('data-bx-section') : null;
@@ -247,12 +269,16 @@ export default {
 
     // ---- give the second band two columns --------------------------------------------
     const chosen = await page.evaluate(() => {
-      const selects = Array.from(document.querySelectorAll('select[name^="sections"][name$="[layout]"]'));
-      const target = selects[1];
-      if (!target) { return null; }
-      target.value = 'halves';
+      // The SECOND band's group, by its radio group rather than by a select (D-107).
+      const groups = [...new Set(Array.from(
+        document.querySelectorAll('input[name^="sections"][name$="[layout]"]'),
+      ).map((r) => r.name))];
+      const name = groups[1];
+      if (name === undefined) { return null; }
+      const target = document.querySelector(`input[name="${name}"][value="halves"]`);
+      target.checked = true;
       target.dispatchEvent(new Event('change', { bubbles: true }));
-      return target.name;
+      return name;
     });
     if (chosen === null) {
       report.fail('sections: a band to arrange', 'the panel offers no section layout control');
@@ -401,14 +427,26 @@ export default {
     await wait(900);
     await page.frames().find((f) => f.url().includes('/canvas')).click('[data-block-action="remove"]');
     await wait(900);
-    await page.evaluate((name) => {
-      const select = document.querySelector(`select[name="${name}"]`);
-      if (select) {
-        select.value = 'one';
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+    /* AND THE ARRANGEMENT GOES BACK TO ONE COLUMN.
+       This looked for a <select>, which D-107 replaced with a radio group, and it was
+       written as `if (select) { … }` — so it found nothing and did nothing, quietly, and
+       the page was left with two columns while the step above reported success. A cleanup
+       that cannot find its own control says so and fails; it does not shrug. */
+    const restored = await page.evaluate((name) => {
+      const radio = document.querySelector(`input[name="${name}"][value="one"]`);
+      if (!radio) { return false; }
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+
+      return true;
     }, chosen);
-    await wait(600);
+    if (!restored) {
+      report.fail('sections: the scenario puts the page back',
+        `no control named ${chosen} offers "one", so the band was left arranged`);
+
+      return;
+    }
+    await wait(SETTLE);
     notices = await submit(page);
 
     const back = await page.goto(`${BASE}/about`, { waitUntil: 'networkidle2' })

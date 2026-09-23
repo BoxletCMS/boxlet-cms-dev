@@ -197,7 +197,7 @@ export default {
         // Where the band's fields sit down the panel, from the panel's own top.
         fieldsAt: group && panel
           ? Math.round(group.getBoundingClientRect().top - panel.getBoundingClientRect().top) : null,
-        columns: group ? group.querySelectorAll('select[name$="[layout]"]').length : 0,
+        columns: group ? Math.min(1, group.querySelectorAll('input[name$="[layout]"]').length) : 0,
       };
     });
     report.verdict('a selected band shows its own settings, in reach, and not the block library',
@@ -226,12 +226,13 @@ export default {
       JSON.stringify(fills));
 
     // ---- give it two columns, then fill one ------------------------------------------
-    await page.evaluate(() => {
-      const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
-        .querySelector('select[name$="[layout]"]');
-      select.value = 'halves';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    await page.evaluate((want) => {
+      // A radio group since D-107: the arrangement is PRESSED, not picked from a list.
+      const radio = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
+        .querySelector(`input[name$="[layout]"][value="${want}"]`);
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }, 'halves');
     await wait(SETTLE * 2);
 
     const band = await after.evaluate(() => {

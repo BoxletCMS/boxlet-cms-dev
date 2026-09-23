@@ -46,11 +46,16 @@ export default {
     // Applying a character below uses action=save ("design only"), which leaves section
     // styles alone, so this survives all five.
     await page.goto(`${BASE}/admin/pages/${PAGE}/form`, { waitUntil: 'networkidle2' });
-    // The second block's surface, found by position among the groups rather than by a name
-    // with a position in it: a field is named for its block since D-094.
-    const surfaceField = await page.$$eval('[data-block] select[name$="[style][surface]"]',
-      (els) => els[1].name);
-    await page.select(`select[name="${surfaceField}"]`, 'contrast');
+    /* The second BAND's surface. Found by position among the groups rather than by a name
+       with a position in it: a field is named for its block since D-094. A radio group since
+       D-107 — and the plain editor renders these fields once per band, at the foot of its
+       first block, so the names are what tell the bands apart. */
+    const surfaceField = await page.$$eval('input[name$="[style][surface]"]',
+      (els) => [...new Set(els.map((e) => e.name))][1]);
+    await page.$eval(`input[name="${surfaceField}"][value="contrast"]`, (radio) => {
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    });
     await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
 
     const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })

@@ -248,16 +248,37 @@
    * draws columns and a redraw replaces the BLOCK alone, so the band's classes are never in
    * what comes back and never at risk.
    */
-  function values(group) {
+  /**
+   * THE VALUES A GROUP OF FIELDS STANDS FOR, under the names the server reads.
+   *
+   * A CONTROL THAT IS NOT CHECKED IS NOT AN ANSWER. A checkbox was excluded here from the
+   * start; radios arrived with D-107 and were not, and a group of them shares ONE name — so
+   * writing every one into this map left the LAST option standing. The band came back
+   * gradient, centred, full width and curve-edged the moment anything redrew it: every
+   * closed set's final value at once. The owner saw the whole page turn purple after
+   * choosing two columns.
+   *
+   * ONE FUNCTION, WHICH IS THE REAL FIX. Three places serialised a group of fields and each
+   * had decided separately what to do about an unchecked control — so fixing the first left
+   * the bug alive in the other two, and it was still there on the next run. The rule is one
+   * rule and now lives in one place.
+   */
+  function collect(node, rename) {
     var out = {};
-    group.querySelectorAll('[name]').forEach(function (element) {
-      if (element.type === 'checkbox' && !element.checked) {
+    node.querySelectorAll('[name]').forEach(function (element) {
+      if ((element.type === 'checkbox' || element.type === 'radio') && !element.checked) {
         return;
       }
-      out[element.name.replace(/^blocks\[[^\]]*\]/, 'block')] = element.value;
+      out[rename ? rename(element.name) : element.name] = element.value;
     });
 
     return out;
+  }
+
+  function values(group) {
+    return collect(group, function (name) {
+      return name.replace(/^blocks\[[^\]]*\]/, 'block');
+    });
   }
 
   /**
@@ -280,9 +301,8 @@
     if (!band) {
       return;
     }
-    var params = {};
-    group.querySelectorAll('[name]').forEach(function (element) {
-      params[element.name.replace(/^sections\[[^\]]*\]/, 'section')] = element.value;
+    var params = collect(group, function (name) {
+      return name.replace(/^sections\[[^\]]*\]/, 'section');
     });
     var groups = api.groupNodes().filter(function (candidate) {
       return candidate.getAttribute('data-section-key') === key;
@@ -290,12 +310,7 @@
     var keys = [];
     groups.forEach(function (candidate) {
       keys.push(candidate.getAttribute('data-block-key'));
-      candidate.querySelectorAll('[name]').forEach(function (element) {
-        if (element.type === 'checkbox' && !element.checked) {
-          return;
-        }
-        params[element.name] = element.value;
-      });
+      Object.assign(params, collect(candidate));
     });
 
     post(params, api.panel.getAttribute('data-band-url'))
@@ -807,7 +822,10 @@
         return;
       }
       STYLE_KEYS.forEach(function (name) {
-        var field = group.querySelector('[name$="[style][' + name + ']"]');
+        // :checked, because the control is a radio group since D-107 and the first radio's
+        // value is the first OPTION, not the chosen one. As a <select> this read right by
+        // accident of there being only one element to find.
+        var field = group.querySelector('[name$="[style][' + name + ']"]:checked');
         if (!field) {
           return;
         }

@@ -249,6 +249,13 @@ return [
     'style.stack.stack' => 'Stack them, top to bottom',
     'style.stack.stay' => 'Keep them side by side',
     'style.stack.reverse' => 'Stack them, bottom to top',
+    // THE SAME CHOICES, IN THE WORDS A BUTTON HAS ROOM FOR (PLAN.md D-107). The sentences
+    // above are the right ones where there is room to read — a hint, a plain <select> — and
+    // three words across a panel column are not. short_label() takes these where they exist
+    // and the sentence where they do not, so only the values that need one carry one.
+    'style.stack.short.stack' => 'Stack',
+    'style.stack.short.stay' => 'Side by side',
+    'style.stack.short.reverse' => 'Reverse',
     'style.surface' => 'Surface',
     'style.surface.plain' => 'Plain',
     'style.surface.tinted' => 'Tinted',
@@ -256,6 +263,7 @@ return [
     // Media have arrived; the fallback is about this section now, not the release. A
     // surface set to image with no picture chosen renders exactly as contrast does (D-024).
     'style.surface.image' => 'Image (shown as contrast until a picture is chosen)',
+    'style.surface.short.image' => 'Image',
     'style.surface.gradient' => 'Gradient',
     'style.rhythm' => 'Rhythm',
     'style.rhythm.tight' => 'Tight',
@@ -266,6 +274,7 @@ return [
     'style.width.normal' => 'Normal',
     'style.width.wide' => 'Wide',
     'style.width.full' => 'Full width',
+    'style.width.short.full' => 'Full',
     'style.align' => 'Alignment',
     'style.align.left' => 'Left',
     'style.align.center' => 'Centred',

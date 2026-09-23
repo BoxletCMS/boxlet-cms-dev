@@ -142,3 +142,84 @@ test('guard (source, not behaviour): nothing reads the style off a block any mor
 
     assertEquals([], array_values(array_unique($offenders)), 'files reading page_blocks.style_json');
 });
+
+/*
+ * THE SECTION PANEL IS ROWS OF BUTTONS, NOT LISTS (PLAN.md D-107).
+ *
+ * A <select> hides its options until pressed, so the one thing an owner wants to know while
+ * looking at a page — what else this band could be — cost a click per field. The Appearance
+ * screen has answered this since D-065 and the page editor now uses the same control, from
+ * the same helper.
+ *
+ * ASSERTED ON THE MARKUP, not on a stylesheet: what makes this a row of buttons is that the
+ * options are radios with the same name, all present at once. The look follows.
+ */
+testBothDrivers('the section panel offers every closed set as a radio group', function (string $driver) {
+    $db = adminSite($driver);
+    // With a block, because the fields belong to the band a block stands in.
+    $id = createPage($db, 'en', 'panel', 'Panel', true, [['type' => 'text', 'content' => ['body' => '<p>One.</p>']]]);
+    $body = dispatch("/admin/pages/{$id}")->body;
+    $key = preg_match('~name="sections\[([a-z0-9]+)\]\[layout\]"~', $body, $found) === 1 ? $found[1] : null;
+    assertTrue($key !== null, 'the page editor renders no section fields at all');
+
+    $closed = ['layout' => App\Modules\Pages\SectionLayout::LAYOUTS, 'stack' => App\Modules\Pages\SectionLayout::STACKS];
+    foreach ($closed as $group => $values) {
+        $name = "sections[{$key}][{$group}]";
+        assertTrue(
+            !str_contains($body, '<select id="section-' . $key . '-' . $group . '"'),
+            "the band's {$group} is still a list",
+        );
+        foreach (array_keys($group === 'layout' ? $values : array_flip($values)) as $value) {
+            assertContains(
+                'type="radio" id="section-' . $key . '-' . $group . '-' . $value . '" name="' . e($name) . '"',
+                $body,
+                "{$group} offers no button for {$value}",
+            );
+        }
+    }
+    foreach (App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $values) {
+        foreach ($values as $value) {
+            assertContains(
+                'type="radio" id="section-' . $key . '-' . $styleKey . '-' . $value . '"',
+                $body,
+                "{$styleKey} offers no button for {$value}",
+            );
+        }
+    }
+
+    // And the arrangement is a DIAGRAM: one bar per column, in the proportion declared.
+    foreach (App\Modules\Pages\SectionLayout::LAYOUTS as $layout => $weights) {
+        $bars = '';
+        foreach ($weights as $weight) {
+            $bars .= '<i class="w' . $weight . '"></i>';
+        }
+        assertContains($bars, $body, "the {$layout} arrangement is not drawn in proportion");
+    }
+});
+
+/*
+ * AND EVERY WORD ON A BUTTON FITS ON ONE.
+ *
+ * "Stack them, top to bottom" is the right sentence in a hint and the wrong one on a control
+ * a third of a panel wide. short_label() takes a shorter name where one is written, so this
+ * is the guard that one is written wherever it is needed — checked against the values, so a
+ * value added to a closed set is caught here rather than by looking at the screen.
+ */
+test('every value the section panel puts on a button is short enough to read', function () {
+    $longest = 14;
+    $groups = ['layout' => array_keys(App\Modules\Pages\SectionLayout::LAYOUTS), 'stack' => App\Modules\Pages\SectionLayout::STACKS];
+    foreach (App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $values) {
+        $groups[$styleKey] = $values;
+    }
+    $long = [];
+    foreach ($groups as $group => $values) {
+        foreach ($values as $value) {
+            // The arrangements wear their notation, which the outline already uses.
+            $label = $group === 'layout' ? t('style.layout.short.' . $value) : short_label('style.' . $group, $value);
+            if (mb_strlen($label) > $longest) {
+                $long[] = "style.{$group}.{$value} = \"{$label}\"";
+            }
+        }
+    }
+    assertEquals([], $long, "values with no short label, over {$longest} characters on a button");
+});

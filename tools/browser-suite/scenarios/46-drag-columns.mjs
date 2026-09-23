@@ -90,12 +90,13 @@ export default {
       .getAttribute('data-bx-section'));
     await page.click(`[data-outline-section="${band}"]`);
     await wait(900);
-    await page.evaluate(() => {
-      const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
-        .querySelector('select[name$="[layout]"]');
-      select.value = 'halves';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    await page.evaluate((want) => {
+      // A radio group since D-107: the arrangement is PRESSED, not picked from a list.
+      const radio = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
+        .querySelector(`input[name$="[layout]"][value="${want}"]`);
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }, 'halves');
     await wait(SETTLE * 2);
 
     const moved = await dragInto(page.frames().find((f) => f.url().includes('/canvas')), band, 1);
@@ -157,12 +158,13 @@ export default {
     await wait(SETTLE);
     await page.click(`[data-outline-section="${band}"]`);
     await wait(900);
-    await page.evaluate(() => {
-      const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
-        .querySelector('select[name$="[layout]"]');
-      select.value = 'one';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    await page.evaluate((want) => {
+      // A radio group since D-107: the arrangement is PRESSED, not picked from a list.
+      const radio = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
+        .querySelector(`input[name$="[layout]"][value="${want}"]`);
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }, 'one');
     await wait(SETTLE * 2);
     const cleaned = await submit(page);
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * ONE SECTION'S OWN FIELDS: the columns it holds, what they do on a phone, and the five
- * style keys plus the background picture (PLAN.md D-095, D-097, D-099).
+ * style keys plus the background picture (PLAN.md D-095, D-097, D-099, D-107).
  *
  * ITS OWN PARTIAL, AND THAT IS THE POINT. These fields used to be rendered inside each
  * block's group, which was exact while a section held exactly one block and duplicated
@@ -12,7 +12,14 @@
  * TWO PLACEMENTS, ONE DEFINITION. The visual editor renders these into a group of their own
  * and its Section tab (D-086) shows the one belonging to the selected block's section. The
  * plain editor renders them where they have always been, folded at the foot of the first
- * block of the band, so that editor does not change by a pixel.
+ * block of the band.
+ *
+ * EVERY CLOSED SET IS A ROW OF BUTTONS (D-107), the control the Appearance screen has had
+ * since D-065 — because this is the same question asked about a band. A <select> hides its
+ * options until pressed, so the one thing an owner wants to know while looking at a page —
+ * what else this could be — took a click per field. Radios, so the form still submits
+ * without a script, the names and values posted are unchanged, and a screen reader is told
+ * it is a radio group rather than a listbox.
  *
  * @var array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null} $sectionOf
  * @var array<string, string|int|null> $composed what the character would compose for this
@@ -26,6 +33,7 @@ $style = \App\Modules\Design\SectionStyle::normalize($sectionOf['style']);
 // and these survive being cloned out of a <template>. Defined here rather than inherited
 // from block.php, because the visual editor requires this partial on its own (D-099).
 $pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::pickerAttributes();
+$layout = $sectionOf['layout'] ?? \App\Modules\Pages\SectionLayout::ONE;
 ?>
                 <details class="block-style" data-panel-part="section"<?= $style !== $composed ? ' open' : '' ?>>
                     <summary><?= e(t('style.title')) ?></summary>
@@ -38,33 +46,69 @@ $pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::p
                                  its colouring, and because it is what the empty column that
                                  asks to be filled comes from. A closed set, never a
                                  percentage — the argument SectionStyle makes about colour. */ ?>
-<?php foreach (['layout' => \App\Modules\Pages\SectionLayout::LAYOUTS, 'stack' => \App\Modules\Pages\SectionLayout::STACKS] as $arrangeKey => $arrangeValues): ?>
                         <div class="field">
-                            <label for="<?= e($sectionIdPrefix . $arrangeKey) ?>"><?= e(t('style.' . $arrangeKey)) ?></label>
-                            <select id="<?= e($sectionIdPrefix . $arrangeKey) ?>" name="<?= e($sectionPrefix) ?>[<?= e($arrangeKey) ?>]" data-section-<?= e($arrangeKey) ?>>
-<?php foreach ($arrangeKey === 'layout' ? array_keys($arrangeValues) : $arrangeValues as $arrangeValue): ?>
-                                <option value="<?= e($arrangeValue) ?>"<?= ($sectionOf[$arrangeKey] ?? '') === $arrangeValue ? ' selected' : '' ?>><?= e(t('style.' . $arrangeKey . '.' . $arrangeValue)) ?></option>
+                            <div class="choice-head">
+                                <span class="choice-name" id="<?= e($sectionIdPrefix) ?>layout-label"><?= e(t('style.layout')) ?></span>
+                                <?php /* THE ONLY READOUT HERE, and it earns its place: these
+                                         buttons are a diagram and a piece of notation, so the
+                                         words have nowhere else to go. It is drawn by the
+                                         server and the server redraws this whole partial
+                                         whenever the layout changes (redrawBand), which is
+                                         the only thing that can change it — so it is right
+                                         without a script keeping it so. The other groups
+                                         spell their value on the button that is pressed. */ ?>
+                                <span class="choice-value" data-readout="layout"><?= e(t('style.layout.' . $layout)) ?></span>
+                            </div>
+                            <?php /* A SHAPE, NOT A WORD, which is what SectionLayout::LAYOUTS
+                                     has said its weights were for since it was written: each
+                                     button draws the columns in proportion, with the notation
+                                     the page outline already uses under it. Drawn from the
+                                     weights rather than from seven hand-written rules, so a
+                                     layout added to that list arrives here already drawn. */ ?>
+                            <div class="segmented-choice cols-grid" role="radiogroup" aria-labelledby="<?= e($sectionIdPrefix) ?>layout-label">
+<?php foreach (\App\Modules\Pages\SectionLayout::LAYOUTS as $layoutName => $weights): ?>
+                                <label class="segment cols-option">
+                                    <input type="radio" id="<?= e($sectionIdPrefix . 'layout-' . $layoutName) ?>" name="<?= e($sectionPrefix) ?>[layout]" value="<?= e($layoutName) ?>"<?= $layout === $layoutName ? ' checked' : '' ?> aria-label="<?= e(t('style.layout.' . $layoutName)) ?>">
+                                    <span class="cols-figure" aria-hidden="true">
+<?php foreach ($weights as $weight): ?><i class="w<?= e((string) $weight) ?>"></i><?php endforeach; ?>
+                                    </span>
+                                    <span aria-hidden="true"><?= e(t('style.layout.short.' . $layoutName)) ?></span>
+                                </label>
 <?php endforeach; ?>
-                            </select>
-                            <?= field_hint('hint.style.' . $arrangeKey) ?>
+                            </div>
+                            <?= field_hint('hint.style.layout') ?>
                         </div>
-<?php endforeach; ?>
-<?php foreach (\App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $styleValues): ?>
+                        <?php
+                        /* AND THE REST, EACH A ROW OF BUTTONS. `stack` is an arrangement and
+                           the five style keys are a colouring, but to the person choosing
+                           they are one kind of question, so they wear one kind of control. */
+                        $groups = ['stack' => \App\Modules\Pages\SectionLayout::STACKS];
+                        foreach (\App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $styleValues) {
+                            $groups[$styleKey] = $styleValues;
+                        }
+                        foreach ($groups as $groupKey => $groupValues):
+                            $isStyle = $groupKey !== 'stack';
+                            $name = $sectionPrefix . ($isStyle ? '[style][' . $groupKey . ']' : '[' . $groupKey . ']');
+                            $current = (string) ($isStyle ? ($style[$groupKey] ?? '') : ($sectionOf[$groupKey] ?? ''));
+                            $labels = [];
+                            foreach ($groupValues as $groupValue) {
+                                $labels[$groupValue] = short_label('style.' . $groupKey, $groupValue);
+                            }
+                            $labelId = $sectionIdPrefix . $groupKey . '-label';
+                        ?>
                         <div class="field">
-                            <label for="<?= e($sectionIdPrefix . 'style-' . $styleKey) ?>"><?= e(t('style.' . $styleKey)) ?></label>
-                            <select id="<?= e($sectionIdPrefix . 'style-' . $styleKey) ?>" name="<?= e($sectionPrefix) ?>[style][<?= e($styleKey) ?>]">
-<?php foreach ($styleValues as $styleValue): ?>
-                                <option value="<?= e($styleValue) ?>"<?= ($style[$styleKey] ?? '') === $styleValue ? ' selected' : '' ?>><?= e(t('style.' . $styleKey . '.' . $styleValue)) ?></option>
-<?php endforeach; ?>
-                            </select>
-                            <?= field_hint('hint.style.' . $styleKey) ?>
+                            <div class="choice-head">
+                                <span class="choice-name" id="<?= e($labelId) ?>"><?= e(t('style.' . $groupKey)) ?></span>
+                            </div>
+                            <?= segmented_group($name, $labels, $current, $labelId, $sectionIdPrefix . $groupKey . '-') ?>
+                            <?= field_hint('hint.style.' . $groupKey) ?>
                         </div>
 <?php endforeach; ?>
                         <?php /* D-024's sixth key. Not part of OPTIONS, because OPTIONS is
                                  what becomes class names on the wrapper and a picture is
-                                 rendered, not painted. Offered always rather than only when
-                                 the surface is `image`: hiding it would take script, and
-                                 this panel works without one. */ ?>
+                                 rendered, not painted. A <select> and not a row of buttons:
+                                 the set is not closed — it is every picture in the library —
+                                 which is the whole distinction the control is drawing. */ ?>
                         <div class="field block-style-picture">
                             <label for="<?= e($sectionIdPrefix . 'style-image') ?>"><?= e(t('style.image')) ?></label>
                             <select id="<?= e($sectionIdPrefix . 'style-image') ?>" name="<?= e($sectionPrefix) ?>[style][<?= e(\App\Modules\Design\SectionStyle::IMAGE) ?>]" data-media-field<?= $pickerAttributes() ?>>

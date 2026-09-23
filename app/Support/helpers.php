@@ -98,6 +98,50 @@ function field_hint(string $key, string $id = ''): string
 }
 
 /**
+ * A CLOSED SET AS A ROW OF BUTTONS (PLAN.md D-065, D-107).
+ *
+ * Written for the Appearance screen and made a helper when the page editor's Section panel
+ * became the second caller: the same question — one of these few — asked about a band
+ * instead of about the site. The markup is here once rather than in two views that drift,
+ * and admin.css carries the look for the same reason.
+ *
+ * RADIO INPUTS, not buttons with a hidden field: they submit without a script, the browser
+ * gives arrow-key movement inside the group for free, and a screen reader already knows what
+ * a radio group is. Which is also why this replaced a <select> in the Section panel and lost
+ * nothing: the name and the values posted are the same, so the save never learns of it.
+ *
+ * @param string $name the form name every radio in the group carries
+ * @param array<array-key, string> $labels value => what it is called
+ * @param string $labelledBy the id of the element naming this group, for aria-labelledby
+ * @param string $idPrefix each radio's id is this plus its value, so a <label for> can find it
+ */
+function segmented_group(string $name, array $labels, string $current, string $labelledBy, string $idPrefix): string
+{
+    $html = '<div class="segmented-choice" role="radiogroup" aria-labelledby="' . e($labelledBy) . '">';
+    foreach ($labels as $value => $label) {
+        $value = (string) $value;
+        $html .= '<label class="segment"><input type="radio" id="' . e($idPrefix . ($value === '' ? 'none' : $value)) . '"'
+            . ' name="' . e($name) . '" value="' . e($value) . '"' . ($value === $current ? ' checked' : '') . '>'
+            . '<span>' . e($label) . '</span></label>';
+    }
+
+    return $html . '</div>';
+}
+
+/**
+ * The shortest name a value has: `style.surface.short.tinted` when one is written, else its
+ * ordinary label. A segment is a button a few characters wide, and "Image (shown as contrast
+ * until a picture is chosen)" is a sentence — but it is the right sentence in a <select> and
+ * in a hint, so the long one is not replaced, only passed over where there is no room.
+ */
+function short_label(string $prefix, string $value): string
+{
+    $short = t($prefix . '.short.' . $value);
+
+    return $short === $prefix . '.short.' . $value ? t($prefix . '.' . $value) : $short;
+}
+
+/**
  * What the site itself says to a visitor (PLAN.md O-19, D-044): the few words Boxlet puts on
  * a page that are not the owner's — "page not found", the name of the menu and of the
  * language switcher. Not t(), which is the admin's own language.

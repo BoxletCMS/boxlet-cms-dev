@@ -79,7 +79,7 @@ $word = static fn (string $code, string $field): string => is_string($words[$cod
                         <span class="field-label" id="<?= e($field) ?>-label"><?= e(t('chrome.look.' . $choice)) ?></span>
                         <span class="readout<?= $chosen === '' ? ' readout-following' : '' ?>"><?= e($chosen === '' ? t('chrome.look.following') : t('chrome.look.' . $choice . '.' . $chosen)) ?></span>
                     </div>
-                    <div class="segmented" role="radiogroup" aria-labelledby="<?= e($field) ?>-label">
+                    <div class="segmented-choice" role="radiogroup" aria-labelledby="<?= e($field) ?>-label">
                         <label class="segment segment-follow">
                             <input type="radio" id="<?= e($field) ?>" name="<?= e($field) ?>" value=""<?= $chosen === '' ? ' checked' : '' ?>>
                             <span><?= e(t('chrome.look.follow_short', ['value' => $fromCharacter])) ?></span>

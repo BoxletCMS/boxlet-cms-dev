@@ -12,11 +12,6 @@
   /* The insertion control's disc. Dark enough to read as a shape on any pale design;
      the white ring around it carries the dark ones. */
   --bx-ink: #101a33;
-  /* The seam between two bands, under the "+ Section" control. Grey rather than the accent
-     and barely there: it says "this is the join", and the control on it says what pressing
-     it does. Neutral so it darkens a pale band and lightens nothing — the page beneath can
-     be any colour the design layer makes. */
-  --bx-seam: rgb(16 26 51 / 0.10);
 
   margin: 0;
   /* The overlay is positioned against the body, in document coordinates. */
@@ -59,12 +54,12 @@
   justify-content: center;
   block-size: 2rem;
   transform: translateY(-50%);
-  /* NO EDGE OF ITS OWN. It had a dashed box, and over a band that is itself outlined the
-     two sets of dashes read as one confused thing — the owner's words on seeing it:
-     "prostor u kojem se nalazi dodavanje sekcija ... djeluje zbunjujuće ... preljevaju te
-     linije preko sekcije". The strip is a place, not a frame: a veil marks the seam and the
-     control inside it is what has to be legible. That is also how the artifact draws it. */
-  background: var(--bx-seam);
+  /* NO EDGE AND NO FILL OF ITS OWN. It had a dashed box first, and over a band that is
+     itself outlined the two sets of dashes read as one confused thing — "preljevaju te
+     linije preko sekcije". Then it had a grey veil, which the owner asked to see without.
+     What is left is the honest shape: the strip is only the reach of the control, and the
+     control itself is what carries the two tones and is legible at rest. */
+  background: none;
   border: 0;
   padding: 0;
   font: inherit;

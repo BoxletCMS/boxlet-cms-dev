@@ -81,8 +81,9 @@
     var byKey = {};
     document.querySelectorAll('[data-section-group]').forEach(function (group) {
       var key = group.getAttribute('data-section-group');
-      var select = group.querySelector('select[name$="[layout]"]');
-      var band = { key: key, layout: select ? select.value : 'one', blocks: [] };
+      // A radio group since D-107; :checked is the chosen one, where a <select> was itself.
+      var chosen = group.querySelector('input[name$="[layout]"]:checked');
+      var band = { key: key, layout: chosen ? chosen.value : 'one', blocks: [] };
       byKey[key] = band;
       bands.push(band);
     });

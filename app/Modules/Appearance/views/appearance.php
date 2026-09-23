@@ -76,15 +76,13 @@ $segmented = static function (string $key, array $labels, string $readout = '', 
     } elseif ($readout !== '') {
         $html .= '<span class="readout" data-readout="' . e($key) . '">' . e($readout) . '</span>';
     }
-    $html .= '</div><div class="segmented" role="radiogroup" aria-labelledby="' . e($id) . '-label">';
-    foreach ($labels as $value => $label) {
-        $checked = (string) $value === $current ? ' checked' : '';
-        $html .= '<label class="segment"><input type="radio" id="' . e($id . '-' . ($value === '' ? 'follow' : $value)) . '"'
-            . ' name="' . e($key) . '" value="' . e((string) $value) . '"' . $checked . '>'
-            . '<span>' . e($label) . '</span></label>';
-    }
+    // The group itself is segmented_group()'s (D-107): the Section panel asks the same
+    // question about a band, and one definition of a control is one definition of its
+    // behaviour. What stays here is this screen's own framing — the readout, the "still
+    // following the character" state, and the error.
+    $html .= '</div>' . segmented_group($key, $labels, $current, $id . '-label', $id . '-');
 
-    return $html . '</div>' . field_hint('hint.design.' . $key) . $error($key) . '</div>';
+    return $html . field_hint('hint.design.' . $key) . $error($key) . '</div>';
 };
 $labels = static function (string $key, array $values): array {
     $result = [];

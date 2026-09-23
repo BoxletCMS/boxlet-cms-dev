@@ -179,6 +179,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // One block, drawn for the canvas and the panel. Its own controller since 4c: the
     // builder renders the editor, this answers for a single block and writes nothing.
     $router->post('/admin/pages/{id:\d+}/block', [PageBlockController::class, 'insert'], $requireAdmin);
+    // And one band, for the choices a block cannot show: the number of columns is the
+    // markup AROUND the blocks, so redrawing one of them can never put a column there.
+    $router->post('/admin/pages/{id:\d+}/section', [PageBlockController::class, 'band'], $requireAdmin);
     $router->get('/admin/pages/{id:\d+}/form', [PageEditorController::class, 'edit'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
     $router->post('/admin/pages/order', [PagesController::class, 'reorder'], $requireAdmin);

@@ -362,6 +362,10 @@ final class PageBuilderController
             'registry' => $this->registry(),
             'canvasUrl' => Url::admin('pages', $id, 'canvas'),
             'insertUrl' => Url::admin('pages', $id, 'block'),
+            // The other fragment endpoint: a whole band, for the choices a block cannot
+            // show (D-099). Beside it rather than derived in the browser, so the one place
+            // that knows this page's addresses goes on being this one.
+            'bandUrl' => Url::admin('pages', $id, 'section'),
             'library' => $this->library(),
             // What a media field offers. The editor asks for a picture by name, never by id.
             'pictures' => MediaReference::choices($this->db()),

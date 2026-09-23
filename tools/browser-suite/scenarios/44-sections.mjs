@@ -117,6 +117,30 @@ export default {
       afterTyping.replace(' bx-selected', '') === afterStyle.replace(' bx-selected', ''),
       `${afterStyle} -> ${afterTyping}`);
 
+    // AND THE NUMBER OF COLUMNS, which no class swap can show: it is the markup AROUND
+    // every block in the band. The server draws the band — the same SectionRender the page
+    // uses — so this is the one choice here that costs a round trip, and until it did, the
+    // canvas caught up only on save.
+    await page.click('[data-panel-tab="section"]');
+    await wait(400);
+    await page.evaluate(() => {
+      const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
+        .querySelector('select[name$="[layout]"]');
+      select.value = 'halves';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await wait(SETTLE * 2);
+    const rearranged = await frameNow.evaluate(() => ({
+      cols: document.querySelectorAll('.section-cols').length,
+      // The editor's own marks do not come back from the server and have to be put back.
+      keys: document.querySelectorAll('[data-bx-key]').length,
+      selected: document.querySelectorAll('.bx-selected').length,
+      slot: document.querySelectorAll('.bx-slot').length,
+    }));
+    report.verdict('choosing two columns rearranges the canvas without a save',
+      rearranged.cols === 1 && rearranged.slot === 1 && rearranged.selected === 1 && rearranged.keys === 6,
+      JSON.stringify(rearranged));
+
     // Nothing above is saved; the page is reloaded so the rest starts from what is stored.
     await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
     await page.waitForFunction(() => {

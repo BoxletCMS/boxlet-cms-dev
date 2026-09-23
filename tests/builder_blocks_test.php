@@ -308,3 +308,37 @@ test('the selected block\'s controls are on the canvas, and the builder acts on 
 
     assertTrue(!str_contains(dispatch('/admin/pages/' . $id)->body, 'data-block-action="up"'), 'the panel still carries the controls');
 });
+
+testBothDrivers('the band endpoint draws a whole section and writes nothing', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', true, [
+        ['type' => 'text', 'content' => ['body' => '<p>Left</p>']],
+    ]);
+    $before = blocksWithStyle($db, $id);
+
+    // WHAT THE PANEL SENDS WHEN THE NUMBER OF COLUMNS CHANGES (D-099): the band's own
+    // fields, and the fields of every block standing in it. The number of columns is the
+    // markup AROUND the blocks, so no redraw of one of them can put a column there.
+    $response = adminPost("/admin/pages/{$id}/section", [
+        'section' => [
+            'layout' => 'halves',
+            'stack' => 'reverse',
+            'style' => ['surface' => 'tinted', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'none'],
+        ],
+        'blocks' => ['b1' => ['type' => 'text', 'body' => '<p>Left</p>', 'column' => '0']],
+    ]);
+
+    assertEquals(200, $response->status, 'status');
+    if (!preg_match('~<template data-band-canvas>(.*?)</template>~s', $response->body, $drawn)) {
+        fail('the endpoint returned no band');
+    }
+    assertContains('section-cols cols-halves stack-reverse', $drawn[1], 'the columns it asked for');
+    assertContains('surface-tinted', $drawn[1], 'the band\'s surface');
+    // Two columns, one of them empty and waiting — the editor draws its + over that box.
+    assertEquals(2, substr_count($drawn[1], '<div class="section-column">'), 'columns drawn');
+
+    // It writes nothing, like its neighbour: the band exists only in the page being edited.
+    assertEquals($before, blocksWithStyle($db, $id), 'the endpoint wrote to the page');
+    $bands = App\Modules\Pages\Sections::forPage($db, $id);
+    assertEquals('one', (reset($bands) ?: fail('no band'))['layout'], 'the stored band was changed');
+});

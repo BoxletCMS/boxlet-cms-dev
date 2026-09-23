@@ -15,20 +15,92 @@ use App\Modules\Media\MediaPicture;
 use App\Modules\Media\MediaReference;
 
 /**
- * One block, as the fragments the visual editor asks for.
+ * PART OF A PAGE, drawn for the visual editor's canvas from what is currently typed.
  *
  * Split out of PageBuilderController, which had reached the 300-line limit. The seam is a
- * real one rather than a convenience: PageBuilderController renders the EDITOR — its
- * shell, its canvas document, and the re-render after a refused save — while this answers
- * a single endpoint that draws one block, either brand new or as it is being edited. It
- * writes nothing.
+ * real one rather than a convenience: PageBuilderController renders the EDITOR — its shell,
+ * its canvas document, and the re-render after a refused save — while this answers the
+ * endpoints that draw a FRAGMENT of the page. It writes nothing, ever.
  *
- * Moved unchanged. The route, the response and the parsing are exactly what they were.
+ * Two of them now. `insert()` draws one block, brand new or as it is being edited. `band()`
+ * draws a whole section, because some choices are not a block's to show: changing One column
+ * to Two rearranges the markup around every block in the band, and no amount of redrawing
+ * one of them can put a column there (D-099).
  */
 final class PageBlockController
 {
     public function __construct(private readonly Container $container)
     {
+    }
+
+    /**
+     * ONE BAND, drawn as it stands: its own arrangement and style, and the blocks in it.
+     *
+     * For the choices a block cannot show. The five style keys are class names on the
+     * band's own element and the editor swaps those itself, instantly and without asking
+     * anybody; the number of columns is the markup AROUND the blocks, and that only the
+     * thing which knows both shapes can draw — SectionRender, here, rather than a second
+     * copy of those two shapes written out in JavaScript.
+     *
+     * Writes nothing, like its neighbour. The band exists only in the page being edited
+     * until Save.
+     *
+     * @param array<string, string> $params
+     */
+    public function band(Request $request, string $locale, array $params): Response
+    {
+        $page = Page::find($this->db(), (int) $params['id']);
+        if ($page === null) {
+            return PagesController::missing();
+        }
+
+        $registry = $this->registry();
+        $sent = $request->body['section'] ?? null;
+        $section = [
+            'layout' => SectionLayout::normalize(is_array($sent) ? ($sent['layout'] ?? null) : null),
+            'stack' => SectionLayout::normalizeStack(is_array($sent) ? ($sent['stack'] ?? null) : null),
+            'style' => SectionStyle::normalize(is_array($sent) ? ($sent['style'] ?? null) : null),
+        ];
+
+        /* THE SAME PARSER THE SAVE RUNS, so the canvas shows what would actually be stored
+           — including rich text reduced to the whitelist. An empty $stored, because none of
+           these blocks is being looked up by id: they are drawn from what was sent. */
+        $parsed = BlockForm::parse($registry, $request->body['blocks'] ?? [], []);
+        $blocks = [];
+        foreach ($parsed['blocks'] as $block) {
+            if ($block['content'] === null) {
+                continue;
+            }
+            $blocks[] = [
+                'type' => $block['type'],
+                'content' => $block['content'],
+                'layout' => $block['layout'],
+                'column' => $block['column'] ?? 0,
+            ];
+        }
+        if ($blocks === []) {
+            return new Response(t('pages.insert_unknown'), 422, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
+        $locale = (string) $page['locale'];
+        $links = PageLinks::targets($this->db(), $registry, $locale, $blocks);
+        foreach ($blocks as $at => $block) {
+            $blocks[$at]['content'] = PageLinks::content($registry, $block['type'], $block['content'], $links);
+        }
+
+        $body = (new View(__DIR__ . '/views'))->render('admin/band', $locale, [
+            'bandHtml' => SectionRender::draw(
+                $registry,
+                $section,
+                $blocks,
+                MediaPicture::forBlocks($this->db(), $registry, $locale, $blocks),
+                false,
+                ['forms' => FormBlocks::resolve($this->db(), $blocks, $locale, null, (string) $this->container->get('config')->get('app.key'))],
+                $locale,
+            ),
+        ], null);
+
+        return Response::admin($body);
     }
 
     /**

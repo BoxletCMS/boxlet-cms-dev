@@ -24,6 +24,7 @@ use App\Support\Url;
  * @var \App\Core\Blocks $registry
  * @var string $canvasUrl
  * @var string $insertUrl
+ * @var string $bandUrl
  * @var list<array{type: string, label: string, icon: string, summary: string, preview: string}> $library
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
  * @var list<array{id: int, title: string, depth: int}> $parents
@@ -127,7 +128,7 @@ foreach ($errors as $key => $message) {
                 <?php /* data-hints-root sits here rather than on the selected-block panel because the
          field groups are its SIBLING, and the rule that hides a hint has to reach
          them (D-087). */ ?>
-                <aside class="builder-panel" data-hints-root="builder" data-insert-url="<?= e($insertUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>">
+                <aside class="builder-panel" data-hints-root="builder" data-insert-url="<?= e($insertUrl) ?>" data-band-url="<?= e($bandUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>">
 <?php if ($translation['stale'] !== [] || $translation['missing'] > 0): ?>
                     <?php /* A translation behind its source says so before anything else
                              (D-043, step 3); each stale block also carries its own mark. */ ?>

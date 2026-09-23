@@ -174,6 +174,27 @@ const panelChecks = async (page, report) => {
     report.fail('panel: the canvas loads', 'the canvas had no sections after 20s');
     return;
   }
+  /* WAIT FOR THE CANVAS TO HAVE SAID "ready", not for a clock.
+     On `ready` the panel pairs each field group with its canvas element and then shows
+     whichever group holds an error — none here, so it shows NOTHING. A click that lands
+     before that message arrives selects a block and is then undone by it, and every
+     verdict below reads a panel with no group in it. It was a race all along and it started
+     losing, which is the only reason it was ever looked at.
+
+     THE SIGNAL HAS TO BE IN THE CANVAS DOCUMENT. The first attempt waited for the field
+     groups to carry data-block-key, and it did nothing at all: those live in the PARENT
+     document and survive a canvas reload, so a pairing from the previous visit satisfied
+     the wait instantly. data-bx-index is written by canvas.js as it starts, into the
+     document that is loading — it cannot be stale, because a stale one is gone. */
+  await page.waitForFunction(
+    () => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const bands = doc ? doc.querySelectorAll('[data-bx-blocks] > section') : [];
+
+      return bands.length > 0 && [...bands].every((b) => b.hasAttribute('data-bx-index'));
+    },
+    { timeout: 20000 },
+  ).catch(() => {});
   await settle();
   await page.evaluate(() => document.querySelector('iframe[data-canvas]').contentDocument
     .querySelectorAll('[data-bx-blocks] > section')[0].click());

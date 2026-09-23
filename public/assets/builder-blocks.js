@@ -24,14 +24,14 @@
      would take the number the answer in flight already holds. */
   var era = 0;
 
-  function post(params) {
+  function post(params, url) {
     var body = new URLSearchParams();
     body.set('_csrf', api.form.querySelector('input[name="_csrf"]').value);
     Object.keys(params).forEach(function (key) {
       body.set(key, params[key]);
     });
 
-    return fetch(api.panel.getAttribute('data-insert-url'), {
+    return fetch(url || api.panel.getAttribute('data-insert-url'), {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -49,6 +49,8 @@
         fields: holder.querySelector('template[data-block-fields]'),
         // The band this block arrives in, when it arrives as one of its own (D-099).
         band: holder.querySelector('template[data-section-fields]'),
+        // A whole band redrawn, from the other endpoint.
+        drawn: holder.querySelector('template[data-band-canvas]'),
       };
     });
   }
@@ -276,6 +278,100 @@
     return out;
   }
 
+  /**
+   * A WHOLE BAND REDRAWN, because its arrangement changed (PLAN.md D-099).
+   *
+   * Everything the band needs is already on the screen: its own fields, and the fields of
+   * every block standing in it. They go to the server with the names they already have, the
+   * same parser the save runs cleans them, and what comes back is the band as the visitor
+   * would get it.
+   *
+   * THE KEYS ARE PUT BACK IN ORDER. The drawn band carries none — the server has never
+   * heard of them — and they are what pairs a block on the canvas with its fields in the
+   * panel. The groups were sent in the page's reading order and SectionRender draws in that
+   * same order, column by column, so they zip.
+   */
+  function redrawBand(group) {
+    var doc = api.frame.contentDocument;
+    var key = group.getAttribute('data-section-group');
+    var band = doc && doc.querySelector('[data-bx-section="' + key + '"]');
+    if (!band) {
+      return;
+    }
+    var params = {};
+    group.querySelectorAll('[name]').forEach(function (element) {
+      params[element.name.replace(/^sections\[[^\]]*\]/, 'section')] = element.value;
+    });
+    var groups = api.groupNodes().filter(function (candidate) {
+      return candidate.getAttribute('data-section-key') === key;
+    });
+    var keys = [];
+    groups.forEach(function (candidate) {
+      keys.push(candidate.getAttribute('data-block-key'));
+      candidate.querySelectorAll('[name]').forEach(function (element) {
+        if (element.type === 'checkbox' && !element.checked) {
+          return;
+        }
+        params[element.name] = element.value;
+      });
+    });
+
+    post(params, api.panel.getAttribute('data-band-url'))
+      .then(function (parts) {
+        if (!parts.drawn) {
+          throw new Error('malformed');
+        }
+        var fragment = doc.importNode(parts.drawn.content, true);
+        var fresh = fragment.firstElementChild;
+        if (!fresh) {
+          throw new Error('empty');
+        }
+        fresh.setAttribute('data-bx-section', key);
+        /* THE EDITOR'S OWN MARKS DO NOT COME BACK FROM THE SERVER, which has never heard
+           of them: which block was selected, and which has fallen behind its source
+           (D-043). Read off the old band by key before it goes, and put back by key —
+           by key and not by position, because the whole point of this redraw is that the
+           positions have just changed. */
+        var marked = {};
+        var chosen = null;
+        var wasInside = band.querySelectorAll('.section-column > *');
+        var had = wasInside.length === 0 ? [band] : Array.prototype.slice.call(wasInside);
+        had.forEach(function (block) {
+          var name = block.getAttribute('data-bx-key');
+          if (block.hasAttribute('data-bx-stale')) {
+            marked[name] = true;
+          }
+          if (block.classList.contains('bx-selected')) {
+            chosen = name;
+          }
+        });
+
+        var inside = fresh.querySelectorAll('.section-column > *');
+        var drawn = inside.length === 0 ? [fresh] : Array.prototype.slice.call(inside);
+        drawn.forEach(function (block, at) {
+          if (!keys[at]) {
+            return;
+          }
+          block.setAttribute('data-bx-key', keys[at]);
+          if (marked[keys[at]]) {
+            block.setAttribute('data-bx-stale', '');
+          }
+          if (chosen === keys[at]) {
+            block.classList.add('bx-selected');
+          }
+        });
+        api.commit();
+        band.replaceWith(fresh);
+        api.tellCanvas('refresh', {});
+      })
+      .catch(function (error) {
+        api.say(api.panel.getAttribute('data-text-failed'));
+        if (window.console) {
+          window.console.error('boxlet: could not redraw the band', error);
+        }
+      });
+  }
+
   /** The group holding the fields of the band this block's group stands in. */
   function bandGroupOf(group) {
     var key = group.getAttribute('data-section-key');
@@ -313,12 +409,20 @@
           return; // superseded by a later edit or an undo, or the block is gone
         }
         var fragment = doc.importNode(parts.canvas.content, true);
-        var fresh = fragment.querySelector('section');
+        var fresh = fragment.querySelector('section') || fragment.firstElementChild;
         fresh.setAttribute('data-bx-key', key);
         // A stale mark belongs to the block, not to what was typed into it: only "Mark as
         // up to date" clears it, so a redraw carries it over (D-043, step 3).
         if (current.hasAttribute('data-bx-stale')) {
           fresh.setAttribute('data-bx-stale', '');
+        }
+        /* AND THE NAME OF THE BAND, for the same reason and a newer one (D-099). The server
+           has never heard of these marks; they are the editor's, and a redraw that dropped
+           this one left the band unaddressable — so choosing a surface and THEN choosing two
+           columns did nothing at all, while choosing the columns first worked. Measured,
+           after the second choice quietly stopped working in a probe that did both. */
+        if (current.hasAttribute('data-bx-section')) {
+          fresh.setAttribute('data-bx-section', current.getAttribute('data-bx-section'));
         }
         if (current.classList.contains('bx-selected')) {
           fresh.classList.add('bx-selected');
@@ -580,6 +684,16 @@
     bands.addEventListener('change', function (event) {
       var group = event.target.closest && event.target.closest('[data-section-group]');
       if (!group) {
+        return;
+      }
+      var name = event.target.name || '';
+      /* THE NUMBER OF COLUMNS IS NOT A CLASS, it is the markup around every block in the
+         band, so it is the one choice here the browser cannot make look right by itself.
+         The server draws the band — the same SectionRender the page uses, so the two
+         shapes stay declared once instead of being written out again in JavaScript. */
+      if (/\[(layout|stack)\]$/.test(name)) {
+        redrawBand(group);
+
         return;
       }
       paint(group);

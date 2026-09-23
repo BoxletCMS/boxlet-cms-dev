@@ -289,6 +289,30 @@ export default {
     report.verdict('a block pressed on the page opens its own fields, not its neighbour\'s',
       paired.checked > 1 && paired.wrong.length === 0, JSON.stringify(paired));
 
+    /* ---- AND A BAND IS PRESSED IN THE PAGE, NOT ONLY IN THE OUTLINE (D-106) ---------
+       Run here, with a block selected by the check above, so this really is a change of
+       selection. The canvas could be TOLD which band was marked but could never say so
+       itself: pressing a band cleared the selection instead, and an empty band — which is
+       what you have the moment you add a section — has nothing else to press. */
+    const pressedBand = await page.evaluate(async () => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const band = [...doc.querySelectorAll('[data-bx-section]')]
+        .find((b) => /^m[0-9]+$/.test(b.getAttribute('data-bx-section')));
+      if (!band) { return null; }
+      band.click();
+      await new Promise((r) => setTimeout(r, 900));
+      const group = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden);
+
+      return {
+        band: band.getAttribute('data-bx-section'),
+        shows: group ? group.getAttribute('data-section-group') : null,
+        marked: doc.querySelectorAll('.bx-band-selected').length,
+      };
+    });
+    report.verdict('pressing a band in the page selects it and shows its settings',
+      pressedBand !== null && pressedBand.shows === pressedBand.band && pressedBand.marked === 1,
+      JSON.stringify(pressedBand));
+
     // Put the selection back on the block this check added, so what follows is unchanged.
     await page.evaluate((words) => {
       const doc = document.querySelector('iframe[data-canvas]').contentDocument;

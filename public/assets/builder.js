@@ -482,6 +482,13 @@
       api.show(typeof event.data.key === 'string' && event.data.key !== ''
         ? api.indexForKey(event.data.key)
         : event.data.index);
+    } else if (event.data.type === 'selectband') {
+      // A band pressed in the page. Named apart from the 'band' message going the other
+      // way, which is this editor TELLING the canvas what is marked.
+      api.target = null;
+      if (api.selectBand) {
+        api.selectBand(event.data.key);
+      }
     } else if (event.data.type === 'section') {
       // A BAND ADDED BETWEEN BANDS (D-101). It used to be a block that brought a band with
       // it, which is why there was no way to add a section at all.

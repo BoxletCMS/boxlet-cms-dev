@@ -252,6 +252,26 @@
   min-block-size: 6rem;
 }
 
+/* AND EVERY COLUMN KEEPS ROOM UNDER ITS CONTENT, in the editor only (PLAN.md D-106).
+
+   "+ Block" is a line under what a column holds, and "+ Section" lies across the band's
+   bottom edge. A band whose content reaches that edge — which the design layer decides, not
+   this file — left the first nowhere to go: it collided with the second, and raising it
+   covered the words, and shrinking it clipped its own label. Three wrong answers to one
+   question, each reported on sight.
+
+   The owner asked the right one: "zašto u prevju ne bi mogli imati dole mjesta kao u
+   artifaktu?" — the artifact's sections have that room, and a preview may keep room for the
+   editor's own controls. Enough for the strip, the gap and the seam's upper half, so the
+   control that adds the next block always has somewhere to stand.
+
+   This is the second place the canvas is deliberately not pixel-identical to the page, after
+   the empty column above, and for the same reason: an editor has to show the places things
+   go, and a place with no size is not one. */
+.bx-canvas .section-column {
+  padding-block-end: 3.5rem;
+}
+
 /* A column with nothing in it yet (the Columns block marks it is-empty). On the page it is
    a blank cell; here it is outlined and given height, so a new block shows its grid rather
    than an empty band, and a forgotten column is seen before it is published. */

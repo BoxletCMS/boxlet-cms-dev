@@ -108,6 +108,36 @@ export default {
     // What the page holds before anything is added, for the checks below and the cleanup.
     const started = outline === null ? 0 : outline.sections;
 
+    /* ---- NO TWO CONTROLS IN THE SAME PLACE (PLAN.md D-106) --------------------------
+       "+ Section" lies across a band's bottom edge and "+ Block" sits under the last block
+       in a column, so a band with little room under its content put one on top of the
+       other — measured at a slot of 809..839 inside a band ending at 835, with the seam at
+       819..851. The owner saw the "+" of one poking out from behind the other: "traka za
+       dodavanje bloka je ispod trake za dodavanje sekcija".
+
+       Checked over EVERY pair on the page rather than one: whether they collide depends on
+       how much room a band leaves under its last block, which is the design layer's
+       business and differs band by band. */
+    const overlaps = await page.evaluate(() => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const box = (el) => { const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; };
+      const seams = [...doc.querySelectorAll('.bx-insert')].map(box);
+      const clashes = [];
+      for (const slot of [...doc.querySelectorAll('.bx-slot')]) {
+        const s = box(slot);
+        for (const seam of seams) {
+          if (s.top < seam.bottom && seam.top < s.bottom) {
+            clashes.push(`slot ${Math.round(s.top)}..${Math.round(s.bottom)} over seam ${Math.round(seam.top)}..${Math.round(seam.bottom)}`);
+          }
+        }
+      }
+
+      return { slots: doc.querySelectorAll('.bx-slot').length, seams: seams.length, clashes: clashes };
+    });
+    report.verdict('no + Block strip lies under a + Section seam',
+      overlaps.slots > 0 && overlaps.seams > 0 && overlaps.clashes.length === 0,
+      JSON.stringify(overlaps));
+
     // Pressing a row reaches the block: the thing an outline is FOR on a long page.
     const reached = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('[data-outline-block]')];

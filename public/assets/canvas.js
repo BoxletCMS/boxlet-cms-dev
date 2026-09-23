@@ -54,6 +54,10 @@
     return found;
   }
 
+  /* How far the "+ Section" strip reaches either side of a band's edge: it is 2rem tall and
+     centred on the boundary, so it covers this much of each neighbour. */
+  var SEAM = 16;
+
   function tell(name, detail) {
     window.parent.postMessage(
       Object.assign({ source: 'boxlet-canvas', type: name }, detail || {}),
@@ -207,8 +211,22 @@
            "+ Block" line — because a slot over the content would cover the words and a
            person needs to see where the next block lands, not only that one can. */
         var after = last.getBoundingClientRect();
-        slot.style.top = Math.round(after.bottom - box.top + 6) + 'px';
-        slot.style.height = '30px';
+        var top = after.bottom - box.top + 6;
+        /* IT NEVER RISES OVER THE CONTENT; IT GETS THINNER (PLAN.md D-106).
+           "+ Section" lies across the band's bottom edge, half above and half below, so a
+           band with little room under its last block had the two controls on top of each
+           other — measured: a slot at 809..839 under a band ending at 835, with the seam at
+           819..851. "traka za dodavanje bloka je ispod trake za dodavanje sekcija".
+
+           Raising the strip to clear the seam covered the words, which is the one thing this
+           control has always been forbidden to do, and shrinking it clipped its own label.
+           Both were wrong and both were reported on sight. The room comes from the CANVAS
+           now — canvas.css keeps a column's bottom clear in the editor — so the strip sits
+           under the block at its own size, and this clamp is only the guarantee that it
+           never reaches the seam whatever a design does with its spacing. */
+        var bandBottom = band.getBoundingClientRect().bottom - box.top;
+        slot.style.top = Math.round(top) + 'px';
+        slot.style.height = Math.round(Math.max(10, Math.min(30, bandBottom - SEAM - 4 - top))) + 'px';
       }
       var plus = document.createElement('span');
       plus.textContent = '+';
@@ -425,7 +443,24 @@
       event.preventDefault();
     }
     var section = event.target.closest && event.target.closest('[data-bx-index]');
-    select(section ? Number(section.getAttribute('data-bx-index')) : -1);
+    if (section) {
+      select(Number(section.getAttribute('data-bx-index')));
+
+      return;
+    }
+    /* A BAND PRESSED WHERE NO BLOCK STANDS (PLAN.md D-106).
+       The canvas could be TOLD a band was selected but could never say so itself, so a band
+       was reachable only from the outline — and an empty one, which is what you have the
+       moment you add a section, has nothing else to press at all. The owner put it plainly:
+       "sekcija se nakon dodavanja ne može označiti da bi se vidjele njene postavke". It
+       cleared the selection instead, which is the opposite of what pressing a thing means. */
+    var band = event.target.closest && event.target.closest('[data-bx-section]');
+    if (band) {
+      tell('selectband', { key: band.getAttribute('data-bx-section') });
+
+      return;
+    }
+    select(-1);
   });
 
   document.addEventListener('keydown', function (event) {

@@ -68,6 +68,34 @@ testBothDrivers('the endpoint renders exactly what the front end renders', funct
     assertEquals($normalise($rendered[0]), $normalise($drawn[1]), 'the canvas and the front end disagree');
 });
 
+testBothDrivers('a redraw draws the block in its BAND\'s style, not in the character\'s', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', true, [
+        ['type' => 'text', 'content' => ['body' => '<p>Stored</p>'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy']],
+    ]);
+
+    // WHAT THE EDITOR SENDS WHILE SOMEBODY TYPES (D-099): the block's fields, and the
+    // fields of the band it stands in. Without the second, this drew the block with the
+    // character's composition and a keystroke took the band's look off the canvas — which
+    // is what the owner saw, and what nothing here was asking about.
+    $response = adminPost("/admin/pages/{$id}/block", [
+        'type' => 'text',
+        'index' => '0',
+        'block' => ['type' => 'text', 'body' => '<p>Stored</p>'],
+        'section' => ['style' => ['surface' => 'contrast', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'none']],
+    ]);
+    if (!preg_match('~<template data-block-canvas>(.*?)</template>~s', $response->body, $drawn)) {
+        fail('the endpoint returned no section');
+    }
+    assertContains('surface-contrast', $drawn[1], 'the band\'s surface');
+    assertContains('rhythm-airy', $drawn[1], 'the band\'s rhythm');
+
+    // And it is the same thing the visitor is looking at, which is the whole promise of a
+    // live canvas: it shows the page, not a guess at it.
+    $front = dispatch('/about')->body;
+    assertContains('surface-contrast', $front, 'the visitor sees the band\'s surface');
+});
+
 testBothDrivers('the endpoint writes nothing, whatever it is sent', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', false, [

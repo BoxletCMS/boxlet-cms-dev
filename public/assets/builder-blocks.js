@@ -248,6 +248,16 @@
    * The selected block's values, renamed from blocks[n][...] to block[...] so the server
    * can clean and re-render just this one.
    */
+  /**
+   * What the server needs to draw this block as it stands: its own fields, AND THE BAND'S.
+   *
+   * The band's were here all along until D-099 moved them into a group of their own, and
+   * the day they moved, a single keystroke redrew the block with the CHARACTER's composed
+   * style instead of the band's — so typing one letter made a tinted, airy, wide, centred
+   * band go plain, normal, narrow and left on the canvas. Nothing was lost from the
+   * database; the editor simply stopped telling the truth about the page, which is the one
+   * thing it is for.
+   */
   function values(group) {
     var out = {};
     group.querySelectorAll('[name]').forEach(function (element) {
@@ -256,7 +266,21 @@
       }
       out[element.name.replace(/^blocks\[[^\]]*\]/, 'block')] = element.value;
     });
+    var band = bandGroupOf(group);
+    if (band) {
+      band.querySelectorAll('[name]').forEach(function (element) {
+        out[element.name.replace(/^sections\[[^\]]*\]/, 'section')] = element.value;
+      });
+    }
+
     return out;
+  }
+
+  /** The group holding the fields of the band this block's group stands in. */
+  function bandGroupOf(group) {
+    var key = group.getAttribute('data-section-key');
+
+    return key ? document.querySelector('[data-section-group="' + key + '"]') : null;
   }
 
   // Re-draw the selected block from what is currently typed, so the canvas shows what a
@@ -515,4 +539,55 @@
     window.clearTimeout(timer);
     timer = window.setTimeout(redraw, 300);
   });
+
+  /*
+   * AND THE BAND'S OWN FIELDS, which stopped reaching this the day they moved into a group
+   * of their own (D-099): the Section tab was a panel where nothing you chose did anything
+   * until you saved. It listened here all along; it just listened to the wrong container.
+   *
+   * TWO THINGS HAPPEN, because a band is drawn by two different pieces of markup. The five
+   * style keys are class names on the band's own <section>, which no block redraw can reach
+   * when the band holds several — so they are swapped straight onto it, which is instant
+   * and needs no round trip. Everything else the server has to draw, so the selected block
+   * is redrawn too, carrying the band's fields with it now (values()).
+   */
+  var bands = document.querySelector('[data-section-groups]');
+  if (bands) {
+    var STYLE_KEYS = ['surface', 'rhythm', 'width', 'align', 'divider'];
+    var paint = function (group) {
+      var doc = api.frame.contentDocument;
+      var key = group.getAttribute('data-section-group');
+      var band = doc && doc.querySelector('[data-bx-section="' + key + '"]');
+      if (!band) {
+        return;
+      }
+      STYLE_KEYS.forEach(function (name) {
+        var field = group.querySelector('[name$="[style][' + name + ']"]');
+        if (!field) {
+          return;
+        }
+        // A snapshot, because classList is LIVE: removing while iterating it skips the
+        // entry after each removal, which leaves a second `surface-` class behind and lets
+        // the old one win or lose by document order.
+        Array.prototype.slice.call(band.classList).forEach(function (had) {
+          if (had.indexOf(name + '-') === 0) {
+            band.classList.remove(had);
+          }
+        });
+        band.classList.add(name + '-' + field.value);
+      });
+    };
+    bands.addEventListener('change', function (event) {
+      var group = event.target.closest && event.target.closest('[data-section-group]');
+      if (!group) {
+        return;
+      }
+      paint(group);
+      redraw();
+    });
+    bands.addEventListener('input', function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(redraw, 300);
+    });
+  }
 })();

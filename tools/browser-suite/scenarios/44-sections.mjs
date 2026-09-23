@@ -72,6 +72,58 @@ export default {
         && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
     }, { timeout: 20000 });
 
+    // ---- what the Section tab does to the canvas, BEFORE anything is saved -----------
+    //
+    // Both of these were broken the day the band's fields moved into a group of their own
+    // (D-099) and neither showed up in any check: the panel listened for changes on the
+    // BLOCK groups, so nothing chosen in the Section tab reached the canvas — and a block
+    // redraw stopped carrying the band's style, so typing one letter drew the block with
+    // the character's composition and a tinted, airy, wide band went plain on the screen.
+    // The owner found both by opening the editor.
+    const frameNow = page.frames().find((f) => f.url().includes('/canvas'));
+    const bandClasses = () => frameNow.evaluate(() => {
+      const el = document.querySelectorAll('[data-bx-blocks] > section')[1];
+
+      return el ? el.className : '';
+    });
+    await (await frameNow.$('[data-bx-index="1"]')).click();
+    await wait(1200);
+    await page.click('[data-panel-tab="section"]');
+    await wait(500);
+    const was = await bandClasses();
+    await page.evaluate(() => {
+      const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
+        .querySelector('select[name$="[style][surface]"]');
+      select.value = select.value === 'contrast' ? 'tinted' : 'contrast';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await wait(SETTLE);
+    const afterStyle = await bandClasses();
+    report.verdict('a surface chosen in the Section tab reaches the canvas at once',
+      afterStyle !== was && /surface-(contrast|tinted)/.test(afterStyle),
+      `${was} -> ${afterStyle}`);
+
+    await page.click('[data-panel-tab="content"]');
+    await wait(400);
+    await page.evaluate(() => {
+      const group = [...document.querySelectorAll('[data-block-group]')].find((g) => !g.hidden);
+      const rich = group && group.querySelector('[contenteditable="true"]');
+      if (rich) { rich.focus(); }
+    });
+    await page.keyboard.type('x');
+    await wait(SETTLE * 2);
+    const afterTyping = await bandClasses();
+    report.verdict('typing in a block does not take the band\'s look off the canvas',
+      afterTyping.replace(' bx-selected', '') === afterStyle.replace(' bx-selected', ''),
+      `${afterStyle} -> ${afterTyping}`);
+
+    // Nothing above is saved; the page is reloaded so the rest starts from what is stored.
+    await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+    await page.waitForFunction(() => {
+      const f = document.querySelector('iframe[data-canvas]');
+      return f && f.contentDocument && f.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
+    }, { timeout: 20000 });
+
     // ---- give the second band two columns --------------------------------------------
     const chosen = await page.evaluate(() => {
       const selects = Array.from(document.querySelectorAll('select[name^="sections"][name$="[layout]"]'));

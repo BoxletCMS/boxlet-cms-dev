@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
 use App\Modules\Design\Composition;
+use App\Modules\Design\SectionStyle;
 use App\Modules\Forms\FormBlocks;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Media\MediaReference;
@@ -86,6 +87,23 @@ final class PageBlockController
                     'layout' => $first['layout'],
                 ];
             }
+        }
+
+        /* AND THE BAND IT STANDS IN, LAST, OVER WHATEVER WAS WORKED OUT ABOVE (D-099).
+         *
+         * A block's style is its band's. A redraw that did not carry it drew the block with
+         * whatever this method had composed instead — so one keystroke took a tinted, airy,
+         * wide, centred band to plain, normal, narrow and left on the canvas, while the
+         * database held the truth. The owner found that by opening the editor.
+         *
+         * Only when it is sent. A block arriving from the library has no band yet and keeps
+         * the character's composition, which is what the library card showed; and a redraw
+         * that sends no band is taken at its word — its own style, not a guess at one —
+         * which is what the fidelity test below this file's endpoint asserts.
+         */
+        $band = $request->body['section'] ?? null;
+        if (is_array($band) && isset($band['style'])) {
+            $block['style'] = SectionStyle::normalize($band['style']);
         }
 
         $body = (new View(__DIR__ . '/views'))->render('admin/insert', $locale, [

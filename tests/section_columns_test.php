@@ -524,5 +524,11 @@ test('a revision written before bands existed leaves the arrangement alone', fun
     $newest = App\Modules\Pages\PageRevision::all($db, $id)[0];
     $revision = App\Modules\Pages\PageRevision::find($db, $registry, $id, $newest['id']) ?? fail('the revision is gone');
     assertEquals(null, $revision['sections'], 'an old revision claimed to know the arrangement');
-    assertTrue(is_string($revision['blocks'][0]['section']), 'a block from an old revision has no band to go to');
+    // It is GIVEN a band on the way in, named the way a band made in this session is —
+    // asserted as the shape rather than as "is it a string", which the return type has
+    // already promised and PHPStan rightly refuses to let a test pretend to doubt.
+    assertTrue(
+        (bool) preg_match('~^[sm][0-9]+$~', $revision['blocks'][0]['section']),
+        'a block from an old revision has no band to go to: ' . $revision['blocks'][0]['section'],
+    );
 });

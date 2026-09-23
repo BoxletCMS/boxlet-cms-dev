@@ -19,4 +19,14 @@ return [
     'site.form.field_name' => 'Name',
     'site.form.field_email' => 'Email',
     'site.form.field_message' => 'Message',
+    // What an embedded frame is called when the owner gave it no caption. A frame with no
+    // title is announced as "frame" and nothing else, which tells a screen reader's user
+    // only that something is in their way.
+    'site.embed.youtube' => 'Video',
+    'site.embed.vimeo' => 'Video',
+    'site.embed.openstreetmap' => 'Map',
+    'site.embed.googlemaps' => 'Map',
+    // Drawn only in the editor's canvas (blocks.css hides it on the page): the visitor
+    // cannot fix the address, and the owner is looking at it the moment they paste one.
+    'site.embed.unknown' => 'Boxlet can show a video from YouTube or Vimeo, and a map from OpenStreetMap or Google Maps. That address is not one of them.',
 ];

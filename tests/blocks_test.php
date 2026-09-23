@@ -24,8 +24,17 @@ function validBlock(): array
     ];
 }
 
-test('the shipped blocks are columns, form, hero, image_text and text, and all valid', function () {
-    assertEquals(['columns', 'form', 'hero', 'image_text', 'text'], Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types(), 'types');
+test('every shipped block is valid, and the set is the one PLAN.md names', function () {
+    // The review's §2.3 set, written in D-105 — the blocks whose absence made an owner
+    // abuse an existing one — beside the five that shipped first.
+    assertEquals(
+        [
+            'accordion', 'columns', 'cta', 'divider', 'embed', 'form', 'gallery', 'hero',
+            'image_text', 'logos', 'picture', 'quote', 'stats', 'text',
+        ],
+        Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types(),
+        'types',
+    );
 });
 
 test('a valid definition passes and gets its optional flags filled in', function () {

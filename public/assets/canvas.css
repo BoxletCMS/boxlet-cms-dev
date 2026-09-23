@@ -219,6 +219,27 @@
   border-radius: 0.5rem;
 }
 
+/* An Embed block whose address nothing recognises. blocks.css hides it on the page — a
+   visitor is not the person who can fix it — and here it says what is wrong, in the place
+   the owner is looking at the moment they paste one. The note itself never needs an
+   outline: it IS legible text on the surface it sits on, which is the resting state every
+   control in this editor owes the reader. */
+.bx-canvas [data-bx-index] .embed.is-empty {
+  display: block;
+  min-block-size: 0;
+  background: none;
+  outline: 0;
+}
+
+.bx-canvas [data-bx-index] .embed-unknown {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  background: var(--bx-select-soft);
+  border: 1px dashed var(--bx-hover);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
 /* A translation's block whose source changed after it was translated (D-043, step 3): an
    amber edge down its left side, at rest, so a stale block is found by looking at the
    page. Two tones like the insertion control — amber inside a dark line — so it reads

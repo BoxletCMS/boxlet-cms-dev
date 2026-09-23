@@ -41,25 +41,39 @@ return [
                 'body' => '<p>Every project starts with how the site should feel: calm and editorial, loud and confident, or somewhere in between.</p><p>The pages, the colours and the type all follow from those few decisions.</p>',
                 'link' => ['label' => 'How we work', 'url' => 'demo:about'],
             ], ['surface' => 'tinted'], 'image-left'],
-            ['text', [
-                'heading' => 'What clients say',
-                'body' => '<blockquote>They understood what we wanted before we could put it into words.</blockquote><p>Ana, owner of a small bakery</p>',
-            ], ['width' => 'narrow', 'align' => 'center', 'divider' => 'line'], 'single'],
+            ['quote', [
+                'quote' => 'They understood what we wanted before we could put it into words.',
+                'attribution' => 'Ana Marić',
+                'role' => 'Owner, Marić Bakery',
+            ], ['width' => 'narrow', 'align' => 'center', 'divider' => 'line'], 'card'],
             ['image_text', [
                 'heading' => 'Built to be looked after',
                 'body' => '<p>You edit your own pages. Nothing breaks when you do, because every block already knows how to look good.</p>',
                 'image_fit' => 'contain',
             ], [], 'image-right'],
+            ['logos', [
+                'heading' => 'Who we work with',
+                'items' => [
+                    ['name' => 'Marić Bakery'],
+                    ['name' => 'Dr Babić Practice'],
+                    ['name' => 'Sjever Bindery'],
+                    ['name' => 'Ilica Flowers'],
+                    ['name' => 'Kovač Joinery'],
+                ],
+            ], ['align' => 'center'], 'row'],
             ['form', [
                 'heading' => 'Write to us',
                 'intro' => 'Tell us a little about your project. We reply within two working days.',
                 'form' => 'demo:form',
             ], ['surface' => 'tinted'], 'stacked'],
-            ['hero', [
+            // A Hero stood here until D-105, which is exactly the misuse the CTA block was
+            // written for: a block that opens a page is the wrong weight for one that closes it.
+            ['cta', [
                 'heading' => 'Ready when you are',
-                'subheading' => 'Tell us about your project and we will reply within two working days.',
-                'cta' => ['label' => 'Get in touch', 'url' => 'mailto:hello@example.com'],
-            ], ['surface' => 'contrast', 'divider' => 'slant'], 'left'],
+                'body' => 'Tell us about your project and we will reply within two working days.',
+                'action' => ['label' => 'Get in touch', 'url' => 'mailto:hello@example.com'],
+                'second' => ['label' => 'See what we do', 'url' => 'demo:services'],
+            ], ['surface' => 'contrast', 'divider' => 'slant'], 'banner'],
         ],
     ],
     [
@@ -74,6 +88,14 @@ return [
                 'heading' => 'How we work',
                 'body' => '<p>We start by listening. Before anything is drawn, we want to know who visits your site and what they came for.</p><h3>Then we decide</h3><p>Colour, type, space and shape are chosen once, together, and applied everywhere. That is what keeps a site coherent as it grows.</p><ul><li>One conversation about character</li><li>A handful of real decisions</li><li>Pages you can edit yourself</li></ul>',
             ], ['width' => 'wide'], 'columns'],
+            ['stats', [
+                'heading' => 'Northwind in numbers',
+                'items' => [
+                    ['value' => '12', 'label' => 'years doing this'],
+                    ['value' => '80+', 'label' => 'sites built'],
+                    ['value' => '2 days', 'label' => 'to answer you'],
+                ],
+            ], ['rhythm' => 'tight'], 'three'],
             ['columns', [
                 'heading' => 'The people',
                 'items' => [
@@ -87,6 +109,11 @@ return [
                 'body' => '<p>We keep the team small on purpose. You always talk to the people doing the work.</p>',
                 'link' => ['label' => 'Our services', 'url' => 'demo:services'],
             ], ['surface' => 'contrast', 'divider' => 'line'], 'image-right'],
+            ['quote', [
+                'quote' => 'We asked for a site we could look after ourselves. Two years on, we still have not needed to call anybody.',
+                'attribution' => 'Petar Babić',
+                'role' => 'Dr Babić Practice',
+            ], ['width' => 'narrow'], 'plain'],
             ['form', [
                 'heading' => 'Ask us anything',
                 'intro' => 'Questions about a project, a price or a date. One of us will answer, usually the same day.',
@@ -96,6 +123,16 @@ return [
                 'heading' => 'Where to find us',
                 'body' => '<p>Ilica 1, Zagreb. Coffee is on us. Write to <a href="mailto:hello@example.com">hello@example.com</a> first.</p>',
             ], ['surface' => 'tinted', 'width' => 'narrow', 'align' => 'center', 'divider' => 'curve'], 'single'],
+            // A rule between the address and the map: two separate thoughts in one place.
+            ['divider', ['height' => 'medium'], ['surface' => 'tinted', 'rhythm' => 'tight'], 'line'],
+            // The one embed on a page that is not a catalogue, because this is what an embed
+            // is FOR: the address above, shown. OpenStreetMap rather than Google, so a
+            // visitor reading a studio's contact page is not handed a tracker to do it.
+            ['embed', [
+                'url' => 'https://www.openstreetmap.org/#map=16/45.8131/15.9775',
+                'caption' => 'Ilica 1, Zagreb',
+                'ratio' => 'square',
+            ], ['surface' => 'tinted', 'width' => 'narrow'], 'full'],
         ],
     ],
     [
@@ -130,6 +167,22 @@ return [
                 'heading' => 'Care plans',
                 'body' => '<p>Updates, backups and small changes every month, for a fixed fee. <strong>No surprises on the invoice.</strong></p>',
             ], ['surface' => 'gradient', 'width' => 'full', 'align' => 'center'], 'single'],
+            ['accordion', [
+                'heading' => 'Things people ask',
+                'items' => [
+                    ['question' => 'How long does a site take?', 'answer' => '<p>Six to ten weeks from the first conversation to launch, for most sites. A single page can be a fortnight.</p>'],
+                    ['question' => 'What does it cost?', 'answer' => '<p>A small site starts around the price of a good second-hand car. We give a fixed number before anything is drawn, and it does not move.</p>'],
+                    ['question' => 'Can I edit it myself?', 'answer' => '<p>Yes, and you are meant to. Every block already knows how to look right, so nothing breaks when you change the words.</p>'],
+                    ['question' => 'What if I need another language?', 'answer' => '<p>Add it whenever you like. Pages link across languages, so a translation is never a second site.</p>'],
+                ],
+                'start' => 'first-open',
+            ], ['width' => 'narrow'], 'list'],
+            ['cta', [
+                'heading' => 'Start with a conversation',
+                'body' => 'Half an hour, no charge, and you will know whether we are the right people.',
+                'action' => ['label' => 'Book a call', 'url' => 'mailto:hello@example.com'],
+                'second' => ['label' => 'Read about us first', 'url' => 'demo:about'],
+            ], ['surface' => 'contrast', 'divider' => 'curve'], 'beside'],
         ],
     ],
     [
@@ -154,6 +207,78 @@ return [
             ['text', ['heading' => 'Left aligned', 'body' => '<p>Text ranged left, against the centred sections above it.</p>'], ['align' => 'left'], 'single'],
             ['text', ['heading' => 'Tight rhythm, wide', 'body' => '<p>Less space above and below, more across.</p>'], ['rhythm' => 'tight', 'width' => 'wide'], 'columns'],
             ['text', ['heading' => 'Airy rhythm, full width', 'body' => '<p>Room to breathe, edge to edge.</p>'], ['surface' => 'tinted', 'rhythm' => 'airy', 'width' => 'full', 'divider' => 'curve'], 'single'],
+        ],
+    ],
+
+    // A FIFTH PAGE, WHICH IS A SHOWROOM AND SAYS SO. The four pages above are a studio's
+    // site and the blocks on them are there because that page needed them; this one exists
+    // to show every remaining shape once. Keeping the two apart is deliberate — a demo
+    // where every page is a catalogue teaches nobody what a page looks like.
+    //
+    // The pictures are placeholders here and nowhere else. The seed references no media
+    // (see the note at the top), so a Gallery on this page is the empty grid an owner sees
+    // before they choose anything, which is the honest thing for a showroom to show.
+    [
+        'slug' => 'blocks',
+        'title' => 'Blocks',
+        'blocks' => [
+            ['hero', [
+                'heading' => 'Everything you can put on a page',
+                'subheading' => 'One of each, in each of its shapes. Switch the character and every one of them changes with it.',
+            ], ['rhythm' => 'tight'], 'center'],
+            ['text', ['heading' => 'A picture on its own', 'body' => '<p>Fills the column, or sits inset with room around it.</p>'], ['width' => 'narrow'], 'single'],
+            ['picture', ['caption' => 'Filling the column', 'shape' => 'wide'], ['rhythm' => 'tight'], 'full'],
+            ['picture', ['caption' => 'Inset, with room around it', 'shape' => 'square'], ['surface' => 'tinted', 'rhythm' => 'tight'], 'inset'],
+            ['divider', ['height' => 'large'], [], 'space'],
+            ['text', ['heading' => 'Several pictures together', 'body' => '<p>Two, three or four across. One crop for all of them, so the rows line up.</p>'], ['width' => 'narrow'], 'single'],
+            ['gallery', [
+                'heading' => 'Two across, as they are',
+                'items' => [['caption' => 'The workshop'], ['caption' => 'The press']],
+                'shape' => 'natural',
+            ], ['rhythm' => 'tight'], 'two'],
+            ['gallery', [
+                'heading' => 'Three across, square',
+                'items' => [['caption' => 'Setting'], ['caption' => 'Binding'], ['caption' => 'Finishing']],
+                'shape' => 'square',
+            ], ['surface' => 'tinted', 'rhythm' => 'tight'], 'three'],
+            ['gallery', [
+                'heading' => 'Four across, round',
+                'items' => [['caption' => 'Ana'], ['caption' => 'Marko'], ['caption' => 'Petra'], ['caption' => 'Ivan']],
+                'shape' => 'round',
+            ], ['rhythm' => 'tight'], 'four'],
+            ['stats', [
+                'heading' => 'Four numbers',
+                'items' => [
+                    ['value' => '12', 'label' => 'years'],
+                    ['value' => '80+', 'label' => 'sites'],
+                    ['value' => '5', 'label' => 'languages'],
+                    ['value' => '2 days', 'label' => 'to answer'],
+                ],
+            ], ['surface' => 'contrast', 'divider' => 'slant'], 'four'],
+            ['accordion', [
+                'heading' => 'Questions, as separate cards',
+                'items' => [
+                    ['question' => 'What is a block?', 'answer' => '<p>One thing on a page: a heading, a picture, a row of numbers. You add them, arrange them, and the design layer draws them.</p>'],
+                    ['question' => 'What is a section?', 'answer' => '<p>The band a block stands in. It owns the background, the spacing and the width, and it can hold several blocks side by side.</p>'],
+                ],
+                'start' => 'closed',
+            ], ['width' => 'narrow'], 'cards'],
+            ['logos', [
+                'heading' => 'Marks in an even grid',
+                'items' => [
+                    ['name' => 'Marić Bakery'],
+                    ['name' => 'Dr Babić Practice'],
+                    ['name' => 'Sjever Bindery'],
+                    ['name' => 'Ilica Flowers'],
+                    ['name' => 'Kovač Joinery'],
+                    ['name' => 'Zagreb Type'],
+                ],
+            ], ['surface' => 'tinted', 'align' => 'center'], 'grid'],
+            ['embed', [
+                'url' => 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+                'caption' => 'A video, inset',
+                'ratio' => 'wide',
+            ], ['width' => 'narrow', 'divider' => 'line'], 'inset'],
         ],
     ],
 ];

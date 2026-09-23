@@ -23,7 +23,10 @@ test('the page library does not offer the header or the footer', function (): vo
     $pages = blockRegistry();
     assertTrue(!$pages->has('header'), 'the page block library offers a header');
     assertTrue(!$pages->has('footer'), 'the page block library offers a footer');
-    assertEquals(['columns', 'form', 'hero', 'image_text', 'text'], $pages->types(), 'page block types');
+    // The two sets share nothing, said as disjointness rather than as a second copy of the
+    // page set: blocks_test owns that list, and a list written twice is a list that goes
+    // stale in the copy nobody is looking at (it did, when D-105 added blocks).
+    assertEquals([], array_intersect($pages->types(), chromeRegistry()->types()), 'types in both registries');
 });
 
 test('the chrome registry offers exactly the header and the footer', function (): void {

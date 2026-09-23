@@ -47,7 +47,7 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     }
     assertEquals([], $referenced, 'the demo seed references media ids');
 
-    foreach (['/', '/about', '/services', '/style-guide'] as $path) {
+    foreach (['/', '/about', '/services', '/style-guide', '/blocks'] as $path) {
         assertEquals(200, dispatch($path)->status, $path);
     }
 });

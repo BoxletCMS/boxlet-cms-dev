@@ -19,4 +19,10 @@ return [
     'site.form.field_name' => 'Nombre',
     'site.form.field_email' => 'Correo electrónico',
     'site.form.field_message' => 'Mensaje',
+
+    'site.embed.youtube' => 'Vídeo',
+    'site.embed.vimeo' => 'Vídeo',
+    'site.embed.openstreetmap' => 'Mapa',
+    'site.embed.googlemaps' => 'Mapa',
+    'site.embed.unknown' => 'Boxlet puede mostrar un vídeo de YouTube o Vimeo y un mapa de OpenStreetMap o Google Maps. Esa dirección no es ninguna de ellas.',
 ];

@@ -19,4 +19,10 @@ return [
     'site.form.field_name' => 'Ime',
     'site.form.field_email' => 'E-pošta',
     'site.form.field_message' => 'Poruka',
+
+    'site.embed.youtube' => 'Videozapis',
+    'site.embed.vimeo' => 'Videozapis',
+    'site.embed.openstreetmap' => 'Karta',
+    'site.embed.googlemaps' => 'Karta',
+    'site.embed.unknown' => 'Boxlet može prikazati videozapis s YouTubea ili Vimea i kartu s OpenStreetMapa ili Google Mapsa. Ta adresa nije nijedna od njih.',
 ];

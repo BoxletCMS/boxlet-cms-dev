@@ -31,6 +31,11 @@ const ICONS = [
     'panel-top', 'type', 'columns-3', 'clipboard-list',
     // Undo in the page editor's bar (D-092).
     'undo-2',
+    // The nine blocks of D-105. Each one distinct from every other block's, because the
+    // library card is read by its picture before its name — three blocks wearing 'image'
+    // is three blocks nobody can tell apart at a glance.
+    'frame', 'quote', 'separator-horizontal', 'images', 'circle-help', 'megaphone',
+    'building-2', 'square-play',
 ];
 
 if (PHP_SAPI !== 'cli') {

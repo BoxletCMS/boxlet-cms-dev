@@ -419,7 +419,7 @@
 .picture-caption {
   margin-block-start: var(--space-s);
   color: var(--section-muted);
-  font-size: var(--text-s);
+  font-size: var(--text-sm);
 }
 
 /* Quote (D-105)
@@ -452,12 +452,15 @@
   clip-path: circle(50%);
 }
 
+/* --text-xl, not --text-lg: the words are the block, and one step above body text is not
+   enough for that to be visible. Measured against the demo's own body copy, where --text-lg
+   came out a fifth larger and read as a slightly emphatic paragraph rather than a quotation. */
 .quote-words {
   margin: 0;
   padding: 0;
   border: 0;
-  font-size: var(--text-l);
-  line-height: var(--leading-tight);
+  font-size: var(--text-xl);
+  line-height: var(--leading-heading);
 }
 
 .quote-said {
@@ -465,7 +468,7 @@
   flex-wrap: wrap;
   gap: var(--space-s);
   align-items: baseline;
-  font-size: var(--text-s);
+  font-size: var(--text-sm);
 }
 
 .quote-who {
@@ -573,7 +576,7 @@
 .gallery-caption {
   margin-block-start: var(--space-xs);
   color: var(--section-muted);
-  font-size: var(--text-s);
+  font-size: var(--text-sm);
 }
 
 /* Questions (D-105)
@@ -586,9 +589,20 @@
   margin: 0 0 var(--space-l);
 }
 
+/* RANGED TO THE EDGE EVEN IN A CENTRED BAND, which is not the block overruling the design
+   layer but the rule the form block already follows (.align-center .site-form). A summary
+   row is a CONTROL: its marker sits on the leading edge and its hit area is the whole row,
+   so centring makes every question start at a different place and puts the marker in the
+   middle of nothing. The block's own heading still follows the band. */
 .accordion-items {
   display: grid;
   gap: var(--space-s);
+}
+
+.align-center .accordion-items {
+  max-inline-size: var(--container-narrow);
+  margin-inline: auto;
+  text-align: start;
 }
 
 .accordion-item {
@@ -701,14 +715,14 @@
   font-family: var(--font-heading);
   font-size: var(--text-3xl);
   font-weight: var(--heading-weight);
-  line-height: var(--leading-tight);
+  line-height: var(--leading-heading);
   letter-spacing: var(--heading-tracking);
 }
 
 .stats-label {
   margin: 0;
   color: var(--section-muted);
-  font-size: var(--text-s);
+  font-size: var(--text-sm);
 }
 
 /* Logos (D-105)
@@ -812,7 +826,7 @@ a.logos-mark:focus-visible {
 .embed-caption {
   margin-block-start: var(--space-s);
   color: var(--section-muted);
-  font-size: var(--text-s);
+  font-size: var(--text-sm);
 }
 
 /* On a narrow screen everything that was a row becomes one column. Four marks across at

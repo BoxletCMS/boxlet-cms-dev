@@ -1,6 +1,9 @@
 <?php
 
 use App\Core\Blocks;
+use App\Modules\Design\Derived;
+use App\Modules\Design\Presets;
+use App\Modules\Design\TokenCompiler;
 
 // The block registry and the block contract (SPEC §5.3).
 
@@ -198,6 +201,61 @@ test('stored content of the wrong shape renders as empty values, never an error'
     $normalized = $blocks->normalize('image_text', ['heading' => ['nested'], 'image' => '7', 'image_fit' => 'stretch', 'link' => 'x']);
 
     assertEquals(['heading' => '', 'body' => '', 'image' => null, 'image_fit' => 'cover', 'link' => ['label' => '', 'url' => '']], $normalized, 'normalized');
+});
+
+/*
+ * A FRONT-END STYLESHEET MAY ONLY READ A TOKEN THAT EXISTS (PLAN.md D-105).
+ *
+ * The rule below says a colour, a size or a font must come from a custom property. It does
+ * NOT say the property is one anybody defines — and a var() naming a token that does not
+ * exist is SILENT: the declaration is dropped and the element inherits. `--text-l` for
+ * `--text-lg` shipped a quotation set at body size, and looked merely underwhelming rather
+ * than broken. Three names were wrong before this test existed, and the screenshot is what
+ * caught them.
+ *
+ * ONLY A var() WITH NO FALLBACK. `var(--chrome-header-bg, …)` is the documented shape of a
+ * token that is emitted only when the owner set one (D-076): absent, it is not a colour that
+ * is wrong, it is the palette's shade standing as before. A var() with nothing behind it is
+ * making a promise, and this is the test of it.
+ *
+ * WHAT COUNTS AS DEFINED: what the design layer compiles, over every preset, plus what the
+ * front-end stylesheets define for themselves — `--section-*` in sections.css, `--page-*` in
+ * chrome.css. Both halves are read rather than listed, so a token added to either needs no
+ * line here.
+ */
+test('every token a front-end stylesheet reads without a fallback is one something defines', function () {
+    $root = dirname(__DIR__);
+    $sheets = ['site.css', 'blocks.css', 'chrome.css', 'sections.css'];
+    // Comments first: this file explains itself with `var(--section-*)` in prose, and a
+    // scanner that cannot tell prose from a declaration reports the prose.
+    $strip = static fn (string $css): string => (string) preg_replace('~/\*.*?\*/~s', '', $css);
+
+    $sources = [];
+    foreach (Presets::names() as $name) {
+        $sources[] = (new TokenCompiler())->css(Derived::from(Presets::get($name)));
+    }
+    foreach ($sheets as $css) {
+        $sources[] = $strip((string) file_get_contents($root . '/public/assets/' . $css));
+    }
+    $defined = [];
+    foreach ($sources as $source) {
+        preg_match_all('~(--[a-z0-9]+(?:-[a-z0-9]+)*)\s*:~', $source, $found);
+        foreach ($found[1] as $name) {
+            $defined[$name] = true;
+        }
+    }
+
+    $missing = [];
+    foreach ($sheets as $css) {
+        $source = $strip((string) file_get_contents($root . '/public/assets/' . $css));
+        preg_match_all('~var\(\s*(--[a-z0-9]+(?:-[a-z0-9]+)*)\s*\)~', $source, $found);
+        foreach ($found[1] as $name) {
+            if (!isset($defined[$name])) {
+                $missing[] = "{$css} reads {$name}";
+            }
+        }
+    }
+    assertEquals([], array_values(array_unique($missing)), 'tokens read with no fallback and never defined');
 });
 
 test('no block template or front-end stylesheet hard-codes a colour, size, font or shadow', function () {

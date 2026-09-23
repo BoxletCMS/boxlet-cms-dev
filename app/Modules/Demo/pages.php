@@ -228,8 +228,12 @@ return [
             ], ['rhythm' => 'tight'], 'center'],
             ['text', ['heading' => 'A picture on its own', 'body' => '<p>Fills the column, or sits inset with room around it.</p>'], ['width' => 'narrow'], 'single'],
             ['picture', ['caption' => 'Filling the column', 'shape' => 'wide'], ['rhythm' => 'tight'], 'full'],
-            ['picture', ['caption' => 'Inset, with room around it', 'shape' => 'square'], ['surface' => 'tinted', 'rhythm' => 'tight'], 'inset'],
-            ['divider', ['height' => 'large'], [], 'space'],
+            ['picture', ['caption' => 'Inset, with room around it', 'shape' => 'wide'], ['surface' => 'tinted', 'rhythm' => 'tight'], 'inset'],
+            // NAMED, because an unlabelled gap on a page of labelled blocks reads as a
+            // mistake — it did, in the first screenshot of this page. And `tight`: a band's
+            // own rhythm is air the spacer then adds to, which was a screenful of nothing.
+            ['text', ['heading' => 'Room between two things', 'body' => '<p>Just space, or a line across it. Below is the space; the line is under the address on the About page.</p>'], ['width' => 'narrow'], 'single'],
+            ['divider', ['height' => 'large'], ['rhythm' => 'tight'], 'space'],
             ['text', ['heading' => 'Several pictures together', 'body' => '<p>Two, three or four across. One crop for all of them, so the rows line up.</p>'], ['width' => 'narrow'], 'single'],
             ['gallery', [
                 'heading' => 'Two across, as they are',

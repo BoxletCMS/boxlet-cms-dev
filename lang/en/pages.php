@@ -208,7 +208,10 @@ return [
     'pages.field.seo_description_hint' => 'The short summary search engines may show under the title. One or two sentences, about 160 characters. Leave it empty and they choose words from the page.',
 
     'pages.library' => 'Add a block',
-    'pages.library_hint' => 'Each picture is the block as this site renders it.',
+    // WHERE A BLOCK LANDS IS CHOSEN FIRST (PLAN.md D-103, and the design artifact says the
+    // same). A card pressed with nowhere aimed at used to add the block as a band of its
+    // own at the end of the page — which is a guess, and the one place nobody meant.
+    'pages.library_hint' => 'Press a + in the page to choose where a block lands.',
     'pages.insert_here' => 'Add a section here',
     'pages.insert_at_end' => 'Add a section at the end',
     'pages.insert_in_column' => 'Add a block in this column',

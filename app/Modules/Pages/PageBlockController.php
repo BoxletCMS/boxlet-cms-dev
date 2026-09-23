@@ -111,6 +111,8 @@ final class PageBlockController
                 false,
                 ['forms' => FormBlocks::resolve($this->db(), $blocks, $locale, null, (string) $this->container->get('config')->get('app.key'))],
                 $locale,
+                // The editor's shape, like the canvas it is going into (D-103).
+                true,
             ),
         ], null);
 
@@ -175,23 +177,13 @@ final class PageBlockController
             }
         }
 
-        /* AND THE BAND IT STANDS IN, LAST, OVER WHATEVER WAS WORKED OUT ABOVE (D-099).
-         *
-         * A block's style is its band's. A redraw that did not carry it drew the block with
-         * whatever this method had composed instead — so one keystroke took a tinted, airy,
-         * wide, centred band to plain, normal, narrow and left on the canvas, while the
-         * database held the truth. The owner found that by opening the editor.
-         *
-         * Only when it is sent. A block arriving from the library has no band yet and keeps
-         * the character's composition, which is what the library card showed; and a redraw
-         * that sends no band is taken at its word — its own style, not a guess at one —
-         * which is what the fidelity test below this file's endpoint asserts.
+        /* NO BAND STYLE IS READ HERE ANY MORE (D-103). It was, for one day: a redraw drew
+         * the block with a composed style and one keystroke took a tinted band to plain on
+         * the canvas. Since the editor's canvas always draws columns, what comes back is
+         * the block ALONE — the band's classes are on the band, which the redraw never
+         * touches — so there is nothing here for a style to change, and carrying one would
+         * be an argument that does nothing.
          */
-        $band = $request->body['section'] ?? null;
-        if (is_array($band) && isset($band['style'])) {
-            $block['style'] = SectionStyle::normalize($band['style']);
-        }
-
         $body = (new View(__DIR__ . '/views'))->render('admin/insert', $locale, [
             // The browser renumbers every group after inserting, so this index only has
             // to be unique in the returned markup.
@@ -213,13 +205,14 @@ final class PageBlockController
                 $block['layout'],
                 MediaPicture::forBlocks($this->db(), $registry, $locale, [$block]),
                 false,
-                /* A BLOCK GOING INTO A COLUMN IS NOT A BAND (PLAN.md D-099). The band
-                   around it already draws the surface, the rhythm and the container, so
-                   what comes back is the block's own wrapper and nothing else — exactly
-                   what SectionRender::draw() renders for a section holding more than one.
-                   Asked for by the presence of a column, which is the only thing the
-                   browser knows at the moment it presses a + in an empty one. */
-                $request->input('column') === '' ? 'section' : 'none',
+                /* A BLOCK IS NEVER A BAND HERE (PLAN.md D-099, D-103). The band around it
+                   draws the surface, the rhythm and the container, so what comes back is
+                   the block's own wrapper and nothing else — exactly what
+                   SectionRender::draw() renders inside a column, which is the only shape
+                   the editor's canvas has since D-103. A block always lands in a column:
+                   the + that adds one is in a column, and the library will not act until
+                   one has been pressed. */
+                'none',
                 // The form this block shows, drawn as a visitor sees it (D-046).
                 ['forms' => FormBlocks::resolve($this->db(), [$block], (string) $page['locale'], null, (string) $this->container->get('config')->get('app.key'))],
                 (string) $page['locale'],

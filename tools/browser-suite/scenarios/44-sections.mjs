@@ -27,7 +27,10 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /** What the canvas is showing of the band with columns. */
 const bandOnCanvas = (page) => page.evaluate(() => {
   const frame = document.querySelector('iframe[data-canvas]');
-  const cols = frame && frame.contentDocument ? frame.contentDocument.querySelector('.section-cols') : null;
+  /* THE BAND WITH TWO COLUMNS, not simply the first band with a column container: since
+     D-103 the editor's canvas draws them for every band, so `.section-cols` is now the
+     first band on the page and says nothing about the one this check arranged. */
+  const cols = frame && frame.contentDocument ? frame.contentDocument.querySelector('.cols-halves') : null;
   /* THE SLOT OF THE EMPTY COLUMN OF THE BAND THIS CHECK ARRANGED, and not simply the first
      one on the page: since D-101 every column has a +, including the ones that already hold
      something, so "the first .bx-slot" is now the first band's and says nothing about this
@@ -176,11 +179,12 @@ export default {
     });
     await wait(SETTLE * 2);
     const rearranged = await frameNow.evaluate(() => {
-      const cols = document.querySelector('.section-cols');
+      const cols = document.querySelector('.cols-halves');
       const band = cols ? cols.closest('[data-bx-section]').getAttribute('data-bx-section') : null;
 
       return {
-        cols: document.querySelectorAll('.section-cols').length,
+        // The band that was just given two columns, and only that one (D-103).
+        cols: document.querySelectorAll('.cols-halves').length,
         // The editor's own marks do not come back from the server and have to be put back.
         keys: document.querySelectorAll('[data-bx-key]').length,
         selected: document.querySelectorAll('.bx-selected').length,
@@ -219,7 +223,8 @@ export default {
 
     await page.waitForFunction(() => {
       const frame = document.querySelector('iframe[data-canvas]');
-      return frame && frame.contentDocument && frame.contentDocument.querySelector('.section-cols');
+      // The BAND THAT WAS ARRANGED, not any column container: every band draws one now.
+      return frame && frame.contentDocument && frame.contentDocument.querySelector('.cols-halves');
     }, { timeout: 20000 }).catch(() => {});
     await wait(SETTLE);
 
@@ -318,7 +323,7 @@ export default {
     await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
     await page.waitForFunction(() => {
       const f = document.querySelector('iframe[data-canvas]');
-      return f && f.contentDocument && f.contentDocument.querySelector('.section-cols');
+      return f && f.contentDocument && f.contentDocument.querySelector('.cols-halves');
     }, { timeout: 20000 }).catch(() => {});
     await wait(SETTLE);
 

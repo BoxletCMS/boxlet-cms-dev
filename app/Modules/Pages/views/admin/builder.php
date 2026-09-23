@@ -149,7 +149,7 @@ foreach ($errors as $key => $message) {
                 <?php /* data-hints-root sits here rather than on the selected-block panel because the
          field groups are its SIBLING, and the rule that hides a hint has to reach
          them (D-087). */ ?>
-                <aside class="builder-panel" data-hints-root="builder" data-insert-url="<?= e($insertUrl) ?>" data-band-url="<?= e($bandUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>" data-text-band-removed="<?= e(t('pages.band_removed')) ?>">
+                <aside class="builder-panel" data-hints-root="builder" data-insert-url="<?= e($insertUrl) ?>" data-band-url="<?= e($bandUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>" data-text-band-removed="<?= e(t('pages.band_removed')) ?>" data-text-aim="<?= e(t('pages.library_hint')) ?>">
 <?php if ($translation['stale'] !== [] || $translation['missing'] > 0): ?>
                     <?php /* A translation behind its source says so before anything else
                              (D-043, step 3); each stale block also carries its own mark. */ ?>

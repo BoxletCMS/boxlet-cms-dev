@@ -69,10 +69,13 @@ export default {
 
       // Which sections are plain and which are contrast, read from the rendered classes
       // rather than assumed: layers 2 and 3 land there as class names.
+      /* THE SURFACE IS THE BAND'S (D-095), and since D-103 the block is a div inside it —
+         so the classes to read are the band's, not the block's. The controls are still
+         measured on the block, which is what they are drawn around. */
       const surfaces = await frame.$$eval('[data-bx-index]', (els) => els.map((el, i) => ({
         index: i,
-        classes: el.className,
-        background: getComputedStyle(el).backgroundColor,
+        classes: (el.closest('[data-bx-section]') || el).className,
+        background: getComputedStyle(el.closest('[data-bx-section]') || el).backgroundColor,
       })));
       const plain = surfaces.find((s) => /plain/.test(s.classes)) || surfaces[0];
       const contrast = surfaces.find((s) => /contrast/.test(s.classes));
@@ -95,7 +98,7 @@ export default {
         target.classList.remove('bx-drop-target');
         const insertStyle = insert ? getComputedStyle(insert) : null;
         return {
-          behind: getComputedStyle(target).backgroundColor,
+          behind: getComputedStyle(target.closest('[data-bx-section]') || target).backgroundColor,
           selected: selected.outline,
           dropTarget: drop.outline,
           insertDisc: insertStyle ? insertStyle.backgroundColor : 'none',

@@ -22,7 +22,10 @@ test('the insert endpoint returns a section and a field group for every block ty
         assertEquals(200, $response->status, $type);
         assertContains('<template data-block-canvas>', $response->body, "{$type}: the canvas fragment");
         assertContains('<template data-block-fields>', $response->body, "{$type}: the field fragment");
-        assertContains('class="block block-' . $type . ' ', $response->body, "{$type}: the rendered section");
+        // The block ALONE since D-103: the band around it is the canvas's, not this
+        // endpoint's, because a block always lands in a column.
+        assertContains('class="block-' . $type . ' ', $response->body, "{$type}: the rendered block");
+        assertTrue(!str_contains($response->body, '<section'), "{$type}: the endpoint wrapped it in a band");
         // The endpoint names a new block n0 and the BROWSER renames it the moment it places
         // it, because only the browser knows which keys the page already uses (D-094).
         assertContains('name="blocks[n0][type]" value="' . $type . '"', $response->body, "{$type}: the field group");
@@ -37,7 +40,7 @@ test('the insert endpoint returns a section and a field group for every block ty
 // renders what the front end renders, it writes nothing, and it is not open to a request
 // from elsewhere.
 
-testBothDrivers('the endpoint renders exactly what the front end renders', function (string $driver) {
+testBothDrivers('the endpoint renders exactly what the canvas renders', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', true, [
         ['type' => 'text', 'content' => ['body' => '<p>Stored</p>']],
@@ -50,14 +53,19 @@ testBothDrivers('the endpoint renders exactly what the front end renders', funct
         'block' => ['type' => 'text', 'body' => '<p>Stored</p>'],
     ]);
     if (!preg_match('~<template data-block-canvas>(.*?)</template>~s', $response->body, $drawn)) {
-        fail('the endpoint returned no section');
+        fail('the endpoint returned no block');
     }
 
-    // ...and the same fields as the visitor sees them.
-    $front = dispatch('/about')->body;
-    if (!preg_match('~<section class="block block-text.*?</section>~s', $front, $rendered)) {
-        fail('the front end rendered no section');
-    }
+    /* ...and the same block as the CANVAS draws it.
+     *
+     * Against the canvas and no longer against the front end (D-103): the editor's canvas
+     * always draws the column shape, because a column is what a block is dragged into, and
+     * the page keeps the shape it has always had, because there it can be PROVEN nothing
+     * moved. The promise this check exists for is unchanged — a block arriving from the
+     * endpoint is the same markup as the block already on the screen beside it — and the
+     * canvas is where that comparison is now meaningful. That the canvas and the page agree
+     * is what SectionRender's two shapes and D-093's measurement are for. */
+    $canvas = dispatch("/admin/pages/{$id}/canvas")->body;
 
     $normalise = static fn (string $html): string => trim((string) preg_replace(
         ['~\s+~', '~ (data-bx-[a-z]+|tabindex|role)="[^"]*"~'],
@@ -65,35 +73,44 @@ testBothDrivers('the endpoint renders exactly what the front end renders', funct
         $html,
     ));
 
-    assertEquals($normalise($rendered[0]), $normalise($drawn[1]), 'the canvas and the front end disagree');
+    /* CONTAINED, not equal to a slice cut out of the canvas. Cutting one block out of a
+       document with a regular expression means counting closing tags, and a pattern that
+       stops one short says the two disagree when they do not — which is what the first
+       attempt at this did. What is actually promised is that the markup the endpoint hands
+       the editor is, character for character, the markup the canvas already holds. */
+    assertContains($normalise($drawn[1]), $normalise($canvas), 'the endpoint and the canvas disagree');
 });
 
-testBothDrivers('a redraw draws the block in its BAND\'s style, not in the character\'s', function (string $driver) {
+testBothDrivers('a redraw returns the block alone, and never the band around it', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', true, [
         ['type' => 'text', 'content' => ['body' => '<p>Stored</p>'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy']],
     ]);
 
-    // WHAT THE EDITOR SENDS WHILE SOMEBODY TYPES (D-099): the block's fields, and the
-    // fields of the band it stands in. Without the second, this drew the block with the
-    // character's composition and a keystroke took the band's look off the canvas — which
-    // is what the owner saw, and what nothing here was asking about.
+    /* WHAT THE EDITOR SENDS WHILE SOMEBODY TYPES: the block's fields, and nothing else.
+     *
+     * For one day it sent the band's too (D-099), because a redraw then drew the block as a
+     * whole band and drew it with a composed style when none arrived — one keystroke took a
+     * tinted, airy, wide band to plain, normal, narrow on the canvas, which is what the
+     * owner saw. Since D-103 the editor's canvas always draws columns and a redraw replaces
+     * the BLOCK alone: the band's classes are on the band, which is never touched, so there
+     * is nothing here for a style to change. That is what this asserts. */
     $response = adminPost("/admin/pages/{$id}/block", [
         'type' => 'text',
         'index' => '0',
         'block' => ['type' => 'text', 'body' => '<p>Stored</p>'],
-        'section' => ['style' => ['surface' => 'contrast', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'none']],
     ]);
-    if (!preg_match('~<template data-block-canvas>(.*?)</template>~s', $response->body, $drawn)) {
-        fail('the endpoint returned no section');
+    if (preg_match('~<template data-block-canvas>(.*?)</template>~s', $response->body, $drawn) !== 1) {
+        fail('the endpoint returned no block');
     }
-    assertContains('surface-contrast', $drawn[1], 'the band\'s surface');
-    assertContains('rhythm-airy', $drawn[1], 'the band\'s rhythm');
+    assertContains('block-text', $drawn[1], 'the block itself');
+    assertTrue(!str_contains($drawn[1], '<section'), 'the endpoint wrapped the block in a band');
+    foreach (['surface-', 'rhythm-', 'width-', 'align-', 'divider-'] as $ofTheBand) {
+        assertTrue(!str_contains($drawn[1], $ofTheBand), "the block carries the band's {$ofTheBand} class");
+    }
 
-    // And it is the same thing the visitor is looking at, which is the whole promise of a
-    // live canvas: it shows the page, not a guess at it.
-    $front = dispatch('/about')->body;
-    assertContains('surface-contrast', $front, 'the visitor sees the band\'s surface');
+    // And the band on the page goes on carrying it, which is why a redraw cannot lose it.
+    assertContains('surface-contrast', dispatch('/about')->body, 'the visitor sees the band\'s surface');
 });
 
 testBothDrivers('the endpoint writes nothing, whatever it is sent', function (string $driver) {

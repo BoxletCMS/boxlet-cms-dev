@@ -61,18 +61,25 @@ test('the canvas renders the real page, with sections as direct children of main
     // sections.css styles a section by its position among its siblings, so anything
     // inserted between main and a section would change the page being judged.
     //
-    // The band carries data-bx-section before its class since D-099 — the editor's one
-    // addition to the visitor's markup, so the + in an empty column can say which band it
-    // is aiming at. What this asserts is unchanged: the FIRST thing inside main is a
-    // section, and it is the hero's.
+    /* The band carries data-bx-section before its class since D-099 — the editor's one
+       addition to the visitor's markup, so the + in an empty column can say which band it
+       is aiming at. And since D-103 the editor's canvas always draws the column shape, so
+       the hero's own classes sit on a div inside the band rather than on the band itself:
+       a column is what a block is dragged into, and a band that draws none has nowhere to
+       drop one. What this asserts is unchanged — the FIRST thing inside main is a section,
+       and the hero is what stands in it. */
     assertTrue(
-        (bool) preg_match('~<main data-bx-blocks>\s*<section [^>]*class="block block-hero ~', $response->body),
+        (bool) preg_match('~<main data-bx-blocks>\s*<section [^>]*class="block ~', $response->body),
         'the first section is not a direct child of main',
+    );
+    assertTrue(
+        (bool) preg_match('~<div class="section-column">\s*<div class="block-hero ~', $response->body),
+        'the hero is not standing in a column of the first band',
     );
     assertTrue(
         // Its KEY and not its id — `s8` for a stored band, `m0` for one made in this
         // session (D-098). The canvas has to name a band that may not be saved yet.
-        (bool) preg_match('~<section data-bx-section="[sm][0-9]+" class="block block-hero ~', $response->body),
+        (bool) preg_match('~<section data-bx-section="[sm][0-9]+" class="block surface-~', $response->body),
         'the band does not say which band it is, so an empty column could not be aimed at',
     );
     assertContains('Welcome', $response->body, 'block content');

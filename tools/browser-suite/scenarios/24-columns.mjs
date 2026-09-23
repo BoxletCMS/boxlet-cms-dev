@@ -58,6 +58,16 @@ export default {
 
     // ---- add it from the library -----------------------------------------------------------
     const before = await page.$$eval('[data-block-group]', (list) => list.length);
+    /* WHERE IT LANDS IS CHOSEN FIRST (D-103, and the design artifact says the same): a
+       library card pressed with nowhere aimed at used to add the block as a band of its own
+       at the end of the page, which is a guess. So a + in a column is pressed, and this
+       one is the last band's, which is where this block used to end up anyway. */
+    await page.evaluate(() => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const slots = [...doc.querySelectorAll('.bx-slot')];
+      slots[slots.length - 1].click();
+    });
+    await wait(600);
     await page.click('[data-add-type="columns"]');
     const added = await page.waitForFunction((n) => document.querySelectorAll('[data-block-group]').length === n,
       { timeout: 10000 }, before + 1).then(() => true).catch(() => false);

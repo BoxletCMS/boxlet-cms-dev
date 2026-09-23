@@ -44,8 +44,11 @@ const undoChecks = async (page, report) => {
   await settle();
 
   const select = async (index) => {
+    /* THE i-th BLOCK, not the i-th band (D-103). Clicking the band element selects nothing:
+       a band is not a block and has no index, and these checks are about a block's own
+       controls. While every band held one block the two were the same element. */
     await page.evaluate((i) => document.querySelector('iframe[data-canvas]').contentDocument
-      .querySelectorAll('[data-bx-blocks] > section')[i].click(), index);
+      .querySelector(`[data-bx-index="${i}"]`).click(), index);
     await settle();
   };
   const tool = async (action) => {
@@ -130,8 +133,13 @@ const undoChecks = async (page, report) => {
     dupCount === startCount + 1 && await groups(page) === startCount,
     `${startCount} groups -> ${dupCount} -> ${await groups(page)}`);
 
-  await select(1);
-  await tool('down');
+  /* THE BAND'S ARROW, not the block's (D-103). A block moves within its column, and every
+     block on this page is alone where it stands — so the thing that moves it down the page
+     is the band's own pair, which is what a person reaches for too. What is being checked
+     is unchanged: a move is undoable. */
+  await page.evaluate(() => document.querySelectorAll('[data-outline-section]')[1].click());
+  await settle();
+  await tool('band-down');
   const movedLabels = await labels();
   await undo();
   report.verdict('undo puts a moved block back',
@@ -196,8 +204,9 @@ const panelChecks = async (page, report) => {
     { timeout: 20000 },
   ).catch(() => {});
   await settle();
+  // THE FIRST BLOCK, not the first band (D-103): a band is not a block and selects nothing.
   await page.evaluate(() => document.querySelector('iframe[data-canvas]').contentDocument
-    .querySelectorAll('[data-bx-blocks] > section')[0].click());
+    .querySelector('[data-bx-index="0"]').click());
   await settle();
 
   const read = () => page.evaluate(() => {
@@ -359,6 +368,16 @@ export default {
 
     // ---- add a block from the library ---------------------------------------------------
     const before = await groups(page);
+    /* WHERE IT LANDS IS CHOSEN FIRST (D-103, and the design artifact says the same): a card
+       pressed with nowhere aimed at used to add the block as a band of its own at the end
+       of the page, which is a guess at the one place nobody meant. So a + in a column is
+       pressed first, and the library's own line says to. */
+    await page.evaluate(() => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const slots = [...doc.querySelectorAll('.bx-slot')];
+      slots[slots.length - 1].click();
+    });
+    await settle(600);
     await page.click('[data-add-type="text"]');
     const added = await page.waitForFunction((n) => document.querySelectorAll('[data-block-group]').length === n,
       { timeout: 10000 }, before + 1).then(() => true).catch(() => false);

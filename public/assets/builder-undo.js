@@ -108,9 +108,27 @@
     };
   }
 
-  function order() {
+  /**
+   * The page's arrangement as the FORM holds it, said the same way the canvas says it, so
+   * the two can be compared to decide whether a drag moved anything (PLAN.md D-103).
+   */
+  function order(kind) {
+    if (kind === 'bands') {
+      var seen = [];
+      api.groupNodes().forEach(function (group) {
+        var key = group.getAttribute('data-section-key');
+        if (key && seen.indexOf(key) < 0) {
+          seen.push(key);
+        }
+      });
+
+      return seen.join('|');
+    }
+
     return api.groupNodes().map(function (group) {
-      return group.getAttribute('data-block-key');
+      return group.getAttribute('data-block-key') + '@'
+        + group.getAttribute('data-section-key') + ':'
+        + ((group.querySelector('[data-block-column]') || {}).value || '0');
     }).join('|');
   }
 
@@ -192,10 +210,17 @@
     }
     if (event.data.type === 'drag-start') {
       beforeDrag = snapshot();
-    } else if (event.data.type === 'reorder') {
-      // The form still holds the old order at this moment, so comparing the two says
-      // whether the drag moved anything at all.
-      var moved = beforeDrag !== null && event.data.keys.join('|') !== order();
+    } else if (event.data.type === 'placed' || event.data.type === 'bands') {
+      /* The form still holds the old arrangement at this moment, so comparing the two says
+         whether the drag moved anything at all. PLACES and not an order since D-103: a
+         block that crossed into another column can leave the reading order untouched, and
+         comparing orders called that "nothing happened" — an un-undoable move. */
+      var now = event.data.type === 'bands'
+        ? event.data.keys.join('|')
+        : event.data.at.map(function (where) {
+          return where.key + '@' + where.section + ':' + where.column;
+        }).join('|');
+      var moved = beforeDrag !== null && now !== order(event.data.type);
       if (moved) {
         history.push(beforeDrag);
         if (history.length > DEPTH) {

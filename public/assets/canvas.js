@@ -46,13 +46,7 @@
       if (node.tagName !== 'SECTION') {
         return;
       }
-      var inside = node.querySelectorAll('.section-column > *');
-      if (inside.length === 0) {
-        found.push(node);
-
-        return;
-      }
-      Array.prototype.forEach.call(inside, function (block) {
+      Array.prototype.forEach.call(node.querySelectorAll('.section-column > *'), function (block) {
         found.push(block);
       });
     });
@@ -156,29 +150,21 @@
    * buttons above can use offsetTop because a section's offset parent IS that element.
    */
   /**
-   * EVERY COLUMN OF EVERY BAND, including the one a band of one block does not draw.
-   *
-   * SectionRender gives a band holding one block the shape it has always had — the band IS
-   * the block, with no column element anywhere — so looking for `.section-column` found a
-   * place to add a block in exactly the bands that did not need one. Here the band's own
-   * `.container` is that column: one column, numbered 0, which is what the save will call
-   * it too (D-101).
+   * EVERY COLUMN OF EVERY BAND. The editor's canvas always draws them (D-103), so this is
+   * a plain walk — it used to have a branch for the band that drew none, which is the
+   * branch every other part of the editor would have needed too.
    */
   function columnBoxes() {
     var found = [];
     document.querySelectorAll('[data-bx-section]').forEach(function (band) {
-      var columns = band.querySelectorAll('.section-column');
-      if (columns.length > 0) {
-        Array.prototype.forEach.call(columns, function (column, at) {
-          found.push({ band: band, box: column, at: at, holds: column.children.length > 0 ? column.children[column.children.length - 1] : null });
+      Array.prototype.forEach.call(band.querySelectorAll('.section-column'), function (column, at) {
+        found.push({
+          band: band,
+          box: column,
+          at: at,
+          holds: column.children.length > 0 ? column.children[column.children.length - 1] : null,
         });
-
-        return;
-      }
-      var container = band.querySelector('.container');
-      if (container) {
-        found.push({ band: band, box: container, at: 0, holds: container.children.length > 0 ? container.children[container.children.length - 1] : null });
-      }
+      });
     });
 
     return found;
@@ -287,9 +273,14 @@
       return node.tagName === 'SECTION';
     });
     var section = index < 0 ? band : list[index];
-    var at = index < 0 ? bands.indexOf(band) : index;
-    var of = index < 0 ? bands : list;
     var prefix = index < 0 ? 'band-' : '';
+    /* A BLOCK MOVES WITHIN ITS COLUMN (PLAN.md D-103), so the ends it can reach are the
+       column's and not the page's. Moving it out of its column is dragging, and moving the
+       whole band is the band's own pair of arrows — which is what a page of one-block bands
+       now uses, every one of its blocks being alone where it stands. */
+    var column = index < 0 ? null : section.parentNode;
+    var of = index < 0 ? bands : Array.prototype.slice.call(column.children);
+    var at = index < 0 ? bands.indexOf(band) : of.indexOf(section);
     var labels = (document.body.getAttribute('data-block-labels') || 'Move up|Move down|Duplicate|Remove').split('|');
     var sprite = document.body.getAttribute('data-icons') || '';
     var tools = document.createElement('div');
@@ -338,7 +329,24 @@
        only shape there was. */
     var box = overlay.getBoundingClientRect();
     var rect = section.getBoundingClientRect();
-    tools.style.top = Math.round(Math.max(0, rect.top - box.top - height / 2)) + 'px';
+    /*
+     * THE BAR GOES IN THE GAP ABOVE WHAT IT BELONGS TO — and which gap that is depends on
+     * what is selected (PLAN.md D-085, D-103).
+     *
+     * A BAND, or a block that is FIRST in its column, straddles the BAND's top edge: that
+     * is the gap between bands, which is where D-085 measured this belongs, and it is
+     * exactly the geometry every page had while a block WAS a band. Reading the block's own
+     * edge instead put half the bar on the first line of the first block — measured on the
+     * development site, where the first band's padding is smaller than the bar.
+     *
+     * A BLOCK STANDING UNDER ANOTHER has no band edge near it, so it sits wholly above its
+     * own, in the gap the column keeps between blocks.
+     */
+    var mine = index < 0 ? section : section.closest('[data-bx-section]');
+    var first = index < 0 || section.previousElementSibling === null;
+    var edge = first ? mine.getBoundingClientRect().top : rect.top;
+    var above = first ? height / 2 : height + 2;
+    tools.style.top = Math.round(Math.max(0, edge - box.top - above)) + 'px';
     tools.style.left = Math.round(rect.left - box.left + rect.width - 12) + 'px';
     if (focused !== null) {
       var again = tools.querySelector('[data-block-action="' + focused + '"]:not([disabled])');
@@ -350,6 +358,7 @@
 
   function refresh() {
     renumber();
+    drags();
     drawInserts();
     tell('size', { height: document.documentElement.scrollHeight });
   }
@@ -439,28 +448,83 @@
   // Reordering happens here because drag events do not cross a document boundary.
   // SortableJS rather than native drag and drop: it handles touch, and a tablet is a
   // real case for this screen.
-  if (window.Sortable) {
-    window.Sortable.create(main, {
-      draggable: 'section.block',
-      animation: 120,
-      ghostClass: 'bx-dragging',
-      /* A drag is reported when it ends, and by then this document has already moved:
-         a snapshot taken then would record the result, not what to go back to. So the
-         start is announced too, and the builder holds that state until it knows the
-         drag changed something (D-079). */
-      onStart: function () {
-        tell('drag-start', {});
-      },
-      onEnd: function () {
-        renumber();
-        drawInserts();
-        tell('reorder', {
-          keys: blocks().map(function (section) {
-            return section.getAttribute('data-bx-key');
-          }),
-        });
-      },
+  /*
+   * TWO LEVELS OF DRAG (PLAN.md D-103), which is what a tree needs and a list did not:
+   * bands reorder among themselves, and blocks move WITHIN and BETWEEN columns. The column
+   * sortables share one group name, which is the whole of what lets a block cross from one
+   * column to another — Sortable's own mechanism rather than machinery of ours.
+   *
+   * A drag is reported when it ENDS, and by then this document has already moved: a
+   * snapshot taken then would record the result, not what to go back to. So the start is
+   * announced too, and the builder holds that state until it knows the drag changed
+   * something (D-079).
+   */
+  function drags() {
+    if (!window.Sortable) {
+      return;
+    }
+    if (!main.bxSortable) {
+      main.bxSortable = window.Sortable.create(main, {
+        draggable: 'section.block',
+        animation: 120,
+        ghostClass: 'bx-dragging',
+        onStart: function () {
+          tell('drag-start', {});
+        },
+        onEnd: function () {
+          renumber();
+          drawInserts();
+          tell('bands', {
+            keys: Array.prototype.filter.call(main.children, function (node) {
+              return node.tagName === 'SECTION';
+            }).map(function (band) {
+              return band.getAttribute('data-bx-section');
+            }),
+          });
+        },
+      });
+    }
+    /* ONE PER COLUMN, and made once each: a column is replaced when its band is redrawn, so
+       this runs after every refresh and skips the ones it has already taken. */
+    document.querySelectorAll('.section-column').forEach(function (column) {
+      if (column.bxSortable) {
+        return;
+      }
+      column.bxSortable = window.Sortable.create(column, {
+        group: { name: 'bx-blocks', pull: true, put: true },
+        animation: 120,
+        ghostClass: 'bx-dragging',
+        onStart: function () {
+          tell('drag-start', {});
+        },
+        onEnd: function () {
+          renumber();
+          drawInserts();
+          /* WHERE EVERY BLOCK STANDS NOW, said as places rather than as an order: a flat
+             list of keys could say that two blocks swapped and could not say that one of
+             them crossed into another column. */
+          tell('placed', { at: placement() });
+        },
+      });
     });
+  }
+
+  /** Every block, with the band and the column it is standing in at this moment. */
+  function placement() {
+    var where = [];
+    document.querySelectorAll('[data-bx-section]').forEach(function (band) {
+      Array.prototype.forEach.call(band.querySelectorAll('.section-column'), function (column, at) {
+        Array.prototype.forEach.call(column.children, function (block) {
+          where.push({
+            key: block.getAttribute('data-bx-key'),
+            section: band.getAttribute('data-bx-section'),
+            column: at,
+          });
+        });
+      });
+    });
+
+    return where;
   }
 
   window.bxCanvas = { refresh: refresh, select: select };

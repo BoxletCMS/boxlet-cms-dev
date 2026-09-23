@@ -55,70 +55,6 @@
     });
   }
 
-  /* A block arriving from the server is named blocks[n0]; a page may already hold an n0,
-     and two blocks with one name is one block after the save. So a group is named the
-     moment it is placed, with the same key the canvas pairs it by (D-094). */
-  function place(index, section, group) {
-    /* Read off the GROUP, which is always an element: an inserted block arrives as a
-       DocumentFragment, and asking a fragment for an attribute throws — which the caller's
-       catch then reported as "the block could not be added", a network message for a
-       programming mistake. */
-    var key = group.getAttribute('data-block-key');
-    if (key && window.boxletBlocks) {
-      // The band it was already given, if it has one: minting a second key here would name
-      // the group's fields for one band and the band's own group for another (D-099).
-      window.boxletBlocks.name(group, key, group.getAttribute('data-section-key') || undefined);
-    }
-    var doc = api.frame.contentDocument;
-    /* BANDS, because this puts a band into the page. api.sections() counts BLOCKS since
-       D-099, and a block standing in a column is not a child of <main> — insertBefore
-       against one throws. */
-    var list = api.bands();
-    var main = doc.querySelector('[data-bx-blocks]');
-    if (index >= list.length) {
-      main.appendChild(section);
-    } else {
-      main.insertBefore(section, list[index]);
-    }
-    /* AND THE GROUP GOES WHERE THAT BAND'S FIRST BLOCK'S GROUP GOES.
-       The groups are in the page's reading order — bands in order, and within one, its
-       blocks — so a band's position and a group's position are the same NUMBER only while
-       every band holds one block. Counted instead: how many blocks stand in the bands
-       before this one. */
-    var before = 0;
-    list.slice(0, index).forEach(function (band) {
-      var inside = band.querySelectorAll('.section-column > *');
-      before += inside.length === 0 ? 1 : inside.length;
-    });
-    var existing = api.groupNodes();
-    if (before >= existing.length) {
-      api.groups.appendChild(group);
-    } else {
-      api.groups.insertBefore(group, existing[before]);
-    }
-    api.renumber();
-    // A block arrives as HTML from the server, so its rich text field is a plain textarea
-    // and its picture field a plain select until these turn them into editors.
-    if (window.boxletRichText) {
-      window.boxletRichText.scan(group);
-    }
-    // The picker had no scan until the repeater needed one for a newly added item, so an
-    // inserted block kept the bare select where every block already on the page showed a
-    // picker. It still posted the right field — which is why nobody saw it — but it was
-    // not the control the rest of the editor offers.
-    if (window.boxletPicker) {
-      window.boxletPicker.scan(group);
-    }
-    api.tellCanvas('refresh', {});
-    api.show(index);
-    /* AND THE CONTENT TAB, because a block was just added and what you do with a new block
-       is write in it. Adding one into an empty column left the panel on the Section tab,
-       where a block's fields are display: none — so the block existed, was selected, and
-       could not be typed into; its own field could not even be focused. */
-    api.showTab('content');
-    api.tellCanvas('select', { index: index });
-  }
-
   /**
    * A BLOCK PUT INTO A COLUMN OF A BAND THAT ALREADY EXISTS (PLAN.md D-099).
    *
@@ -251,18 +187,20 @@
     if (!api.frame.contentDocument) {
       return;
     }
-    // A POSITION ON THE PAGE, OR AN ADDRESS INSIDE A BAND (PLAN.md D-099). The second kind
-    // comes from the + in an empty column and names which band and which of its columns.
+    /* WHERE IT LANDS IS CHOSEN FIRST (PLAN.md D-103, and the design artifact): which band,
+       which of its columns. A card pressed with nowhere aimed at used to add the block as a
+       band of its own at the END of the page — a guess, and the one place nobody meant. Now
+       it says where to press, which is what the library's own line has said since. */
     var into = api.target !== null && typeof api.target === 'object' ? api.target : null;
-    var at = api.target === null ? api.bands().length : (into ? 0 : api.target);
+    if (into === null) {
+      api.say(api.panel.getAttribute('data-text-aim') || '');
+
+      return;
+    }
     button.setAttribute('aria-busy', 'true');
     api.say(api.panel.getAttribute('data-text-inserting'));
 
-    var asked = into
-      ? { type: type, index: '0', column: String(into.column) }
-      : { type: type, index: String(at) };
-
-    post(asked)
+    post({ type: type, index: '0', column: String(into.column) })
       .then(function (parts) {
         if (!parts.canvas || !parts.fields) {
           throw new Error('malformed');
@@ -283,26 +221,7 @@
         api.target = null;
         // Nothing changed until now: the request could still have failed.
         api.commit();
-        if (into) {
-          placeInColumn(into, drawn, group);
-        } else {
-          /* A BAND OF ITS OWN, so its fields come too. Without this the block would post a
-             section key nothing had described, Page::update() would give it the fallback
-             band, and the style the character composed for it — which is on the canvas the
-             author is looking at — would not be in the save. */
-          var band = parts.band ? parts.band.content.firstElementChild.cloneNode(true) : null;
-          var bandKey = window.boxletBlocks ? window.boxletBlocks.mintSection() : 'm' + keyCounter;
-          if (band) {
-            band.setAttribute('data-section-group', bandKey);
-            api.sectionGroups().appendChild(band);
-          }
-          if (window.boxletBlocks) {
-            window.boxletBlocks.name(group, key, bandKey);
-            window.boxletBlocks.name(band || group, key, bandKey);
-          }
-          group.setAttribute('data-section-key', bandKey);
-          place(at, fragment, group);
-        }
+        placeInColumn(into, drawn, group);
       })
       .catch(function (error) {
         api.say(api.panel.getAttribute('data-text-failed'));
@@ -322,14 +241,12 @@
    * can clean and re-render just this one.
    */
   /**
-   * What the server needs to draw this block as it stands: its own fields, AND THE BAND'S.
+   * What the server needs to draw this block as it stands: its own fields, and no more.
    *
-   * The band's were here all along until D-099 moved them into a group of their own, and
-   * the day they moved, a single keystroke redrew the block with the CHARACTER's composed
-   * style instead of the band's — so typing one letter made a tinted, airy, wide, centred
-   * band go plain, normal, narrow and left on the canvas. Nothing was lost from the
-   * database; the editor simply stopped telling the truth about the page, which is the one
-   * thing it is for.
+   * The band's went with them for one day (D-099), because a redraw then drew the block as
+   * a whole band and needed the band's style to draw it right. Since D-103 the canvas always
+   * draws columns and a redraw replaces the BLOCK alone, so the band's classes are never in
+   * what comes back and never at risk.
    */
   function values(group) {
     var out = {};
@@ -339,12 +256,6 @@
       }
       out[element.name.replace(/^blocks\[[^\]]*\]/, 'block')] = element.value;
     });
-    var band = bandGroupOf(group);
-    if (band) {
-      band.querySelectorAll('[name]').forEach(function (element) {
-        out[element.name.replace(/^sections\[[^\]]*\]/, 'section')] = element.value;
-      });
-    }
 
     return out;
   }
@@ -443,12 +354,6 @@
       });
   }
 
-  /** The group holding the fields of the band this block's group stands in. */
-  function bandGroupOf(group) {
-    var key = group.getAttribute('data-section-key');
-
-    return key ? document.querySelector('[data-section-group="' + key + '"]') : null;
-  }
 
   // Re-draw the selected block from what is currently typed, so the canvas shows what a
   // save would store rather than what was stored last.
@@ -731,28 +636,67 @@
       if (id) {
         id.remove();
       }
-      place(index + 1, copy, groupCopy);
+      /* BESIDE THE BLOCK IT WAS COPIED FROM, in the same column (PLAN.md D-103). It used to
+         become a band of its own at the next position on the page, which was the only
+         answer there was while a page was a list of blocks and is the wrong one now: a copy
+         of one of three things in a column belongs in that column. */
+      window.boxletBlocks.name(groupCopy, key, group.getAttribute('data-section-key'));
+      groupCopy.setAttribute('data-section-key', group.getAttribute('data-section-key'));
+      section.after(copy);
+      group.after(groupCopy);
+      api.renumber();
+      if (window.boxletRichText) {
+        window.boxletRichText.scan(groupCopy);
+      }
+      if (window.boxletPicker) {
+        window.boxletPicker.scan(groupCopy);
+      }
+      api.tellCanvas('refresh', {});
+      var born = Number(groupCopy.getAttribute('data-block-group'));
+      api.show(born);
+      api.showTab('content');
+      api.tellCanvas('select', { index: born });
+
       return;
     }
 
-    var to = action === 'up' ? index - 1 : index + 1;
-    var list = api.sections();
-    if (to < 0 || to >= list.length) {
+    /* WITHIN ITS OWN COLUMN (PLAN.md D-103). It used to be within the page: a flat list of
+       blocks had one order and moving down meant the next place in it. In a tree the next
+       place is in the same column, and stepping outside it would drop the block into a
+       neighbouring band — leaving one band empty and another holding something nobody put
+       there. Across columns is dragging; the whole band has arrows of its own. */
+    var column = section.parentNode;
+    var siblings = Array.prototype.slice.call(column.children);
+    var here = siblings.indexOf(section);
+    var to = action === 'up' ? here - 1 : here + 1;
+    if (to < 0 || to >= siblings.length) {
       return;
     }
     api.commit();
-    var groups = api.groupNodes();
+    var neighbour = siblings[to];
+    var neighbourGroup = null;
+    api.groupNodes().forEach(function (candidate) {
+      if (candidate.getAttribute('data-block-key') === neighbour.getAttribute('data-bx-key')) {
+        neighbourGroup = candidate;
+      }
+    });
     if (action === 'up') {
-      list[to].before(section);
-      groups[to].before(group);
+      neighbour.before(section);
+      if (neighbourGroup) {
+        neighbourGroup.before(group);
+      }
     } else {
-      list[to].after(section);
-      groups[to].after(group);
+      neighbour.after(section);
+      if (neighbourGroup) {
+        neighbourGroup.after(group);
+      }
     }
     api.renumber();
     api.tellCanvas('refresh', {});
-    api.show(to);
-    api.tellCanvas('select', { index: to });
+    // Which block it is NOW, read back rather than worked out: renumber() has just decided.
+    var moved = Number(group.getAttribute('data-block-group'));
+    api.show(moved);
+    api.tellCanvas('select', { index: moved });
   }
 
   api.act = act;

@@ -123,7 +123,9 @@ final class PageBuilderController
             if ($drawable === [] && $group['blocks'] !== []) {
                 continue;
             }
-            $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], (string) $page['locale']);
+            // ALWAYS AS COLUMNS HERE (D-103): a column is what a block is dragged into and
+            // what the + in it adds to, and a band that draws none has neither.
+            $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], (string) $page['locale'], true);
             /* THE BAND SAYS WHICH BAND IT IS, for the editor only (D-099). The canvas draws
                the visitor's markup and this is the one thing added to it: without a name on
                the band, the + in an empty column has no way to say which column of which

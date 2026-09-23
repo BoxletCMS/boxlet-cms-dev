@@ -68,13 +68,8 @@
     }
     var found = [];
     doc.querySelectorAll('[data-bx-blocks] > section').forEach(function (band) {
-      var inside = band.querySelectorAll('.section-column > *');
-      if (inside.length === 0) {
-        found.push(band);
-
-        return;
-      }
-      inside.forEach(function (block) {
+      // The editor's canvas always draws columns (D-103), so every block is inside one.
+      band.querySelectorAll('.section-column > *').forEach(function (block) {
         found.push(block);
       });
     });
@@ -398,13 +393,38 @@
     });
   };
 
-  function reorderTo(keys) {
-    keys.forEach(function (key) {
-      var group = groups.querySelector('[data-block-key="' + key + '"]');
-      if (group) {
-        groups.appendChild(group);
+  /**
+   * A DRAG REPLAYED ON THE FORM (PLAN.md D-103), as PLACES and not as an order.
+   *
+   * A flat list of keys could say that two blocks swapped; it could not say that one of
+   * them crossed into another column, which is the thing a tree makes possible and the
+   * thing a page is actually arranged by. So each block is told which band and which column
+   * it now stands in, and the form is put in that order — bands in the canvas's order, and
+   * within one, its columns, and within one, what stands in it.
+   */
+  function placeTo(at) {
+    at.forEach(function (where) {
+      var group = groups.querySelector('[data-block-key="' + where.key + '"]');
+      if (!group) {
+        return;
       }
+      group.setAttribute('data-section-key', where.section);
+      group.querySelectorAll('[data-block-section]').forEach(function (input) {
+        input.value = where.section;
+      });
+      group.querySelectorAll('[data-block-column]').forEach(function (input) {
+        input.value = String(where.column);
+      });
+      // Appended in the order they arrive, which is the page's reading order.
+      groups.appendChild(group);
     });
+    api.renumber();
+    api.show(-1);
+    api.tellCanvas('select', { index: -1 });
+  }
+
+  /** Bands reordered by a drag: the groups follow, and renumber() puts them in that order. */
+  function bandsTo() {
     api.renumber();
     api.show(-1);
     api.tellCanvas('select', { index: -1 });
@@ -447,8 +467,10 @@
       if (library) {
         library.scrollIntoView({ block: 'nearest' });
       }
-    } else if (event.data.type === 'reorder') {
-      reorderTo(event.data.keys);
+    } else if (event.data.type === 'placed') {
+      placeTo(event.data.at);
+    } else if (event.data.type === 'bands') {
+      bandsTo();
     } else if (event.data.type === 'action' && api.act) {
       // The selected block's controls in the canvas (D-040): the same act() the panel's
       // buttons used to call, so there is one way to move, copy or remove a block.

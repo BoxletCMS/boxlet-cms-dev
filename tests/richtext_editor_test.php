@@ -104,8 +104,13 @@ test('guard (source, not behaviour): naming a group knows nothing about the rich
 test('guard (source, not behaviour): a duplicate is reset to a plain textarea before it is placed', function () {
     $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js');
 
+    /* A duplicate no longer becomes a band of its own at the next position on the page
+       (D-103) — it stands beside the block it was copied from, in the same column — so what
+       places it is `group.after(groupCopy)` and not place(). The rule is unchanged and is
+       what this guards: the copy's rich text is dead markup until it is reset, and resetting
+       it after it is on the screen is a window in which the author can type into nothing. */
     $reset = strpos($js, 'unsetRichText(groupCopy)');
-    $placed = strpos($js, 'place(index + 1');
+    $placed = strpos($js, 'group.after(groupCopy)');
     assertTrue($reset !== false, 'the duplicate no longer resets its rich text');
     assertTrue($placed !== false && $reset < $placed, 'the copy is placed before its rich text is reset');
 

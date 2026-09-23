@@ -39,6 +39,18 @@ final class SectionRender
      * @param list<array<string, mixed>> $blocks each with type, content, layout and column
      *        in the order they are drawn, already filtered to types this install can render
      * @param array<int, Picture> $media
+     * THE EDITOR ASKS FOR THE SECOND SHAPE ALWAYS (PLAN.md D-103). A page keeps both, for
+     * the reason above; the editor cannot, because a column is the thing a block is dragged
+     * into and a band that draws none has nowhere to drop one. One boolean in one function,
+     * so the two shapes go on being described in a single place rather than the editor
+     * growing a copy of them.
+     *
+     * NOTHING A STYLESHEET READS CHANGES between the two: every rule that reads `layout-*`
+     * is a descendant selector and `block-{type}` selects only chrome (D-093's measurement),
+     * so both classes may sit a level lower and no rule stops matching. What differs is a
+     * wrapper element, which is why the page — where it can be PROVEN nothing moved — keeps
+     * the shape it has always had.
+     *
      * @param bool  $eager whether this is the first section drawn on the page
      * @param array<string, mixed> $resolved what the renderer resolved for these templates
      */
@@ -50,11 +62,12 @@ final class SectionRender
         bool $eager,
         array $resolved = [],
         string $locale = '',
+        bool $asColumns = false,
     ): string {
         $layout = SectionLayout::normalize($section['layout']);
         $style = SectionStyle::normalize($section['style']);
 
-        if ($layout === SectionLayout::ONE && count($blocks) === 1) {
+        if (!$asColumns && $layout === SectionLayout::ONE && count($blocks) === 1) {
             $block = $blocks[0];
 
             return $registry->render(

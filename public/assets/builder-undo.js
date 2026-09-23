@@ -200,7 +200,7 @@
     api.forget();
     api.tellCanvas('refresh', {});
     api.show(state.selected);
-    api.tellCanvas('select', { index: state.selected });
+    api.selectOnCanvas(state.selected);
     offer();
   };
 

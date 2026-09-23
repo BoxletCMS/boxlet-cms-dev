@@ -94,8 +94,17 @@
     document.querySelectorAll('[data-section-group]').forEach(function (part) {
       part.hidden = part.getAttribute('data-section-group') !== key;
     });
+    /* AND THE LIBRARY GOES AWAY, because a selected band is showing you ITS settings.
+       It used to stay, above the band's own fields, which put them 3,393 pixels down a
+       panel nobody scrolls that far: the owner added a section and was shown a wall of
+       blocks. "zašto nakon klika na dodavanje sekciju umjesto postavki sekcije kao na
+       artifaktu imamo blokove desno" — and, for the same reason, "sekcija se nakon
+       dodavanja ne može označiti da bi se vidjele njene postavke".
+
+       The library is what you see when you have AIMED somewhere and are choosing what
+       lands there (D-099). Pressing "+ Block" in this band's column brings it back. */
     if (library) {
-      library.hidden = false;
+      library.hidden = true;
     }
     if (selectedPane) {
       selectedPane.hidden = false;
@@ -383,6 +392,28 @@
 
   // Keys pair a section with its field group and survive reordering, so a drag in the
   // canvas can be replayed on the form without either side guessing.
+  /**
+   * WHICH FIELD GROUP CARRIES THIS KEY, and where it stands in the form (PLAN.md D-094).
+   *
+   * The canvas and the form hold the same blocks under the same keys and, the moment one
+   * is added, in DIFFERENT ORDERS: the canvas draws the new block where it stands on the
+   * page while its group is appended at the end of the form. So a position crossing between
+   * them names the wrong block, and did — every click opened the next block's fields.
+   */
+  api.indexForKey = function (key) {
+    var group = typeof key === 'string' && key !== ''
+      ? groups.querySelector('[data-block-key="' + key + '"]')
+      : null;
+
+    return group ? Number(group.getAttribute('data-block-group')) : -1;
+  };
+
+  /** Select a block on the canvas by the FORM position, sending the key it stands for. */
+  api.selectOnCanvas = function (index) {
+    var group = index >= 0 ? groups.querySelector('[data-block-group="' + index + '"]') : null;
+    api.tellCanvas('select', { index: index, key: group ? group.getAttribute('data-block-key') : null });
+  };
+
   api.pairKeys = function () {
     var list = api.sections();
     api.groupNodes().forEach(function (group, index) {
@@ -447,7 +478,10 @@
       api.show(failedGroup());
     } else if (event.data.type === 'select') {
       api.target = null;
-      api.show(event.data.index);
+      // By key when the canvas sent one: its index counts the PAGE's order, not the form's.
+      api.show(typeof event.data.key === 'string' && event.data.key !== ''
+        ? api.indexForKey(event.data.key)
+        : event.data.index);
     } else if (event.data.type === 'section') {
       // A BAND ADDED BETWEEN BANDS (D-101). It used to be a block that brought a band with
       // it, which is why there was no way to add a section at all.

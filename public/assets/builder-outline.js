@@ -196,7 +196,7 @@
       api.outlineBand = null;
       var index = Number(group.getAttribute('data-block-group'));
       api.show(index);
-      api.tellCanvas('select', { index: index });
+      api.selectOnCanvas(index);
 
       return;
     }

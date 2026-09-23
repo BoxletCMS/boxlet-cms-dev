@@ -88,12 +88,20 @@
     button.setAttribute('data-insert-at', String(index));
     button.setAttribute('aria-label', label);
     button.title = label;
-    button.textContent = '+';
+    /* THE SAME SHAPE A COLUMN'S "+ Block" HAS: a strip the width of the page with the
+       control centred in it, rather than a pill on its own. As a pill it sat ACROSS the
+       band's edge — half in the band above, half in the one below — and cut straight
+       through the dashed outline of a selected band. The owner saw it at once: "dodavanje
+       sekcije i blok prostor prelaze izvan granice sekcije". A strip on the seam reads as
+       the seam. It is also what the design artifact draws. */
+    var pill = document.createElement('span');
+    pill.textContent = '+';
     if (word) {
       var says = document.createElement('em');
       says.textContent = word;
-      button.appendChild(says);
+      pill.appendChild(says);
     }
+    button.appendChild(pill);
     // Never flush with the top edge: the control is centred on the boundary, so at y=0
     // half of it would sit above the page. An empty page has only this one.
     button.style.top = Math.max(16, Math.round(top)) + 'px';
@@ -220,16 +228,40 @@
    *                 clears the position a "+" had just aimed at — so every insert landed
    *                 at the end of the page instead of at the boundary that was clicked.
    */
+  /** Where the block with this key stands here, or -1. */
+  function indexOfKey(key) {
+    var found = -1;
+    blocks().forEach(function (section, i) {
+      if (section.getAttribute('data-bx-key') === key) {
+        found = i;
+      }
+    });
+
+    return found;
+  }
+
   function select(index, announce) {
     document.querySelectorAll('.bx-band-selected').forEach(function (band) {
       band.classList.remove('bx-band-selected');
     });
-    blocks().forEach(function (section, i) {
+    var list = blocks();
+    list.forEach(function (section, i) {
       section.classList.toggle('bx-selected', i === index);
     });
     drawTools();
     if (announce !== false) {
-      tell('select', { index: index });
+      /* THE KEY, AND THE POSITION ONLY AS A FALLBACK (PLAN.md D-094).
+         A position names a block only while the canvas and the form are in the same order,
+         and adding one block ends that: the new block is drawn where it stands on the page
+         and its field group is appended at the END of the form. Measured — canvas
+         [n0, k0, k1 …] against form [k0, k1 … n0] — so every click opened the NEXT block's
+         fields. The owner found it by pressing a Questions block and being given an Image
+         and text one. The key is on both sides already and agrees; only the counting did
+         not. */
+      tell('select', {
+        index: index,
+        key: index >= 0 && list[index] ? list[index].getAttribute('data-bx-key') : null,
+      });
     }
   }
 
@@ -427,7 +459,9 @@
       return;
     }
     if (event.data.type === 'select') {
-      select(event.data.index, false);
+      /* By key when the parent sent one — it is naming a block in the FORM's order, which
+         is not this one. Same rule as the message going the other way. */
+      select(typeof event.data.key === 'string' ? indexOfKey(event.data.key) : event.data.index, false);
     } else if (event.data.type === 'band') {
       /* A WHOLE BAND MARKED, not a block inside it (PLAN.md D-101). Every block's mark is
          cleared, because a band and a block are two things to be on and being on both says

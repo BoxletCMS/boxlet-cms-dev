@@ -145,6 +145,12 @@ button.menu-popover-item:focus-visible {
 .builder-canvas {
   position: relative;
   display: grid;
+  /* TWO ROWS, SAID OUT LOUD. The page fills what is left; the trail is one line under it.
+     Left implicit, both rows were `auto` and a grid's align-content: normal behaves as
+     stretch — so the spare height was SHARED between them: measured at 708px of page and
+     242px of breadcrumb, which put the words a screenful below the page they describe and
+     made the canvas short for no reason the owner could see. Reported by him on sight. */
+  grid-template-rows: minmax(0, 1fr) auto;
   justify-items: center;
   overflow: auto;
   padding: var(--ui-4);
@@ -355,7 +361,9 @@ button.outline-row:focus-visible {
    document and the editor writes nothing into it. It sits above the page rather than over
    it, so it never covers the first band — which is the one thing a person looks at most. */
 .builder-trail {
-  margin: 0 0 var(--ui-2);
+  /* Under the page, which is where it already read; the row above is the canvas. */
+  grid-row: 2;
+  margin: var(--ui-2) 0 0;
   padding: var(--ui-1) var(--ui-2);
   font-size: var(--ui-text-sm);
   color: var(--ui-ink-muted);

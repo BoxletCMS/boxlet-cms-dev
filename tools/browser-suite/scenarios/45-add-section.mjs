@@ -154,6 +154,77 @@ export default {
       added.bands === 1 && added.panel === 1 && added.tab === 'section' && added.outlined === 1 && added.marked,
       JSON.stringify(added));
 
+    /* ---- AND IT IS A PLACE, NOT A LINE ----------------------------------------------
+       The owner's first words on seeing a band he had just added: "dodavanje sekcije i
+       blok prostor prelaze izvan granice sekcije". An empty column had no height at all —
+       nought pixels — so everything belonging to it was drawn outside the band's own edge.
+       Both halves are measured: the column has room, and what is drawn for it stays inside
+       the band. A tolerance of one pixel, because a border is drawn on the boundary. */
+    const room = await page.evaluate(() => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const band = [...doc.querySelectorAll('[data-bx-section]')]
+        .find((b) => /^m[0-9]+$/.test(b.getAttribute('data-bx-section')));
+      if (!band) { return null; }
+      const column = band.querySelector('.section-column');
+      const slot = [...doc.querySelectorAll('.bx-slot')]
+        .find((s) => s.getAttribute('data-insert-into') === band.getAttribute('data-bx-section'));
+      const b = band.getBoundingClientRect();
+
+      return {
+        column: column ? Math.round(column.getBoundingClientRect().height) : null,
+        band: Math.round(b.height),
+        slotInside: slot === undefined ? null
+          : slot.getBoundingClientRect().top >= b.top - 1 && slot.getBoundingClientRect().bottom <= b.bottom + 1,
+      };
+    });
+    report.verdict('an empty column is a place with room in it, and its + Block stays inside the band',
+      room !== null && room.column > 0 && room.band > room.column && room.slotInside === true,
+      JSON.stringify(room));
+
+    /* ---- THE PANEL SHOWS THE BAND, NOT THE LIBRARY (PLAN.md D-106) -----------------
+       The owner added a section and was shown a wall of blocks: the library stayed open and
+       the band's own fields were rendered UNDER it, measured at 3,393px down a panel nobody
+       scrolls that far. He read it twice over — "umjesto postavki sekcije ... imamo blokove
+       desno", and then "sekcija se nakon dodavanja ne može označiti da bi se vidjele njene
+       postavke". It could; they were past the horizon. */
+    const shows = await page.evaluate(() => {
+      const group = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden);
+      const lib = document.querySelector('.panel-library');
+      const panel = group ? group.closest('form') : null;
+
+      return {
+        library: lib ? !lib.hidden : null,
+        // Where the band's fields sit down the panel, from the panel's own top.
+        fieldsAt: group && panel
+          ? Math.round(group.getBoundingClientRect().top - panel.getBoundingClientRect().top) : null,
+        columns: group ? group.querySelectorAll('select[name$="[layout]"]').length : 0,
+      };
+    });
+    report.verdict('a selected band shows its own settings, in reach, and not the block library',
+      shows.library === false && shows.fieldsAt !== null && shows.fieldsAt < 1200 && shows.columns === 1,
+      JSON.stringify(shows));
+
+    // ---- and the page fills the pane it is shown in ---------------------------------
+    //
+    // Also reported on sight — "preview layout je kratak po visini". The canvas grid left
+    // both its rows at `auto`, and a grid's align-content behaves as stretch, so the spare
+    // height was SHARED between the page and the one-line breadcrumb under it: measured at
+    // 708px of page and 242px of words. The page takes what is left; the trail is a line.
+    const fills = await page.evaluate(() => {
+      const frame = document.querySelector('iframe[data-canvas]');
+      const pane = frame.parentElement;
+      const trail = pane.querySelector('.builder-trail');
+
+      return {
+        pane: Math.round(pane.getBoundingClientRect().height),
+        frame: Math.round(frame.getBoundingClientRect().height),
+        trail: trail ? Math.round(trail.getBoundingClientRect().height) : 0,
+      };
+    });
+    report.verdict('the page fills the pane, and the trail under it is one line',
+      fills.frame > fills.pane * 0.8 && fills.trail > 0 && fills.trail < 60,
+      JSON.stringify(fills));
+
     // ---- give it two columns, then fill one ------------------------------------------
     await page.evaluate(() => {
       const select = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden)
@@ -191,6 +262,40 @@ export default {
     await page.keyboard.type(MARKER);
     await wait(900);
     await report.shot(page, '02-filled');
+
+    /* ---- AND A CLICK ON THE PAGE OPENS THAT BLOCK'S FIELDS (D-106) ------------------
+       Checked HERE, with a block added and nothing saved, because that is the only state in
+       which it was ever wrong. The canvas draws a new block where it stands on the page; its
+       field group is appended at the END of the form. Selection travelled as a POSITION, so
+       the two counted different orders and every click opened the next block's fields — the
+       owner pressed a Questions block and was given an Image and text one. The key was on
+       both sides all along and agreed; only the counting did not. */
+    const paired = await page.evaluate(async () => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const blocks = [...doc.querySelectorAll('.section-column > *')];
+      const wrong = [];
+      for (const block of blocks.slice(0, 6)) {
+        block.click();
+        await new Promise((r) => setTimeout(r, 400));
+        const group = [...document.querySelectorAll('[data-block-group]')].find((g) => !g.hidden);
+        const key = group ? group.getAttribute('data-block-key') : null;
+        if (key !== block.getAttribute('data-bx-key')) {
+          wrong.push(`${block.getAttribute('data-bx-key')} opened ${key}`);
+        }
+      }
+
+      return { checked: blocks.slice(0, 6).length, wrong: wrong };
+    });
+    report.verdict('a block pressed on the page opens its own fields, not its neighbour\'s',
+      paired.checked > 1 && paired.wrong.length === 0, JSON.stringify(paired));
+
+    // Put the selection back on the block this check added, so what follows is unchanged.
+    await page.evaluate((words) => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const mine = [...doc.querySelectorAll('.section-column > *')].find((b) => b.textContent.includes(words));
+      if (mine) { mine.click(); }
+    }, MARKER);
+    await wait(900);
 
     const notices = await submit(page);
     report.verdict('a section added in the editor saves', notices.length === 0, JSON.stringify(notices));

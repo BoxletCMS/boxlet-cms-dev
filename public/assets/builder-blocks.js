@@ -119,7 +119,7 @@
        where a block's fields are display: none — so the block existed, was selected, and
        could not be typed into; its own field could not even be focused. */
     api.showTab('content');
-    api.tellCanvas('select', { index: index });
+    api.selectOnCanvas(index);
   }
 
   /**
@@ -655,7 +655,7 @@
       var born = Number(groupCopy.getAttribute('data-block-group'));
       api.show(born);
       api.showTab('content');
-      api.tellCanvas('select', { index: born });
+      api.selectOnCanvas(born);
 
       return;
     }
@@ -696,7 +696,7 @@
     // Which block it is NOW, read back rather than worked out: renumber() has just decided.
     var moved = Number(group.getAttribute('data-block-group'));
     api.show(moved);
-    api.tellCanvas('select', { index: moved });
+    api.selectOnCanvas(moved);
   }
 
   api.act = act;

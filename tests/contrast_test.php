@@ -492,15 +492,26 @@ test('the insertion control keeps two tones in every state', function () {
         $rules[$selector] = $body;
     }
 
-    assertTrue(isset($rules['.bx-insert']), '.bx-insert is gone from canvas.css');
-    $rest = $rules['.bx-insert'];
+    /* THE CONTROL IS THE PILL INSIDE THE STRIP, since D-106. `.bx-insert` used to be the
+       pill itself; it is now the full-width seam it sits on, and the two tones moved with
+       the control to `.bx-insert > span`. The rule did not change and neither did the
+       measurement behind it — what changed is which selector carries it, and this test is
+       followed to it rather than relaxed. */
+    assertTrue(isset($rules['.bx-insert > span']), '.bx-insert > span is gone from canvas.css');
+    $rest = $rules['.bx-insert > span'];
     assertContains('background: var(--bx-ink)', $rest, 'the resting disc is no longer the dark tone');
     assertTrue(
         (bool) preg_match('~border:[^;]*#ffffff~', $rest),
         'the resting control lost its white ring: on a dark page nothing else marks its edge',
     );
 
-    $hover = $rules['.bx-insert:hover, .bx-insert:focus-visible'] ?? '';
+    // And the seam it lies on has no edge of its own to be mistaken for the band's (D-106).
+    assertTrue(
+        !preg_match('~(?:border|outline):\s*[1-9]~', $rules['.bx-insert'] ?? ''),
+        'the seam strip grew an edge again; over an outlined band two sets of dashes read as one confused thing',
+    );
+
+    $hover = $rules['.bx-insert:hover > span, .bx-insert:focus-visible > span'] ?? '';
     assertTrue($hover !== '', 'the hover and focus rule changed shape; check both still carry two tones');
     assertContains('--bx-ink', $hover, 'hover fills with the accent and keeps no dark edge, which measured 2.39:1');
 });

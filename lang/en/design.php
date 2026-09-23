@@ -234,6 +234,17 @@ return [
     'style.layout.wide-left' => 'Wide left, narrow right',
     'style.layout.wide-right' => 'Narrow left, wide right',
     'style.layout.sidebar' => 'Wide with a sidebar',
+    // THE ARRANGEMENT AS NOTATION, for the page outline where a row has a few characters
+    // of room: "2/3+" says a wide column and a narrow one faster than any sentence. Here
+    // rather than in a constant because it is on the screen, and everything on the screen
+    // goes through t() — even when it is four characters of arithmetic.
+    'style.layout.short.one' => '1',
+    'style.layout.short.halves' => '1/2',
+    'style.layout.short.thirds' => '1/3',
+    'style.layout.short.quarters' => '1/4',
+    'style.layout.short.wide-left' => '2/3+',
+    'style.layout.short.wide-right' => '+2/3',
+    'style.layout.short.sidebar' => '3/4+',
     'style.stack' => 'On a narrow screen',
     'style.stack.stack' => 'Stack them, top to bottom',
     'style.stack.stay' => 'Keep them side by side',

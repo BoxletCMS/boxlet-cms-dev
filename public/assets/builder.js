@@ -130,6 +130,12 @@
       group.setAttribute('data-block-group', String(index));
     });
     api.dirty = true;
+    // The outline is a third view of the same page and is rebuilt wherever the other two
+    // are (D-100). Guarded because it is a separate file and may not have loaded — and
+    // because the plain editor has no outline at all.
+    if (api.drawOutline) {
+      api.drawOutline();
+    }
   };
 
   /*
@@ -171,6 +177,11 @@
     });
   }
 
+  /* Shown to the outline (D-100), which turns to the Section tab when a band is pressed.
+     A second caller, so it stops being a detail of the tab strip and becomes something the
+     editor can ask for. */
+  api.showTab = showTab;
+
   if (tabs) {
     tabs.addEventListener('click', function (event) {
       var tab = event.target.closest('[data-panel-tab]');
@@ -203,6 +214,9 @@
     document.querySelectorAll('[data-section-group]').forEach(function (part) {
       part.hidden = part.getAttribute('data-section-group') !== bandKey;
     });
+    if (api.markOutline) {
+      api.markOutline(index);
+    }
     if (library) {
       library.hidden = index >= 0;
     }

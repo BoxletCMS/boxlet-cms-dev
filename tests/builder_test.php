@@ -325,3 +325,54 @@ test('the builder offers the skeleton saving only while the form is the stored p
     assertContains('Edited, never saved', $rejected->body, 'the submitted heading is still in the form');
     assertTrue(!str_contains($rejected->body, 'data-blocks-stored'), 'a rejected save must not offer the skeleton saving');
 });
+
+testBothDrivers('the page outline shows the page as a tree, before any script runs', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'One']],
+        ['type' => 'text', 'content' => ['body' => '<p>Two</p>']],
+        ['type' => 'form', 'content' => []],
+    ]);
+    [$hero, $text, $form] = blockIdsInOrder($db, $id);
+
+    // The second and third blocks side by side in one band of two columns, which is the
+    // shape an outline exists to show: the canvas draws what a page looks like and this
+    // draws what it IS (D-100).
+    App\Modules\Pages\Page::update($db, blockRegistry(), $id, [
+        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+    ], [
+        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'hero', 'content' => ['heading' => 'One'], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 0],
+        ['key' => 'b' . $text, 'id' => $text, 'type' => 'text', 'content' => ['body' => '<p>Two</p>'], 'style' => [], 'layout' => '', 'section' => 'm1', 'column' => 0],
+        ['key' => 'b' . $form, 'id' => $form, 'type' => 'form', 'content' => [], 'style' => [], 'layout' => '', 'section' => 'm1', 'column' => 1],
+    ], [
+        ['key' => 'm0', 'id' => null, 'layout' => 'one', 'stack' => 'stack', 'style' => []],
+        ['key' => 'm1', 'id' => null, 'layout' => 'wide-left', 'stack' => 'stack', 'style' => []],
+    ]);
+
+    $body = dispatch("/admin/pages/{$id}")->body;
+    assertContains('data-outline', $body, 'the outline is not on the screen');
+    // Two bands, three blocks — the two numbers that say how big a page is without counting.
+    assertContains('>2 / 3<', $body, 'the counts');
+    assertEquals(2, substr_count($body, 'data-outline-section='), 'a row per band');
+    assertEquals(3, substr_count($body, 'data-outline-block='), 'a row per block');
+    // The arrangement as notation, which is what fits in a row a few characters wide.
+    assertContains('2/3+', $body, 'the band\'s arrangement');
+    // A column row only where there is more than one column: "Column 1" under a band of one
+    // is a level of nothing.
+    assertEquals(2, substr_count($body, 'outline-row-column'), 'a row per column of the band that has them');
+    assertContains('data-outline-block="b' . $form . '"', $body, 'a block is named the way the rest of the editor names it');
+});
+
+test('guard (source, not behaviour): the outline is drawn by the server, not only by a script', function () {
+    // It is a third view of the same page and it has to be right before a script has run —
+    // after a rejected save, with JavaScript off, and on the first paint. The script moves
+    // the highlight and rebuilds rows; it does not own the shape (D-100).
+    $view = (string) file_get_contents(dirname(__DIR__) . '/app/Modules/Pages/views/admin/outline.php');
+    assertContains('data-outline-section', $view, 'the server does not draw the band rows');
+    assertContains('data-outline-block', $view, 'the server does not draw the block rows');
+
+    // And the script reads the panel rather than holding a second copy of the page.
+    $script = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-outline.js');
+    assertContains('api.groupNodes()', $script, 'the outline stopped reading the panel');
+    assertTrue(!str_contains($script, 'fetch('), 'the outline asks the server for the page shape');
+});

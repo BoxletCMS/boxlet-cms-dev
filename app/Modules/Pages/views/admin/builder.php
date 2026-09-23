@@ -87,6 +87,16 @@ foreach ($errors as $key => $message) {
                 <button type="button" class="button button-ghost button-icon js-only" data-undo-button disabled
                         title="<?= e(t('pages.undo')) ?>"><?= icon('undo-2') ?><span class="visually-hidden"><?= e(t('pages.undo')) ?></span></button>
 
+                <?php /* SHOW OR HIDE THE OUTLINE. Pressed by default, because a tree you
+                         cannot see is the thing this whole slice exists to fix; the room it
+                         takes is the canvas's, and somebody working on one block's words
+                         should be able to have it back. Not rendered without a script,
+                         which is the rule every other toggle here follows: with none there
+                         is nothing to toggle and the outline simply stands. */ ?>
+                <button type="button" class="button button-ghost button-icon js-only" data-outline-toggle aria-pressed="true"
+                        data-show="<?= e(t('pages.outline.show')) ?>" data-hide="<?= e(t('pages.outline.hide')) ?>"
+                        title="<?= e(t('pages.outline.hide')) ?>"><?= icon('list') ?><span class="visually-hidden"><?= e(t('pages.outline')) ?></span></button>
+
                 <div class="builder-devices" role="group" aria-label="<?= e(t('pages.device.label')) ?>">
 <?php /* Icons, each named for a screen reader and on hover (D-039). */ ?>
 <?php foreach (['phone' => ['24rem', 'smartphone'], 'tablet' => ['48rem', 'tablet'], 'desktop' => ['100%', 'monitor']] as $device => [$width, $deviceIcon]): ?>
@@ -108,6 +118,8 @@ foreach ($errors as $key => $message) {
             </div>
 
             <div class="builder-body">
+<?php require __DIR__ . '/outline.php'; ?>
+
                 <div class="builder-canvas" data-canvas-frame>
                     <iframe src="<?= e($canvasUrl) ?>" title="<?= e(t('pages.canvas')) ?>" data-canvas></iframe>
 
@@ -370,4 +382,6 @@ foreach ($errors as $key => $message) {
         <script src="<?= e(Url::versioned('assets/builder-undo.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-save.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-library.js')) ?>" defer></script>
+        <?php /* Last of the builder's scripts: it reads what the others have drawn (D-100). */ ?>
+        <script src="<?= e(Url::versioned('assets/builder-outline.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/hints.js')) ?>" defer></script>

@@ -211,3 +211,140 @@ button.menu-popover-item:focus-visible {
     block-size: 60vh;
   }
 }
+
+/* THE PAGE OUTLINE (PLAN.md D-100)
+
+   A third column beside the canvas and the panel. It is narrow on purpose: it is for
+   seeing the shape of the page and reaching a block on a long one, not for reading. */
+
+.builder-body:has(.builder-outline:not([hidden])) {
+  grid-template-columns: 13rem minmax(0, 1fr) 28rem;
+}
+
+.builder-outline {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--ui-panel);
+  border-right: var(--ui-border) solid var(--ui-line);
+}
+
+.outline-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ui-2);
+  padding: var(--ui-3) var(--ui-3) var(--ui-2);
+}
+
+.outline-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-ink-muted);
+}
+
+/* Sections and blocks. Tabular figures so the number does not shift as the page grows. */
+.outline-count {
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-ink-muted);
+}
+
+.outline-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--ui-2) var(--ui-3);
+}
+
+.outline-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  inline-size: 100%;
+  margin: 0;
+  padding: var(--ui-1) var(--ui-2);
+  border: 0;
+  border-radius: var(--ui-radius-s);
+  background: none;
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+  text-align: start;
+}
+
+/* No opacity: a control at rest is legible or it is not there (CLAUDE.md, and the guard in
+   contrast_test caught this one). The icon is quiet because it is small and beside a word
+   that carries the meaning, not because it has been faded. */
+.outline-row .icon {
+  flex: none;
+  inline-size: 0.875rem;
+  block-size: 0.875rem;
+}
+
+/* One line, ellipsised: a heading's own words are in the canvas, and a row that wraps
+   turns the shape of the page into a paragraph. */
+.outline-label {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-note {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-ink-muted);
+}
+
+button.outline-row {
+  cursor: pointer;
+}
+
+button.outline-row:hover,
+button.outline-row:focus-visible {
+  background: var(--ui-panel-sunken);
+}
+
+/* Where you are. A tinted row AND a bar down its leading edge: the tint alone is a colour
+   difference, and the bar is a shape — which is what still reads when the tint does not. */
+.outline-row[aria-current="true"] {
+  background: var(--ui-accent-soft);
+  box-shadow: inset 2px 0 0 var(--ui-accent);
+  color: var(--ui-ink);
+}
+
+.outline-row-column {
+  padding-inline-start: var(--ui-4);
+  color: var(--ui-ink-muted);
+}
+
+/* A block under a band of one column sits one level in; under several, two — the column
+   row is the level between them, and a block without one must not pretend to have it. */
+.outline-row-block {
+  padding-inline-start: var(--ui-4);
+}
+
+.outline-row-block.outline-deep {
+  padding-inline-start: calc(var(--ui-4) + var(--ui-3));
+}
+
+.outline-empty {
+  margin: 0;
+  padding: var(--ui-2);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-ink-muted);
+}
+
+@media (max-width: 64rem) {
+  /* The canvas and the panel already stack here; a third rail would leave neither room. */
+  .builder-outline {
+    display: none;
+  }
+}

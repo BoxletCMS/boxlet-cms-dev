@@ -212,6 +212,15 @@ return [
     'pages.insert_here' => 'Add a block here',
     'pages.insert_at_end' => 'Add a block at the end',
     'pages.insert_in_column' => 'Add a block in this column',
+    // THE PAGE AS A TREE (PLAN.md D-100). "Page outline" and not "Structure": it is the
+    // thing an editor has always called an outline, and the word says what it is for —
+    // seeing the shape of the page, not editing it.
+    'pages.outline' => 'Page outline',
+    'pages.outline.section' => 'Section :n',
+    'pages.outline.column' => 'Column :n',
+    'pages.outline.empty' => 'Nothing on this page yet.',
+    'pages.outline.show' => 'Show the page outline',
+    'pages.outline.hide' => 'Hide the page outline',
     // What this page was before the last few saves (D-088).
     'pages.history' => 'Earlier versions',
     'pages.history_hint' => 'The last :count saves of this page. Restoring one is itself a save, so it can be undone.',

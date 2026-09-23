@@ -72,6 +72,45 @@ export default {
         && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
     }, { timeout: 20000 });
 
+    // ---- the page outline, which is how you see the tree at all ----------------------
+    const outline = await page.evaluate(() => {
+      const rail = document.querySelector('[data-outline]');
+      if (!rail) { return null; }
+
+      return {
+        sections: rail.querySelectorAll('[data-outline-section]').length,
+        blocks: rail.querySelectorAll('[data-outline-block]').length,
+        count: (rail.querySelector('[data-outline-count]') || {}).textContent,
+        painted: rail.getBoundingClientRect().width > 100,
+      };
+    });
+    report.verdict('the page outline lists every band and every block',
+      outline !== null && outline.sections === 6 && outline.blocks === 6
+        && outline.count.trim() === '6 / 6' && outline.painted,
+      JSON.stringify(outline));
+
+    // Pressing a row reaches the block: the thing an outline is FOR on a long page.
+    const reached = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('[data-outline-block]')];
+      const last = rows[rows.length - 1];
+      const wanted = last.getAttribute('data-outline-block');
+      last.click();
+
+      return wanted;
+    });
+    await wait(SETTLE);
+    report.verdict('pressing a row in the outline selects that block',
+      await page.evaluate((key) => {
+        const shown = [...document.querySelectorAll('[data-block-group]')].filter((g) => !g.hidden);
+        const field = shown[0] && shown[0].querySelector('input[type="hidden"][name$="[type]"]');
+        const marked = document.querySelector('.outline-row[aria-current="true"]');
+
+        return shown.length === 1
+          && String(field.name).startsWith('blocks[' + key + ']')
+          && marked !== null && marked.getAttribute('data-outline-block') === key;
+      }, reached),
+      `pressed ${reached}`);
+
     // ---- what the Section tab does to the canvas, BEFORE anything is saved -----------
     //
     // Both of these were broken the day the band's fields moved into a group of their own

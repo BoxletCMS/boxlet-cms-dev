@@ -61,7 +61,11 @@ $pickerAttributes = static fn (): string => \App\Modules\Media\MediaReference::p
 ?>
             <?php /* The name as data, so the visual editor's panel heading does not have
                      to scrape it out of the legend and pick up its drag handle with it. */ ?>
-            <fieldset class="block-editor" data-block data-block-label="<?= e($known ? t('block.' . $block['type']) : t('pages.block.unknown', ['type' => $block['type']])) ?>">
+            <?php /* The label and the icon as data, so the page outline can draw a row for
+                     this block without a second copy of what a block is (D-100) — and so the
+                     panel heading does not have to scrape the legend and pick up its drag
+                     handle with it. */ ?>
+            <fieldset class="block-editor" data-block data-block-label="<?= e($known ? t('block.' . $block['type']) : t('pages.block.unknown', ['type' => $block['type']])) ?>" data-block-icon="<?= e($known ? (string) ($registry->get($block['type'])['icon'] ?? 'file-text') : 'circle-alert') ?>">
                 <legend class="block-editor-legend">
                     <span class="drag-handle js-only" data-drag-handle title="<?= e(t('pages.drag')) ?>" aria-hidden="true">&#8942;&#8942;</span>
                     <?= e($known ? t('block.' . $block['type']) : t('pages.block.unknown', ['type' => $block['type']])) ?>

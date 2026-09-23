@@ -36,6 +36,8 @@ return [
 
     // A block's arrangement and its section style: hint.layout, hint.style.{key}
     'hint.layout' => 'How this block arranges its parts. Each character starts a block in the arrangement that suits it; change it here for this section only.',
+    'hint.style.layout' => 'How many columns this section holds, and in what proportion. The widths are a fixed set rather than a percentage, so every arrangement knows how to behave on a small screen and keeps a readable line length.',
+    'hint.style.stack' => 'What the columns do when the screen is too narrow to hold them side by side. Stack bottom to top when a picture sits to the left of the words it illustrates, so the words arrive first.',
     'hint.style.surface' => 'The background of this section, from the site’s own colours: plain, a light tint, the contrast colour, a picture or a gradient. Text stays readable on every one.',
     'hint.style.rhythm' => 'How much space there is above and below this section.',
     'hint.style.width' => 'How wide the content of this section may run: narrow suits reading, wide and full suit pictures.',

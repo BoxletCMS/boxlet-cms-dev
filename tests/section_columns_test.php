@@ -406,3 +406,58 @@ testBothDrivers('a block whose type is gone keeps its section style through a sa
     assertEquals('contrast', $style['surface'] ?? null, 'the surface of a block nobody can draw');
     assertEquals('airy', $style['rhythm'] ?? null, 'and its rhythm');
 });
+
+testBothDrivers('the form says where a block stands, and a save keeps the section it names', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'tinted']],
+    ]);
+    [$hero] = blockIdsInOrder($db, $id);
+    $sectionId = (int) array_key_first(Sections::forPage($db, $id));
+
+    // EXACTLY WHAT THE EDITOR POSTS (D-098): the block says which section and column, the
+    // section says its own arrangement and style under a prefix of its own.
+    $parsed = App\Modules\Pages\BlockForm::parse(blockRegistry(), [
+        'b' . $hero => ['id' => (string) $hero, 'type' => 'hero', 'heading' => 'Hi', 'section' => 's' . $sectionId, 'column' => '0'],
+    ], [$hero => Page::editable($db, blockRegistry(), $id)[0]]);
+    $sections = App\Modules\Pages\SectionForm::parse([
+        's' . $sectionId => ['id' => (string) $sectionId, 'layout' => 'thirds', 'stack' => 'reverse', 'style' => ['surface' => 'contrast']],
+    ], [$sectionId => $sectionId]);
+
+    assertEquals('s' . $sectionId, $parsed['blocks'][0]['section'] ?? null, 'the block says where it stands');
+    assertEquals(0, $parsed['blocks'][0]['column'] ?? null, 'and which column');
+
+    Page::update($db, blockRegistry(), $id, [
+        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+    ], $parsed['blocks'], $sections);
+
+    // THE SAME SECTION ROW, not a new one beside it. A save that replaced it would take its
+    // translations, its revisions and its background picture with it — and would be invisible
+    // until somebody looked at the ids, which is how it was found.
+    $after = Sections::forPage($db, $id);
+    assertEquals([$sectionId], array_keys($after), 'the section row the save wrote to');
+    assertEquals('thirds', $after[$sectionId]['layout'], 'the arrangement the form chose');
+    assertEquals('reverse', $after[$sectionId]['stack'], 'and what it does on a phone');
+    assertEquals('contrast', $after[$sectionId]['style']['surface'], 'and the style, from the section prefix');
+});
+
+test('a section key is a closed shape, like a block key', function () {
+    assertEquals('s42', App\Modules\Pages\SectionForm::key(42, 0), 'a stored section');
+    assertEquals('m3', App\Modules\Pages\SectionForm::key(null, 3), 'one made in this session');
+
+    // A key that is not this page's makes a section of its own rather than writing over a
+    // stranger's — the rule BlockForm::parse follows for a block id.
+    $stray = App\Modules\Pages\SectionForm::parse(['s99' => ['id' => '99', 'layout' => 'halves']], []);
+    assertEquals(null, $stray[0]['id'], 'a section id nobody owns was believed');
+    assertEquals('halves', $stray[0]['layout'], 'what it asked for');
+
+    // Silence about the arrangement is not "one column" (D-098).
+    $quiet = App\Modules\Pages\SectionForm::parse(['s1' => ['id' => '1', 'style' => ['surface' => 'tinted']]], [1 => 1]);
+    assertEquals(null, $quiet[0]['layout'], 'silence was heard as a layout');
+    assertEquals(null, $quiet[0]['stack'], 'silence was heard as a stack');
+    assertEquals('tinted', $quiet[0]['style']['surface'] ?? null, 'the style it did send');
+
+    // And a shape that is not a key at all is named rather than trusted.
+    $odd = App\Modules\Pages\SectionForm::parse(['<script>' => ['layout' => 'one']], []);
+    assertEquals('m0', $odd[0]['key'], 'a key nobody should have sent was echoed back');
+});

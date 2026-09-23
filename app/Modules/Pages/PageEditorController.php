@@ -56,7 +56,7 @@ final class PageEditorController
         if (self::truncated($request)) {
             $message = t('pages.editor.truncated', ['limit' => (int) ini_get('max_input_vars')]);
 
-            return $this->reject($request, $page, (string) $page['title'], (string) $page['slug'], $this->storedBlocks($id), [], $message);
+            return $this->reject($request, $page, (string) $page['title'], (string) $page['slug'], $this->storedBlocks($id), null, [], $message);
         }
 
         $registry = $this->registry();
@@ -71,6 +71,13 @@ final class PageEditorController
         }
         $parsed = BlockForm::parse($registry, $request->body['blocks'] ?? [], $stored);
         $blocks = $parsed['blocks'];
+        /* AND THE SECTIONS THE FORM SENT (D-098). A body with none is not an error and is
+           not a page of no sections: it is a caller that has nothing to say about the
+           arrangement — an older form, a hand-made request — and Page::update() answers it
+           with one section per block, leaving every arrangement as it was. */
+        $sections = isset($request->body['sections']) && is_array($request->body['sections'])
+            ? SectionForm::parse($request->body['sections'], self::storedSections($db, $id))
+            : null;
         $title = trim($request->input('title'));
         $slug = trim($request->input('slug'));
         $action = $request->input('action');
@@ -86,23 +93,29 @@ final class PageEditorController
                 'content' => $registry->fresh($type),
                 'style' => Composition::style($character, $type),
                 'layout' => Composition::layout($registry, $character, $type),
+                // AND A SECTION OF ITS OWN, named for this render too. A stored block's
+                // section is `s{id}`, so `m{n}` cannot collide with one — and two blocks
+                // added before a save must not both answer to m0, which would stand them
+                // side by side in one band nobody asked for.
+                'section' => SectionForm::key(null, count($blocks)),
+                'column' => 0,
             ];
 
-            return $this->form($page, $title, $slug, $blocks);
+            return $this->form($page, $title, $slug, $blocks, $sections);
         }
         // These three name a BLOCK, not a position (D-094): a form rendered before
         // something moved would otherwise act on whatever has taken that slot since.
         if (preg_match('~^(up|down)-([bn][0-9]{1,9})$~', $action, $move)) {
-            return $this->form($page, $title, $slug, BlockForm::move($blocks, $move[2], $move[1]));
+            return $this->form($page, $title, $slug, BlockForm::move($blocks, $move[2], $move[1]), $sections);
         }
         // A repeater's own controls, for a browser with no JavaScript (PLAN.md O-11). The
         // field name is matched against what a field name may be, and then against what
         // the block actually declares, inside BlockForm — a posted name is not a key.
         if (preg_match('~^item-(up|down)-([bn][0-9]{1,9})-([a-z][a-z0-9_]*)-(\d+)$~', $action, $move)) {
-            return $this->again($request, $page, $title, $slug, BlockForm::moveItem($registry, $blocks, $move[2], $move[3], (int) $move[4], $move[1]));
+            return $this->again($request, $page, $title, $slug, BlockForm::moveItem($registry, $blocks, $move[2], $move[3], (int) $move[4], $move[1]), $sections);
         }
         if (preg_match('~^item-add-([bn][0-9]{1,9})-([a-z][a-z0-9_]*)$~', $action, $add)) {
-            return $this->again($request, $page, $title, $slug, BlockForm::addItem($registry, $blocks, $add[1], $add[2]));
+            return $this->again($request, $page, $title, $slug, BlockForm::addItem($registry, $blocks, $add[1], $add[2]), $sections);
         }
         /*
          * BACK TO WHAT THIS PAGE WAS (PLAN.md D-088).
@@ -121,7 +134,7 @@ final class PageEditorController
         if (preg_match('~^restore-(\d+)$~', $action, $restore)) {
             $revision = PageRevision::find($db, $registry, $id, (int) $restore[1]);
             if ($revision === null) {
-                return $this->reject($request, $page, $title, $slug, $blocks, [], t('pages.restore_gone'));
+                return $this->reject($request, $page, $title, $slug, $blocks, $sections, [], t('pages.restore_gone'));
             }
             PageRevision::record($db, $registry, $id);
             Page::update($db, $registry, $id, [
@@ -156,14 +169,14 @@ final class PageEditorController
         if ($errors !== []) {
             // What was submitted, so a rejected save shows the settings the user chose
             // rather than the ones still stored.
-            return $this->reject($request, $settings + $page, $title, $slug, $blocks, $errors, t('pages.editor.errors'));
+            return $this->reject($request, $settings + $page, $title, $slug, $blocks, $sections, $errors, t('pages.editor.errors'));
         }
 
         // What the page was, before it stops being that (D-088). Recorded here rather than
         // inside Page::update() because a revision is an editing event: the demo seed calls
         // update() too, and a fresh install does not want history nobody made.
         PageRevision::record($db, $registry, $id);
-        Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks);
+        Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks, $sections);
         Activity::record($db, 'page', 'saved', $id, $title);
         Sitemap::refresh($this->container);
         $this->container->get('session')->set('flash', t('pages.saved'));
@@ -275,15 +288,16 @@ final class PageEditorController
      * answers 200.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
-    private function again(Request $request, array $page, string $title, string $slug, array $blocks): Response
+    private function again(Request $request, array $page, string $title, string $slug, array $blocks, ?array $sections = null): Response
     {
         if ($request->input('editor') === 'builder') {
-            return (new PageBuilderController($this->container))->again($page, $title, $slug, $blocks);
+            return (new PageBuilderController($this->container))->again($page, $title, $slug, $blocks, $sections);
         }
 
-        return $this->form($page, $title, $slug, $blocks);
+        return $this->form($page, $title, $slug, $blocks, $sections);
     }
 
     /**
@@ -292,16 +306,17 @@ final class PageEditorController
      * before this point — parsing, validation, storage — is the same for both.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      */
-    private function reject(Request $request, array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
+    private function reject(Request $request, array $page, string $title, string $slug, array $blocks, ?array $sections, array $errors, ?string $notice): Response
     {
         if ($request->input('editor') === 'builder') {
-            return (new PageBuilderController($this->container))->rejected($page, $title, $slug, $blocks, $errors, $notice);
+            return (new PageBuilderController($this->container))->rejected($page, $title, $slug, $blocks, $sections, $errors, $notice);
         }
 
-        return $this->form($page, $title, $slug, $blocks, $errors, $notice, 422);
+        return $this->form($page, $title, $slug, $blocks, $sections, $errors, $notice, 422);
     }
 
     /**
@@ -313,11 +328,49 @@ final class PageEditorController
     }
 
     /**
+     * This page's section ids, for SectionForm::parse to tell a key of this page's from one
+     * that arrived from somewhere else — the rule BlockForm::parse follows for a block id.
+     *
+     * @return array<int, int>
+     */
+    private static function storedSections(Db $db, int $pageId): array
+    {
+        $ids = [];
+        foreach (Page::editableSections($db, $pageId) as $section) {
+            if ($section['id'] !== null) {
+                $ids[$section['id']] = $section['id'];
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * The sections the views read, by key. Built from what is in hand — the list the form
+     * sent, or the one that is stored — so a rejected save redraws the arrangement the
+     * author chose and not the one they are trying to change.
+     *
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
+     * @return array<string, array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>
+     */
+    public static function sectionMap(Db $db, int $pageId, ?array $sections): array
+    {
+        $list = $sections ?? Page::editableSections($db, $pageId);
+        $map = [];
+        foreach ($list as $section) {
+            $map[$section['key']] = $section;
+        }
+
+        return $map;
+    }
+
+    /**
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      */
-    private function form(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200): Response
+    private function form(array $page, string $title, string $slug, array $blocks, ?array $sections = null, array $errors = [], ?string $notice = null, int $status = 200): Response
     {
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/edit', [
             'title' => t('pages.edit'),
@@ -335,6 +388,7 @@ final class PageEditorController
             // the page is un-parented on every save.
             'parents' => PageTree::parentOptions($this->db(), (string) $page['locale'], isset($page['id']) ? (int) $page['id'] : null),
             'blocks' => $blocks,
+            'sections' => self::sectionMap($this->db(), isset($page['id']) ? (int) $page['id'] : 0, $sections),
             'errors' => $errors,
             'notice' => $notice,
             'registry' => $this->registry(),

@@ -76,8 +76,14 @@ test('guard (source, not behaviour): naming a group knows nothing about the rich
     // that rewriting could never need to know about the editor bound to them. Since D-094 a
     // group is named ONCE, when it is born, by admin.js — so the thing to guard is that
     // one function, and that builder.js has stopped doing it at all.
-    assertContains('function nameGroup(group, key)', (string) file_get_contents(dirname(__DIR__) . '/public/assets/admin.js'),
-        'the one place a field group is named has gone or been renamed');
+    // The signature gained a section key at D-098, which is the guard doing its job rather
+    // than failing: what it protects is that ONE function names a group, not that its
+    // parameters never change. Matched loosely enough to survive a fourth argument and
+    // strictly enough to notice the function going away.
+    assertTrue(
+        (bool) preg_match('~function nameGroup\(group, key\b~', (string) file_get_contents(dirname(__DIR__) . '/public/assets/admin.js')),
+        'the one place a field group is named has gone or been renamed',
+    );
     assertTrue(
         !str_contains((string) file_get_contents(dirname(__DIR__) . '/public/assets/builder.js'), "element.name = element.name.replace"),
         'builder.js rewrites names again, which is what stable keys removed',

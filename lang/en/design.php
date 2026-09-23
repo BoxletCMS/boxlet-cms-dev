@@ -222,6 +222,22 @@ return [
     'design.specimen.contrast_body' => 'Text, links and buttons switch colours on a contrast surface, and still pass WCAG AA.',
 
     'style.title' => 'Section style',
+    // COLUMNS (PLAN.md D-097). A closed set of arrangements, named by what they look like
+    // rather than by a number: "Two columns" says what you get, "halves" says what it is
+    // called. The proportion is in the name where it is uneven, because the difference
+    // between a wide column with a narrow one and two equal ones is the whole choice.
+    'style.layout' => 'Columns',
+    'style.layout.one' => 'One column',
+    'style.layout.halves' => 'Two columns',
+    'style.layout.thirds' => 'Three columns',
+    'style.layout.quarters' => 'Four columns',
+    'style.layout.wide-left' => 'Wide left, narrow right',
+    'style.layout.wide-right' => 'Narrow left, wide right',
+    'style.layout.sidebar' => 'Wide with a sidebar',
+    'style.stack' => 'On a narrow screen',
+    'style.stack.stack' => 'Stack them, top to bottom',
+    'style.stack.stay' => 'Keep them side by side',
+    'style.stack.reverse' => 'Stack them, bottom to top',
     'style.surface' => 'Surface',
     'style.surface.plain' => 'Plain',
     'style.surface.tinted' => 'Tinted',

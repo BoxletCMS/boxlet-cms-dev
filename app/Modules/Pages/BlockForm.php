@@ -50,7 +50,7 @@ final class BlockForm
      *
      * @param array<int, array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $stored
      *        block id => the block as stored, for this page's blocks
-     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>, errors: array<string, string>}
+     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}>, errors: array<string, string>}
      */
     public static function parse(Blocks $registry, mixed $posted, array $stored): array
     {
@@ -71,11 +71,33 @@ final class BlockForm
             if ($id !== null && !isset($stored[$id])) {
                 $id = null; // not a block of this page: treat it as new
             }
+            /* WHERE IT STANDS (D-098): the KEY of its section and the column inside it.
+               Two hidden inputs rather than a nesting of every field name, for the reasons
+               that decision gives. A body that carries neither — an older form, a hand-made
+               request — leaves them absent, and Page::update() answers that with one
+               section per block and every arrangement left as it was. */
+            $where = [];
+            if (is_string($raw['section'] ?? null) && preg_match(SectionForm::KEY, $raw['section']) === 1) {
+                $where = [
+                    'section' => $raw['section'],
+                    // A column this section does not have is not refused here: the section
+                    // it names may be narrowed in the same save, and clamping against a
+                    // layout this function cannot see would be a guess. Page::update()
+                    // clamps, where both halves are in hand.
+                    'column' => is_string($raw['column'] ?? null) && ctype_digit($raw['column'])
+                        ? (int) $raw['column']
+                        : 0,
+                ];
+            }
             if (($raw['_unchanged'] ?? '') === '1') {
                 // Nothing to restore it from, so there is nothing it can mean. Adding an
                 // empty block here would turn a lost id into content the author never wrote.
                 if ($id !== null) {
-                    $blocks[] = $stored[$id];
+                    // ITS FIELDS COME FROM STORAGE, BUT NOT ITS PLACE (D-081 meets D-098).
+                    // builder-save.js lets an untouched block send a skeleton; the block may
+                    // be untouched and still have been moved, so where it stands is read
+                    // from what was sent and only the content is restored.
+                    $blocks[] = $where === [] ? $stored[$id] : $where + $stored[$id];
                 }
                 continue;
             }
@@ -83,7 +105,7 @@ final class BlockForm
 
             if (!$registry->has($type)) {
                 if ($id !== null) {
-                    $blocks[] = ['key' => $key ?? self::key($id, $ordinal++), 'id' => $id, 'type' => $type, 'content' => null, 'style' => [], 'layout' => ''];
+                    $blocks[] = $where + ['key' => $key ?? self::key($id, $ordinal++), 'id' => $id, 'type' => $type, 'content' => null, 'style' => [], 'layout' => ''];
                 }
                 continue;
             }
@@ -100,7 +122,7 @@ final class BlockForm
                 }
             }
             $layout = $registry->layout($type, $raw['layout'] ?? null);
-            $blocks[] = [
+            $blocks[] = $where + [
                 'key' => $name,
                 'id' => $id,
                 'type' => $type,

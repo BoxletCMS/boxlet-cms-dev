@@ -65,9 +65,14 @@ final class Sections
      * fault somebody reports, where a block drawn with no surface or rhythm looks like a
      * design mistake and gets lived with.
      *
-     * @param array<int, array{sort: int, layout: string, stack: string, style: array<string, string|int|null>}> $sections
-     * @param list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string, section: int, column: int}> $blocks
-     * @return list<array{id: int, section: array{sort: int, layout: string, stack: string, style: array<string, string|int|null>}, blocks: list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string, section: int, column: int}>}>
+     * BY WHATEVER NAMES A SECTION. The front end joins on the section's id; the editor
+     * joins on its key, because a section made in this session has no id yet (D-098). The
+     * join is the same either way — one side is the array's key and the other is what a
+     * block says it stands in — so it is written once rather than twice.
+     *
+     * @param array<int|string, array{sort?: int, layout: string, stack: string, style: array<string, string|int|null>}> $sections
+     * @param list<array<string, mixed>> $blocks each naming its section and column
+     * @return list<array{id: int|string, section: array{sort?: int, layout: string, stack: string, style: array<string, string|int|null>}, blocks: list<array<string, mixed>>}>
      */
     public static function group(array $sections, array $blocks): array
     {

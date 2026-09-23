@@ -137,7 +137,16 @@ final class Page
      * Both editors render from this, so the visual canvas and the fallback form always
      * agree about what is on the page.
      *
-     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * EACH BLOCK SAYS WHERE IT STANDS (D-098): the KEY of its section and the column inside
+     * it. A key and not an id, because the editor's two shapes have to meet — a block added
+     * in this session names a section that has no id yet, and a section the editor has just
+     * made has to be nameable by the blocks put into it before anything is saved.
+     *
+     * The style is still on the block AND on the section, deliberately and for one more
+     * step: every screen in the editor reads it off the block, and moving that read is the
+     * next commit. Both come from the same section row, so they cannot disagree.
+     *
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>
      */
     public static function editable(Db $db, Blocks $registry, int $pageId): array
     {
@@ -153,10 +162,39 @@ final class Page
                 'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
                 'style' => SectionStyle::normalize($block['style']),
                 'layout' => $known ? $registry->layout($block['type'], $block['layout']) : '',
+                'section' => SectionForm::key($block['section'] > 0 ? $block['section'] : null, 0),
+                'column' => $block['column'],
             ];
         }
 
         return $blocks;
+    }
+
+    /**
+     * This page's sections as an editor needs them, in page order.
+     *
+     * Beside editable() rather than inside it, and so a second query: every screen and every
+     * stored shape in the editor is a flat list of blocks, and a tree would have to be
+     * unpicked again by all of them. The front end already works this way — a flat list
+     * joined to a map of sections at the moment of drawing (Sections::group) — and one
+     * arrangement of the same facts is worth more than the query.
+     *
+     * @return list<array{key: string, id: int|null, layout: string, stack: string, style: array<string, string|int|null>}>
+     */
+    public static function editableSections(Db $db, int $pageId): array
+    {
+        $sections = [];
+        foreach (Sections::forPage($db, $pageId) as $id => $section) {
+            $sections[] = [
+                'key' => SectionForm::key($id, 0),
+                'id' => $id,
+                'layout' => $section['layout'],
+                'stack' => $section['stack'],
+                'style' => $section['style'],
+            ];
+        }
+
+        return $sections;
     }
 
     /**

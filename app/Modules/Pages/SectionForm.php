@@ -24,8 +24,14 @@ use App\Modules\Design\SectionStyle;
  */
 final class SectionForm
 {
-    /** What a key may look like when it arrives from a form: s42, m7. */
-    private const KEY = '~^[sm][0-9]{1,9}$~';
+    /**
+     * What a key may look like when it arrives from a form: s42, m7.
+     *
+     * Public because BlockForm matches a block's `[section]` against it: a posted key is
+     * somebody's input wherever it arrives, and one shape for what a section may be called
+     * beats the same regex written twice and drifting.
+     */
+    public const KEY = '~^[sm][0-9]{1,9}$~';
 
     public static function key(?int $id, int $ordinal): string
     {

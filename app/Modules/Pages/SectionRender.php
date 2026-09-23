@@ -36,7 +36,7 @@ final class SectionRender
      * descendant selector.
      *
      * @param array{layout: string, stack: string, style: array<string, string|int|null>} $section
-     * @param list<array{type: string, content: array<mixed>, layout: string, column: int}> $blocks
+     * @param list<array<string, mixed>> $blocks each with type, content, layout and column
      *        in the order they are drawn, already filtered to types this install can render
      * @param array<int, Picture> $media
      * @param bool  $eager whether this is the first section drawn on the page
@@ -58,10 +58,10 @@ final class SectionRender
             $block = $blocks[0];
 
             return $registry->render(
-                $block['type'],
-                $block['content'],
+                (string) $block['type'],
+                is_array($block['content']) ? $block['content'] : [],
                 $style,
-                $block['layout'],
+                (string) $block['layout'],
                 $media,
                 $eager,
                 'section',
@@ -77,12 +77,12 @@ final class SectionRender
         $columns = array_fill(0, SectionLayout::columns($layout), '');
         $first = $eager;
         foreach ($blocks as $block) {
-            $at = SectionLayout::clamp($block['column'], $layout);
+            $at = SectionLayout::clamp((int) $block['column'], $layout);
             $columns[$at] .= $registry->render(
-                $block['type'],
-                $block['content'],
+                (string) $block['type'],
+                is_array($block['content']) ? $block['content'] : [],
                 $style,
-                $block['layout'],
+                (string) $block['layout'],
                 $media,
                 $first,
                 'none',

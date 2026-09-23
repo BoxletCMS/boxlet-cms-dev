@@ -12,7 +12,7 @@ use App\Modules\Design\Composition;
  * silently does not there (PLAN.md O-11).
  *
  * @var int|string $index which group the panel shows; NOT part of any field name
- * @var array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string} $block
+ * @var array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int} $block
  * @var array<string, string> $errors
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
@@ -28,9 +28,27 @@ $known = $registry->has($block['type']);
 $key = $block['key'];
 $prefix = 'blocks[' . $key . ']';
 $idPrefix = 'block-' . $key . '-';
-// Section style opens when it differs from what the active character would give this
-// block, so a hand-tuned section announces itself and a composed one stays quiet.
-$composed = $known ? Composition::style($character, $block['type']) : [];
+/* AND THE SECTION IT STANDS IN (D-098), named the same way: `s7` for one the database
+   knows, `m0` for one made in this session. Its fields are a prefix of their own beside the
+   block's rather than a wrapper around it — `sections[s7][style][surface]` — because a
+   nested name would be rewritten by five things that have nothing to do with sections
+   (admin.js's rename regexes, repeater.js, item.php, builder-blocks.js, builder-save.js).
+   While a section holds one block this fieldset stands exactly where it always has. */
+$sectionKey = $block['section'] ?? \App\Modules\Pages\SectionForm::key(null, 0);
+$sectionPrefix = 'sections[' . $sectionKey . ']';
+$sectionIdPrefix = 'section-' . $sectionKey . '-';
+// The section this block stands in, as the editor holds it. Absent in the <template>s the
+// editors clone from, where the block has no section yet — the defaults are what a block
+// about to be added gets, and the save mints the section.
+$sectionOf = (isset($sections) && is_array($sections) ? $sections : [])[$sectionKey] ?? [
+    'id' => null,
+    'layout' => \App\Modules\Pages\SectionLayout::ONE,
+    'stack' => \App\Modules\Pages\SectionLayout::DEFAULT_STACK,
+];
+// Section style opens when it differs from what the active character would compose for this
+// section, so a hand-tuned one announces itself and a composed one stays quiet. Composed
+// from the types the section HOLDS (D-096), which for a section of one block is that block.
+$composed = $known ? Composition::section($character, [$block['type']]) : [];
 
 // What media-picker.js needs, on the field itself rather than in a script: the admin's CSP
 // allows no inline script, and these attributes survive being cloned out of a <template>,
@@ -72,6 +90,10 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
 <?php if ($block['id'] !== null): ?>
                 <input type="hidden" name="<?= e($prefix) ?>[id]" value="<?= e($block['id']) ?>">
 <?php endif; ?>
+                <?php /* Where it stands: which section, and which of that section's columns
+                         (D-098). Two hidden inputs rather than a nesting of every name. */ ?>
+                <input type="hidden" name="<?= e($prefix) ?>[section]" value="<?= e($sectionKey) ?>" data-block-section>
+                <input type="hidden" name="<?= e($prefix) ?>[column]" value="<?= e((string) ($block['column'] ?? 0)) ?>" data-block-column>
 <?php if ($known): ?>
 <?php foreach ($registry->get($block['type'])['fields'] as $name => $field): ?>
 <?php
@@ -125,11 +147,30 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
                          has always been. */ ?>
                 <details class="block-style" data-panel-part="section"<?= $block['style'] !== $composed ? ' open' : '' ?>>
                     <summary><?= e(t('style.title')) ?></summary>
+<?php if (($sectionOf['id'] ?? null) !== null): ?>
+                    <input type="hidden" name="<?= e($sectionPrefix) ?>[id]" value="<?= e((string) $sectionOf['id']) ?>">
+<?php endif; ?>
                     <div class="block-style-grid">
+                        <?php /* THE ARRANGEMENT FIRST (D-097, D-099), because it is the one
+                                 choice here that changes the SHAPE of the band rather than
+                                 its colouring, and because it is what the empty column that
+                                 asks to be filled comes from. A closed set, never a
+                                 percentage — the argument SectionStyle makes about colour. */ ?>
+<?php foreach (['layout' => \App\Modules\Pages\SectionLayout::LAYOUTS, 'stack' => \App\Modules\Pages\SectionLayout::STACKS] as $arrangeKey => $arrangeValues): ?>
+                        <div class="field">
+                            <label for="<?= e($sectionIdPrefix . $arrangeKey) ?>"><?= e(t('style.' . $arrangeKey)) ?></label>
+                            <select id="<?= e($sectionIdPrefix . $arrangeKey) ?>" name="<?= e($sectionPrefix) ?>[<?= e($arrangeKey) ?>]" data-section-<?= e($arrangeKey) ?>>
+<?php foreach ($arrangeKey === 'layout' ? array_keys($arrangeValues) : $arrangeValues as $arrangeValue): ?>
+                                <option value="<?= e($arrangeValue) ?>"<?= ($sectionOf[$arrangeKey] ?? '') === $arrangeValue ? ' selected' : '' ?>><?= e(t('style.' . $arrangeKey . '.' . $arrangeValue)) ?></option>
+<?php endforeach; ?>
+                            </select>
+                            <?= field_hint('hint.style.' . $arrangeKey) ?>
+                        </div>
+<?php endforeach; ?>
 <?php foreach (\App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $styleValues): ?>
                         <div class="field">
-                            <label for="<?= e($idPrefix . 'style-' . $styleKey) ?>"><?= e(t('style.' . $styleKey)) ?></label>
-                            <select id="<?= e($idPrefix . 'style-' . $styleKey) ?>" name="<?= e($prefix) ?>[style][<?= e($styleKey) ?>]">
+                            <label for="<?= e($sectionIdPrefix . 'style-' . $styleKey) ?>"><?= e(t('style.' . $styleKey)) ?></label>
+                            <select id="<?= e($sectionIdPrefix . 'style-' . $styleKey) ?>" name="<?= e($sectionPrefix) ?>[style][<?= e($styleKey) ?>]">
 <?php foreach ($styleValues as $styleValue): ?>
                                 <option value="<?= e($styleValue) ?>"<?= ($block['style'][$styleKey] ?? '') === $styleValue ? ' selected' : '' ?>><?= e(t('style.' . $styleKey . '.' . $styleValue)) ?></option>
 <?php endforeach; ?>
@@ -143,8 +184,8 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
                                  the surface is `image`: hiding it would take script, and
                                  this panel works without one. */ ?>
                         <div class="field block-style-picture">
-                            <label for="<?= e($idPrefix . 'style-image') ?>"><?= e(t('style.image')) ?></label>
-                            <select id="<?= e($idPrefix . 'style-image') ?>" name="<?= e($prefix) ?>[style][<?= e(\App\Modules\Design\SectionStyle::IMAGE) ?>]" data-media-field<?= $pickerAttributes() ?>>
+                            <label for="<?= e($sectionIdPrefix . 'style-image') ?>"><?= e(t('style.image')) ?></label>
+                            <select id="<?= e($sectionIdPrefix . 'style-image') ?>" name="<?= e($sectionPrefix) ?>[style][<?= e(\App\Modules\Design\SectionStyle::IMAGE) ?>]" data-media-field<?= $pickerAttributes() ?>>
                                 <option value=""><?= e(t('pages.field.media_none')) ?></option>
 <?php $surfaceImage = (int) ($block['style'][\App\Modules\Design\SectionStyle::IMAGE] ?? 0); ?>
 <?php foreach ($pictures as $picture): ?>

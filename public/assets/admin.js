@@ -98,15 +98,29 @@
    * group the server has just sent. Shared with the visual editor, which has the same job
    * to do when it inserts or duplicates a block.
    */
-  function nameGroup(group, key) {
+  function nameGroup(group, key, sectionKey) {
+    var section = sectionKey || mintSection();
     group.querySelectorAll('[name]').forEach(function (element) {
-      element.name = element.name.replace(/^blocks\[[^\]]*\]/, 'blocks[' + key + ']');
+      element.name = element.name
+        .replace(/^blocks\[[^\]]*\]/, 'blocks[' + key + ']')
+        .replace(/^sections\[[^\]]*\]/, 'sections[' + section + ']');
+    });
+    /* AND THE SECTION IT SAYS IT STANDS IN (PLAN.md D-098). The name alone is not enough:
+       [section] is a hidden input whose VALUE names the section, and a clone that kept the
+       template's would put every block added in this session into one band. It cost a test
+       to find that out and it would have cost an owner an afternoon. */
+    group.querySelectorAll('[data-block-section]').forEach(function (input) {
+      input.value = section;
     });
     group.querySelectorAll('[id]').forEach(function (element) {
-      element.id = element.id.replace(/^block-[^-]+-/, 'block-' + key + '-');
+      element.id = element.id
+        .replace(/^block-[^-]+-/, 'block-' + key + '-')
+        .replace(/^section-[^-]+-/, 'section-' + section + '-');
     });
     group.querySelectorAll('label[for]').forEach(function (label) {
-      label.htmlFor = label.htmlFor.replace(/^block-[^-]+-/, 'block-' + key + '-');
+      label.htmlFor = label.htmlFor
+        .replace(/^block-[^-]+-/, 'block-' + key + '-')
+        .replace(/^section-[^-]+-/, 'section-' + section + '-');
     });
     // The no-JS controls name their block too: up-b42, item-add-b42-items.
     group.querySelectorAll('button[name="action"][value]').forEach(function (button) {
@@ -134,7 +148,26 @@
     return 'n' + (highest + 1);
   }
 
-  window.boxletBlocks = { name: nameGroup, mint: mintKey };
+  /**
+   * A section key no group on this page is using, counted the same way for the same reason.
+   *
+   * A different letter from a block's on purpose: the two namespaces are read by the same
+   * regexes above, and `m0` meaning a section while `n0` means a block is a difference a
+   * reader can see without looking anything up.
+   */
+  function mintSection() {
+    var highest = -1;
+    document.querySelectorAll('[data-block] [data-block-section]').forEach(function (input) {
+      var found = String(input.value).match(/^m([0-9]+)$/);
+      if (found && Number(found[1]) > highest) {
+        highest = Number(found[1]);
+      }
+    });
+
+    return 'm' + (highest + 1);
+  }
+
+  window.boxletBlocks = { name: nameGroup, mint: mintKey, mintSection: mintSection };
 
   var form = document.querySelector('form[data-page-editor]');
   if (!form) {

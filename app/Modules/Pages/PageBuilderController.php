@@ -58,6 +58,7 @@ final class PageBuilderController
             (string) $page['title'],
             (string) $page['slug'],
             Page::editable($this->db(), $this->registry(), (int) $page['id']),
+            null,
             [],
             null,
             200,
@@ -79,7 +80,7 @@ final class PageBuilderController
         }
 
         $registry = $this->registry();
-        $blocks = $this->canvasBlocks((int) $page['id']);
+        ['blocks' => $blocks, 'sections' => $sections] = $this->canvasState((int) $page['id']);
         // Every picture the page refers to, in one query, before any block draws: a
         // template is handed what it needs and never touches a database.
         $media = MediaPicture::forBlocks($this->db(), $registry, $locale, $blocks);
@@ -94,18 +95,38 @@ final class PageBuilderController
         // it through a redraw. Only stored blocks can be stale, so a pending canvas has none.
         $stale = TranslationStatus::of($this->db(), $registry, (int) $page['id'])['stale'];
 
+        /*
+         * THE SAME LOOP THE FRONT END RUNS (PageController::show), and deliberately so.
+         * Until D-098 this drew each block as its own band while the visitor's page drew
+         * sections of columns, and the two agreed only because every section held one
+         * block. The moment an author gives a section two columns they would part, and the
+         * editor would be showing a page that does not exist.
+         */
         $html = '';
         $first = true;
-        foreach ($blocks as $block) {
-            $content = $block['content'];
-            // A block whose type this installation no longer has keeps its stored content
-            // and simply does not draw.
-            if ($content === null || !$registry->has($block['type'])) {
+        foreach (Sections::group($this->sectionsByKey($sections), $blocks) as $group) {
+            $drawable = [];
+            $isStale = false;
+            foreach ($group['blocks'] as $block) {
+                // A block whose type this installation no longer has keeps its stored
+                // content and simply does not draw.
+                if ($block['content'] === null || !$registry->has($block['type'])) {
+                    continue;
+                }
+                $block['content'] = PageLinks::content($registry, $block['type'], $block['content'], $links);
+                $drawable[] = $block;
+                $isStale = $isStale || ($block['id'] !== null && isset($stale[$block['id']]));
+            }
+            if ($drawable === []) {
                 continue;
             }
-            $content = PageLinks::content($registry, $block['type'], $content, $links);
-            $drawn = $registry->render($block['type'], $content, $block['style'], $block['layout'], $media, $first, 'section', ['forms' => $forms], (string) $page['locale']);
-            if ($block['id'] !== null && isset($stale[$block['id']])) {
+            $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], (string) $page['locale']);
+            // THE BAND IS MARKED, not the block inside it (D-043 step 3). While a section
+            // holds one block those are the same element and nothing changes; when it holds
+            // several, "this translation has fallen behind" is a thing to say about the band
+            // an author is looking at, and picking one of several identical-looking wrappers
+            // out of rendered markup by position is the kind of guess that goes wrong quietly.
+            if ($isStale) {
                 $drawn = (string) preg_replace('~^(\s*<section)\b~', '$1 data-bx-stale', $drawn, 1);
             }
             $html .= $drawn;
@@ -136,16 +157,21 @@ final class PageBuilderController
      * below, without the error posture — nothing here failed.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
-    public function again(array $page, string $title, string $slug, array $blocks): Response
+    public function again(array $page, string $title, string $slug, array $blocks, ?array $sections = null): Response
     {
         $this->container->get('session')->set('pending_canvas', [
             'page' => (int) $page['id'],
             'blocks' => $blocks,
+            // The arrangement goes with them (D-098). Without it a submit from the panel
+            // would redraw a page of columns as a stack of full-width bands, and the author
+            // would watch their arrangement apparently fall apart under an ordinary press.
+            'sections' => $sections,
         ]);
 
-        return $this->shell($page, $title, $slug, $blocks);
+        return $this->shell($page, $title, $slug, $blocks, $sections);
     }
 
     /**
@@ -154,10 +180,11 @@ final class PageBuilderController
      * and storage it runs first are the same for both editors.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      */
-    public function rejected(array $page, string $title, string $slug, array $blocks, array $errors, ?string $notice): Response
+    public function rejected(array $page, string $title, string $slug, array $blocks, ?array $sections, array $errors, ?string $notice): Response
     {
         // The canvas reloads when this renders, and it reads the database — which is
         // exactly what was NOT written. Without this, a rejected save appears to empty
@@ -165,25 +192,33 @@ final class PageBuilderController
         $this->container->get('session')->set('pending_canvas', [
             'page' => (int) $page['id'],
             'blocks' => $blocks,
+            'sections' => $sections,
         ]);
 
-        return $this->shell($page, $title, $slug, $blocks, $errors, $notice, 422);
+        return $this->shell($page, $title, $slug, $blocks, $sections, $errors, $notice, 422);
     }
 
     /**
      * What the canvas should draw: normally the stored page, but after a save that did
      * not validate, the blocks as they were submitted.
      *
-     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * READ ONCE, both halves together: pending_canvas is removed as it is read, so asking
+     * for the blocks and then for the sections would get the arrangement of the stored page
+     * with the blocks of the refused save — every block homeless, every band gone.
+     *
+     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>}
      */
-    private function canvasBlocks(int $pageId): array
+    private function canvasState(int $pageId): array
     {
         $session = $this->container->get('session');
         $pending = $session->get('pending_canvas');
         $session->remove('pending_canvas');
 
         if (!is_array($pending) || ($pending['page'] ?? null) !== $pageId || !is_array($pending['blocks'] ?? null)) {
-            return Page::editable($this->db(), $this->registry(), $pageId);
+            return [
+                'blocks' => Page::editable($this->db(), $this->registry(), $pageId),
+                'sections' => Page::editableSections($this->db(), $pageId),
+            ];
         }
 
         // Session data is rebuilt rather than trusted: it survives across requests, and
@@ -203,15 +238,79 @@ final class PageBuilderController
                 'content' => is_array($content) ? $content : null,
                 'style' => SectionStyle::normalize($block['style'] ?? null),
                 'layout' => is_string($block['layout'] ?? null) ? $block['layout'] : '',
+                // Where it stood when the save was refused (D-098). Without this the canvas
+                // would redraw a page of columns as a stack of bands at the exact moment
+                // the author is being told to fix something, and the arrangement would look
+                // like the thing that had gone wrong.
+                'section' => is_string($block['section'] ?? null) ? $block['section'] : SectionForm::key(null, count($blocks)),
+                'column' => is_int($block['column'] ?? null) ? $block['column'] : 0,
             ];
         }
 
-        return $blocks;
+        // The arrangement as it was submitted, or the page's own when the refused save said
+        // nothing about it — the same rule Page::update() follows, for the same reason.
+        $sections = is_array($pending['sections'] ?? null)
+            ? SectionForm::parse($pending['sections'], [])
+            : Page::editableSections($this->db(), $pageId);
+
+        /*
+         * AND A BAND FOR ANY BLOCK LEFT WITHOUT ONE.
+         *
+         * A refused save whose body carried no sections leaves blocks naming `m0`, `m1` …
+         * beside the STORED sections, which are named `s7`, `s8` … Nothing joins, and
+         * Sections::group() drops a block whose section has vanished — correct on the front
+         * end, catastrophic here: the canvas would come back empty at the exact moment the
+         * author is being told to fix something, and it would read as the editor having
+         * eaten their work. It did, once, and a test caught it.
+         *
+         * Each homeless block gets a one-column band carrying its own style, which is what
+         * a page of blocks with nothing said about its sections has always meant.
+         */
+        $known = [];
+        foreach ($sections as $section) {
+            $known[$section['key']] = true;
+        }
+        foreach ($blocks as $block) {
+            if (isset($known[$block['section']])) {
+                continue;
+            }
+            $known[$block['section']] = true;
+            $sections[] = [
+                'key' => $block['section'],
+                'id' => null,
+                'layout' => SectionLayout::ONE,
+                'stack' => SectionLayout::DEFAULT_STACK,
+                'style' => $block['style'],
+            ];
+        }
+
+        return ['blocks' => $blocks, 'sections' => $sections];
+    }
+
+    /**
+     * The sections a drawing joins its blocks to, by KEY (D-098, Sections::group).
+     *
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}> $sections
+     * @return array<string, array{layout: string, stack: string, style: array<string, string|int|null>}>
+     */
+    private function sectionsByKey(array $sections): array
+    {
+        $byKey = [];
+        foreach ($sections as $section) {
+            $byKey[$section['key']] = [
+                'layout' => SectionLayout::normalize($section['layout']),
+                'stack' => SectionLayout::normalizeStack($section['stack']),
+                'style' => SectionStyle::normalize($section['style']),
+            ];
+        }
+
+        return $byKey;
     }
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      * @param bool $fromStorage whether $blocks are the page as STORED. It defaults to
      *        false because the unsafe answer must be the default: builder-save.js lets an
@@ -221,8 +320,9 @@ final class PageBuilderController
      *        author edited but did not touch again would be rolled back silently (D-081).
      *        Only edit() may pass true; anything added later that re-renders submitted
      *        blocks is safe without having to know this exists.
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
-    private function shell(array $page, string $title, string $slug, array $blocks, array $errors = [], ?string $notice = null, int $status = 200, bool $fromStorage = false): Response
+    private function shell(array $page, string $title, string $slug, array $blocks, ?array $sections = null, array $errors = [], ?string $notice = null, int $status = 200, bool $fromStorage = false): Response
     {
         $id = (int) $page['id'];
 
@@ -239,6 +339,7 @@ final class PageBuilderController
             'titleValue' => $title,
             'slugValue' => $slug,
             'blocks' => $blocks,
+            'sections' => PageEditorController::sectionMap($this->db(), $id, $sections),
             'errors' => $errors,
             'notice' => $notice,
             'fromStorage' => $fromStorage,

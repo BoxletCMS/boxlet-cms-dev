@@ -342,3 +342,56 @@ testBothDrivers('the band endpoint draws a whole section and writes nothing', fu
     $bands = App\Modules\Pages\Sections::forPage($db, $id);
     assertEquals('one', (reset($bands) ?: fail('no band'))['layout'], 'the stored band was changed');
 });
+
+testBothDrivers('the band endpoint answers with an empty band and its fields', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', true, [
+        ['type' => 'text', 'content' => ['body' => '<p>Stored</p>']],
+    ]);
+    $before = blocksWithStyle($db, $id);
+
+    // WHAT "+ SECTION" ASKS FOR (D-101): a band with nothing in it. It is the thing the
+    // author just added and is about to fill, so the editor has to be able to draw it —
+    // and it needs the band's own fields, because a band with no fields is one nothing can
+    // be done to.
+    $response = adminPost("/admin/pages/{$id}/section", [
+        'section' => ['layout' => 'one', 'stack' => 'stack'],
+    ]);
+
+    assertEquals(200, $response->status, 'status');
+    if (preg_match('~<template data-band-canvas>(.*?)</template>~s', $response->body, $drawn) !== 1) {
+        fail('the endpoint returned no band');
+    }
+    assertContains('section-cols cols-one', $drawn[1], 'an empty band is drawn as the column it has');
+    assertEquals(1, substr_count($drawn[1], '<div class="section-column">'), 'its one empty column');
+    assertContains('<template data-section-fields>', $response->body, 'the band came without its fields');
+    assertContains('sections[m0][layout]', $response->body, 'the fields are named for a band the browser will rename');
+
+    // It writes nothing: the band exists only in the page being edited until Save.
+    assertEquals($before, blocksWithStyle($db, $id), 'the endpoint wrote to the page');
+    assertEquals(1, count(App\Modules\Pages\Sections::forPage($db, $id)), 'the endpoint made a band in the database');
+});
+
+testBothDrivers('an empty band is drawn in the editor and never on the page', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', true, [
+        ['type' => 'text', 'content' => ['body' => '<p>Stored</p>']],
+    ]);
+    // A band with nothing in it, written the way a save would write one that has just lost
+    // its last block before prune() runs.
+    $db->query(
+        'INSERT INTO page_sections (page_id, sort, layout, stack, style_json, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [$id, 9, 'halves', 'stack', '{}', gmdate('Y-m-d H:i:s'), gmdate('Y-m-d H:i:s')],
+    );
+
+    // To a visitor it is a surface and a rhythm around nothing.
+    $front = dispatch('/about')->body;
+    assertEquals(1, substr_count($front, '<section class="block'), 'the visitor was shown an empty band');
+
+    // To an author it is the band they just added and are about to fill, so the canvas has
+    // it — and a "+ Section" that appeared to do nothing would be the editor lying.
+    $canvas = dispatch("/admin/pages/{$id}/canvas")->body;
+    assertEquals(2, substr_count($canvas, '<section data-bx-section='), 'the editor hid the empty band');
+    assertContains('cols-halves', $canvas, 'the empty band was drawn without its shape');
+});

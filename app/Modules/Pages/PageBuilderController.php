@@ -104,7 +104,7 @@ final class PageBuilderController
          */
         $html = '';
         $first = true;
-        foreach (Sections::group($this->sectionsByKey($sections), $blocks) as $group) {
+        foreach (Sections::group($this->sectionsByKey($sections), $blocks, true) as $group) {
             $drawable = [];
             $isStale = false;
             foreach ($group['blocks'] as $block) {
@@ -117,7 +117,10 @@ final class PageBuilderController
                 $drawable[] = $block;
                 $isStale = $isStale || ($block['id'] !== null && isset($stale[$block['id']]));
             }
-            if ($drawable === []) {
+            // A band whose every block is of a type this install no longer has draws as an
+            // empty one here rather than not at all: in the editor an empty band is a thing
+            // you are about to fill, and on the page it is nothing (Sections::group).
+            if ($drawable === [] && $group['blocks'] !== []) {
                 continue;
             }
             $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], (string) $page['locale']);

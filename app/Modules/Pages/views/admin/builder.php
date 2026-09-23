@@ -65,7 +65,8 @@ foreach ($errors as $key => $message) {
                  an untouched one may send its skeleton and be restored from storage on save
                  (D-081). It is absent after a rejected save and after a repeater's own
                  controls, where the fields hold submitted work the database has never seen. */ ?>
-        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="builder" data-builder<?= $fromStorage ? ' data-blocks-stored' : '' ?>>
+        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="builder" data-builder<?= $fromStorage ? ' data-blocks-stored' : '' ?>
+                  data-text-band="<?= e(t('pages.panel.band')) ?>">
             <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <?php /* Tells the save endpoint which editor to re-render if validation fails. */ ?>

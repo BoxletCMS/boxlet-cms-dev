@@ -111,6 +111,11 @@
     }
     api.tellCanvas('refresh', {});
     api.show(index);
+    /* AND THE CONTENT TAB, because a block was just added and what you do with a new block
+       is write in it. Adding one into an empty column left the panel on the Section tab,
+       where a block's fields are display: none — so the block existed, was selected, and
+       could not be typed into; its own field could not even be focused. */
+    api.showTab('content');
     api.tellCanvas('select', { index: index });
   }
 
@@ -173,8 +178,74 @@
     api.tellCanvas('refresh', {});
     var index = Number(group.getAttribute('data-block-group'));
     api.show(index);
+    /* AND THE CONTENT TAB, because a block was just added and what you do with a new block
+       is write in it. Adding one into an empty column left the panel on the Section tab,
+       where a block's fields are display: none — so the block existed, was selected, and
+       could not be typed into; its own field could not even be focused. */
+    api.showTab('content');
     api.tellCanvas('select', { index: index });
   }
+
+  /**
+   * A BAND ADDED BETWEEN BANDS (PLAN.md D-101).
+   *
+   * It arrives EMPTY, with one column, and is selected with the Section tab open — so the
+   * next thing on the screen is its arrangement, which is the next thing a person wants.
+   * Blocks go into it through the + in its column, which is the order the owner chose
+   * (D-099): the shape first, then what stands in it.
+   *
+   * The server draws both halves, as it does for a block: a band nobody can see is not a
+   * band, and a band with no fields is one nothing can be done to.
+   */
+  function addBand(at) {
+    var doc = api.frame.contentDocument;
+    if (!doc) {
+      return;
+    }
+    api.say(api.panel.getAttribute('data-text-inserting'));
+    post({ 'section[layout]': 'one', 'section[stack]': 'stack' }, api.panel.getAttribute('data-band-url'))
+      .then(function (parts) {
+        if (!parts.drawn || !parts.band) {
+          throw new Error('malformed');
+        }
+        var key = window.boxletBlocks ? window.boxletBlocks.mintSection() : 'm0';
+        var band = parts.band.content.firstElementChild.cloneNode(true);
+        band.setAttribute('data-section-group', key);
+        if (window.boxletBlocks) {
+          window.boxletBlocks.name(band, 'n0', key);
+        }
+        api.sectionGroups().appendChild(band);
+
+        var fresh = doc.importNode(parts.drawn.content, true).firstElementChild;
+        fresh.setAttribute('data-bx-section', key);
+        var bands = api.bands();
+        var main = doc.querySelector('[data-bx-blocks]');
+        api.commit();
+        if (at >= bands.length) {
+          main.appendChild(fresh);
+        } else {
+          main.insertBefore(fresh, bands[at]);
+        }
+        api.say('');
+        api.target = null;
+        // The page changed, so the outline is redrawn and the form is dirty — the same
+        // renumber() every other structural change ends with.
+        api.renumber();
+        api.tellCanvas('refresh', {});
+        /* NOTHING IS SELECTED IN THE PANEL, because a band holds no block yet and the panel
+           shows blocks. What is shown is the band's own fields, which is what there is to
+           do with it. */
+        api.selectBand(key);
+      })
+      .catch(function (error) {
+        api.say(api.panel.getAttribute('data-text-failed'));
+        if (window.console) {
+          window.console.error('boxlet: could not add the band', error);
+        }
+      });
+  }
+
+  api.addBand = addBand;
 
   function insert(type, button) {
     if (!api.frame.contentDocument) {

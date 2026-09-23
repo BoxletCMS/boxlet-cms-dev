@@ -82,6 +82,40 @@
     return found;
   };
 
+  /**
+   * A BAND SELECTED, which is not a block being selected (PLAN.md D-101).
+   *
+   * The panel has shown one block at a time since it existed, and a band with nothing in it
+   * has no block to show — so this is its own state: every block group hidden, the band's
+   * own group shown, and the Section tab turned to, because a band's arrangement and its
+   * surface are the whole of what there is to do with one.
+   */
+  api.selectBand = function (key) {
+    selected = -1;
+    api.band = key;
+    api.groupNodes().forEach(function (group) {
+      group.hidden = true;
+    });
+    document.querySelectorAll('[data-section-group]').forEach(function (part) {
+      part.hidden = part.getAttribute('data-section-group') !== key;
+    });
+    if (library) {
+      library.hidden = false;
+    }
+    if (selectedPane) {
+      selectedPane.hidden = false;
+    }
+    if (selectedName) {
+      selectedName.textContent = form.getAttribute('data-text-band') || '';
+    }
+    showTab('section');
+    api.outlineBand = key;
+    if (api.markOutline) {
+      api.markOutline(-1);
+    }
+    api.tellCanvas('band', { key: key });
+  };
+
   /** The BANDS, for the things that are about bands: inserting one, and placing one. */
   api.bands = function () {
     var doc = frame.contentDocument;
@@ -194,6 +228,7 @@
 
   api.show = function (index) {
     selected = index;
+    api.band = null;
     /* Re-applied on every selection because a field group can arrive as FRESH MARKUP — an
        undo puts all of them back, an insert brings a new one from the server — and such a
        group's <details> is open only when block.php happened to render it open, which is
@@ -293,6 +328,12 @@
     } else if (event.data.type === 'select') {
       api.target = null;
       api.show(event.data.index);
+    } else if (event.data.type === 'section') {
+      // A BAND ADDED BETWEEN BANDS (D-101). It used to be a block that brought a band with
+      // it, which is why there was no way to add a section at all.
+      if (api.addBand) {
+        api.addBand(event.data.index);
+      }
     } else if (event.data.type === 'insert') {
       /* WHERE THE NEXT BLOCK GOES: a position on the page, or an address inside a band —
          which band, which of its columns (D-099). A number and an object rather than two

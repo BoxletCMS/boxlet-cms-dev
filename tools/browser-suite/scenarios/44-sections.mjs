@@ -28,7 +28,13 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const bandOnCanvas = (page) => page.evaluate(() => {
   const frame = document.querySelector('iframe[data-canvas]');
   const cols = frame && frame.contentDocument ? frame.contentDocument.querySelector('.section-cols') : null;
-  const slot = frame && frame.contentDocument ? frame.contentDocument.querySelector('.bx-slot') : null;
+  /* THE SLOT OF THE EMPTY COLUMN OF THE BAND THIS CHECK ARRANGED, and not simply the first
+     one on the page: since D-101 every column has a +, including the ones that already hold
+     something, so "the first .bx-slot" is now the first band's and says nothing about this
+     one. Found by the band and the column it belongs to, which is what it says about itself. */
+  const band = cols ? cols.closest('[data-bx-section]').getAttribute('data-bx-section') : null;
+  const slot = band === null ? null : frame.contentDocument
+    .querySelector(`.bx-slot[data-insert-into="${band}"][data-insert-column="1"]`);
   return {
     classes: cols ? cols.className : '',
     columns: cols ? cols.children.length : 0,
@@ -169,13 +175,21 @@ export default {
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
     await wait(SETTLE * 2);
-    const rearranged = await frameNow.evaluate(() => ({
-      cols: document.querySelectorAll('.section-cols').length,
-      // The editor's own marks do not come back from the server and have to be put back.
-      keys: document.querySelectorAll('[data-bx-key]').length,
-      selected: document.querySelectorAll('.bx-selected').length,
-      slot: document.querySelectorAll('.bx-slot').length,
-    }));
+    const rearranged = await frameNow.evaluate(() => {
+      const cols = document.querySelector('.section-cols');
+      const band = cols ? cols.closest('[data-bx-section]').getAttribute('data-bx-section') : null;
+
+      return {
+        cols: document.querySelectorAll('.section-cols').length,
+        // The editor's own marks do not come back from the server and have to be put back.
+        keys: document.querySelectorAll('[data-bx-key]').length,
+        selected: document.querySelectorAll('.bx-selected').length,
+        // The + of the column that was just made, which is the point of the rearrangement.
+        // Not "how many + are on the page": since D-101 every column has one.
+        slot: band === null ? 0
+          : document.querySelectorAll(`.bx-slot[data-insert-into="${band}"][data-insert-column="1"]`).length,
+      };
+    });
     report.verdict('choosing two columns rearranges the canvas without a save',
       rearranged.cols === 1 && rearranged.slot === 1 && rearranged.selected === 1 && rearranged.keys === 6,
       JSON.stringify(rearranged));
@@ -227,7 +241,7 @@ export default {
 
     // ---- press it, and take a block from the library ---------------------------------
     const frame = page.frames().find((f) => f.url().includes('/canvas'));
-    await frame.click('.bx-slot');
+    await frame.click(`.bx-slot[data-insert-into="${arranged.slot.into}"][data-insert-column="1"]`);
     await wait(600);
     const took = await page.$$eval('.panel-library button', (buttons) => {
       const text = buttons.find((b) => b.textContent.trim().toLowerCase().startsWith('text'));

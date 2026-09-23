@@ -78,10 +78,8 @@ final class PageBlockController
                 'column' => $block['column'] ?? 0,
             ];
         }
-        if ($blocks === []) {
-            return new Response(t('pages.insert_unknown'), 422, ['Content-Type' => 'text/plain; charset=utf-8']);
-        }
-
+        // AN EMPTY BAND IS A REAL ANSWER (D-101): it is what "+ Section" asks for, and the
+        // editor draws it as the thing about to be filled. A page never shows one.
         $locale = (string) $page['locale'];
         $links = PageLinks::targets($this->db(), $registry, $locale, $blocks);
         foreach ($blocks as $at => $block) {
@@ -89,6 +87,22 @@ final class PageBlockController
         }
 
         $body = (new View(__DIR__ . '/views'))->render('admin/band', $locale, [
+            // The band's own fields, for a band the editor is adding rather than redrawing.
+            // The key is a placeholder the browser renames as it places the group, the way
+            // it does for a block (D-098).
+            'sectionOf' => [
+                'key' => SectionForm::key(null, 0),
+                'id' => null,
+                'layout' => $section['layout'],
+                'stack' => $section['stack'],
+                'style' => $section['style'],
+            ],
+            'composed' => Composition::section(
+                Composition::active($this->db()),
+                array_values(array_unique(array_map(static fn (array $b): string => (string) $b['type'], $blocks))),
+            ),
+            'pictures' => MediaReference::choices($this->db()),
+            'registry' => $registry,
             'bandHtml' => SectionRender::draw(
                 $registry,
                 $section,

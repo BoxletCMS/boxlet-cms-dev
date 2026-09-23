@@ -70,11 +70,16 @@ final class Sections
      * join is the same either way — one side is the array's key and the other is what a
      * block says it stands in — so it is written once rather than twice.
      *
+     * AN EMPTY BAND IS NOT DRAWN on a page, and IS drawn in the editor. To a visitor it is
+     * a surface and a rhythm around nothing, and prune() removes it on the next save; to an
+     * author it is the band they just added and are about to fill, and a "+ Section" that
+     * appeared to do nothing would be the editor lying about what it had done (D-101).
+     *
      * @param array<int|string, array{sort?: int, layout: string, stack: string, style: array<string, string|int|null>}> $sections
      * @param list<array<string, mixed>> $blocks each naming its section and column
      * @return list<array{id: int|string, section: array{sort?: int, layout: string, stack: string, style: array<string, string|int|null>}, blocks: list<array<string, mixed>>}>
      */
-    public static function group(array $sections, array $blocks): array
+    public static function group(array $sections, array $blocks, bool $keepEmpty = false): array
     {
         $held = [];
         foreach ($blocks as $block) {
@@ -85,12 +90,10 @@ final class Sections
 
         $grouped = [];
         foreach ($sections as $id => $section) {
-            // A section holding nothing is not drawn. prune() removes them on save, so this
-            // is the same rule read at the other end rather than a second opinion.
-            if (!isset($held[$id])) {
+            if (!isset($held[$id]) && !$keepEmpty) {
                 continue;
             }
-            $grouped[] = ['id' => $id, 'section' => $section, 'blocks' => $held[$id]];
+            $grouped[] = ['id' => $id, 'section' => $section, 'blocks' => $held[$id] ?? []];
         }
 
         return $grouped;

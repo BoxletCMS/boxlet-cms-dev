@@ -81,7 +81,13 @@
     });
   }
 
-  function insertButton(index, top, label) {
+  /**
+   * A BAND ADDED HERE (PLAN.md D-101). It used to add a BLOCK, which then quietly got a
+   * band of its own — which is why the owner could not find any way to add a section: there
+   * was none, only a block that happened to bring one. A band is now the thing you add
+   * between bands, and a block is the thing you add inside a column.
+   */
+  function insertButton(index, top, label, word) {
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'bx-insert';
@@ -89,6 +95,11 @@
     button.setAttribute('aria-label', label);
     button.title = label;
     button.textContent = '+';
+    if (word) {
+      var says = document.createElement('em');
+      says.textContent = word;
+      button.appendChild(says);
+    }
     // Never flush with the top edge: the control is centred on the boundary, so at y=0
     // half of it would sit above the page. An empty page has only this one.
     button.style.top = Math.max(16, Math.round(top)) + 'px';
@@ -111,7 +122,8 @@
   }
 
   function drawInserts() {
-    var labels = document.body.getAttribute('data-insert-labels') || 'Add a block here|Add a block at the end';
+    var labels = document.body.getAttribute('data-insert-labels')
+      || 'Add a section here|Add a section at the end|Add a block in this column|Section|Block';
     var parts = labels.split('|');
     var focused = focusedAction();
     overlay.textContent = '';
@@ -122,11 +134,11 @@
       return node.tagName === 'SECTION';
     });
     bands.forEach(function (band, index) {
-      overlay.appendChild(insertButton(index, band.offsetTop, parts[0]));
+      overlay.appendChild(insertButton(index, band.offsetTop, parts[0], parts[3]));
     });
     var last = bands[bands.length - 1];
-    overlay.appendChild(insertButton(bands.length, last ? last.offsetTop + last.offsetHeight : 0, parts[1]));
-    drawSlots(parts[2] || parts[0]);
+    overlay.appendChild(insertButton(bands.length, last ? last.offsetTop + last.offsetHeight : 0, parts[1], parts[3]));
+    drawSlots(parts[2] || parts[0], parts[4]);
     drawTools(focused);
   }
 
@@ -143,37 +155,75 @@
    * parent is the section and not whatever the overlay is measured against. The insert
    * buttons above can use offsetTop because a section's offset parent IS that element.
    */
-  function drawSlots(label) {
+  /**
+   * EVERY COLUMN OF EVERY BAND, including the one a band of one block does not draw.
+   *
+   * SectionRender gives a band holding one block the shape it has always had — the band IS
+   * the block, with no column element anywhere — so looking for `.section-column` found a
+   * place to add a block in exactly the bands that did not need one. Here the band's own
+   * `.container` is that column: one column, numbered 0, which is what the save will call
+   * it too (D-101).
+   */
+  function columnBoxes() {
+    var found = [];
+    document.querySelectorAll('[data-bx-section]').forEach(function (band) {
+      var columns = band.querySelectorAll('.section-column');
+      if (columns.length > 0) {
+        Array.prototype.forEach.call(columns, function (column, at) {
+          found.push({ band: band, box: column, at: at, holds: column.children.length > 0 ? column.children[column.children.length - 1] : null });
+        });
+
+        return;
+      }
+      var container = band.querySelector('.container');
+      if (container) {
+        found.push({ band: band, box: container, at: 0, holds: container.children.length > 0 ? container.children[container.children.length - 1] : null });
+      }
+    });
+
+    return found;
+  }
+
+  function drawSlots(label, word) {
     var box = overlay.getBoundingClientRect();
-    document.querySelectorAll('.section-column').forEach(function (column) {
-      if (column.children.length > 0) {
-        return;
-      }
-      var band = column.closest('[data-bx-section]');
-      var cols = column.parentNode;
-      if (!band || !cols) {
-        return;
-      }
-      var at = Array.prototype.indexOf.call(cols.children, column);
+    columnBoxes().forEach(function (found) {
+      var band = found.band;
+      var column = found.box;
+      var at = found.at;
       var rect = column.getBoundingClientRect();
+      var last = found.holds;
       var slot = document.createElement('button');
       slot.type = 'button';
-      slot.className = 'bx-slot';
+      slot.className = 'bx-slot' + (last === null ? '' : ' bx-slot-after');
       slot.setAttribute('data-insert-into', band.getAttribute('data-bx-section'));
       slot.setAttribute('data-insert-column', String(at));
       slot.setAttribute('aria-label', label);
       slot.title = label;
-      slot.style.top = Math.round(rect.top - box.top) + 'px';
       slot.style.left = Math.round(rect.left - box.left) + 'px';
       slot.style.width = Math.round(rect.width) + 'px';
-      // An empty column has no content, so it has whatever height the grid row gives it —
-      // which beside a tall block is tall and beside a short one is nothing at all. A floor
-      // rather than a fixed size: the slot should follow the row it is in, and still be
-      // pressable when the row is one line high.
-      slot.style.height = Math.max(64, Math.round(rect.height)) + 'px';
+      if (last === null) {
+        /* AN EMPTY COLUMN IS THE PLACE ITSELF, so the slot is the whole box. It has no
+           content, so its height is whatever the grid row gives it — beside a tall block
+           that is tall and beside a short one it is nothing at all. A floor rather than a
+           fixed size: it follows the row it is in and stays pressable either way. */
+        slot.style.top = Math.round(rect.top - box.top) + 'px';
+        slot.style.height = Math.max(64, Math.round(rect.height)) + 'px';
+      } else {
+        /* A COLUMN THAT HOLDS SOMETHING gets a strip UNDER what it holds — the artifact's
+           "+ Block" line — because a slot over the content would cover the words and a
+           person needs to see where the next block lands, not only that one can. */
+        var after = last.getBoundingClientRect();
+        slot.style.top = Math.round(after.bottom - box.top + 6) + 'px';
+        slot.style.height = '30px';
+      }
       var plus = document.createElement('span');
       plus.textContent = '+';
       slot.appendChild(plus);
+      if (word) {
+        var says = document.createElement('em');
+        says.textContent = word;
+        slot.appendChild(says);
+      }
       overlay.appendChild(slot);
     });
   }
@@ -185,6 +235,9 @@
    *                 at the end of the page instead of at the boundary that was clicked.
    */
   function select(index, announce) {
+    document.querySelectorAll('.bx-band-selected').forEach(function (band) {
+      band.classList.remove('bx-band-selected');
+    });
     blocks().forEach(function (section, i) {
       section.classList.toggle('bx-selected', i === index);
     });
@@ -300,7 +353,8 @@
     var insert = event.target.closest && event.target.closest('[data-insert-at]');
     if (insert) {
       event.preventDefault();
-      tell('insert', { index: Number(insert.getAttribute('data-insert-at')) });
+      // A BAND, not a block (D-101).
+      tell('section', { index: Number(insert.getAttribute('data-insert-at')) });
       return;
     }
     // INTO A COLUMN, which is an address and not a position (D-099): which band, which of
@@ -354,6 +408,18 @@
     }
     if (event.data.type === 'select') {
       select(event.data.index, false);
+    } else if (event.data.type === 'band') {
+      /* A WHOLE BAND MARKED, not a block inside it (PLAN.md D-101). Every block's mark is
+         cleared, because a band and a block are two things to be on and being on both says
+         nothing. No tool bar: the tools act on a block, and a band's own are the next
+         piece. */
+      blocks().forEach(function (block) {
+        block.classList.remove('bx-selected');
+      });
+      document.querySelectorAll('[data-bx-section]').forEach(function (band) {
+        band.classList.toggle('bx-band-selected', band.getAttribute('data-bx-section') === event.data.key);
+      });
+      drawTools();
     } else if (event.data.type === 'refresh') {
       refresh();
     }

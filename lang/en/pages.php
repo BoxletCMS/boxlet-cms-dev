@@ -209,9 +209,14 @@ return [
 
     'pages.library' => 'Add a block',
     'pages.library_hint' => 'Each picture is the block as this site renders it.',
-    'pages.insert_here' => 'Add a block here',
-    'pages.insert_at_end' => 'Add a block at the end',
+    'pages.insert_here' => 'Add a section here',
+    'pages.insert_at_end' => 'Add a section at the end',
     'pages.insert_in_column' => 'Add a block in this column',
+    // THE WORD ON THE CONTROL ITSELF, where the sentence above is what it is called for
+    // somebody who cannot see it. The artifact draws "+ Section" and "+ Block" on the
+    // lines, and a line that says only "+" leaves you to find out by pressing it.
+    'pages.insert_word.section' => 'Section',
+    'pages.insert_word.block' => 'Block',
     // THE PAGE AS A TREE (PLAN.md D-100). "Page outline" and not "Structure": it is the
     // thing an editor has always called an outline, and the word says what it is for —
     // seeing the shape of the page, not editing it.
@@ -230,6 +235,8 @@ return [
 
     'pages.panel.content' => 'Content',
     'pages.panel.section' => 'Section',
+    // The panel's heading when a BAND is what is selected rather than a block (D-101).
+    'pages.panel.band' => 'Section',
     'pages.undo' => 'Undo',
     'pages.removed' => ':block removed.',
     'pages.inserting' => 'Adding…',

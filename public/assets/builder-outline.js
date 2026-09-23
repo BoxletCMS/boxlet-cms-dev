@@ -100,18 +100,26 @@
       });
     });
 
-    /* BANDS IN THE PAGE'S ORDER, which is the blocks' order and not the order the band
-       groups happen to sit in: a band group is appended when its first block is added, and
-       from then on it stays put while the block may be moved anywhere. A band with nothing
-       in it has no place on the page and is not drawn — Sections::prune() takes it on the
-       next save, so drawing it would be showing something about to disappear. */
-    var seen = {};
+    /* BANDS IN THE PAGE'S ORDER, WHICH THE CANVAS KNOWS AND THE PANEL DOES NOT.
+       A band group is appended when the band is made and stays put; the page order is the
+       order of the bands on the canvas. Reading it from the blocks instead dropped a band
+       with nothing in it — which is exactly the band somebody has just added and is looking
+       at (D-101). An empty band belongs here and nowhere else: the visitor's page never
+       shows one, and Sections::prune() takes it on the next save if it is still empty. */
     var ordered = [];
-    api.groupNodes().forEach(function (group) {
-      var key = group.getAttribute('data-section-key');
+    var seen = {};
+    api.bands().forEach(function (band) {
+      var key = band.getAttribute('data-bx-section');
       if (key && byKey[key] && !seen[key]) {
         seen[key] = true;
         ordered.push(byKey[key]);
+      }
+    });
+    // Anything the canvas has not drawn yet — it loads in its own time, and the outline is
+    // drawn before it answers — keeps the order the panel has.
+    bands.forEach(function (band) {
+      if (!seen[band.key]) {
+        ordered.push(band);
       }
     });
 
@@ -192,26 +200,9 @@
 
       return;
     }
-    /* A BAND. The panel has no notion of a selected band yet — it shows a block and the
-       band that block stands in — so this shows the band's FIRST block and turns to the
-       Section tab, which puts the band's own fields on the screen. The row is marked as the
-       thing selected, because it is the thing the person pressed. */
-    var bandKey = line.getAttribute('data-outline-section');
-    var first = null;
-    api.groupNodes().forEach(function (group) {
-      if (first === null && group.getAttribute('data-section-key') === bandKey) {
-        first = group;
-      }
-    });
-    if (first === null) {
-      return;
-    }
-    var at = Number(first.getAttribute('data-block-group'));
-    api.show(at);
-    api.tellCanvas('select', { index: at });
-    api.showTab('section');
-    api.outlineBand = bandKey;
-    api.markOutline(-1);
+    // A BAND, selected as a band (D-101): its own fields in the panel, its own edge on the
+    // canvas, and no block pretending to stand in for it.
+    api.selectBand(line.getAttribute('data-outline-section'));
   });
 
   var toggle = form.querySelector('[data-outline-toggle]');

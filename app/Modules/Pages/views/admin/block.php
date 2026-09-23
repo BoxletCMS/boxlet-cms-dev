@@ -41,9 +41,11 @@ $sectionIdPrefix = 'section-' . $sectionKey . '-';
 // editors clone from, where the block has no section yet — the defaults are what a block
 // about to be added gets, and the save mints the section.
 $sectionOf = (isset($sections) && is_array($sections) ? $sections : [])[$sectionKey] ?? [
+    'key' => $sectionKey,
     'id' => null,
     'layout' => \App\Modules\Pages\SectionLayout::ONE,
     'stack' => \App\Modules\Pages\SectionLayout::DEFAULT_STACK,
+    'style' => $block['style'],
 ];
 // Section style opens when it differs from what the active character would compose for this
 // section, so a hand-tuned one announces itself and a composed one stays quiet. Composed
@@ -140,62 +142,15 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
                     <?= field_hint('hint.layout') ?>
                 </div>
 <?php endif; ?>
-                <?php /* data-panel-part names this half of the group so the visual editor can
-                         put it behind its own Section tab (D-086). An ATTRIBUTE and nothing
-                         else: this view is the plain editor's too, and there the group stays
-                         one scroll with the style folded at the foot of it, exactly as it
-                         has always been. */ ?>
-                <details class="block-style" data-panel-part="section"<?= $block['style'] !== $composed ? ' open' : '' ?>>
-                    <summary><?= e(t('style.title')) ?></summary>
-<?php if (($sectionOf['id'] ?? null) !== null): ?>
-                    <input type="hidden" name="<?= e($sectionPrefix) ?>[id]" value="<?= e((string) $sectionOf['id']) ?>">
+                <?php /* THE SECTION'S OWN FIELDS, when this block is the one that carries
+                         them. In the plain editor that is the first block of each band and
+                         they are folded at the foot of it, exactly where they have always
+                         been; in the visual editor they are rendered once, into a group of
+                         their own, and $showSection is false here (D-099). One definition
+                         of those fields either way: views/admin/section.php. */ ?>
+<?php if ($showSection ?? true): ?>
+<?php require __DIR__ . '/section.php'; ?>
 <?php endif; ?>
-                    <div class="block-style-grid">
-                        <?php /* THE ARRANGEMENT FIRST (D-097, D-099), because it is the one
-                                 choice here that changes the SHAPE of the band rather than
-                                 its colouring, and because it is what the empty column that
-                                 asks to be filled comes from. A closed set, never a
-                                 percentage — the argument SectionStyle makes about colour. */ ?>
-<?php foreach (['layout' => \App\Modules\Pages\SectionLayout::LAYOUTS, 'stack' => \App\Modules\Pages\SectionLayout::STACKS] as $arrangeKey => $arrangeValues): ?>
-                        <div class="field">
-                            <label for="<?= e($sectionIdPrefix . $arrangeKey) ?>"><?= e(t('style.' . $arrangeKey)) ?></label>
-                            <select id="<?= e($sectionIdPrefix . $arrangeKey) ?>" name="<?= e($sectionPrefix) ?>[<?= e($arrangeKey) ?>]" data-section-<?= e($arrangeKey) ?>>
-<?php foreach ($arrangeKey === 'layout' ? array_keys($arrangeValues) : $arrangeValues as $arrangeValue): ?>
-                                <option value="<?= e($arrangeValue) ?>"<?= ($sectionOf[$arrangeKey] ?? '') === $arrangeValue ? ' selected' : '' ?>><?= e(t('style.' . $arrangeKey . '.' . $arrangeValue)) ?></option>
-<?php endforeach; ?>
-                            </select>
-                            <?= field_hint('hint.style.' . $arrangeKey) ?>
-                        </div>
-<?php endforeach; ?>
-<?php foreach (\App\Modules\Design\SectionStyle::OPTIONS as $styleKey => $styleValues): ?>
-                        <div class="field">
-                            <label for="<?= e($sectionIdPrefix . 'style-' . $styleKey) ?>"><?= e(t('style.' . $styleKey)) ?></label>
-                            <select id="<?= e($sectionIdPrefix . 'style-' . $styleKey) ?>" name="<?= e($sectionPrefix) ?>[style][<?= e($styleKey) ?>]">
-<?php foreach ($styleValues as $styleValue): ?>
-                                <option value="<?= e($styleValue) ?>"<?= ($block['style'][$styleKey] ?? '') === $styleValue ? ' selected' : '' ?>><?= e(t('style.' . $styleKey . '.' . $styleValue)) ?></option>
-<?php endforeach; ?>
-                            </select>
-                            <?= field_hint('hint.style.' . $styleKey) ?>
-                        </div>
-<?php endforeach; ?>
-                        <?php /* D-024's sixth key. Not part of OPTIONS, because OPTIONS is
-                                 what becomes class names on the wrapper and a picture is
-                                 rendered, not painted. Offered always rather than only when
-                                 the surface is `image`: hiding it would take script, and
-                                 this panel works without one. */ ?>
-                        <div class="field block-style-picture">
-                            <label for="<?= e($sectionIdPrefix . 'style-image') ?>"><?= e(t('style.image')) ?></label>
-                            <select id="<?= e($sectionIdPrefix . 'style-image') ?>" name="<?= e($sectionPrefix) ?>[style][<?= e(\App\Modules\Design\SectionStyle::IMAGE) ?>]" data-media-field<?= $pickerAttributes() ?>>
-                                <option value=""><?= e(t('pages.field.media_none')) ?></option>
-<?php $surfaceImage = (int) ($block['style'][\App\Modules\Design\SectionStyle::IMAGE] ?? 0); ?>
-<?php foreach ($pictures as $picture): ?>
-                                <option value="<?= e($picture['id']) ?>"<?= $picture['thumb'] === null ? '' : ' data-thumb="' . e($picture['thumb']) . '"' ?><?= $surfaceImage === $picture['id'] ? ' selected' : '' ?>><?= e($picture['name']) ?></option>
-<?php endforeach; ?>
-                            </select>
-                            <span class="hint"><?= e(t('style.image_hint')) ?></span>
-                        </div>
-                    </div>
-                </details>
 <?php endif; ?>
                 </div>
                 <div class="block-editor-controls">

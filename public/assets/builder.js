@@ -152,6 +152,15 @@
     api.groupNodes().forEach(function (group) {
       group.hidden = Number(group.getAttribute('data-block-group')) !== index;
     });
+    /* AND THE BAND THE SELECTED BLOCK STANDS IN (PLAN.md D-099). The section's fields are
+       one group per band, not one per block, so selecting any block in a band shows the
+       same controls — which is what makes "a tinted band of three text blocks is one
+       setting" true rather than three settings that have to be kept in step. */
+    var band = index >= 0 ? groups.querySelector('[data-block-group="' + index + '"]') : null;
+    var bandKey = band ? band.getAttribute('data-section-key') : null;
+    document.querySelectorAll('[data-section-group]').forEach(function (part) {
+      part.hidden = part.getAttribute('data-section-group') !== bandKey;
+    });
     if (library) {
       library.hidden = index >= 0;
     }

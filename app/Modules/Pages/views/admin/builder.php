@@ -13,7 +13,8 @@ use App\Support\Url;
  * @var array<string, mixed> $page
  * @var string $titleValue
  * @var string $slugValue
- * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+ * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+ * @var array<string, array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}> $sections the bands this page holds, by key
  * @var array<string, string> $errors
  * @var string|null $notice
  * @var list<array{id: int, created_at: string}> $revisions what this page was, newest first (D-088)
@@ -285,9 +286,36 @@ foreach ($errors as $key => $message) {
                                  plain editor, and builder.css hides them here. */ ?>
                     </div>
 
+                    <?php /* ONE GROUP PER BAND, rendered once however many blocks stand in
+                             it (D-099). The Section tab shows the group belonging to the
+                             selected block's band, so setting a surface on a band of three
+                             text blocks is one control — which is the thing the whole tree
+                             exists for. Inside each block's group these fields would be
+                             repeated per block, with the same names, and the last one in
+                             the document would decide what was saved. */ ?>
+                    <div class="panel-sections" data-section-groups>
+<?php foreach ($sections as $sectionOf): ?>
+<?php
+    /* What the character would compose for this band (D-096), from the types it HOLDS, so
+       a hand-tuned band announces itself by being open and a composed one stays quiet. */
+    $holds = [];
+    foreach ($blocks as $inBand) {
+        if (($inBand['section'] ?? null) === $sectionOf['key'] && $registry->has($inBand['type'])) {
+            $holds[] = $inBand['type'];
+        }
+    }
+    $composed = $holds === [] ? [] : \App\Modules\Design\Composition::section($character, $holds);
+?>
+                        <div class="panel-section" data-section-group="<?= e($sectionOf['key']) ?>" hidden>
+<?php require __DIR__ . '/section.php'; ?>
+                        </div>
+<?php endforeach; ?>
+                    </div>
+
                     <div class="panel-blocks" data-block-groups>
 <?php foreach ($blocks as $index => $block): ?>
-                        <div class="panel-block" data-block-group="<?= e($index) ?>" hidden>
+                        <div class="panel-block" data-block-group="<?= e($index) ?>" data-section-key="<?= e($block['section'] ?? '') ?>" hidden>
+<?php $showSection = false; ?>
 <?php require __DIR__ . '/block.php'; ?>
                         </div>
 <?php endforeach; ?>

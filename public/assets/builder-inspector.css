@@ -1,3 +1,9 @@
+/* WHY :is(.panel-block, .panel-section). The panel holds two kinds of group since D-099 —
+   a block's own fields and the band it stands in — and every rule below dresses a group's
+   fields: the grid, the labels, the hints, the controls. They were written when there was
+   one kind. Naming both is the honest repair; giving the section group the block's class
+   would have been shorter and would have said, in the markup, that a band is a block. */
+
 /* The inspector: the panel beside the canvas, the block library, and the selected
  * block's own fields. Split out of builder.css, which keeps the editor shell — the
  * toolbar, the canvas and the frame around them. Admin tokens only (--ui-*).
@@ -122,9 +128,20 @@
   border-bottom-color: var(--ui-accent);
 }
 
-.builder[data-panel-tab="content"] .panel-block [data-panel-part="section"],
-.builder[data-panel-tab="section"] .panel-block .block-body > :not([data-panel-part="section"]) {
+/* THE TWO HALVES OF THE PANEL (D-086), now two GROUPS rather than two halves of one
+   (D-099): the block's own fields, and the band it stands in. The band's group is rendered
+   once however many blocks stand in it, so this hides a whole group rather than reaching
+   inside one to hide a part of it. */
+.builder[data-panel-tab="content"] .panel-sections,
+.builder[data-panel-tab="section"] .panel-blocks {
   display: none;
+}
+
+/* Without a script neither tab is pressed and both show, which is the panel drawn as the
+   plain editor draws it — the rule the tab strip has followed since D-086. */
+.builder:not([data-panel-tab]) .panel-sections,
+.builder:not([data-panel-tab]) .panel-blocks {
+  display: block;
 }
 
 /* It sits on the tab row's rule, so it must not look like a tab that is pressed. */
@@ -133,7 +150,7 @@
 }
 
 /* Behind its own tab the style is not a thing to unfold: the tab already did that. */
-.builder[data-panel-tab] .panel-block [data-panel-part="section"] > summary {
+.builder[data-panel-tab] .panel-section [data-panel-part="section"] > summary {
   display: none;
 }
 
@@ -257,7 +274,7 @@
   line-height: 1.35;
 }
 
-.panel-block .block-editor {
+:is(.panel-block, .panel-section) .block-editor {
   border: 0;
   box-shadow: none;
   background: transparent;
@@ -265,7 +282,7 @@
 
 /* The panel header already names the selected block; the group's own legend would say
    it a second time, two lines below. */
-.panel-block .block-editor-legend {
+:is(.panel-block, .panel-section) .block-editor-legend {
   display: none;
 }
 
@@ -273,8 +290,8 @@
    them by submitting the form. Here the canvas does both without a round trip, so those
    controls would either do nothing or throw the user back into the plain editor. The
    panel header carries the visual editor's own. */
-.panel-block .drag-handle,
-.panel-block .block-editor-controls {
+:is(.panel-block, .panel-section) .drag-handle,
+:is(.panel-block, .panel-section) .block-editor-controls {
   display: none;
 }
 
@@ -327,29 +344,29 @@
    provides one (.block-body { display: grid }) lives in admin-pages.css, which belongs
    to the plain editor and which the builder does not load. Measured before this line
    existed: display block, the fields 0px apart with a 32px gap doing nothing. */
-.panel-block .block-body {
+:is(.panel-block, .panel-section) .block-body {
   display: grid;
   padding-inline: 0;
   gap: var(--ui-6);
 }
 
-.panel-block .field > label,
-.panel-block .field > .field-label {
+:is(.panel-block, .panel-section) .field > label,
+:is(.panel-block, .panel-section) .field > .field-label {
   font-size: var(--ui-text-sm);
   letter-spacing: 0.01em;
 }
 
-.panel-block .field .hint {
+:is(.panel-block, .panel-section) .field .hint {
   font-size: var(--ui-text-xs);
   line-height: 1.45;
 }
 
 /* Rich text needs more room than anything else on this panel. */
-.panel-block .field textarea {
+:is(.panel-block, .panel-section) .field textarea {
   min-block-size: 9rem;
 }
 
-.panel-block .field textarea[rows="8"] {
+:is(.panel-block, .panel-section) .field textarea[rows="8"] {
   min-block-size: 17rem;
 }
 
@@ -360,16 +377,16 @@
    arriving and the grid it templates never existed. It did not show while the style was a
    folded <details> at the foot of a long scroll; behind its own tab (D-086) it did, as six
    controls with every hint touching the next field's label. */
-.panel-block .field-row,
-.panel-block .block-style-grid {
+:is(.panel-block, .panel-section) .field-row,
+:is(.panel-block, .panel-section) .block-style-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--ui-6);
 }
 
-.panel-block .field input,
-.panel-block .field select,
-.panel-block .field textarea {
+:is(.panel-block, .panel-section) .field input,
+:is(.panel-block, .panel-section) .field select,
+:is(.panel-block, .panel-section) .field textarea {
   max-inline-size: none;
 }
 

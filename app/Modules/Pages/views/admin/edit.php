@@ -13,7 +13,7 @@ use App\Support\Url;
  * @var string $titleValue
  * @var string $slugValue
  * @var list<array{id: int, title: string, depth: int}> $parents
- * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+ * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
  * @var string $character the character new blocks are composed with
@@ -102,8 +102,18 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                 <h2><?= e(t('pages.blocks')) ?></h2>
             </div>
             <div class="block-list" data-block-list>
+<?php $bandSeen = []; ?>
 <?php foreach ($blocks as $index => $block): ?>
-<?php require __DIR__ . '/block.php'; ?>
+<?php
+    /* ONE BAND'S FIELDS ARE SHOWN ONCE, at the foot of the FIRST block standing in it
+       (D-099). This editor is one scroll with no tabs, so the section's style stays folded
+       exactly where it has always been — and a band holding two blocks does not offer the
+       same five selects twice under different halves of itself. */
+    $bandKey = $block['section'] ?? '';
+    $showSection = !isset($bandSeen[$bandKey]);
+    $bandSeen[$bandKey] = true;
+    require __DIR__ . '/block.php';
+?>
 <?php endforeach; ?>
             </div>
 <?php if ($blocks === []): ?>
@@ -142,7 +152,13 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         'content' => $registry->fresh($type),
         'style' => Composition::style($character, $type),
         'layout' => Composition::layout($registry, $character, $type),
+        // A block cloned out of this template arrives in a band of its own, so it carries
+        // that band's fields. admin.js mints the section key over the placeholder the same
+        // way it mints the block's (D-098).
+        'section' => '__INDEX__',
+        'column' => 0,
     ];
+    $showSection = true;
     require __DIR__ . '/block.php';
 ?>
         </template>

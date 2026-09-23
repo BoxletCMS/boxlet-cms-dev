@@ -182,8 +182,14 @@ const panelChecks = async (page, report) => {
   const read = () => page.evaluate(() => {
     const group = [...document.querySelectorAll('[data-block-group]')].find((g) => !g.hidden);
     if (!group) return null;
-    const part = group.querySelector('[data-panel-part="section"]');
-    const content = group.querySelector('.block-body > .field:not([data-panel-part])');
+    /* THE BAND'S FIELDS ARE THEIR OWN GROUP SINCE D-099, not a part folded into the block's.
+       They were moved because a section holding two blocks rendered them twice, with the
+       same names, and the last one in the document decided what was saved. This reads the
+       visible band group and no longer reaches inside the block's — the check itself is
+       unchanged: one tab paints the fields and not the style, the other the other way, and
+       the first control is on the first screen. */
+    const part = [...document.querySelectorAll('[data-section-group]')].find((g) => !g.hidden);
+    const content = group.querySelector('.block-body > .field');
     const first = part && part.querySelector('select');
     return {
       tab: document.querySelector('form[data-builder]').getAttribute('data-panel-tab'),

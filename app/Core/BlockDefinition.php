@@ -31,7 +31,26 @@ final class BlockDefinition
     public const NAME = '~^[a-z][a-z0-9_]*$~';
     public const SLUG = '~^[a-z][a-z0-9_-]*$~';
 
-    private const KEYS = ['type', 'icon', 'version', 'fields', 'layouts', 'defaults'];
+    private const KEYS = ['type', 'icon', 'group', 'version', 'fields', 'layouts', 'defaults'];
+
+    /**
+     * OPTIONAL, because the site's chrome goes through this too. A header and a footer are
+     * blocks by every other measure — fields, layouts, a template — and they are the two
+     * that can never be ADDED, so a shelf in the library is a thing they cannot have. They
+     * say so by leaving it out; a page block that leaves it out is caught by a test, where
+     * a made-up shelf would be caught by nobody.
+     */
+    private const OPTIONAL = ['group'];
+
+    /**
+     * WHICH SHELF A BLOCK SITS ON in the library (PLAN.md D-104, and the design artifact).
+     *
+     * A closed set, for the reason every other closed set here exists: a free string would
+     * let one block say "Media" and the next "media", and the library would grow a shelf
+     * for each. Five is what the artifact names, and a block that fits none of them is a
+     * question about the block rather than about the list.
+     */
+    public const GROUPS = ['text', 'media', 'layout', 'marketing', 'embed'];
     /** A t() key: dotted lower-case segments, like preview.hero.heading. */
     private const LANG_KEY = '~^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$~';
 
@@ -52,7 +71,7 @@ final class BlockDefinition
             self::fail($type, 'block.php must return an array');
         }
         foreach (self::KEYS as $key) {
-            if (!array_key_exists($key, $definition)) {
+            if (!array_key_exists($key, $definition) && !in_array($key, self::OPTIONAL, true)) {
                 self::fail($type, "missing key '{$key}'");
             }
         }
@@ -66,6 +85,11 @@ final class BlockDefinition
         }
         if (!is_string($definition['icon']) || trim($definition['icon']) === '') {
             self::fail($type, "'icon' must be a non-empty string");
+        }
+        $definition['group'] = $definition['group'] ?? null;
+        if ($definition['group'] !== null
+            && (!is_string($definition['group']) || !in_array($definition['group'], self::GROUPS, true))) {
+            self::fail($type, "'group' must be one of: " . implode(', ', self::GROUPS));
         }
         if (!is_int($definition['version']) || $definition['version'] < 1) {
             self::fail($type, "'version' must be an integer of at least 1");
@@ -109,6 +133,8 @@ final class BlockDefinition
         return [
             'type' => $type,
             'icon' => $definition['icon'],
+            // Which shelf it sits on in the library, or null for the site's chrome (D-104).
+            'group' => $definition['group'],
             'version' => $definition['version'],
             'fields' => $fields,
             'layouts' => $layouts,

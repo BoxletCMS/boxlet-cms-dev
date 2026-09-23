@@ -25,7 +25,8 @@ use App\Support\Url;
  * @var string $canvasUrl
  * @var string $insertUrl
  * @var string $bandUrl
- * @var list<array{type: string, label: string, icon: string, summary: string, preview: string}> $library
+ * @var list<array{type: string, label: string, icon: string, group: string, summary: string, preview: string}> $library
+ * @var list<string> $libraryGroups the shelves this site's blocks stand on (D-104)
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
  * @var list<array{id: int, title: string, depth: int}> $parents
  * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
@@ -262,9 +263,28 @@ foreach ($errors as $key => $message) {
                     <div class="panel-library" data-library>
                         <h2><?= e(t('pages.library')) ?></h2>
                         <p class="hint"><?= e(t('pages.library_hint')) ?></p>
+                        <?php /* FINDING A BLOCK WHEN THERE ARE MORE THAN A HANDFUL (D-104,
+                                 O-15). One column of cards is a list you read; with thirteen
+                                 it is a list you scroll past. The filter and the shelves are
+                                 both js-only and both narrow the SAME cards — there is no
+                                 second list and nothing is fetched, so without a script the
+                                 library is exactly what it has always been. */ ?>
+                        <div class="library-find js-only">
+                            <label class="visually-hidden" for="library-filter"><?= e(t('pages.library.filter')) ?></label>
+                            <input type="search" id="library-filter" class="library-filter" data-library-filter
+                                   placeholder="<?= e(t('pages.library.filter')) ?>" autocomplete="off">
+                            <div class="library-groups" role="group" aria-label="<?= e(t('pages.library.groups')) ?>">
+                                <button type="button" class="library-group" data-library-group="" aria-pressed="true"><?= e(t('pages.library.all')) ?></button>
+<?php foreach ($libraryGroups as $group): ?>
+                                <button type="button" class="library-group" data-library-group="<?= e($group) ?>" aria-pressed="false"><?= e(t('block.group.' . $group)) ?></button>
+<?php endforeach; ?>
+                            </div>
+                        </div>
+                        <p class="hint library-none js-only" data-library-none hidden><?= e(t('pages.library.none')) ?></p>
                         <div class="library-grid">
 <?php foreach ($library as $item): ?>
-                            <button type="button" class="library-card" data-add-type="<?= e($item['type']) ?>">
+                            <button type="button" class="library-card" data-add-type="<?= e($item['type']) ?>" data-group="<?= e($item['group']) ?>"
+                                    data-find="<?= e(mb_strtolower($item['label'] . ' ' . t('block.group.' . $item['group']) . ' ' . $item['summary'])) ?>">
                                 <span class="library-frame">
                                     <iframe src="<?= e($item['preview']) ?>" title="<?= e($item['label']) ?>" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
                                 </span>
@@ -391,6 +411,7 @@ foreach ($errors as $key => $message) {
         <script src="<?= e(Url::versioned('assets/builder-undo.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-save.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-library.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-library-filter.js')) ?>" defer></script>
         <?php /* Last of the builder's scripts: it reads what the others have drawn (D-100). */ ?>
         <script src="<?= e(Url::versioned('assets/builder-outline.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/hints.js')) ?>" defer></script>

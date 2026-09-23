@@ -9,6 +9,7 @@
 return [
     'type' => 'form',
     'icon' => 'clipboard-list',
+    'group' => 'marketing',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.form.heading'],

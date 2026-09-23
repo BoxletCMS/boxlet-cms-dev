@@ -212,6 +212,19 @@ return [
     // same). A card pressed with nowhere aimed at used to add the block as a band of its
     // own at the end of the page — which is a guess, and the one place nobody meant.
     'pages.library_hint' => 'Press a + in the page to choose where a block lands.',
+    // FINDING A BLOCK when there are more than a handful (D-104, O-15).
+    'pages.library.filter' => 'Filter blocks',
+    'pages.library.groups' => 'Kinds of block',
+    'pages.library.all' => 'All',
+    'pages.library.none' => 'No block matches that.',
+    // THE SHELVES THEMSELVES. Named for what a person is looking for rather than for what
+    // the block is made of: somebody wants "a picture" or "something that sells", and
+    // nobody has ever gone looking for a block by its field types.
+    'block.group.text' => 'Text',
+    'block.group.media' => 'Media',
+    'block.group.layout' => 'Layout',
+    'block.group.marketing' => 'Marketing',
+    'block.group.embed' => 'Embed',
     'pages.insert_here' => 'Add a section here',
     'pages.insert_at_end' => 'Add a section at the end',
     'pages.insert_in_column' => 'Add a block in this column',

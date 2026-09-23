@@ -5,6 +5,7 @@
 return [
     'type' => 'hero',
     'icon' => 'panel-top',
+    'group' => 'marketing',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'required' => true, 'translatable' => true, 'sample' => 'preview.hero.heading'],

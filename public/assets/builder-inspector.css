@@ -427,3 +427,50 @@
 .stale-notice .button {
   justify-self: start;
 }
+
+/* FINDING A BLOCK (PLAN.md D-104): a filter and a row of shelves over the same cards. */
+
+.library-find {
+  display: grid;
+  gap: var(--ui-2);
+  margin-block-end: var(--ui-3);
+}
+
+.library-filter {
+  inline-size: 100%;
+}
+
+.library-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-1);
+}
+
+/* Visible at rest, every one of them: a shelf nobody can see is a shelf nobody presses. */
+.library-group {
+  padding: var(--ui-1) var(--ui-2);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: 999rem;
+  background: none;
+  color: var(--ui-ink-muted);
+  font: inherit;
+  font-size: var(--ui-text-xs);
+  cursor: pointer;
+}
+
+.library-group:hover,
+.library-group:focus-visible {
+  border-color: var(--ui-line-strong);
+  color: var(--ui-ink);
+}
+
+/* The one that is on, said twice: the fill AND the ink, so it is not a colour alone. */
+.library-group[aria-pressed="true"] {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+  color: var(--ui-ink);
+}
+
+.library-none {
+  margin-block: 0 var(--ui-3);
+}

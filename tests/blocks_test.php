@@ -298,3 +298,24 @@ test('per_layout is refused when it asks for the impossible', function () {
     $columns = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->get('columns');
     assertEquals(['two' => 2, 'three' => 3, 'four' => 4], $columns['fields']['items']['per_layout'], 'what Columns declares');
 });
+
+test('every block a page can hold says which shelf it sits on', function () {
+    // `group` is optional in the definition because the site's chrome goes through the same
+    // validator, and a header and a footer are the two blocks that can never be ADDED —
+    // a shelf in the library is a thing they cannot have (D-104). A PAGE block that leaves
+    // it out would fall off the filter silently, so it is caught here instead.
+    $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    foreach ($blocks->types() as $type) {
+        $group = $blocks->get($type)['group'] ?? null;
+        assertTrue(
+            is_string($group) && in_array($group, App\Core\BlockDefinition::GROUPS, true),
+            "block {$type} declares no shelf for the library (got " . var_export($group, true) . ')',
+        );
+    }
+
+    // And the chrome says nothing, which is the point of the key being optional.
+    $chrome = Blocks::discover(dirname(__DIR__) . '/app/Chrome');
+    foreach ($chrome->types() as $type) {
+        assertEquals(null, $chrome->get($type)['group'] ?? null, "the site's {$type} claims a shelf in the library");
+    }
+});

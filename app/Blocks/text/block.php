@@ -5,6 +5,7 @@
 return [
     'type' => 'text',
     'icon' => 'type',
+    'group' => 'text',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.text.heading'],

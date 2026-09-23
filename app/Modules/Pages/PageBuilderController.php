@@ -372,6 +372,12 @@ final class PageBuilderController
             // that knows this page's addresses goes on being this one.
             'bandUrl' => Url::admin('pages', $id, 'section'),
             'library' => $this->library(),
+            // The shelves this site's blocks actually stand on, in the order D-104 declares
+            // them — never every possible one, which would offer a filter that finds nothing.
+            'libraryGroups' => array_values(array_filter(
+                \App\Core\BlockDefinition::GROUPS,
+                fn (string $group): bool => in_array($group, array_column($this->library(), 'group'), true),
+            )),
             // What a media field offers. The editor asks for a picture by name, never by id.
             'pictures' => MediaReference::choices($this->db()),
             // What a form field offers: the forms of the page's own language (D-046).
@@ -430,7 +436,7 @@ final class PageBuilderController
      * block and this site's design (BlockPreview). Missing files are generated here, the
      * same guard the compiled stylesheet uses.
      *
-     * @return list<array{type: string, label: string, icon: string, summary: string, preview: string}>
+     * @return list<array{type: string, label: string, icon: string, group: string, summary: string, preview: string}>
      */
     private function library(): array
     {
@@ -446,6 +452,9 @@ final class PageBuilderController
                 // Declared in every block definition since the first one, validated at boot,
                 // and until now drawn nowhere (D-084).
                 'icon' => (string) $registry->get($type)['icon'],
+                // Which shelf it sits on (D-104). Declared by the block, a closed set, so
+                // the library's groups are the ones the blocks actually use.
+                'group' => (string) $registry->get($type)['group'],
                 // What the block is FOR. The picture shows its shape and the label names it;
                 // neither says when to reach for it.
                 'summary' => t('block.' . $type . '.summary'),

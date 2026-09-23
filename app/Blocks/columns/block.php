@@ -10,6 +10,7 @@
 return [
     'type' => 'columns',
     'icon' => 'columns-3',
+    'group' => 'layout',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.columns.heading'],

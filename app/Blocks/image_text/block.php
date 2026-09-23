@@ -6,6 +6,7 @@
 return [
     'type' => 'image_text',
     'icon' => 'image',
+    'group' => 'media',
     'version' => 1,
     'fields' => [
         'heading' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.image_text.heading'],

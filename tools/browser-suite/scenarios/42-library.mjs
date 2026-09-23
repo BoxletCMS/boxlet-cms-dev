@@ -14,6 +14,8 @@ import { login } from '../harness.mjs';
 
 const PAGE = 1;
 
+const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
 export default {
   name: 'library',
 
@@ -117,6 +119,38 @@ export default {
 
     // A flat rectangle where a picture goes reads as damage rather than as a picture area.
     const withPlaceholder = cards.filter((c) => c.placeholders > 0);
+    // ---- finding a block among them (D-104, closing O-15) ----------------------------
+    const shown = () => page.evaluate(() => ({
+      cards: [...document.querySelectorAll('.library-card')].filter((c) => !c.hidden)
+        .map((c) => c.getAttribute('data-add-type')).sort(),
+      none: !document.querySelector('[data-library-none]').hidden,
+      shelves: [...document.querySelectorAll('[data-library-group]')].map((b) => b.textContent.trim()),
+    }));
+    const all = await shown();
+    await page.click('[data-library-group="media"]');
+    await wait(400);
+    const onlyMedia = await shown();
+    await page.click('[data-library-group=""]');
+    await page.$eval('[data-library-filter]', (el) => {
+      el.value = 'zzzz';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await wait(400);
+    const nothing = await shown();
+    await page.$eval('[data-library-filter]', (el) => {
+      el.value = '';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await wait(400);
+
+    report.verdict('the library offers only the shelves its blocks actually stand on',
+      all.shelves[0] === 'All' && all.shelves.length > 1 && !all.shelves.includes('Embed'),
+      JSON.stringify(all.shelves));
+    report.verdict('a shelf narrows the same cards, and a filter that matches nothing says so',
+      onlyMedia.cards.length > 0 && onlyMedia.cards.length < all.cards.length
+        && !onlyMedia.none && nothing.cards.length === 0 && nothing.none,
+      `${JSON.stringify(onlyMedia.cards)} on Media of ${all.cards.length}; nothing matched: ${nothing.none}`);
+
     report.verdict('an empty picture area wears a picture, not a plain fill',
       withPlaceholder.length > 0 && withPlaceholder.every((c) => c.placeholderGlyph),
       withPlaceholder.map((c) => `${c.name}: ${c.placeholders} placeholder(s), glyph ${c.placeholderGlyph}`).join(' | ')

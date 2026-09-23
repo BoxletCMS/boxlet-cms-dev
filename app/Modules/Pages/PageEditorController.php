@@ -143,7 +143,7 @@ final class PageEditorController
                 'parent_id' => $revision['parent_id'],
                 'status' => $revision['status'],
                 'seo_json' => $revision['seo_json'],
-            ], $revision['blocks']);
+            ], $revision['blocks'], $revision['sections']);
             Activity::record($db, 'page', 'saved', $id, $revision['title']);
             Sitemap::refresh($this->container);
             $this->container->get('session')->set('flash', t('pages.restored'));

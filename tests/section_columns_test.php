@@ -461,3 +461,68 @@ test('a section key is a closed shape, like a block key', function () {
     $odd = App\Modules\Pages\SectionForm::parse(['<script>' => ['layout' => 'one']], []);
     assertEquals('m0', $odd[0]['key'], 'a key nobody should have sent was echoed back');
 });
+
+testBothDrivers('a revision remembers how the page was arranged, and restoring puts it back', function (string $driver) {
+    $db = adminSite($driver);
+    $registry = blockRegistry();
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'Left']],
+        ['type' => 'form', 'content' => []],
+    ]);
+    [$hero, $form] = blockIdsInOrder($db, $id);
+    $page = ['title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}'];
+
+    // TWO BLOCKS SIDE BY SIDE, and a revision recorded of it.
+    Page::update($db, $registry, $id, $page, [
+        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'hero', 'content' => ['heading' => 'Left'], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 0],
+        ['key' => 'b' . $form, 'id' => $form, 'type' => 'form', 'content' => [], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 1],
+    ], [['key' => 'm0', 'id' => null, 'layout' => 'halves', 'stack' => 'reverse', 'style' => ['surface' => 'tinted']]]);
+    App\Modules\Pages\PageRevision::record($db, $registry, $id);
+    $arranged = (int) array_key_first(Sections::forPage($db, $id));
+
+    // Then it is pulled apart: two bands of one column each.
+    Page::update($db, $registry, $id, $page, [
+        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'hero', 'content' => ['heading' => 'Left'], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 0],
+        ['key' => 'b' . $form, 'id' => $form, 'type' => 'form', 'content' => [], 'style' => [], 'layout' => '', 'section' => 'm1', 'column' => 0],
+    ], [
+        ['key' => 'm0', 'id' => $arranged, 'layout' => 'one', 'stack' => 'stack', 'style' => []],
+        ['key' => 'm1', 'id' => null, 'layout' => 'one', 'stack' => 'stack', 'style' => []],
+    ]);
+    assertEquals(2, count(Sections::forPage($db, $id)), 'the page was pulled apart');
+
+    // And restoring puts the arrangement back, not only the words. Without the sections in
+    // data_json this would restore last week's CONTENT into this week's BANDS, which is
+    // neither one page nor the other.
+    $newest = App\Modules\Pages\PageRevision::all($db, $id)[0];
+    $revision = App\Modules\Pages\PageRevision::find($db, $registry, $id, $newest['id']) ?? fail('the revision is gone');
+    Page::update($db, $registry, $id, $page, $revision['blocks'], $revision['sections']);
+
+    $after = Sections::forPage($db, $id);
+    assertEquals(1, count($after), 'the two blocks stand in one band again');
+    $band = reset($after) ?: fail('no band');
+    assertEquals('halves', $band['layout'], 'the arrangement came back');
+    assertEquals('reverse', $band['stack'], 'and what it does on a phone');
+    assertEquals('tinted', $band['style']['surface'], 'and the band\'s style');
+    assertEquals([0, 1], array_map(static fn (array $b): int => $b['column'], Page::blocks($db, $id)), 'the columns they came back to');
+});
+
+test('a revision written before bands existed leaves the arrangement alone', function () {
+    // The shape every revision in every database has today: blocks, and nothing about how
+    // they stood. Guessing "one column each" would flatten a page whose columns were never
+    // what the restore was about, so the absence has to mean "leave it".
+    $db = adminSite('sqlite');
+    $registry = blockRegistry();
+    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'hero', 'content' => ['heading' => 'Hi']]]);
+    $db->query(
+        'INSERT INTO page_revisions (page_id, data_json, created_at) VALUES (?, ?, ?)',
+        [$id, json_encode([
+            'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+            'blocks' => [['id' => blockIdsInOrder($db, $id)[0], 'type' => 'hero', 'content' => ['heading' => 'Older'], 'style' => [], 'layout' => '']],
+        ], JSON_THROW_ON_ERROR), gmdate('Y-m-d H:i:s')],
+    );
+
+    $newest = App\Modules\Pages\PageRevision::all($db, $id)[0];
+    $revision = App\Modules\Pages\PageRevision::find($db, $registry, $id, $newest['id']) ?? fail('the revision is gone');
+    assertEquals(null, $revision['sections'], 'an old revision claimed to know the arrangement');
+    assertTrue(is_string($revision['blocks'][0]['section']), 'a block from an old revision has no band to go to');
+});

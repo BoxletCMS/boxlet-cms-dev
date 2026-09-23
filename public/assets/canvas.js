@@ -273,12 +273,23 @@
     if (old) {
       old.remove();
     }
+    /* A SELECTED BAND HAS ITS OWN FOUR (PLAN.md D-102), and they are the same four: move it,
+       copy it, take it away. What differs is what they act on — a band and everything
+       standing in it — so they are named apart and the builder can tell them from a block's.
+       A band and a block are never both selected, so one bar is drawn either way. */
+    var band = document.querySelector('.bx-band-selected');
     var list = blocks();
     var index = list.findIndex(function (section) { return section.classList.contains('bx-selected'); });
-    if (index < 0) {
+    if (index < 0 && band === null) {
       return;
     }
-    var section = list[index];
+    var bands = Array.prototype.filter.call(main.children, function (node) {
+      return node.tagName === 'SECTION';
+    });
+    var section = index < 0 ? band : list[index];
+    var at = index < 0 ? bands.indexOf(band) : index;
+    var of = index < 0 ? bands : list;
+    var prefix = index < 0 ? 'band-' : '';
     var labels = (document.body.getAttribute('data-block-labels') || 'Move up|Move down|Duplicate|Remove').split('|');
     var sprite = document.body.getAttribute('data-icons') || '';
     var tools = document.createElement('div');
@@ -288,11 +299,11 @@
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'bx-tool' + (pair[0] === 'remove' ? ' bx-tool-danger' : '');
-      button.setAttribute('data-block-action', pair[0]);
+      button.setAttribute('data-block-action', prefix + pair[0]);
       button.setAttribute('aria-label', labels[i]);
       button.title = labels[i];
       // At the ends there is nowhere to move to: shown, and shown as unavailable.
-      if ((pair[0] === 'up' && index === 0) || (pair[0] === 'down' && index === list.length - 1)) {
+      if ((pair[0] === 'up' && at === 0) || (pair[0] === 'down' && at === of.length - 1)) {
         button.disabled = true;
       }
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

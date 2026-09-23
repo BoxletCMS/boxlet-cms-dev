@@ -237,8 +237,13 @@ return [
     'pages.panel.section' => 'Section',
     // The panel's heading when a BAND is what is selected rather than a block (D-101).
     'pages.panel.band' => 'Section',
+    // And a column, for the breadcrumb over the canvas: Section 2 › Column 1 › Text.
+    'pages.panel.column' => 'Column',
     'pages.undo' => 'Undo',
     'pages.removed' => ':block removed.',
+    // A whole band taken away, with everything standing in it — which is why it says so
+    // rather than naming one block (D-102).
+    'pages.band_removed' => 'Section removed, with everything in it.',
     'pages.inserting' => 'Adding…',
     'pages.insert_failed' => 'The block could not be added. Check your connection and try again.',
 

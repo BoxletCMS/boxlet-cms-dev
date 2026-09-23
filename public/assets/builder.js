@@ -113,6 +113,7 @@
     if (api.markOutline) {
       api.markOutline(-1);
     }
+    trail(-1, key);
     api.tellCanvas('band', { key: key });
   };
 
@@ -164,6 +165,7 @@
       group.setAttribute('data-block-group', String(index));
     });
     api.dirty = true;
+    orderBands();
     // The outline is a third view of the same page and is rebuilt wherever the other two
     // are (D-100). Guarded because it is a separate file and may not have loaded — and
     // because the plain editor has no outline at all.
@@ -171,6 +173,48 @@
       api.drawOutline();
     }
   };
+
+  /**
+   * THE BANDS' FIELD GROUPS, PUT IN THE PAGE'S ORDER (PLAN.md D-102).
+   *
+   * Page::update() writes the sections in the order they are SUBMITTED, and that order is
+   * the order these groups stand in the form. A band added in the middle of the page had
+   * its group appended at the end — so the canvas said middle, the outline said middle, and
+   * the save said last. Three views, two answers.
+   *
+   * DERIVED RATHER THAN MAINTAINED. The canvas is where a band's place on the page actually
+   * is, so the order is read from it after every structural change instead of every change
+   * being careful to insert in the right spot. Nothing is moved when nothing differs, which
+   * keeps the keyboard where it was.
+   */
+  function orderBands() {
+    var home = api.sectionGroups ? api.sectionGroups() : null;
+    if (!home) {
+      return;
+    }
+    var wanted = api.bands().map(function (band) {
+      return band.getAttribute('data-bx-section');
+    });
+    var groups = Array.prototype.slice.call(home.querySelectorAll('[data-section-group]'));
+    var has = groups.map(function (group) {
+      return group.getAttribute('data-section-group');
+    });
+    // A band the canvas has not drawn yet — it loads in its own time — keeps its place.
+    has.forEach(function (key) {
+      if (wanted.indexOf(key) < 0) {
+        wanted.push(key);
+      }
+    });
+    if (wanted.join('|') === has.join('|')) {
+      return;
+    }
+    wanted.forEach(function (key) {
+      var group = home.querySelector('[data-section-group="' + key + '"]');
+      if (group) {
+        home.appendChild(group);
+      }
+    });
+  }
 
   /*
    * CONTENT AND SECTION (PLAN.md D-086).
@@ -224,6 +268,61 @@
       }
     });
     showTab('content');
+  }
+
+  /**
+   * WHERE YOU ARE, in words (PLAN.md D-102): Section 2 › Column 1 › Text.
+   *
+   * A page used to be a list of blocks, and the block under the cursor said everything there
+   * was to say about where it stood. On a page of bands and columns it does not: the same
+   * block can be the whole of one band or one of four things in another, and nothing on the
+   * screen said which. The column is named only where there is more than one, because
+   * "Column 1" under a band of one is a level of nothing — the same rule the outline follows.
+   */
+  function trail(index, bandKey) {
+    var strip = form.querySelector('[data-trail]');
+    if (!strip) {
+      return;
+    }
+    var group = index >= 0 ? groups.querySelector('[data-block-group="' + index + '"]') : null;
+    var key = bandKey || (group ? group.getAttribute('data-section-key') : null);
+    if (key === null) {
+      strip.hidden = true;
+      strip.textContent = '';
+
+      return;
+    }
+    var at = 0;
+    var bands = api.bands();
+    bands.forEach(function (band, n) {
+      if (band.getAttribute('data-bx-section') === key) {
+        at = n;
+      }
+    });
+    var parts = [(form.getAttribute('data-text-band') || 'Section') + ' ' + (at + 1)];
+    if (group) {
+      var band = bands[at];
+      var columns = band ? band.querySelectorAll('.section-column').length : 0;
+      if (columns > 1) {
+        var column = Number((group.querySelector('[data-block-column]') || {}).value || 0);
+        parts.push((form.getAttribute('data-text-column') || 'Column') + ' ' + (column + 1));
+      }
+      var labelled = group.querySelector('[data-block-label]');
+      if (labelled) {
+        parts.push(labelled.getAttribute('data-block-label'));
+      }
+    }
+    strip.hidden = false;
+    strip.textContent = '';
+    parts.forEach(function (part, n) {
+      if (n > 0) {
+        strip.appendChild(document.createTextNode(' \u203A '));
+      }
+      // The last part is what is selected; the ones before it are where it stands.
+      var piece = n === parts.length - 1 ? document.createElement('strong') : document.createElement('span');
+      piece.textContent = part;
+      strip.appendChild(piece);
+    });
   }
 
   api.show = function (index) {
@@ -284,6 +383,7 @@
         field.focus({ preventScroll: true });
       }
     }
+    trail(index, null);
   };
 
   // Keys pair a section with its field group and survive reordering, so a drag in the

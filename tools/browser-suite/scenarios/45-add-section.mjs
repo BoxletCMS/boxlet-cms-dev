@@ -68,14 +68,67 @@ export default {
       JSON.stringify(controls));
     await report.shot(page, '01-controls');
 
-    const before = await frame.evaluate(() => document.querySelectorAll('[data-bx-blocks] > section').length);
+    // ---- a band's own four, before anything is added ---------------------------------
+    //
+    // The same four a block has, acting on the band and everything standing in it. Nothing
+    // is saved here: what these move is the editor's own three views of the page, and if
+    // they part the save cannot be right whatever it writes.
+    const order = () => page.evaluate(() => ({
+      canvas: [...document.querySelector('iframe[data-canvas]').contentDocument
+        .querySelectorAll('[data-bx-section]')].map((b) => b.getAttribute('data-bx-section')).join(' '),
+      groups: [...document.querySelectorAll('[data-section-group]')]
+        .map((g) => g.getAttribute('data-section-group')).join(' '),
+      blocks: document.querySelectorAll('[data-block-group]').length,
+      outline: [...document.querySelectorAll('[data-outline-section]')]
+        .map((r) => r.getAttribute('data-outline-section')).join(' '),
+    }));
+    await page.evaluate(() => document.querySelectorAll('[data-outline-section]')[2].click());
+    await wait(SETTLE);
+    const tools = await frame.evaluate(() => [...document.querySelectorAll('.bx-tools [data-block-action]')]
+      .map((b) => b.getAttribute('data-block-action')));
+    report.verdict('a selected band has its own move, copy and remove',
+      tools.join(' ') === 'band-up band-down band-duplicate band-remove', JSON.stringify(tools));
 
-    // ---- add one at the end ----------------------------------------------------------
-    await frame.evaluate(() => {
-      const all = [...document.querySelectorAll('.bx-insert')];
-      all[all.length - 1].click();
-    });
+    const start = await order();
+    await frame.click('[data-block-action="band-up"]');
+    await wait(SETTLE);
+    const moved = await order();
+    await frame.click('[data-block-action="band-duplicate"]');
     await wait(SETTLE * 2);
+    const copied = await order();
+    await frame.click('[data-block-action="band-remove"]');
+    await wait(SETTLE);
+    const gone = await order();
+
+    report.verdict('moving a band moves it in all three views at once',
+      moved.canvas !== start.canvas && moved.canvas === moved.groups && moved.canvas === moved.outline,
+      JSON.stringify(moved));
+    report.verdict('copying a band copies what stands in it, beside it',
+      copied.blocks === start.blocks + 1 && copied.canvas === copied.groups
+        && copied.canvas.split(' ').length === start.canvas.split(' ').length + 1,
+      JSON.stringify(copied));
+    report.verdict('removing a band takes everything in it and leaves the rest',
+      gone.canvas === moved.canvas && gone.groups === moved.groups && gone.blocks === start.blocks,
+      JSON.stringify(gone));
+
+    // Put the order back, so what follows starts from the page as it is stored.
+    await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+    await ready(page);
+
+    const after = page.frames().find((f) => f.url().includes('/canvas'));
+    const before = await after.evaluate(() => document.querySelectorAll('[data-bx-blocks] > section').length);
+
+    /* ---- add one IN THE MIDDLE, which is where the order can go wrong ----------------
+       Page::update() writes the bands in the order they are submitted, and that is the
+       order their field groups stand in the form. Adding at the END cannot tell a right
+       answer from a wrong one; adding in the middle can, and did: the canvas said middle,
+       the outline said middle and the save said last (D-102). */
+    await after.click('.bx-insert[data-insert-at="2"]');
+    await wait(SETTLE * 2);
+
+    const placed = await order();
+    report.verdict('the canvas and the form agree where the new band stands',
+      placed.canvas === placed.groups && placed.canvas === placed.outline, JSON.stringify(placed));
 
     const added = await page.evaluate((was) => {
       const doc = document.querySelector('iframe[data-canvas]').contentDocument;
@@ -107,13 +160,16 @@ export default {
     });
     await wait(SETTLE * 2);
 
-    const band = await frame.evaluate(() => {
-      const last = [...document.querySelectorAll('[data-bx-section]')].pop();
+    const band = await after.evaluate(() => {
+      // The band this check added, by its key: it is the third on the page, and saying
+      // "the third" would stop being true the moment anything else moved.
+      const mine = [...document.querySelectorAll('[data-bx-section]')]
+        .find((b) => /^m[0-9]+$/.test(b.getAttribute('data-bx-section')));
       const slot = [...document.querySelectorAll('.bx-slot')]
-        .find((s) => s.getAttribute('data-insert-into') === last.getAttribute('data-bx-section'));
+        .find((s) => s.getAttribute('data-insert-into') === mine.getAttribute('data-bx-section'));
       if (slot) { slot.click(); }
 
-      return { key: last.getAttribute('data-bx-section'), columns: last.querySelectorAll('.section-column').length };
+      return { key: mine.getAttribute('data-bx-section'), columns: mine.querySelectorAll('.section-column').length };
     });
     report.verdict('the new section takes the shape it is given', band.columns === 2, JSON.stringify(band));
     await wait(900);
@@ -139,16 +195,18 @@ export default {
     const live = await page.goto(`${BASE}/about`, { waitUntil: 'networkidle2' })
       .then(() => page.evaluate((words) => {
         const bands = [...document.querySelectorAll('main > section')];
-        const last = bands[bands.length - 1];
+
+        const mine = bands.findIndex((b) => b.textContent.includes(words));
 
         return {
           bands: bands.length,
-          words: document.body.textContent.includes(words),
-          columns: last ? last.querySelectorAll('.section-column').length : 0,
+          at: mine,
+          words: mine >= 0,
+          columns: mine >= 0 ? bands[mine].querySelectorAll('.section-column').length : 0,
         };
       }, MARKER));
-    report.verdict('the visitor gets the section that was added, with its columns',
-      live.words && live.columns === 2, JSON.stringify(live));
+    report.verdict('the visitor gets the section that was added, where it was added',
+      live.words && live.columns === 2 && live.at === 2 && live.bands === 7, JSON.stringify(live));
 
     // ---- and the page is put back ----------------------------------------------------
     await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });

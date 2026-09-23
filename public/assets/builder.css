@@ -348,3 +348,20 @@ button.outline-row:focus-visible {
     display: none;
   }
 }
+
+/* WHERE YOU ARE, over the page (PLAN.md D-102).
+
+   At the top of the canvas column rather than inside the frame: the frame is the visitor's
+   document and the editor writes nothing into it. It sits above the page rather than over
+   it, so it never covers the first band — which is the one thing a person looks at most. */
+.builder-trail {
+  margin: 0 0 var(--ui-2);
+  padding: var(--ui-1) var(--ui-2);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-ink-muted);
+}
+
+.builder-trail strong {
+  font-weight: 600;
+  color: var(--ui-ink);
+}

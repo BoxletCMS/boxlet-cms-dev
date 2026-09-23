@@ -562,7 +562,133 @@
     });
   }
 
+  /**
+   * THE FOUR THINGS YOU CAN DO TO A WHOLE BAND (PLAN.md D-102).
+   *
+   * The same four a block has, acting on the band and everything standing in it. A band is
+   * three things at once — an element on the canvas, a group of fields, and the blocks it
+   * holds — so each of these has to move all three, and the block groups have to move as a
+   * RUN: they are contiguous in the form because the form is in the page's reading order.
+   */
+  function actOnBand(action) {
+    var doc = api.frame.contentDocument;
+    var key = api.band;
+    var band = doc && key ? doc.querySelector('[data-bx-section="' + key + '"]') : null;
+    var group = key ? document.querySelector('[data-section-group="' + key + '"]') : null;
+    if (!band || !group) {
+      return;
+    }
+    var mine = api.groupNodes().filter(function (candidate) {
+      return candidate.getAttribute('data-section-key') === key;
+    });
+
+    if (action === 'band-remove') {
+      api.commit(api.panel.getAttribute('data-text-band-removed') || '');
+      band.remove();
+      group.remove();
+      mine.forEach(function (candidate) {
+        candidate.remove();
+      });
+      api.renumber();
+      api.tellCanvas('refresh', {});
+      api.show(-1);
+
+      return;
+    }
+
+    if (action === 'band-duplicate') {
+      api.commit();
+      var freshKey = window.boxletBlocks ? window.boxletBlocks.mintSection() : 'm0';
+      var bandCopy = band.cloneNode(true);
+      bandCopy.setAttribute('data-bx-section', freshKey);
+      bandCopy.classList.remove('bx-band-selected');
+      var groupCopy = group.cloneNode(true);
+      groupCopy.setAttribute('data-section-group', freshKey);
+      groupCopy.hidden = true;
+      if (window.boxletBlocks) {
+        window.boxletBlocks.name(groupCopy, 'n0', freshKey);
+      }
+      api.sectionGroups().appendChild(groupCopy);
+
+      /* EVERY BLOCK IN IT COPIED TOO, each with a key of its own and no id — an id would
+         make the save write over the block this was copied FROM. The same rule the block
+         duplicate follows, applied once per block, and in the order they stand. */
+      var drawn = bandCopy.querySelectorAll('.section-column > *');
+      var inside = drawn.length === 0 ? [bandCopy] : Array.prototype.slice.call(drawn);
+      mine.forEach(function (candidate, at) {
+        var copy = candidate.cloneNode(true);
+        var freshBlock = window.boxletBlocks ? window.boxletBlocks.mint() : 'n0';
+        copy.hidden = true;
+        copy.setAttribute('data-section-key', freshKey);
+        copy.setAttribute('data-block-key', freshBlock);
+        copy.querySelectorAll('[name$="[id]"]').forEach(function (field) {
+          field.remove();
+        });
+        if (window.boxletBlocks) {
+          window.boxletBlocks.name(copy, freshBlock, freshKey);
+        }
+        if (api.unsetLive) {
+          api.unsetLive(copy);
+        }
+        api.groups.appendChild(copy);
+        if (inside[at]) {
+          inside[at].setAttribute('data-bx-key', freshBlock);
+          inside[at].classList.remove('bx-selected');
+        }
+      });
+
+      band.after(bandCopy);
+      api.renumber();
+      if (window.boxletRichText) {
+        window.boxletRichText.scan(api.groups);
+      }
+      if (window.boxletPicker) {
+        window.boxletPicker.scan(api.groups);
+      }
+      api.tellCanvas('refresh', {});
+      api.selectBand(freshKey);
+
+      return;
+    }
+
+    var bands = api.bands();
+    var was = bands.indexOf(band);
+    var to = action === 'band-up' ? was - 1 : was + 1;
+    if (to < 0 || to >= bands.length) {
+      return;
+    }
+    api.commit();
+    if (action === 'band-up') {
+      bands[to].before(band);
+    } else {
+      bands[to].after(band);
+    }
+    /* THE FIELD GROUPS FOLLOW, AND ARE NOT MOVED BY HAND. renumber() puts the band groups
+       into the canvas's order (D-102), and the block groups are re-read from it too — so a
+       move is one statement about the page and the rest is derived. */
+    var after = api.bands();
+    var order = [];
+    after.forEach(function (one) {
+      api.groupNodes().forEach(function (candidate) {
+        if (candidate.getAttribute('data-section-key') === one.getAttribute('data-bx-section')) {
+          order.push(candidate);
+        }
+      });
+    });
+    order.forEach(function (candidate) {
+      api.groups.appendChild(candidate);
+    });
+    api.renumber();
+    api.tellCanvas('refresh', {});
+    api.selectBand(key);
+  }
+
   function act(action) {
+    if (action.indexOf('band-') === 0) {
+      actOnBand(action);
+
+      return;
+    }
     var index = api.selected();
     var group = api.groups.querySelector('[data-block-group="' + index + '"]');
     var section = api.sections()[index];

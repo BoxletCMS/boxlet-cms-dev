@@ -66,7 +66,7 @@ foreach ($errors as $key => $message) {
                  (D-081). It is absent after a rejected save and after a repeater's own
                  controls, where the fields hold submitted work the database has never seen. */ ?>
         <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="builder" data-builder<?= $fromStorage ? ' data-blocks-stored' : '' ?>
-                  data-text-band="<?= e(t('pages.panel.band')) ?>">
+                  data-text-band="<?= e(t('pages.panel.band')) ?>" data-text-column="<?= e(t('pages.panel.column')) ?>">
             <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <?php /* Tells the save endpoint which editor to re-render if validation fails. */ ?>
@@ -122,6 +122,14 @@ foreach ($errors as $key => $message) {
 <?php require __DIR__ . '/outline.php'; ?>
 
                 <div class="builder-canvas" data-canvas-frame>
+                    <?php /* WHERE YOU ARE, over the page rather than in the panel (D-102):
+                             "Section 2 › Column 1 › Text". The canvas is where you are
+                             looking, and on a page of bands and columns the block under the
+                             cursor no longer says by itself what it is part of. Empty until
+                             something is selected, and not rendered at all without a script,
+                             which is the rule every other live thing here follows. */ ?>
+                    <p class="builder-trail js-only" data-trail hidden></p>
+
                     <iframe src="<?= e($canvasUrl) ?>" title="<?= e(t('pages.canvas')) ?>" data-canvas></iframe>
 
                     <?php /* A WAY BACK, IN WORDS, AFTER THE ONE ACTION THAT DESTROYS WORK
@@ -141,7 +149,7 @@ foreach ($errors as $key => $message) {
                 <?php /* data-hints-root sits here rather than on the selected-block panel because the
          field groups are its SIBLING, and the rule that hides a hint has to reach
          them (D-087). */ ?>
-                <aside class="builder-panel" data-hints-root="builder" data-insert-url="<?= e($insertUrl) ?>" data-band-url="<?= e($bandUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>">
+                <aside class="builder-panel" data-hints-root="builder" data-insert-url="<?= e($insertUrl) ?>" data-band-url="<?= e($bandUrl) ?>" data-text-inserting="<?= e(t('pages.inserting')) ?>" data-text-failed="<?= e(t('pages.insert_failed')) ?>" data-text-removed="<?= e(t('pages.removed')) ?>" data-text-band-removed="<?= e(t('pages.band_removed')) ?>">
 <?php if ($translation['stale'] !== [] || $translation['missing'] > 0): ?>
                     <?php /* A translation behind its source says so before anything else
                              (D-043, step 3); each stale block also carries its own mark. */ ?>

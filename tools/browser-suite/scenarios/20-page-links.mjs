@@ -164,12 +164,18 @@ export default {
     report.verdict('the address input steps aside in the panel too', inputHidden, inputHidden ? 'hidden' : 'shown');
     report.verdict('the rich text stores a page reference', stored.includes(`href="${option.value}"`),
       `stored: ${stored.slice(0, 160)}`);
+    /* MORE THAN BEFORE, NOT EXACTLY ONE MORE — changed deliberately, and the old rule was
+       wrong rather than merely stale. Ctrl+A selects the whole field, and a link applied
+       across a selection spanning two paragraphs is TWO anchors, which is what TipTap should
+       do and does: an <a> cannot contain a <p>. The block this scenario finds has a
+       two-paragraph body, so "+1" could never hold for it. What the check is actually for is
+       the line below it: the canvas draws the RESOLVED ADDRESS and never the stored
+       `page:n`. That is asserted over every anchor rather than over a count. */
+    const added = richHrefs.filter((h) => h === '/services').length
+      - before.filter((h) => h === '/services').length;
     report.verdict('the canvas draws the rich text link with the page\'s address',
-      // One more link to the page than before, rather than "none before": on the development
-      // site the owner's own text in this section already links to /services.
-      richHrefs.filter((h) => h === '/services').length === before.filter((h) => h === '/services').length + 1
-        && !richHrefs.some((h) => h.startsWith('page:')),
-      `hrefs in the section before: ${JSON.stringify(before)}, after: ${JSON.stringify(richHrefs)}`);
+      added > 0 && !richHrefs.some((h) => h.startsWith('page:')),
+      `${added} link(s) to /services added; before ${JSON.stringify(before)}, after ${JSON.stringify(richHrefs)}`);
 
     // Reopen on the link: the panel should come back on the page, not on "page:n" typed.
     await page.click(`${rich} .ProseMirror a`);

@@ -41,6 +41,25 @@ export default {
       await page.select('#page-template', '');
       await clickAndWait(page, 'form.panel button[type="submit"]');
       pageId = Number((page.url().match(/\/admin\/pages\/(\d+)$/) || [])[1]) || null;
+      /* A BAND FIRST, THEN THE BLOCK (PLAN.md D-099, the owner's own choice: "prvo raspored,
+         pa + u prazan stupac"). This pressed the library card straight away, which worked
+         while every added block quietly brought a band with it. Since D-101 a card with
+         nothing aimed at does nothing — deliberately — and a brand-new page offers exactly
+         one control: + Section. Measured on an empty page: 0 bands, one .bx-insert, and
+         pressing the card added nothing at all. */
+      await page.waitForFunction(() => {
+        const doc = document.querySelector('iframe[data-canvas]');
+        return doc && doc.contentDocument && doc.contentDocument.querySelector('.bx-insert');
+      }, { timeout: 20000 });
+      const canvas = page.frames().find((f) => f.url().includes('/canvas'));
+      await canvas.click('.bx-insert');
+      await wait(2500);
+      // Then AIM: the new band's column offers one "+ Block", and the library card fills
+      // whatever is aimed at. Measured on an empty page — + Section gives one band with one
+      // slot (m0/0), and only after pressing it does a card add anything.
+      const aimed = page.frames().find((f) => f.url().includes('/canvas'));
+      await aimed.click('.bx-slot');
+      await wait(1200);
       await page.click('[data-add-type="form"]');
       await wait(1500);
       const group = await page.evaluate(() => {

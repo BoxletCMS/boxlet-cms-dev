@@ -125,6 +125,11 @@ export default {
         .map((c) => c.getAttribute('data-add-type')).sort(),
       none: !document.querySelector('[data-library-none]').hidden,
       shelves: [...document.querySelectorAll('[data-library-group]')].map((b) => b.textContent.trim()),
+      // The slugs, beside the names: the rule is about which shelves EXIST, and a name is
+      // translated while a slug is what the block wrote down.
+      slugs: [...document.querySelectorAll('[data-library-group]')].map((b) => b.getAttribute('data-library-group')),
+      // And what the cards themselves say they stand on, which is the other half of it.
+      groups: [...new Set([...document.querySelectorAll('.library-card')].map((c) => c.getAttribute('data-group')))].sort(),
     }));
     const all = await shown();
     await page.click('[data-library-group="media"]');
@@ -143,9 +148,19 @@ export default {
     });
     await wait(400);
 
-    report.verdict('the library offers only the shelves its blocks actually stand on',
-      all.shelves[0] === 'All' && all.shelves.length > 1 && !all.shelves.includes('Embed'),
-      JSON.stringify(all.shelves));
+    /* THE SHELVES ARE EXACTLY THE ONES THE CARDS STAND ON.
+       Until D-105 this was proved by naming the shelf nothing stood on — Embed — and
+       checking it was absent. The Embed block then arrived and every one of the five had a
+       block, so the witness was gone and the check went red without anything being wrong.
+       Comparing the two lists proves the same rule and needs no shelf to be empty: it would
+       still fail if the library offered a shelf no card claims, or hid one that a card
+       does. Compared as SETS: the buttons come in the order the closed set declares and the
+       cards in whatever order the library draws them, and neither order is the rule. */
+    report.verdict('the library offers exactly the shelves its blocks stand on, and All',
+      all.shelves[0] === 'All' && all.slugs[0] === ''
+        && [...all.slugs.slice(1)].sort().join(',') === all.groups.join(',')
+        && all.groups.length > 1,
+      `shelves ${JSON.stringify(all.slugs)} vs the cards' own ${JSON.stringify(all.groups)}`);
     report.verdict('a shelf narrows the same cards, and a filter that matches nothing says so',
       onlyMedia.cards.length > 0 && onlyMedia.cards.length < all.cards.length
         && !onlyMedia.none && nothing.cards.length === 0 && nothing.none,

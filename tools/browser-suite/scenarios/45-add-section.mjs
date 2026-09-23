@@ -116,6 +116,9 @@ export default {
     await ready(page);
 
     const after = page.frames().find((f) => f.url().includes('/canvas'));
+    // COUNTED, NOT WRITTEN DOWN: this scenario said "6" until D-105 put four more blocks on
+    // the About page, and went red with nothing wrong. What it is checking is a DIFFERENCE
+    // — one band more, then none — so the number it starts from is the page's own.
     const before = await after.evaluate(() => document.querySelectorAll('[data-bx-blocks] > section').length);
 
     /* ---- add one IN THE MIDDLE, which is where the order can go wrong ----------------
@@ -173,9 +176,10 @@ export default {
     });
     report.verdict('the new section takes the shape it is given', band.columns === 2, JSON.stringify(band));
     await wait(900);
-    await page.$$eval('.panel-library button', (buttons) => {
-      const text = buttons.find((b) => b.textContent.trim().toLowerCase().startsWith('text'));
-      if (text) { text.click(); }
+    // By what the card IS: "text" also names a shelf since D-104, and picking by words took
+    // the filter instead of the block (see the note in 44-sections).
+    await page.$$eval('.panel-library [data-add-type="text"]', (cards) => {
+      if (cards.length === 1) { cards[0].click(); }
     });
     await wait(SETTLE * 2);
 
@@ -206,7 +210,7 @@ export default {
         };
       }, MARKER));
     report.verdict('the visitor gets the section that was added, where it was added',
-      live.words && live.columns === 2 && live.at === 2 && live.bands === 7, JSON.stringify(live));
+      live.words && live.columns === 2 && live.at === 2 && live.bands === before + 1, JSON.stringify(live));
 
     // ---- and the page is put back ----------------------------------------------------
     await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
@@ -238,7 +242,7 @@ export default {
         words: document.body.textContent.includes(words),
       }), MARKER));
     report.verdict('the scenario puts the page back',
-      cleaned.length === 0 && !back.words && back.bands === 6,
+      cleaned.length === 0 && !back.words && back.bands === before,
       `${JSON.stringify(back)} ${JSON.stringify(cleaned)}`);
   },
 };

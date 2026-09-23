@@ -81,9 +81,14 @@ export default {
         && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
     }, { timeout: 20000 });
 
-    // ---- the page outline, which is how you see the tree at all ----------------------
+    /* ---- the page outline, which is how you see the tree at all ---------------------
+       COUNTED FROM THE CANVAS, NOT WRITTEN DOWN. This said "6 and 6" until D-105 put four
+       more blocks on the About page and the check went red with nothing wrong. A literal
+       here was never the rule anyway: "the outline lists EVERY band and EVERY block" is a
+       statement about two views agreeing, and comparing them says it exactly. */
     const outline = await page.evaluate(() => {
       const rail = document.querySelector('[data-outline]');
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
       if (!rail) { return null; }
 
       return {
@@ -91,12 +96,17 @@ export default {
         blocks: rail.querySelectorAll('[data-outline-block]').length,
         count: (rail.querySelector('[data-outline-count]') || {}).textContent,
         painted: rail.getBoundingClientRect().width > 100,
+        onCanvas: doc.querySelectorAll('[data-bx-section]').length,
+        blocksOnCanvas: doc.querySelectorAll('.section-column > *').length,
       };
     });
     report.verdict('the page outline lists every band and every block',
-      outline !== null && outline.sections === 6 && outline.blocks === 6
-        && outline.count.trim() === '6 / 6' && outline.painted,
+      outline !== null && outline.sections > 1 && outline.sections === outline.onCanvas
+        && outline.blocks === outline.blocksOnCanvas
+        && outline.count.trim() === `${outline.blocks} / ${outline.sections}` && outline.painted,
       JSON.stringify(outline));
+    // What the page holds before anything is added, for the checks below and the cleanup.
+    const started = outline === null ? 0 : outline.sections;
 
     // Pressing a row reaches the block: the thing an outline is FOR on a long page.
     const reached = await page.evaluate(() => {
@@ -195,7 +205,7 @@ export default {
       };
     });
     report.verdict('choosing two columns rearranges the canvas without a save',
-      rearranged.cols === 1 && rearranged.slot === 1 && rearranged.selected === 1 && rearranged.keys === 6,
+      rearranged.cols === 1 && rearranged.slot === 1 && rearranged.selected === 1 && rearranged.keys === started,
       JSON.stringify(rearranged));
 
     // Nothing above is saved; the page is reloaded so the rest starts from what is stored.
@@ -248,10 +258,15 @@ export default {
     const frame = page.frames().find((f) => f.url().includes('/canvas'));
     await frame.click(`.bx-slot[data-insert-into="${arranged.slot.into}"][data-insert-column="1"]`);
     await wait(600);
-    const took = await page.$$eval('.panel-library button', (buttons) => {
-      const text = buttons.find((b) => b.textContent.trim().toLowerCase().startsWith('text'));
-      if (!text) { return false; }
-      text.click();
+    /* BY WHAT THE CARD IS, NOT BY WHAT IT SAYS. This read the library's buttons and took the
+       first whose words began with "text" — which was the Text card until D-104 put a row of
+       SHELVES above the cards, one of them named Text, and D-105 gave that shelf a block so
+       it is always offered. The scenario then pressed the filter, no block was added, and
+       the failure appeared three verdicts later as "the block landed in the wrong column".
+       data-add-type is what the card is; the words are what it is called. */
+    const took = await page.$$eval('.panel-library [data-add-type="text"]', (cards) => {
+      if (cards.length !== 1) { return false; }
+      cards[0].click();
 
       return true;
     });
@@ -373,7 +388,7 @@ export default {
         sections: document.querySelectorAll('main > section').length,
       })));
     report.verdict('the scenario puts the page back',
-      notices.length === 0 && back.columns === 0 && !back.words && back.sections === 6,
+      notices.length === 0 && back.columns === 0 && !back.words && back.sections === started,
       `${JSON.stringify(back)} ${JSON.stringify(notices)}`);
   },
 };

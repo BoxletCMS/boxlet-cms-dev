@@ -73,6 +73,8 @@ export default {
     const frame = page.frames().find((f) => f.url().includes('/canvas'));
 
     // EVERY BAND HAS A COLUMN TO DROP INTO, which is what the editor's own shape is for.
+    // The counts are the page's own: this scenario carried a literal 6 until D-105 put four
+    // more blocks on the About page, and went red with nothing wrong.
     const shape = await frame.evaluate(() => ({
       bands: document.querySelectorAll('[data-bx-section]').length,
       columns: document.querySelectorAll('.section-column').length,
@@ -170,7 +172,7 @@ export default {
         bands: document.querySelectorAll('main > section').length,
       })));
     report.verdict('the scenario puts the page back',
-      cleaned.length === 0 && back.columns === 0 && back.bands === 6,
+      cleaned.length === 0 && back.columns === 0 && back.bands === shape.bands,
       `${JSON.stringify(back)} ${JSON.stringify(cleaned)}`);
   },
 };

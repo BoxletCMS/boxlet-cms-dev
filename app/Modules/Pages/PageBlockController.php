@@ -109,7 +109,13 @@ final class PageBlockController
                 $block['layout'],
                 MediaPicture::forBlocks($this->db(), $registry, $locale, [$block]),
                 false,
-                'section',
+                /* A BLOCK GOING INTO A COLUMN IS NOT A BAND (PLAN.md D-099). The band
+                   around it already draws the surface, the rhythm and the container, so
+                   what comes back is the block's own wrapper and nothing else — exactly
+                   what SectionRender::draw() renders for a section holding more than one.
+                   Asked for by the presence of a column, which is the only thing the
+                   browser knows at the moment it presses a + in an empty one. */
+                $request->input('column') === '' ? 'section' : 'none',
                 // The form this block shows, drawn as a visitor sees it (D-046).
                 ['forms' => FormBlocks::resolve($this->db(), [$block], (string) $page['locale'], null, (string) $this->container->get('config')->get('app.key'))],
                 (string) $page['locale'],

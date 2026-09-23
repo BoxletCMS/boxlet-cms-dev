@@ -24,10 +24,40 @@
 
   var counter = 0;
 
+  /**
+   * EVERY BLOCK ON THE PAGE, in the order the page reads (PLAN.md D-099).
+   *
+   * A band holding one block IS that block — the same <section> element it has always
+   * been — so on every page written before columns existed this returns exactly what it
+   * used to, and nothing about selection, the tools or the pairing with the form changes.
+   * A band with columns holds its blocks in `.section-column`, and those are what a person
+   * clicks, selects and moves.
+   *
+   * IT HAD TO BE THIS AND NOT THE BANDS. While this returned bands, clicking a block in
+   * the second column selected the band — which pairs with the band's FIRST block — so
+   * pressing Remove deleted the wrong one. It did, on the copy, twice.
+   *
+   * Column before place down the column, which is the order Page::blocks() reads them in:
+   * a column is finished before the next one starts, the way a newspaper is read.
+   */
   function blocks() {
-    return Array.prototype.filter.call(main.children, function (node) {
-      return node.tagName === 'SECTION';
+    var found = [];
+    Array.prototype.forEach.call(main.children, function (node) {
+      if (node.tagName !== 'SECTION') {
+        return;
+      }
+      var inside = node.querySelectorAll('.section-column > *');
+      if (inside.length === 0) {
+        found.push(node);
+
+        return;
+      }
+      Array.prototype.forEach.call(inside, function (block) {
+        found.push(block);
+      });
     });
+
+    return found;
   }
 
   function tell(name, detail) {
@@ -85,13 +115,67 @@
     var parts = labels.split('|');
     var focused = focusedAction();
     overlay.textContent = '';
-    var list = blocks();
-    list.forEach(function (section, index) {
-      overlay.appendChild(insertButton(index, section.offsetTop, parts[0]));
+    /* THE + BETWEEN BANDS COUNTS BANDS, not blocks: what it adds is a band of its own, and
+       "before the third block" has no meaning when two of them stand side by side. The one
+       that adds a block INSIDE a band is the slot in an empty column, below. */
+    var bands = Array.prototype.filter.call(main.children, function (node) {
+      return node.tagName === 'SECTION';
     });
-    var last = list[list.length - 1];
-    overlay.appendChild(insertButton(list.length, last ? last.offsetTop + last.offsetHeight : 0, parts[1]));
+    bands.forEach(function (band, index) {
+      overlay.appendChild(insertButton(index, band.offsetTop, parts[0]));
+    });
+    var last = bands[bands.length - 1];
+    overlay.appendChild(insertButton(bands.length, last ? last.offsetTop + last.offsetHeight : 0, parts[1]));
+    drawSlots(parts[2] || parts[0]);
     drawTools(focused);
+  }
+
+  /**
+   * EVERY EMPTY COLUMN, DRAWN AS THE PLACE A BLOCK GOES (PLAN.md D-099).
+   *
+   * An arrangement nobody can see is not an arrangement: choosing "two columns" and getting
+   * one block beside a stretch of nothing says neither that a column is there nor that
+   * anything may be put in it. CLAUDE.md is explicit that no control is invisible at rest,
+   * and an empty column is a control.
+   *
+   * Positioned from getBoundingClientRect against the OVERLAY's own rect, not from
+   * offsetTop: a column sits inside a section that is position: relative, so its offset
+   * parent is the section and not whatever the overlay is measured against. The insert
+   * buttons above can use offsetTop because a section's offset parent IS that element.
+   */
+  function drawSlots(label) {
+    var box = overlay.getBoundingClientRect();
+    document.querySelectorAll('.section-column').forEach(function (column) {
+      if (column.children.length > 0) {
+        return;
+      }
+      var band = column.closest('[data-bx-section]');
+      var cols = column.parentNode;
+      if (!band || !cols) {
+        return;
+      }
+      var at = Array.prototype.indexOf.call(cols.children, column);
+      var rect = column.getBoundingClientRect();
+      var slot = document.createElement('button');
+      slot.type = 'button';
+      slot.className = 'bx-slot';
+      slot.setAttribute('data-insert-into', band.getAttribute('data-bx-section'));
+      slot.setAttribute('data-insert-column', String(at));
+      slot.setAttribute('aria-label', label);
+      slot.title = label;
+      slot.style.top = Math.round(rect.top - box.top) + 'px';
+      slot.style.left = Math.round(rect.left - box.left) + 'px';
+      slot.style.width = Math.round(rect.width) + 'px';
+      // An empty column has no content, so it has whatever height the grid row gives it —
+      // which beside a tall block is tall and beside a short one is nothing at all. A floor
+      // rather than a fixed size: the slot should follow the row it is in, and still be
+      // pressable when the row is one line high.
+      slot.style.height = Math.max(64, Math.round(rect.height)) + 'px';
+      var plus = document.createElement('span');
+      plus.textContent = '+';
+      slot.appendChild(plus);
+      overlay.appendChild(slot);
+    });
   }
 
   /**
@@ -182,8 +266,16 @@
      */
     overlay.appendChild(tools);
     var height = tools.offsetHeight;
-    tools.style.top = Math.round(Math.max(0, section.offsetTop - height / 2)) + 'px';
-    tools.style.left = Math.round(section.offsetLeft + section.offsetWidth - 12) + 'px';
+    /* MEASURED AGAINST THE OVERLAY, not read off offsetTop (D-099). A block standing in a
+       column has its band as its offset parent, so its offsetTop is its distance from the
+       band's top edge and not from the page's — the bar for the second column landed at the
+       top of the band, over the first column's words. A band that IS its block has the same
+       offset parent as the overlay, which is why this was right for as long as that was the
+       only shape there was. */
+    var box = overlay.getBoundingClientRect();
+    var rect = section.getBoundingClientRect();
+    tools.style.top = Math.round(Math.max(0, rect.top - box.top - height / 2)) + 'px';
+    tools.style.left = Math.round(rect.left - box.left + rect.width - 12) + 'px';
     if (focused !== null) {
       var again = tools.querySelector('[data-block-action="' + focused + '"]:not([disabled])');
       if (again) {
@@ -209,6 +301,17 @@
     if (insert) {
       event.preventDefault();
       tell('insert', { index: Number(insert.getAttribute('data-insert-at')) });
+      return;
+    }
+    // INTO A COLUMN, which is an address and not a position (D-099): which band, which of
+    // its columns. The parent turns it into a request to the insert endpoint.
+    var slot = event.target.closest && event.target.closest('[data-insert-into]');
+    if (slot) {
+      event.preventDefault();
+      tell('insert', {
+        section: slot.getAttribute('data-insert-into'),
+        column: Number(slot.getAttribute('data-insert-column')),
+      });
       return;
     }
     // Nothing in the canvas navigates: this is the page being edited, not browsed.

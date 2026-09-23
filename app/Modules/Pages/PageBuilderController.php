@@ -121,6 +121,17 @@ final class PageBuilderController
                 continue;
             }
             $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], (string) $page['locale']);
+            /* THE BAND SAYS WHICH BAND IT IS, for the editor only (D-099). The canvas draws
+               the visitor's markup and this is the one thing added to it: without a name on
+               the band, the + in an empty column has no way to say which column of which
+               section it is aiming at, and the editor would be back to counting positions —
+               which is what D-094 and D-098 took out of every other part of this. */
+            $drawn = (string) preg_replace(
+                '~^(\s*<section)\b~',
+                '$1 data-bx-section="' . e((string) $group['id']) . '"',
+                $drawn,
+                1,
+            );
             // THE BAND IS MARKED, not the block inside it (D-043 step 3). While a section
             // holds one block those are the same element and nothing changes; when it holds
             // several, "this translation has fallen behind" is a thing to say about the band

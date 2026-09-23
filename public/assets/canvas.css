@@ -199,3 +199,57 @@
 .bx-canvas [data-bx-stale] {
   box-shadow: inset 6px 0 0 #f0a020, inset 8px 0 0 #101a33;
 }
+
+/* AN EMPTY COLUMN, which has to be visible or the arrangement is a lie (PLAN.md D-099).
+
+   Choosing "two columns" and seeing one block and a stretch of nothing tells the author
+   neither that a column is there nor that anything can be put in it. CLAUDE.md's rule is
+   that no control is ever invisible at rest, and an empty column IS a control: it is the
+   place a block goes.
+
+   Drawn in the overlay like every other editor mark, never in the page: the canvas is the
+   visitor's markup and the editor does not write into it. So this is positioned over the
+   column's own box, which is why it needs a size rather than only a place. */
+.bx-slot {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The same two tones as .bx-insert above, and for the same reason: this floats over the
+     SITE's design, which can be any colour, so it cannot be legible by assuming a surface.
+     The dashed edge is drawn twice — ink inside, white outside — so one of the two always
+     clears against whatever is behind it. */
+  border: 2px dashed var(--bx-ink);
+  outline: 2px dashed #ffffff;
+  outline-offset: -4px;
+  border-radius: 0.5rem;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* The + inside it is the insert control itself, so it wears exactly what one wears. */
+.bx-slot > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  background: var(--bx-ink);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 999rem;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.bx-slot:hover,
+.bx-slot:focus-visible {
+  border-color: var(--bx-select);
+}
+
+.bx-slot:hover > span,
+.bx-slot:focus-visible > span {
+  background: var(--bx-select);
+  box-shadow: 0 0 0 2px var(--bx-ink);
+}

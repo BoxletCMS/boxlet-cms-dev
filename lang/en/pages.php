@@ -211,6 +211,7 @@ return [
     'pages.library_hint' => 'Each picture is the block as this site renders it.',
     'pages.insert_here' => 'Add a block here',
     'pages.insert_at_end' => 'Add a block at the end',
+    'pages.insert_in_column' => 'Add a block in this column',
     // What this page was before the last few saves (D-088).
     'pages.history' => 'Earlier versions',
     'pages.history_hint' => 'The last :count saves of this page. Restoring one is itself a save, so it can be undone.',

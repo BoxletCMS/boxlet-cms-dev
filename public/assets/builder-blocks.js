@@ -47,6 +47,8 @@
       return {
         canvas: holder.querySelector('template[data-block-canvas]'),
         fields: holder.querySelector('template[data-block-fields]'),
+        // The band this block arrives in, when it arrives as one of its own (D-099).
+        band: holder.querySelector('template[data-section-fields]'),
       };
     });
   }
@@ -61,21 +63,36 @@
        programming mistake. */
     var key = group.getAttribute('data-block-key');
     if (key && window.boxletBlocks) {
-      window.boxletBlocks.name(group, key);
+      // The band it was already given, if it has one: minting a second key here would name
+      // the group's fields for one band and the band's own group for another (D-099).
+      window.boxletBlocks.name(group, key, group.getAttribute('data-section-key') || undefined);
     }
     var doc = api.frame.contentDocument;
-    var list = api.sections();
+    /* BANDS, because this puts a band into the page. api.sections() counts BLOCKS since
+       D-099, and a block standing in a column is not a child of <main> — insertBefore
+       against one throws. */
+    var list = api.bands();
     var main = doc.querySelector('[data-bx-blocks]');
     if (index >= list.length) {
       main.appendChild(section);
     } else {
       main.insertBefore(section, list[index]);
     }
+    /* AND THE GROUP GOES WHERE THAT BAND'S FIRST BLOCK'S GROUP GOES.
+       The groups are in the page's reading order — bands in order, and within one, its
+       blocks — so a band's position and a group's position are the same NUMBER only while
+       every band holds one block. Counted instead: how many blocks stand in the bands
+       before this one. */
+    var before = 0;
+    list.slice(0, index).forEach(function (band) {
+      var inside = band.querySelectorAll('.section-column > *');
+      before += inside.length === 0 ? 1 : inside.length;
+    });
     var existing = api.groupNodes();
-    if (index >= existing.length) {
+    if (before >= existing.length) {
       api.groups.appendChild(group);
     } else {
-      api.groups.insertBefore(group, existing[index]);
+      api.groups.insertBefore(group, existing[before]);
     }
     api.renumber();
     // A block arrives as HTML from the server, so its rich text field is a plain textarea
@@ -95,15 +112,84 @@
     api.tellCanvas('select', { index: index });
   }
 
+  /**
+   * A BLOCK PUT INTO A COLUMN OF A BAND THAT ALREADY EXISTS (PLAN.md D-099).
+   *
+   * Not place(): that inserts a band at a position on the page, with the canvas element and
+   * the field group at the same index in two flat lists. Here the canvas side goes inside a
+   * column and the form side goes after the last group already standing in that band — two
+   * different questions, which is why this is its own function rather than a branch inside
+   * that one.
+   *
+   * The group is named with the BAND'S OWN key, not a fresh one: nameGroup() mints a new
+   * section key when it is not told which band to join, and a block put into an existing
+   * band that minted its own would be saved into a band of its own — the arrangement the
+   * author just made, undone by the act of filling it.
+   */
+  function placeInColumn(into, node, group) {
+    var doc = api.frame.contentDocument;
+    var band = doc.querySelector('[data-bx-section="' + into.section + '"]');
+    var column = band && band.querySelectorAll('.section-column')[into.column];
+    if (!column) {
+      throw new Error('no column ' + into.column + ' in section ' + into.section);
+    }
+    column.appendChild(node);
+
+    var key = group.getAttribute('data-block-key');
+    if (key && window.boxletBlocks) {
+      window.boxletBlocks.name(group, key, into.section);
+    }
+    // And which column, which nameGroup has no opinion about: it names things, it does not
+    // place them.
+    group.querySelectorAll('[data-block-column]').forEach(function (input) {
+      input.value = String(into.column);
+    });
+
+    // AFTER THE LAST GROUP ALREADY IN THIS BAND, so the form's order goes on being the
+    // page's order: sections in order, and within one, its blocks.
+    var groups = api.groupNodes();
+    var last = null;
+    groups.forEach(function (candidate) {
+      if (candidate.getAttribute('data-section-key') === into.section) {
+        last = candidate;
+      }
+    });
+    group.setAttribute('data-section-key', into.section);
+    if (last && last.nextSibling) {
+      api.groups.insertBefore(group, last.nextSibling);
+    } else {
+      api.groups.appendChild(group);
+    }
+
+    api.renumber();
+    if (window.boxletRichText) {
+      window.boxletRichText.scan(group);
+    }
+    if (window.boxletPicker) {
+      window.boxletPicker.scan(group);
+    }
+    api.tellCanvas('refresh', {});
+    var index = Number(group.getAttribute('data-block-group'));
+    api.show(index);
+    api.tellCanvas('select', { index: index });
+  }
+
   function insert(type, button) {
     if (!api.frame.contentDocument) {
       return;
     }
-    var at = api.target === null ? api.sections().length : api.target;
+    // A POSITION ON THE PAGE, OR AN ADDRESS INSIDE A BAND (PLAN.md D-099). The second kind
+    // comes from the + in an empty column and names which band and which of its columns.
+    var into = api.target !== null && typeof api.target === 'object' ? api.target : null;
+    var at = api.target === null ? api.bands().length : (into ? 0 : api.target);
     button.setAttribute('aria-busy', 'true');
     api.say(api.panel.getAttribute('data-text-inserting'));
 
-    post({ type: type, index: String(at) })
+    var asked = into
+      ? { type: type, index: '0', column: String(into.column) }
+      : { type: type, index: String(at) };
+
+    post(asked)
       .then(function (parts) {
         if (!parts.canvas || !parts.fields) {
           throw new Error('malformed');
@@ -111,7 +197,10 @@
         // Minted where every other new group's key is, so nothing can collide.
         var key = window.boxletBlocks ? window.boxletBlocks.mint() : 'n' + keyCounter++;
         var fragment = api.frame.contentDocument.importNode(parts.canvas.content, true);
-        fragment.querySelector('section').setAttribute('data-bx-key', key);
+        // A block going into a column is not a <section> — the band around it already is
+        // one — so the thing to name is whatever the server drew (SectionRender's 'none').
+        var drawn = fragment.querySelector('section') || fragment.firstElementChild;
+        drawn.setAttribute('data-bx-key', key);
 
         var group = parts.fields.content.firstElementChild.cloneNode(true);
         group.setAttribute('data-block-key', key);
@@ -121,7 +210,26 @@
         api.target = null;
         // Nothing changed until now: the request could still have failed.
         api.commit();
-        place(at, fragment, group);
+        if (into) {
+          placeInColumn(into, drawn, group);
+        } else {
+          /* A BAND OF ITS OWN, so its fields come too. Without this the block would post a
+             section key nothing had described, Page::update() would give it the fallback
+             band, and the style the character composed for it — which is on the canvas the
+             author is looking at — would not be in the save. */
+          var band = parts.band ? parts.band.content.firstElementChild.cloneNode(true) : null;
+          var bandKey = window.boxletBlocks ? window.boxletBlocks.mintSection() : 'm' + keyCounter;
+          if (band) {
+            band.setAttribute('data-section-group', bandKey);
+            api.sectionGroups().appendChild(band);
+          }
+          if (window.boxletBlocks) {
+            window.boxletBlocks.name(group, key, bandKey);
+            window.boxletBlocks.name(band || group, key, bandKey);
+          }
+          group.setAttribute('data-section-key', bandKey);
+          place(at, fragment, group);
+        }
       })
       .catch(function (error) {
         api.say(api.panel.getAttribute('data-text-failed'));

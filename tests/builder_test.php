@@ -60,9 +60,20 @@ test('the canvas renders the real page, with sections as direct children of main
     assertEquals(200, $response->status, 'status');
     // sections.css styles a section by its position among its siblings, so anything
     // inserted between main and a section would change the page being judged.
+    //
+    // The band carries data-bx-section before its class since D-099 — the editor's one
+    // addition to the visitor's markup, so the + in an empty column can say which band it
+    // is aiming at. What this asserts is unchanged: the FIRST thing inside main is a
+    // section, and it is the hero's.
     assertTrue(
-        (bool) preg_match('~<main data-bx-blocks>\s*<section class="block block-hero ~', $response->body),
+        (bool) preg_match('~<main data-bx-blocks>\s*<section [^>]*class="block block-hero ~', $response->body),
         'the first section is not a direct child of main',
+    );
+    assertTrue(
+        // Its KEY and not its id — `s8` for a stored band, `m0` for one made in this
+        // session (D-098). The canvas has to name a band that may not be saved yet.
+        (bool) preg_match('~<section data-bx-section="[sm][0-9]+" class="block block-hero ~', $response->body),
+        'the band does not say which band it is, so an empty column could not be aimed at',
     );
     assertContains('Welcome', $response->body, 'block content');
     assertContains('<p>Body copy</p>', $response->body, 'rich text');

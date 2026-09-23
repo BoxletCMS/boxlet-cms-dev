@@ -31,7 +31,7 @@ use App\Support\Url;
     <script src="<?= e(Url::versioned('assets/vendor/sortable.min.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/canvas.js')) ?>" defer></script>
 </head>
-<body class="bx-canvas" data-insert-labels="<?= e(t('pages.insert_here') . '|' . t('pages.insert_at_end')) ?>"
+<body class="bx-canvas" data-insert-labels="<?= e(t('pages.insert_here') . '|' . t('pages.insert_at_end') . '|' . t('pages.insert_in_column')) ?>"
       data-block-labels="<?= e(implode('|', [t('pages.move_up'), t('pages.move_down'), t('pages.duplicate'), t('pages.remove')])) ?>"
       data-icons="<?= e(Url::versioned('assets/vendor/icons.svg')) ?>">
     <?php /* Sections are direct children of main, exactly as on the front end: their CSS

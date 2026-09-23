@@ -49,8 +49,43 @@
     return Array.prototype.slice.call(groups.querySelectorAll('[data-block-group]'));
   };
 
+  /**
+   * The canvas elements this form's field groups pair with, ONE PER BLOCK (PLAN.md D-099).
+   *
+   * A band holding one block is that block, the <section> it has always been, so on every
+   * page written before columns existed this returns what it always did and the pairing by
+   * ordinal goes on holding. A band with columns holds its blocks inside them, and those
+   * are what the groups pair with — because a group IS a block, and pairing a group with a
+   * band made the tools act on the band's first block whichever one was clicked.
+   *
+   * The same rule canvas.js's blocks() follows, written out on both sides rather than
+   * asked for across the frame: the parent needs it before the canvas has answered.
+   */
   api.sections = function () {
     var doc = frame.contentDocument;
+    if (!doc) {
+      return [];
+    }
+    var found = [];
+    doc.querySelectorAll('[data-bx-blocks] > section').forEach(function (band) {
+      var inside = band.querySelectorAll('.section-column > *');
+      if (inside.length === 0) {
+        found.push(band);
+
+        return;
+      }
+      inside.forEach(function (block) {
+        found.push(block);
+      });
+    });
+
+    return found;
+  };
+
+  /** The BANDS, for the things that are about bands: inserting one, and placing one. */
+  api.bands = function () {
+    var doc = frame.contentDocument;
+
     return doc ? Array.prototype.slice.call(doc.querySelectorAll('[data-bx-blocks] > section')) : [];
   };
 
@@ -83,6 +118,13 @@
    * in this admin are gone with it; the third, in repeater.js, still has real work, because
    * an ITEM's place inside its block is genuinely positional.
    */
+  /* Where a band's fields live (D-099). Looked up rather than held, because an undo puts
+     the whole panel back as fresh markup and a reference taken at load would point at a
+     node no longer in the document. */
+  api.sectionGroups = function () {
+    return form.querySelector('[data-section-groups]');
+  };
+
   api.renumber = function () {
     api.groupNodes().forEach(function (group, index) {
       group.setAttribute('data-block-group', String(index));
@@ -238,7 +280,13 @@
       api.target = null;
       api.show(event.data.index);
     } else if (event.data.type === 'insert') {
-      api.target = event.data.index;
+      /* WHERE THE NEXT BLOCK GOES: a position on the page, or an address inside a band —
+         which band, which of its columns (D-099). A number and an object rather than two
+         messages, because everything downstream asks the same question ("where?") and
+         only insert() has to know there are two kinds of answer. */
+      api.target = event.data.section
+        ? { section: event.data.section, column: event.data.column || 0 }
+        : event.data.index;
       api.show(-1);
       api.tellCanvas('select', { index: -1 });
       if (library) {

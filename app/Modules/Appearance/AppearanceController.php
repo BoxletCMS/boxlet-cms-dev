@@ -154,7 +154,7 @@ final class AppearanceController
         // means nothing is worse than an empty one the owner can see.
         $goneMenu = $state['menu'] !== '' && !in_array($state['menu'], self::menuNames($db), true);
         // The footer's own menu likewise (D-113); '' and `none` are choices, not names.
-        $footerMenu = $state['footer_menu'] ?? '';
+        $footerMenu = $state['footer_menu'];
         $goneFooterMenu = $footerMenu !== '' && $footerMenu !== SiteChrome::FOOTER_MENU_NONE && !in_array($footerMenu, self::menuNames($db), true);
 
         Design::save($db, $state['decisions'], (string) $this->container->get('config')->get('app.cache_path'));
@@ -248,7 +248,7 @@ final class AppearanceController
     }
 
     /**
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, words: array<string, array<string, string>>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menu?: string, words: array<string, array<string, string>>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
      * @param bool $confirm whether Publish is asking how to apply that character

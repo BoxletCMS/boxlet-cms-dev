@@ -15,6 +15,7 @@ use App\Modules\Design\Presets;
 use App\Modules\Design\Tokens;
 use App\Modules\Menus\Menu;
 use App\Modules\Pages\PageLinks;
+use App\Modules\Pages\PageTree;
 use App\Modules\Settings\ChromeLook;
 use App\Modules\Settings\ChromeWords;
 use App\Modules\Settings\SiteChrome;
@@ -304,6 +305,7 @@ final class AppearanceController
             // What the strip over the picture says is in the frame.
             'host' => (string) parse_url(Url::withOrigin(''), PHP_URL_HOST),
             'pageName' => self::previewedPage($db, $shown),
+            'previewPages' => self::previewPages($db, $shown),
             'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shown, $character)),
         ], $status);
     }
@@ -318,6 +320,29 @@ final class AppearanceController
         $home = $db->one('SELECT title FROM pages WHERE slug = ? AND locale = ?', ['', $locale]);
 
         return $home === null ? t('design.preview') : (string) $home['title'];
+    }
+
+    /**
+     * The published pages the picture can be of, in the tree's order with the home page
+     * first (D-111): a header laid over the first section looks different over a page with
+     * no hero, and a sticky header cannot be judged on a short one.
+     *
+     * @return list<array{id: int, title: string, depth: int}>
+     */
+    private static function previewPages(Db $db, string $locale): array
+    {
+        $status = [];
+        foreach ($db->all('SELECT id, status FROM pages WHERE locale = ?', [$locale]) as $row) {
+            $status[(int) $row['id']] = (string) $row['status'];
+        }
+        $pages = [];
+        foreach (PageTree::parentOptions($db, $locale, null) as $option) {
+            if (($status[(int) $option['id']] ?? '') === 'published') {
+                $pages[] = ['id' => (int) $option['id'], 'title' => (string) $option['title'], 'depth' => (int) $option['depth']];
+            }
+        }
+
+        return $pages;
     }
 
     /**

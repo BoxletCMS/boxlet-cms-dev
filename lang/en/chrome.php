@@ -14,6 +14,9 @@ return [
 
     'chrome.shared' => 'The same in every language',
     'chrome.words' => 'Words',
+    // Each tab holds its own half of the words (D-111), folded per language when there are several.
+    'chrome.words.header' => 'Header words',
+    'chrome.words.footer' => 'Footer words',
 
 
     'chrome.logo_where' => 'The logo is set with the site’s other pictures, under',
@@ -47,13 +50,15 @@ return [
     'chrome.look.following' => 'following',
     'chrome.look.follow' => 'As the character has it: :value',
     'chrome.look.header_layout' => 'Header arrangement',
-    'chrome.look.header_layout.left' => 'Name left, menu right',
+    // SHORT (D-111): a segment is one or two words, and the hint says the rest. "Name left,
+    // menu right" and "Stays at the top when scrolling" broke the rows into ragged halves.
+    'chrome.look.header_layout.left' => 'Left',
     'chrome.look.header_layout.centred' => 'Centred',
-    'chrome.look.header_layout.transparent' => 'Over the first section',
-    'chrome.look.header_layout.sticky' => 'Stays at the top when scrolling',
+    'chrome.look.header_layout.transparent' => 'Over the top',
+    'chrome.look.header_layout.sticky' => 'Sticky',
     'chrome.look.footer_layout' => 'Footer arrangement',
     'chrome.look.footer_layout.simple' => 'One column',
-    'chrome.look.footer_layout.columns' => 'Words beside the menu',
+    'chrome.look.footer_layout.columns' => 'Beside the menu',
     'chrome.look.header_surface' => 'Header surface',
     'chrome.look.header_surface.plain' => 'Plain',
     'chrome.look.header_surface.tinted' => 'Tinted',

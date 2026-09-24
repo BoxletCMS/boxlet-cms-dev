@@ -169,13 +169,30 @@
   clip-path: inset(50%);
 }
 
-/* Only a place that HAS taken a colour has one to give back. */
-.own-colour-free {
+/* The row is a .role (D-111), but its last two cells are not the palette's: the hex is
+   drawn only once the colour is the owner's, and the word beside it only until then, so
+   each takes the room it needs rather than the palette's fixed columns — which left the
+   name "Or a colour of your own" cut to "Or a colour of…" beside an empty cell. */
+.own-colour .role {
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto auto;
+}
+
+/* Only a place that HAS taken a colour has one to give back. The row is a .role (D-111),
+   so the button follows the palette rows' rule above; what is this row's own is the word
+   where the hex would be: "palette" until the colour is the owner's, then the hex. The
+   hex shown for a colour that is not the owner's is the shade the page was rendered with,
+   which does not follow the palette live, and a number that can go stale is worse than
+   none. */
+.own-colour .role-value {
   display: none;
 }
 
-.own-colour:has(input[type="checkbox"]:checked) .own-colour-free {
-  display: inline-flex;
+.own-colour:has(input[type="checkbox"]:checked) .role-value {
+  display: inline;
+}
+
+.own-colour:has(input[type="checkbox"]:checked) .role-derived {
+  display: none;
 }
 
 /* ---- the contrast gauge (PLAN.md D-058) ---------------------------------------------- */

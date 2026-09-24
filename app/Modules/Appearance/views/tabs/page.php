@@ -13,15 +13,15 @@
  * @var callable(string): string $error one field's message, or an empty slot for the script
  * @var callable(string, array<array-key, string>, string=, string=): string $segmented
  * @var callable(string, list<string>): array<string, string> $labels
- * @var callable(string, string): string $ownColour
+ * @var callable(string): string $ownColour
  * @var array<string, string> $colors
  */
 ?>
-            <?php /* Its own group rather than three more controls under Shape (D-031).
-                     Shape is about the content — its spacing, corners, shadows and
-                     measure; these three are about the page as a whole. Put together
-                     they would have turned that group into a drawer for anything left
-                     over. */ ?>
+            <?php /* Its own group rather than more controls under Shape (D-031). Shape is
+                     about the content — its spacing, corners, shadows and measure; these
+                     are about the page as a whole. The header's width and the two bleeds
+                     moved to the Header and Footer tabs (D-111): they stay design decisions,
+                     but a person setting up the header looks for them there. */ ?>
             <fieldset class="fieldset">
                 <p class="hint"><?= e(t('design.page_hint')) ?></p>
                 <?= $segmented('boxed', $labels('boxed', App\Modules\Design\Tokens::BOXED)) ?>
@@ -30,8 +30,7 @@
                 <?php /* Or a colour of its own (D-076). The one place on the page where a
                          free colour carries no risk at all: it shows only around a BOXED
                          page, so no text ever lands on it and the gauge gains no pair. */ ?>
-                <?= $ownColour('page_background_colour', $colors[$decisions['page_background']] ?? $colors['surface']) ?>
-                <?= $segmented('header_width', $labels('header_width', App\Modules\Design\Tokens::HEADER_WIDTH)) ?>
+                <?= $ownColour('page_background_colour') ?>
 
                 <?php /* THE SHEET AND ITS EDGES (D-067). Every one of these only shows on a
                          boxed page, and each hint says so rather than the control hiding:
@@ -39,6 +38,4 @@
                 <?= $segmented('frame', $labels('frame', array_keys(App\Modules\Design\Tokens::FRAME))) ?>
                 <?= $segmented('sheet_radius', $labels('sheet_radius', App\Modules\Design\Tokens::SHEET_RADIUS)) ?>
                 <?= $segmented('sheet_shadow', $labels('sheet_shadow', App\Modules\Design\Tokens::SHEET_SHADOW)) ?>
-                <?= $segmented('header_bleed', $labels('header_bleed', App\Modules\Design\Tokens::BLEED)) ?>
-                <?= $segmented('footer_bleed', $labels('footer_bleed', App\Modules\Design\Tokens::BLEED)) ?>
             </fieldset>

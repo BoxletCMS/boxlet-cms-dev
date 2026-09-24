@@ -87,7 +87,7 @@ return [
 
     // The Design screen: hint.design.{decision}
     'hint.design.secondary' => 'Optional. A second colour for contrast sections — bands of colour that break up a long page. Without one, a deep shade of the main colour is used.',
-    'hint.design.surface_contrast' => 'How strongly tinted and contrast sections stand apart from plain ones.',
+    'hint.design.surface_contrast' => 'How strongly tinted and contrast sections stand apart from plain ones: low, and surfaces barely differ; high, and sections stand clearly apart.',
     'hint.design.typography' => 'The pair of typefaces for headings and for text, chosen to work together. The fonts are served from your own site, not from anyone else’s.',
     'hint.design.text_size' => 'How big the text itself is. The scale below is a different question: how much bigger each heading is than the one under it.',
     'hint.design.nudge_h1' => 'The scale is a relationship; this is the one exception to it. Pixels added to the largest heading after the scale has done its work.',
@@ -97,7 +97,7 @@ return [
     'hint.design.scale' => 'How much bigger each heading level is than the one below it. A larger step gives dramatic headlines; a smaller one a quieter page.',
     'hint.design.spacing' => 'The basic unit of space inside and between sections. Everything grows from it evenly.',
     'hint.design.radius' => 'How rounded corners are — on buttons, pictures and cards.',
-    'hint.design.shadow' => 'Whether cards and pictures cast a shadow, and what kind.',
+    'hint.design.shadow' => 'Whether cards and pictures cast a shadow, and what kind. Hard shadows come with thick rules.',
     'hint.design.container' => 'How wide the page’s content runs on a large screen.',
     'hint.design.page_background_colour' => 'Any colour, not only a shade of the palette. Nothing is written here until you pick one.',
     'hint.design.header_colour' => 'Any colour. The text on it is worked out from it, so it stays readable, and the contrast gauge measures it like every other pair.',
@@ -108,14 +108,14 @@ return [
     'hint.design.sheet_shadow' => 'Whether the sheet looks lifted off what is behind it. Only shows on a boxed page.',
     'hint.design.header_bleed' => 'Lets the header run to the edge of the window while the content stays boxed. On a page that is not boxed the two are the same thing. A header laid over the first section can only do that inside the sheet.',
     'hint.design.footer_bleed' => 'The same for the footer: inside the sheet, or edge to edge under it.',
-    'hint.design.boxed' => '“Yes” shows the page as a sheet with a margin of colour around it on large screens.',
+    'hint.design.boxed' => '“No” fills the window with the page; “Yes” shows it as a sheet with a margin of colour around it on large screens.',
 
     // The Header and footer screen: hint.look.{choice}
-    'hint.look.header_layout' => 'Where the logo, menu and button sit: name left and menu right, everything centred, laid over the first section of each page, or staying at the top while visitors scroll.',
+    'hint.look.header_layout' => 'Where the logo, menu and button sit: name left and menu right, everything centred, laid over the top of each page’s first section, or sticky — staying at the top while visitors scroll.',
     'hint.look.footer_layout' => 'The footer’s words in one column, or beside the menu.',
     'hint.look.header_surface' => 'The header’s background, from the site’s own colours.',
     'hint.look.footer_surface' => 'The footer’s background, from the site’s own colours.',
-    'hint.look.density' => 'How much room there is around the header’s and footer’s contents.',
+    'hint.look.density' => 'How much room there is around the header’s and footer’s contents. One choice for both.',
     'hint.look.header_rule' => 'A thin line under the header, between it and the page.',
     'hint.look.footer_columns' => 'How many columns a long menu runs in at the foot of the page. Only does anything when the footer is in columns.',
     'hint.look.logo_size' => 'How tall the logo is drawn. Its shape never changes.',

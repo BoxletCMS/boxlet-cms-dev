@@ -28,10 +28,13 @@ return [
     'appearance.tab.colour' => 'Colour',
     'appearance.tab.type' => 'Type',
     'appearance.tab.shape' => 'Shape',
-    // SHORT, because five of them share 312px and a strip that wraps to two rows reads as
+    // SHORT, because six of them share 312px and a strip that wraps to two rows reads as
     // two strips. Each panel says the longer thing inside itself.
     'appearance.tab.page' => 'Page',
-    'appearance.tab.chrome' => 'Header',
+    'appearance.tab.header' => 'Header',
+    'appearance.tab.footer' => 'Footer',
+    // The strip over the picture: which page it is of (D-111).
+    'appearance.page_to_preview' => 'Page to preview',
     'appearance.publish' => 'Publish',
     'appearance.published' => 'Published. The site looks like this from now on.',
     'appearance.words_previewed' => 'The preview shows this language.',

@@ -490,11 +490,11 @@ export async function ensureHeaderMenu(page, base) {
   }
 
   await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
-  // The menu lives in the fifth tab now, and page.select refuses a control with no box.
-  await openTab(page, 'chrome');
+  // The menu lives in the Header tab (D-111), and page.select refuses a control with no box.
+  await openTab(page, 'header');
   await page.select('#header_menu', name);
   await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
-  await openTab(page, 'chrome');
+  await openTab(page, 'header');
   return page.$eval('#header_menu', (select) => select.value).catch(() => '');
 }

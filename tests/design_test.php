@@ -357,9 +357,11 @@ test('the merged screen carries both halves, and the old addresses lead to it', 
     $db = adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
-    foreach (['colour', 'type', 'shape', 'page', 'chrome'] as $tab) {
+    // Six since D-111: the header and the footer have a tab each.
+    foreach (['colour', 'type', 'shape', 'page', 'header', 'footer'] as $tab) {
         assertContains('data-panel="' . $tab . '"', $body, 'the ' . $tab . ' tab');
     }
+    assertTrue(!str_contains($body, 'data-panel="chrome"'), 'the tab that held both halves is gone');
     assertContains('name="seed"', $body, 'the design half');
     assertContains('name="header_menu"', $body, 'the chrome half');
     assertContains('name="footer_text_en"', $body, 'the words');
@@ -603,11 +605,17 @@ test('the palette is one list, and a colour the owner has taken can go back to i
     // The old shape: a read-only list of the derived colours, and a folded panel beside it.
     assertTrue(!str_contains($shut, 'class="by-hand"'), 'the folded panel is gone');
     assertTrue(!str_contains($shut, 'class="swatches"'), 'and so is the list that repeated it');
+    // Counted inside the palette's own list: since D-111 the three colours of one's own
+    // are drawn as rows of the same shape, under their own groups, and they are not roles
+    // the palette works out.
+    $paletteList = (string) substr($shut, (int) strpos($shut, 'aria-labelledby="design-palette-label"'));
+    $paletteList = (string) substr($paletteList, 0, (int) strpos($paletteList, '</ul>'));
     assertEquals(
         count(Palette::colors(Presets::get(Presets::DEFAULT)['seed'], '', 'low')),
-        substr_count($shut, '<li class="role">'),
+        substr_count($paletteList, '<li class="role">'),
         'every role the palette works out is a row',
     );
+    assertEquals(3, substr_count($shut, '<li class="role">') - substr_count($paletteList, '<li class="role">'), 'and the three colours of one\'s own are rows of the same shape');
     /*
      * EVERY WAY BACK IS ALWAYS DRAWN, and whether one SHOWS is a CSS question: the switches
      * flip under the owner's hand as colours are picked (D-065), so a button the server
@@ -995,4 +1003,75 @@ test('the Appearance screen shows no translation key as itself', function () {
     $text = html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     preg_match_all('~(?<![\w./-])(' . implode('|', array_map('preg_quote', array_keys($prefixes))) . ')\.[a-z0-9_]+(?:\.[a-z0-9_]+)*(?![\w.-])~i', $text, $found);
     assertEquals([], array_values(array_unique($found[0])), 'keys shown as themselves');
+});
+
+/*
+ * EVERY FIELD THE FORM READS IS ON THE SCREEN ONCE, AND ONLY ONCE (D-111).
+ *
+ * The screen is one form, and a field it does not send is one the owner cleared (D-059) —
+ * which is how loading a character once wiped the header. Splitting the chrome tab in two
+ * and moving three design decisions between tabs is exactly the kind of edit that drops a
+ * field on the floor or draws it twice, so this reads every panel and counts.
+ */
+test('every decision and chrome choice is on exactly one tab', function () {
+    $db = adminSite('sqlite');
+    $body = dispatch('/admin/appearance')->body;
+
+    $onTab = [];
+    foreach (['colour', 'type', 'shape', 'page', 'header', 'footer'] as $tab) {
+        $start = strpos($body, 'data-panel="' . $tab . '"');
+        assertTrue($start !== false, 'the ' . $tab . ' tab');
+        $end = strpos($body, 'data-panel="', $start + 1);
+        $panel = substr($body, (int) $start, $end === false ? null : $end - (int) $start);
+        preg_match_all('~ name="([a-z_0-9]+)"~', $panel, $found);
+        foreach (array_unique($found[1]) as $name) {
+            $onTab[$name][] = $tab;
+        }
+    }
+
+    $expected = array_keys(Presets::get(Presets::DEFAULT));
+    foreach (array_keys(App\Modules\Settings\ChromeLook::OPTIONS) as $choice) {
+        $expected[] = App\Modules\Settings\ChromeLook::field($choice);
+    }
+    $expected[] = 'header_menu';
+    foreach (['button_page', 'button_url', 'button_label', 'text', 'small_print'] as $word) {
+        $expected[] = App\Modules\Settings\ChromeWords::field($word, 'en');
+    }
+    $missing = [];
+    $twice = [];
+    foreach ($expected as $name) {
+        if (!isset($onTab[$name])) {
+            $missing[] = $name;
+        } elseif (count($onTab[$name]) > 1) {
+            $twice[] = $name . ' on ' . implode(' and ', $onTab[$name]);
+        }
+    }
+    assertEquals([], $missing, 'fields the form reads and no tab carries');
+    assertEquals([], $twice, 'fields drawn on two tabs');
+    // And the three that moved are where a person setting up the chrome looks for them.
+    assertEquals(['header'], $onTab['header_width'] ?? [], 'the header\'s width');
+    assertEquals(['header'], $onTab['header_bleed'] ?? [], 'where the header breaks out');
+    assertEquals(['footer'], $onTab['footer_bleed'] ?? [], 'where the footer breaks out');
+});
+
+/*
+ * THE PICTURE CAN BE OF ANY PUBLISHED PAGE (D-111), not only the home page: a header laid
+ * over the first section looks different over a page without a hero. A draft, or a page of
+ * another language, is not on the site and so is not offered and not drawn.
+ */
+testBothDrivers('the preview draws the page that is asked for, and only a published one', function (string $driver) {
+    $db = adminSite($driver);
+    createPage($db, 'en', '', 'Home', true, [['type' => 'text', 'content' => ['heading' => 'Front door', 'body' => '<p>Home.</p>']]]);
+    $about = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['heading' => 'Zebra crossing', 'body' => '<p>About.</p>']]]);
+    $draft = createPage($db, 'en', 'draft', 'Draft', false, [['type' => 'text', 'content' => ['heading' => 'Unfinished', 'body' => '<p>Draft.</p>']]]);
+
+    $screen = dispatch('/admin/appearance')->body;
+    assertContains('<option value="' . $about . '">About</option>', $screen, 'the published page is offered');
+    assertTrue(!str_contains($screen, '<option value="' . $draft . '">'), 'the draft is not');
+
+    assertContains('Front door', dispatch('/admin/appearance/preview')->body, 'the home page by default');
+    $asked = dispatch('/admin/appearance/preview?page=' . $about)->body;
+    assertContains('Zebra crossing', $asked, 'the page that was asked for');
+    assertTrue(!str_contains($asked, 'Front door'), 'and not the home page');
+    assertContains('Front door', dispatch('/admin/appearance/preview?page=' . $draft)->body, 'a draft falls back to the home page');
 });

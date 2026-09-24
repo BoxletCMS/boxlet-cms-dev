@@ -2,6 +2,7 @@
 
 use App\Modules\Design\Palette;
 use App\Modules\Design\Presets;
+use App\Modules\Settings\ChromeLook;
 use App\Support\Url;
 
 /**
@@ -39,6 +40,7 @@ use App\Support\Url;
  * @var array<string, string> $readouts what every control comes to, in words
  * @var string $host the site's own hostname, for the strip over the picture
  * @var string $pageName which page the picture is of
+ * @var list<array{id: int, title: string, depth: int}> $previewPages the published pages the picture can be of (D-111)
  * @var string $previewUrl
  * @var string $title
  * @var string $csrf
@@ -119,49 +121,118 @@ $slider = static function (string $key, float $min, float $max, float $step) use
 };
 
 /**
- * OR A COLOUR OF YOUR OWN (PLAN.md D-076, handoff §C3).
+ * OR A COLOUR OF YOUR OWN (PLAN.md D-076, D-111).
  *
  * Sits directly under the segmented group it belongs to, never in a section of its own: it
  * is one more answer to the question above it — "which colour is this" — and a panel called
  * "custom colours" somewhere else would be the same question asked twice.
  *
- * THE SAME MECHANISM AS A HAND-SET ROLE (D-063, D-074), because it is the same act. A colour
- * input always carries SOME colour, so "is this mine" cannot be read off its value; the
- * switch is what says so, choosing flips it (appearance.js), and one visible button gives it
- * back. Nothing here depends on a script: without one, the switch is a checkbox with a label
- * and the button is an ordinary submit.
+ * THE SAME ROW AS A ROLE OF THE PALETTE (D-074), because it is the same act: the swatch IS
+ * the picker, the hex beside it follows the hand, and one button gives the colour back. It
+ * was a lone square under a three-line label, with no hex — the one colour control on the
+ * screen that did not look like the others.
+ *
+ * A colour input always carries SOME colour, so "is this mine" cannot be read off its value;
+ * the switch is what says so, choosing flips it (appearance.js), and the button gives it
+ * back. Nothing here depends on a script: without one, the switch is a checkbox and the
+ * button is an ordinary submit.
  *
  * WHILE IT IS NOT THE OWNER'S, the input holds the shade that place has as the page was
- * rendered — a starting point for the picker, not a readout. It does not follow the palette
- * live, and it carries no hex beside it for exactly that reason: a number that can go stale
- * is worse than none, and the shade itself is stated by the group above, which does follow.
- *
- * @param string $showing the colour to start the picker on when the owner has not chosen
+ * rendered — a starting point for the picker — and the row says "palette" where the hex
+ * would be, because that hex does not follow the palette live and a number that can go
+ * stale is worse than none. Taken, the hex is the owner's and is shown.
  */
-$ownColour = static function (string $key, string $showing) use ($decisions, $error): string {
+$ownColour = static function (string $key) use ($decisions, $error, $colors, $look, $characterLook): string {
     $id = 'design-' . $key;
     $taken = ($decisions[$key] ?? '') !== '';
     $label = t('design.' . $key);
+    // Which palette shade the place shows right now — what the owner chose, else what the
+    // character gives — so the picker opens on the colour that is there rather than black.
+    if ($key === 'page_background_colour') {
+        $showing = $colors[$decisions['page_background']] ?? $colors['surface'];
+    } else {
+        $part = str_replace('_colour', '_surface', $key);
+        $surface = ($look[$part] ?? '') !== '' ? $look[$part] : ($characterLook[$part] ?? 'plain');
+        $showing = $colors[['plain' => 'background', 'tinted' => 'surface', 'contrast' => 'contrast'][$surface] ?? 'background'];
+    }
+    $free = t('design.by_hand.free', ['role' => $label]);
 
     return '<div class="field own-colour' . ($taken ? ' own-colour-taken' : '') . '">'
-        . '<div class="field-row">'
-        . '<label class="field-label" for="' . e($id) . '">' . e($label) . '</label>'
-        . '<button type="submit" form="design-form" name="action" value="colour:free:' . e($key) . '"'
-        . ' class="button button-quiet own-colour-free">' . e(t('design.by_hand.free_short')) . '</button>'
-        . '</div>'
-        . '<div class="colour-field">'
-        . '<input type="color" class="colour-input" id="' . e($id) . '" name="' . e($key) . '"'
-        . ' value="' . e($taken ? $decisions[$key] : $showing) . '" data-by-hand="' . e($key) . '">'
-        . '</div>'
+        . '<ul class="roles" role="list"><li class="role">'
+        . '<input type="color" class="role-swatch" id="' . e($id) . '" name="' . e($key) . '"'
+        . ' value="' . e($taken ? $decisions[$key] : $showing) . '" data-by-hand="' . e($key) . '" aria-label="' . e($label) . '">'
+        . '<span class="role-name" aria-hidden="true" title="' . e($label) . '">' . e($label) . '</span>'
+        . '<code class="role-value" data-colour-for="' . e($id) . '">' . e($taken ? $decisions[$key] : $showing) . '</code>'
+        . '<span class="role-derived">' . e(t('design.by_hand.palette')) . '</span>'
         . '<input type="checkbox" name="' . e($key) . '_on" value="1"' . ($taken ? ' checked' : '')
         . ' data-by-hand-switch="' . e($key) . '" tabindex="-1" aria-hidden="true">'
+        . '<button type="submit" form="design-form" name="action" value="colour:free:' . e($key) . '"'
+        . ' class="icon-button role-free own-colour-free" title="' . e($free) . '">'
+        . icon('history') . '<span class="visually-hidden">' . e($free) . '</span></button>'
+        . '</li></ul>'
         . field_hint('hint.design.' . $key)
         . $error($key)
         . '</div>';
 };
 
-/** The five tabs, in the order the questions arrive. */
-$tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
+/**
+ * ONE CHROME CHOICE AS A ROW OF BUTTONS (D-032, D-036, D-065). Every choice can be left to
+ * the character, and that is a STATE you can see: the group says "following" while nothing
+ * is chosen, and the first segment — named for what the character actually gives — puts it
+ * back. Shared by the Header and Footer tabs (D-111), which is why it lives here.
+ */
+$lookGroup = static function (string $choice) use ($look, $characterLook): string {
+    $field = ChromeLook::field($choice);
+    $chosen = $look[$choice] ?? '';
+    $fromCharacter = t('chrome.look.' . $choice . '.' . ($characterLook[$choice] ?? ''));
+    $said = $chosen === '' ? t('chrome.look.following') : t('chrome.look.' . $choice . '.' . $chosen);
+    $html = '<div class="field"><div class="field-row">'
+        . '<span class="field-label" id="' . e($field) . '-label">' . e(t('chrome.look.' . $choice)) . '</span>'
+        . '<span class="readout' . ($chosen === '' ? ' readout-following' : '') . '" title="' . e($said) . '">' . e($said) . '</span>'
+        . '</div>'
+        . '<div class="segmented-choice" role="radiogroup" aria-labelledby="' . e($field) . '-label">'
+        . '<label class="segment segment-follow"><input type="radio" id="' . e($field) . '" name="' . e($field) . '" value=""' . ($chosen === '' ? ' checked' : '') . '>'
+        . '<span>' . e(t('chrome.look.follow_short', ['value' => $fromCharacter])) . '</span></label>';
+    foreach (ChromeLook::OPTIONS[$choice] as $option) {
+        $html .= '<label class="segment"><input type="radio" name="' . e($field) . '" value="' . e($option) . '"' . ($chosen === $option ? ' checked' : '') . '>'
+            . '<span>' . e(t('chrome.look.' . $choice . '.' . $option)) . '</span></label>';
+    }
+
+    return $html . '</div>' . field_hint('hint.look.' . $choice) . '</div>';
+};
+
+/** A stored word of the owner's, for one language; '' when there is none. */
+$word = static fn (string $code, string $field): string => is_string($words[$code][$field] ?? null)
+    ? $words[$code][$field]
+    : '';
+
+/**
+ * ONE LANGUAGE'S WORDS, FOLDED (D-111). With one language the words are a group like any
+ * other. With more, each language is a <details>, and the one the picture is drawn in
+ * stands open: the tab grew by four fields per language, and a person editing the Croatian
+ * footer is not helped by the German one standing between them and it. A <details> works
+ * without a script, and a language folded away is still on the form and still saved.
+ */
+$wordsPanel = static function (string $code, string $legend, string $inside) use ($locales, $shownLocale): string {
+    $label = '';
+    foreach ($locales as $locale) {
+        if ((string) $locale['code'] === $code) {
+            $label = (string) $locale['label'];
+        }
+    }
+    if (count($locales) < 2) {
+        return '<fieldset class="fieldset"><legend>' . e($legend) . '</legend>' . $inside . '</fieldset>';
+    }
+    $previewed = $code === $shownLocale;
+
+    return '<details class="fieldset words"' . ($previewed ? ' open' : '') . '>'
+        . '<summary>' . e($legend . ': ' . $label) . ($previewed ? ' <span class="words-previewed">' . e(t('appearance.words_previewed')) . '</span>' : '') . '</summary>'
+        . '<div class="words-inside">' . $inside . '</div>'
+        . '</details>';
+};
+
+/** The six tabs, in the order the questions arrive (D-059, D-111). */
+$tabs = ['colour', 'type', 'shape', 'page', 'header', 'footer'];
 
 /**
  * A character or a saved design in one line, BUILT FROM ITS OWN DECISIONS: "modern · 56rem ·
@@ -170,15 +241,23 @@ $tabs = ['colour', 'type', 'shape', 'page', 'chrome'];
  *
  * @param array<string, string> $decisions
  */
-$summary = static fn (array $decisions): string => implode(' · ', [
+$summary = static fn (array $decisions, string $header): string => implode(' · ', array_filter([
     t('design.typography.' . $decisions['typography']),
     $decisions['container'] . 'rem',
     t('design.spacing.' . $decisions['spacing']),
     t($decisions['boxed'] === 'yes' ? 'appearance.boxed' : 'appearance.full_bleed'),
-]);
+    // And what header it gives (D-111): a card that said nothing about the chrome was a
+    // card about half the design.
+    $header === '' ? '' : t('chrome.look.header_layout.' . $header),
+]));
 
-/** One card in the left rail: three swatches, a name, what it is, and what it does. */
-$card = static function (array $decisions, string $name, string $badge, string $key, string $inside) use ($swatch, $summary): string {
+/**
+ * One card in the left rail: three swatches, a name, what it is, and what it does.
+ *
+ * @param array<string, string> $decisions
+ * @param string $header the header arrangement the card's design gives, '' when unknown
+ */
+$card = static function (array $decisions, string $header, string $name, string $badge, string $key, string $inside) use ($swatch, $summary): string {
     $palette = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
 
     return '<div class="rail-card' . ($badge !== '' ? ' rail-card-current' : '') . '">'
@@ -194,7 +273,7 @@ $card = static function (array $decisions, string $name, string $badge, string $
         . ($badge !== '' ? '<span class="rail-live">' . e($badge) . '</span>' : '')
         . $inside
         . '</div>'
-        . '<p class="rail-card-shape">' . e($summary($decisions)) . '</p>'
+        . '<p class="rail-card-shape">' . e($summary($decisions, $header)) . '</p>'
         . '</div>';
 };
 ?>
@@ -283,6 +362,7 @@ $card = static function (array $decisions, string $name, string $badge, string $
 <?php foreach (Presets::names() as $preset): ?>
                     <?= $card(
                         Presets::get($preset),
+                        ChromeLook::CHARACTER[$preset]['header_layout'] ?? '',
                         t('design.preset.' . $preset),
                         $preset === $activeCharacter ? t('design.preset.current') : '',
                         'preset-' . $preset,
@@ -296,6 +376,8 @@ $card = static function (array $decisions, string $name, string $badge, string $
 <?php foreach ($library as $saved): ?>
                     <?= $card(
                         $saved['decisions'],
+                        // Its own choice, else its character's, else nothing to say.
+                        ($saved['look']['header_layout'] ?? '') !== '' ? $saved['look']['header_layout'] : (ChromeLook::CHARACTER[$saved['character']]['header_layout'] ?? ''),
                         $saved['name'],
                         '',
                         'saved-' . $saved['id'],
@@ -330,7 +412,27 @@ $card = static function (array $decisions, string $name, string $badge, string $
                     <?php /* The strip says WHAT is in the frame and at what size: a preview
                              with no address is a picture of something. */ ?>
                     <div class="stage-strip">
-                        <span class="stage-where"><?= e($host) ?> <span>·</span> <?= e($pageName) ?></span>
+                        <span class="stage-where"><?= e($host) ?> <span>·</span>
+                            <?php /* WHICH PAGE THE PICTURE IS OF (D-111). The home page by
+                                     default; any published page of the previewed language
+                                     on request, because a header laid over the first
+                                     section looks different over a page without a hero,
+                                     and a sticky header cannot be judged on a short one.
+                                     Inside the form, so the script's query carries it like
+                                     any control; hidden until the script runs, because
+                                     without one the picture is the home page and a select
+                                     that changed nothing would teach people not to trust
+                                     selects (D-060). */ ?>
+                            <span class="stage-page" data-page-name><?= e($pageName) ?></span>
+                            <label class="stage-pick" data-preview-page hidden>
+                                <span class="visually-hidden"><?= e(t('appearance.page_to_preview')) ?></span>
+                                <select name="page">
+<?php foreach ($previewPages as $option): ?>
+                                    <option value="<?= e((string) $option['id']) ?>"><?= e(str_repeat('— ', $option['depth']) . $option['title']) ?></option>
+<?php endforeach; ?>
+                                </select>
+                            </label>
+                        </span>
                         <?php /* Said, not silently acted on: when the column cannot carry the
                                  chosen width the screen says so here and leaves the width
                                  alone. */ ?>

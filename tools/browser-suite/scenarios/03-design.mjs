@@ -185,7 +185,7 @@ export default {
     // ONCE PER TAB. Four panels in five are hidden, and a hidden control is one this guard
     // counts as unrendered rather than judging: called once, it would have covered a fifth
     // of the screen and said nothing about the rest (D-059).
-    for (const tab of ['colour', 'type', 'shape', 'page', 'chrome']) {
+    for (const tab of ['colour', 'type', 'shape', 'page', 'header', 'footer']) {
       if (await openTab(page, tab)) {
         await controlsOnPanels(page, report, `appearance: ${tab}`);
       }
@@ -256,8 +256,9 @@ export default {
         titled: tabs.every((t) => (t.getAttribute('title') || '') === t.textContent.trim()),
       };
     });
-    report.verdict('the five tabs are one row of equal columns, each with its whole name',
-      strip.count === 5 && strip.rows === 1 && strip.widths.length === 1 && strip.titled,
+    // Two even rows of three since D-111 — six names in one row cut three of them short.
+    report.verdict('the six tabs are two even rows of equal columns, each with its whole name',
+      strip.count === 6 && strip.rows === 2 && strip.widths.length === 1 && strip.titled,
       JSON.stringify(strip));
 
     /*
@@ -275,11 +276,28 @@ export default {
         untitled: shown.filter((r) => r.textContent.trim() !== '' && (r.getAttribute('title') || '') !== r.textContent.trim()).map((r) => r.textContent.trim()),
       };
     });
-    await openTab(page, 'chrome');
+    await openTab(page, 'header');
     const chromeReadouts = await readouts();
     report.verdict('every readout on the header tab stays inside the column and carries its whole phrase',
       chromeReadouts.shown > 0 && chromeReadouts.outside.length === 0 && chromeReadouts.untitled.length === 0,
       JSON.stringify(chromeReadouts));
+
+    /*
+     * A GROUP'S NAME IS ONE LINE (D-111). The forms stylesheet drew every .field-row as a
+     * grid with a third of the row for the label, so "FOOTER MENU COLUMNS" took three lines
+     * beside its readout whatever the flex rules said. Measured on every tab, because the
+     * fault was the same on all six and the labels differ.
+     */
+    const folded = [];
+    for (const tab of ['colour', 'type', 'shape', 'page', 'header', 'footer']) {
+      await openTab(page, tab);
+      folded.push(...await page.evaluate((which) => [...document.querySelectorAll(`[data-panel="${which}"] .field-row`)]
+        .map((row) => row.querySelector('.field-label, label'))
+        .filter((label) => label && Math.round(label.getBoundingClientRect().height / parseFloat(getComputedStyle(label).lineHeight)) > 1)
+        .map((label) => label.textContent.trim()), tab));
+    }
+    report.verdict('every group\'s name on every tab is one line', folded.length === 0,
+      folded.length === 0 ? 'no label wraps' : `wrapped: ${folded.join(', ')}`);
     await openTab(page, 'colour');
 
     /*
@@ -364,7 +382,9 @@ export default {
      */
     await openTab(page, 'colour');
     const palette = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.role')];
+      // The palette's own rows: since D-111 the three colours of one's own are rows of the
+      // same shape under their own groups, and they are not roles the palette works out.
+      const rows = [...document.querySelectorAll('.roles[aria-labelledby="design-palette-label"] .role')];
       const reset = document.querySelector('.palette-reset');
       return {
         rows: rows.length,
@@ -479,7 +499,8 @@ export default {
     await mark();
     await press('label.segment:has(input[name="radius"][value="pill"])');
     const survivedTokens = await marked();
-    await openTab(page, 'page');
+    // Where the header breaks out is on the Header tab since D-111.
+    await openTab(page, 'header');
     await press('label.segment:has(input[name="header_bleed"][value="full"])');
     const survivedMarkup = await marked();
     report.verdict('a change that is only tokens does not reload the page in the frame',
@@ -1074,7 +1095,7 @@ export default {
       afterPicking.on && afterPicking.freeShown, JSON.stringify(afterPicking));
 
     // The header's own colour, published, and what the page then really draws.
-    await openTab(page, 'chrome');
+    await openTab(page, 'header');
     await page.$eval('input[name="header_colour"]', (el) => {
       el.value = '#1b3a2f';
       el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1113,7 +1134,7 @@ export default {
 
     // Give it back, and the site returns to the palette's shade with nothing left behind.
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-    await openTab(page, 'chrome');
+    await openTab(page, 'header');
     await clickAndWait(page, 'button[form="design-form"][name="action"][value="colour:free:header_colour"]');
     await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });

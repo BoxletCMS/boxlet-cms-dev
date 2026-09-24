@@ -51,10 +51,21 @@ final class AppearancePreview
         $character = is_string($request->query['character'] ?? null) ? $request->query['character'] : '';
         $character = Presets::exists($character) ? $character : '';
         $registry = $this->container->get('blocks');
-        $home = ($request->query['specimen'] ?? '') === '1' ? null : $this->db()->one(
+        // The site's own language, not 'en': the chrome's words and its menu are per locale,
+        // so a site whose main language is Croatian would judge its design under an empty
+        // English footer.
+        $shown = Url::primaryLocale() !== '' ? Url::primaryLocale() : 'en';
+        // WHICH PAGE (D-111): one the screen asked for, if it is a published page of the
+        // language being drawn; else the home page; else the specimen. A page of another
+        // language or a draft falls back rather than failing — the picture is of the site
+        // as it would be, and a draft is not on the site.
+        $asked = is_string($request->query['page'] ?? null) && preg_match('~^[1-9][0-9]{0,9}$~', $request->query['page']) === 1
+            ? $this->db()->one('SELECT id FROM pages WHERE id = ? AND locale = ? AND status = ?', [(int) $request->query['page'], $shown, 'published'])
+            : null;
+        $home = ($request->query['specimen'] ?? '') === '1' ? null : ($asked ?? $this->db()->one(
             'SELECT p.id FROM pages p JOIN locales l ON l.code = p.locale WHERE p.slug = ? AND l.is_primary = 1',
             [''],
-        );
+        ));
 
         $blocks = [];
         if ($home !== null) {
@@ -76,10 +87,6 @@ final class AppearancePreview
             $html .= $registry->render($type, $content, $style, $layout);
         }
 
-        // The site's own language, not 'en': the chrome's words and its menu are per locale,
-        // so a site whose main language is Croatian would judge its design under an empty
-        // English footer.
-        $shown = Url::primaryLocale() !== '' ? Url::primaryLocale() : 'en';
         // Every variable the layout reads comes from ONE place (D-057), and everything the
         // owner is trying comes from the query, validated and never written.
         $trying = AppearanceForm::trying($request->query, $shown, $character);

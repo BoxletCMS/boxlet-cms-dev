@@ -19,6 +19,16 @@
     return;
   }
   var previewUrl = form.getAttribute('data-preview-url');
+  // Which page the picture is of (D-111): a choice only a script can act on, so it is drawn
+  // only once one runs, and the name it stands in for goes.
+  var picker = form.querySelector('[data-preview-page]');
+  var pageName = form.querySelector('[data-page-name]');
+  if (picker && picker.querySelector('option')) {
+    picker.hidden = false;
+    if (pageName) {
+      pageName.hidden = true;
+    }
+  }
   var stylesheetUrl = form.getAttribute('data-stylesheet-url');
   var timer = null;
   var dirty = false;
@@ -48,7 +58,7 @@
    * a class on the bar now, so flipping the switch changes the markup. The colour itself
    * still does not — it is a token — and 03-design's guard is what said so.
    */
-  var RELOADS = /^(look_|header_button_|footer_text|footer_small_print|(header_menu|header_bleed|footer_bleed|header_colour_on|footer_colour_on|character)$)/;
+  var RELOADS = /^(look_|header_button_|footer_text|footer_small_print|(header_menu|header_bleed|footer_bleed|header_colour_on|footer_colour_on|character|page)$)/;
   var mustReload = false;
 
   /**

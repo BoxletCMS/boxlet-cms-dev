@@ -184,8 +184,30 @@
   font-size: var(--ui-text-xs);
 }
 
+.stage-where {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-2);
+  min-inline-size: 0;
+}
+
 .stage-where span {
   color: var(--ui-ink-faint);
+}
+
+/* Which page the picture is of (D-111): a select of this screen's own, not the browser's
+   (D-078), small enough to sit in the strip. */
+.stage-pick select {
+  max-inline-size: 14rem;
+  padding: 0 var(--ui-1);
+  min-block-size: 1.5rem;
+  block-size: 1.5rem;
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-control-line);
+  border-radius: var(--ui-radius-s);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-xs);
 }
 
 /* The one thing in this strip that is a warning rather than a fact, so it is the one that

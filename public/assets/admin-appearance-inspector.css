@@ -18,14 +18,18 @@
 /* The strip reads as a row of tabs at rest — each one has its own edge, not only the
    selected one, because a control that appears on hover is a control nobody knew was
    there.
-   FIVE EQUAL COLUMNS, NOT A WRAPPING ROW. Five tabs in 19.5rem minus padding is about
+   SIX EQUAL COLUMNS, NOT A WRAPPING ROW. Six tabs in 19.5rem minus padding is about
    280px, which fits in English and does not in Croatian: "Boja · Tipografija · Oblik ·
    Stranica · Zaglavlje" broke into two ragged rows, and a strip that wraps unevenly reads
    as two strips. Equal columns wrap as one block or not at all, and a name too long for
-   its column gives way at the end with the whole of it in the title. */
+   its column gives way at the end with the whole of it in the title.
+   THREE COLUMNS, TWO ROWS since D-111, when the header and the footer got a tab each: six
+   names in one row of 280px cut "Colour", "Header" and "Footer" to "Col…", "Hea…" and
+   "Foo…" in English, and a tab whose name cannot be read is not a tab. Two even rows are
+   what D-075 allowed; uneven ones are what it refused. */
 .tab-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--ui-1);
   padding: var(--ui-1);
   background: var(--ui-panel-sunken);
@@ -213,6 +217,19 @@
 
 /* ---- density in the inspector -------------------------------------------------------- */
 
+/* THE ROW IS A FLEX ROW HERE, WHATEVER THE FORMS STYLESHEET SAYS (D-111). admin.css draws
+   `.field-row` as a flex row of label and readout (D-065), and admin-forms.css, loaded after
+   it, draws `.field-row` as a grid of one third label and two thirds input for the settings
+   ledger. The grid won on every screen, and on this one it gave every group's name a third
+   of a 260px column: "HEADER ARRANGEMENT" folded into two lines and "FOOTER MENU COLUMNS"
+   into three, whatever admin.css asked for. Measured, not reasoned — the label computed to
+   84px inside a 261px row with `display: grid` on it — after D-110 had tuned the flex rules
+   and seen no change in the labels. */
+.appearance-inspector .field-row {
+  display: flex;
+  max-inline-size: none;
+}
+
 /* A group's name is a LABEL, not a heading: small, quiet and in capitals, as the handoff
    draws it. The value beside it is the thing worth reading at full strength. */
 .appearance-inspector .field-label,
@@ -265,4 +282,33 @@
   color: var(--ui-ink-faint);
   font-size: var(--ui-text-xs);
   overflow-wrap: anywhere;
+}
+
+/* ---- one language's words, folded (PLAN.md D-111) ------------------------------------ */
+
+/* With several languages each one's words are a <details>, and the language the picture is
+   drawn in stands open. The summary is drawn like a group's legend, and it is a control at
+   rest: a chevron the browser gives it, and a name. */
+.words > summary {
+  cursor: pointer;
+  padding-block: var(--ui-1);
+  color: var(--ui-ink);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+}
+
+.words > summary:hover {
+  color: var(--ui-accent);
+}
+
+.words-previewed {
+  color: var(--ui-ink-faint);
+  font-size: var(--ui-text-xs);
+  font-weight: 400;
+}
+
+.words-inside {
+  display: grid;
+  gap: var(--ui-3);
+  padding-block-start: var(--ui-2);
 }

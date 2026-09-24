@@ -42,7 +42,13 @@ final class StatsQuery
     /** The two that are not in stats_views at all. */
     public const PLACES = ['regions' => 'region', 'cities' => 'city'];
 
-    public function __construct(private readonly Db $db)
+    /**
+     * @param int|null $cityMin the owner's floor under the cities (D-109); null is the
+     *        default five. Held here rather than passed to top(), because every caller that
+     *        asks for a dimension would otherwise have to carry a number that concerns two
+     *        of them.
+     */
+    public function __construct(private readonly Db $db, private readonly ?int $cityMin = null)
     {
     }
 
@@ -142,7 +148,7 @@ final class StatsQuery
     public function top(string $dimension, StatsFilter $filter, ?int $limit = 10, bool $group = false): array
     {
         if (isset(self::PLACES[$dimension])) {
-            return (new PlaceQuery($this->db))->top(self::PLACES[$dimension], $filter, $limit, $group);
+            return (new PlaceQuery($this->db, $this->cityMin))->top(self::PLACES[$dimension], $filter, $limit, $group);
         }
         $column = self::DIMENSIONS[$dimension] ?? 'path';
         // Gathering the small rows needs all of them: the limit is applied afterwards.

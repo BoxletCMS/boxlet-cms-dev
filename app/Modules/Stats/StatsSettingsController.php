@@ -42,6 +42,13 @@ final class StatsSettingsController
         Settings::set($db, 'stats_city_months', $cityMonths !== '' && in_array((int) $cityMonths, Tracker::CITY_MONTHS, true)
             ? (int) $cityMonths
             : Tracker::settings($db)['cityMonths']);
+        /* The floor under the cities (D-109). The same shape as the months above and for the
+           same reason: a form that sent no field must not be read as asking for the lowest
+           value, which here is the one that names a person. */
+        $cityMin = $request->input('stats_city_min');
+        Settings::set($db, 'stats_city_min', $cityMin !== '' && in_array((int) $cityMin, PlaceQuery::MIN_CHOICES, true)
+            ? (int) $cityMin
+            : Tracker::settings($db)['cityMin']);
         // Not stats_*: the addresses that may speak for a visitor are read by the form and
         // login limits too (O-20).
         Settings::set($db, 'trusted_proxies', mb_substr(trim($request->input('trusted_proxies')), 0, 2000));

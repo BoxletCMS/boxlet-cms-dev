@@ -270,11 +270,13 @@ testBothDrivers('the Settings panel switches it off and on, and deletes every co
     assertContains(e(t('stats.on_now')), dispatch('/admin/settings')->body, 'on by default');
 
     assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics', ['stats_retention' => '12']));
-    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3], Tracker::settings($db), 'saved');
+    // cityMin: a post that names no floor keeps the one that is stored, and five is the
+    // default (D-109) — a form that sent no field must never be read as asking for one.
+    assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3, 'cityMin' => 5], Tracker::settings($db), 'saved');
     assertContains(e(t('stats.off_now')), dispatch('/admin/settings')->body, 'said to be off');
 
     adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_dnt' => '1', 'stats_retention' => '99']);
-    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3], Tracker::settings($db), 'a retention not offered');
+    assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3, 'cityMin' => 5], Tracker::settings($db), 'a retention not offered');
 
     // How much of where a visitor is (D-055): one of three, and anything else is the
     // country — the level that says least.
@@ -590,6 +592,87 @@ test('the privacy text is written for the settings, in English and Croatian', fu
     foreach ($texts as $code => $text) {
         assertTrue(!str_contains($text['text'], ':period') && !str_contains($text['text'], 'privacy.'), "{$code}: a placeholder or key left in");
     }
+});
+
+/*
+ * THE FLOOR IS A SETTING, AND THE SCREEN SAYS WHAT CHOOSING ONE MEANS (PLAN.md D-109).
+ *
+ * The owner asked for the choice and took the version that includes one. That is his to
+ * make, and the screen owes him the consequence in words rather than a number that quietly
+ * stops protecting anybody.
+ */
+testBothDrivers('the city floor is saved, refuses a number nobody offered, and warns at one', function (string $driver) {
+    $db = statsSite($driver);
+    $post = static fn (string $value): array => (array) adminPost('/admin/settings/statistics', [
+        'stats_retention' => '12', 'stats_location' => 'city', 'stats_city_min' => $value,
+    ]);
+
+    assertEquals(5, Tracker::settings($db)['cityMin'], 'five to begin with');
+    $post('1');
+    assertEquals(1, Tracker::settings($db)['cityMin'], 'the number the owner chose');
+
+    // Not one of the offered numbers, and not a floor: the stored one stands rather than
+    // the request deciding for itself. Same rule the months above follow.
+    $post('4');
+    assertEquals(1, Tracker::settings($db)['cityMin'], 'a number nobody offered was taken anyway');
+    $post('10');
+    assertEquals(10, Tracker::settings($db)['cityMin'], 'and a offered one still saves');
+
+    // AT ONE THE SCREEN SAYS SO, in the settings and on the statistics page, because the
+    // note that explains the gathered row would otherwise describe a row that is not there.
+    $post('1');
+    assertContains(e(t('stats.city_min_one')), dispatch('/admin/settings')->body, 'the warning at one');
+    $page = dispatch('/admin/statistics?period=30d')->body;
+    assertTrue(!str_contains($page, e(t('stats.places_note', ['count' => '1']))), 'the note still speaks of a floor');
+
+    $post('5');
+    assertTrue(!str_contains(dispatch('/admin/settings')->body, e(t('stats.city_min_one'))), 'the warning stayed after the floor went back');
+});
+
+/*
+ * AND IT STOPS PROMISING WHAT THE FIGURES NO LONGER DO (PLAN.md D-109).
+ *
+ * The city paragraph ended with "places with very few visitors are counted together, so that
+ * a total cannot point at one person". That was a fact about a floor fixed at five. The
+ * owner can now set the floor to one, and every city is then named however few visitors it
+ * had — so the sentence is withheld rather than left standing as a lie. PrivacyText exists
+ * for exactly this rule: a text claiming one thing while the site counts another is the
+ * worst kind of wrong, and it is the promise, not the paragraph, that has to move.
+ */
+test('the privacy text withholds the promise about small places when the floor is one', function () {
+    $atCity = static fn (int $floor): array => App\Modules\Stats\PrivacyText::all(
+        ['enabled' => true, 'dnt' => true, 'retention' => 24, 'location' => 'city', 'cityMin' => $floor],
+        true,
+    );
+
+    /* Each language's OWN sentence, read from the same file PrivacyText reads. t() would
+       answer in the ADMIN's language, and the Croatian text quite properly does not contain
+       the English sentence — which is the test failing for a reason that is not the rule. */
+    $promise = static function (string $code): string {
+        $strings = require dirname(__DIR__) . '/lang/' . $code . '/stats-privacy.php';
+
+        return is_string($strings['privacy.city_floor'] ?? null) ? $strings['privacy.city_floor'] : '';
+    };
+
+    foreach ($atCity(5) as $code => $text) {
+        assertTrue($promise($code) !== '', "{$code}: no sentence to withhold, so nothing is being checked");
+        assertContains($promise($code), $text['text'], "{$code}: the promise is missing while it is true");
+    }
+    foreach ($atCity(1) as $code => $text) {
+        assertTrue(
+            !str_contains($text['text'], $promise($code)),
+            "{$code}: the text still promises a total cannot point at one person, while every city is named",
+        );
+        // The rest of the city paragraph is unchanged: only the promise moved.
+        assertContains('DB-IP', $text['text'], "{$code}: the city paragraph went with it");
+    }
+
+    // A site counting only the country never carried the sentence, floor or no floor.
+    $country = App\Modules\Stats\PrivacyText::all(
+        ['enabled' => true, 'dnt' => true, 'retention' => 24, 'location' => 'country', 'cityMin' => 5],
+        true,
+    );
+    assertTrue(!str_contains($country['en']['text'], $promise('en')), 'a country-only site is promised city behaviour');
 });
 
 testBothDrivers('the Settings panel offers the privacy text', function (string $driver) {

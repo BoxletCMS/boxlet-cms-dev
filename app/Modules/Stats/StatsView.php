@@ -20,13 +20,19 @@ final class StatsView
         'os' => 'os',
     ];
 
-    /** A stored value in words: '' is "direct", "unknown" or "other" by dimension. */
-    public static function label(string $dimension, string $value): string
+    /**
+     * A stored value in words: '' is "direct", "unknown" or "other" by dimension.
+     *
+     * @param int|null $cityMin the owner's floor under the cities (D-109), for the row that
+     *        stands for the small ones and has to say the right number. The cities have a
+     *        floor of their own and it is not the same as everything else's (D-055).
+     */
+    public static function label(string $dimension, string $value, ?int $cityMin = null): string
     {
         return match (true) {
-            // The cities have a floor of their own, and it is higher (D-055), so the row
-            // that stands for the small ones has to say the right number.
-            $value === StatsQuery::OTHER => t('stats.other_small', ['count' => (string) ($dimension === 'cities' ? PlaceQuery::SMALL : StatsQuery::SMALL)]),
+            $value === StatsQuery::OTHER => t('stats.other_small', ['count' => (string) ($dimension === 'cities'
+                ? (in_array($cityMin, PlaceQuery::MIN_CHOICES, true) ? $cityMin : PlaceQuery::DEFAULT_MIN)
+                : StatsQuery::SMALL)]),
             $dimension === 'devices' => t('stats.device.' . ($value !== '' ? $value : 'desktop')),
             $value !== '' => $dimension === 'countries' ? strtoupper($value) : $value,
             $dimension === 'sources' => t('stats.direct'),

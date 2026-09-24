@@ -47,7 +47,7 @@ final class StatsDataController
         }
 
         return self::file(
-            StatsExport::csv($db, $table, $filter, $settings['group']),
+            StatsExport::csv($db, $table, $filter, $settings['group'], $settings['cityMin']),
             'text/csv; charset=utf-8',
             sprintf('boxlet-%s-%s-%s.csv', $table, $filter->from, $filter->to),
         );

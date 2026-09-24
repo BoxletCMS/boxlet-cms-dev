@@ -8,7 +8,7 @@ use App\Support\Url;
  * browser's Do Not Track or Global Privacy Control is honoured, how long counts are kept,
  * and a way to delete them all. Its forms are its own, outside the settings form.
  *
- * @var array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string, cityMonths: int} $stats
+ * @var array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string, cityMonths: int, cityMin: int} $stats
  * @var array{built: string, type: string, cities: bool}|null $geo the location database in use
  * @var array{done: int, total: int}|null $geoDownload a city database part-way down (D-055)
  * @var string $uploadLimit the largest file this server accepts, as php.ini says it
@@ -39,6 +39,26 @@ use App\Support\Url;
 <?php if ($stats['location'] !== 'country' && ($geo === null || !$geo['cities'])): ?>
                     <p class="notice notice-warning"><?= e(t('stats.location_needs_city')) ?></p>
 <?php endif; ?>
+                    <?php /* HOW MANY VISITORS A CITY NEEDS BEFORE IT IS NAMED (D-109).
+                             Fixed at five until the owner asked for it: on a site with
+                             twenty visitors a month the Cities panel showed nothing but
+                             "Other", which is the feature not working rather than the
+                             feature protecting anybody. One is offered and is a real
+                             choice — the warning under it is not decoration, and the
+                             site's own privacy text drops a sentence when it is chosen. */ ?>
+                    <div class="field">
+                        <div class="choice-head">
+                            <span class="choice-name" id="stats_city_min-label"><?= e(t('stats.city_min')) ?></span>
+                        </div>
+                        <?= segmented_group('stats_city_min', array_combine(
+                            App\Modules\Stats\PlaceQuery::MIN_CHOICES,
+                            array_map('strval', App\Modules\Stats\PlaceQuery::MIN_CHOICES),
+                        ), (string) $stats['cityMin'], 'stats_city_min-label', 'stats_city_min-') ?>
+                        <span class="hint"><?= e(t('stats.city_min_hint')) ?></span>
+<?php if ($stats['cityMin'] < 2): ?>
+                        <p class="notice notice-warning"><?= e(t('stats.city_min_one')) ?></p>
+<?php endif; ?>
+                    </div>
                     <?php /* The city is the sharpest thing these counts hold, so it is the
                              first thing forgotten (D-055): after this, a place keeps its
                              region and the counts stay whole. */ ?>

@@ -13,6 +13,7 @@ use App\Support\Url;
  * @var array{visitors: int, views: int, perVisitor: float, mobile: float} $totals
  * @var array{visitors: int, views: int, perVisitor: float, mobile: float} $previous
  * @var list<array{day: string, visitors: int, views: int}> $series
+ * @var int $cityMin how many visitors a city needs before it is named (D-109)
  * @var bool $chartWeek whether the chart shows the week the period ends, not the period
  * @var bool $chartByWeek whether the chart's points are weeks rather than days
  * @var array<string, list<array{value: string, visitors: int|null, views: int}>> $tables
@@ -113,7 +114,9 @@ $figures = [
 <?php elseif (isset($tables['cities'])): ?>
         <?php /* Under the cities, not under each table: it is about the figures, and one
                  line in the right place is read where two in the wrong one are not. */ ?>
-        <p class="hint stats-note"><?= e(t('stats.places_note', ['count' => (string) App\Modules\Stats\PlaceQuery::SMALL])) ?></p>
+        <p class="hint stats-note"><?= e($cityMin > 1
+            ? t('stats.places_note', ['count' => (string) $cityMin])
+            : t('stats.places_note_all')) ?></p>
 <?php endif; ?>
 
 <?php if ($missingOn): ?>

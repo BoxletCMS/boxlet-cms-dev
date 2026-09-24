@@ -15,7 +15,12 @@ return [
     // what is looked up AND what is kept, because the paragraph after it lists the country
     // alone and would otherwise understate it.
     'privacy.region' => 'At the moment of your visit, your IP address is also used to look up your country and region in a database kept on our server (IP geolocation by DB-IP). The country and the region are kept, and nothing narrower than that.',
-    'privacy.city' => 'At the moment of your visit, your IP address is also used to look up your country, region and city in a database kept on our server (IP geolocation by DB-IP). The location is approximate: on a mobile network it is usually the operator\'s city. It is kept as a daily total for the place alone, never together with the pages that were read, and places with very few visitors are counted together so that a total cannot point at one person.',
+    /* THE LAST CLAUSE IS ITS OWN SENTENCE SINCE D-109, and it is only shown while it is
+       true. The owner may lower the floor under the cities to one, and a text telling
+       visitors that "a total cannot point at one person" while every city is named would be
+       the worst kind of wrong — which is the rule PrivacyText was written around. */
+    'privacy.city' => 'At the moment of your visit, your IP address is also used to look up your country, region and city in a database kept on our server (IP geolocation by DB-IP). The location is approximate: on a mobile network it is usually the operator\'s city. It is kept as a daily total for the place alone, never together with the pages that were read.',
+    'privacy.city_floor' => 'Places with very few visitors are counted together, so that a total cannot point at one person.',
     'privacy.kept' => 'We keep only daily totals: the pages viewed, the website you came from (its domain only), the country, and the type of device, browser and operating system. None of this identifies you. The totals are deleted automatically after :period.',
     'privacy.dnt' => 'If your browser sends a Do Not Track or Global Privacy Control signal, your visit is not counted.',
     'privacy.basis' => 'Legal basis: our legitimate interest in understanding how our website is used (Article 6(1)(f) GDPR).',

@@ -49,9 +49,9 @@ $narrow = static fn (string $value): string => Url::admin('statistics') . '?'
                             <th scope="row" class="stats-name">
                                 <svg class="stats-bar" viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect width="<?= e(number_format($share, 1, '.', '')) ?>" height="1"/></svg>
 <?php if ($narrowed): ?>
-                                <span><?= e(StatsView::label($dimension, $row['value'])) ?></span>
+                                <span><?= e(StatsView::label($dimension, $row['value'], $cityMin ?? null)) ?></span>
 <?php else: ?>
-                                <a href="<?= e($narrow($row['value'])) ?>" title="<?= e(t('stats.narrow_to', ['value' => StatsView::label($dimension, $row['value'])])) ?>"><?= e(StatsView::label($dimension, $row['value'])) ?></a>
+                                <a href="<?= e($narrow($row['value'])) ?>" title="<?= e(t('stats.narrow_to', ['value' => StatsView::label($dimension, $row['value'], $cityMin ?? null)])) ?>"><?= e(StatsView::label($dimension, $row['value'], $cityMin ?? null)) ?></a>
 <?php endif; ?>
 <?php if ($byViews && $row['value'] !== ''): ?>
                                 <a class="stats-open" href="<?= e(Url::asset(implode('/', array_map('rawurlencode', explode('/', ltrim($row['value'], '/')))))) ?>" target="_blank" rel="noopener" title="<?= e(t('stats.open_page')) ?>"><?= icon('external-link') ?><span class="visually-hidden"><?= e(t('stats.open_page')) ?></span></a>

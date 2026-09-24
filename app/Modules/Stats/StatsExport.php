@@ -29,7 +29,12 @@ final class StatsExport
      * One table as the screen shows it, as CSV: the same rows, the same order, the same
      * narrowing — what is on the screen is what comes out.
      */
-    public static function csv(Db $db, string $dimension, StatsFilter $filter, bool $group): string
+    /**
+     * @param int|null $cityMin the owner's floor under the cities (D-109). The export obeys
+     *        the same floor the screen does — a CSV that named what the table would not is
+     *        the same disclosure by another door.
+     */
+    public static function csv(Db $db, string $dimension, StatsFilter $filter, bool $group, ?int $cityMin = null): string
     {
         $out = fopen('php://temp', 'r+');
         if ($out === false) {
@@ -46,9 +51,9 @@ final class StatsExport
             }
         } else {
             $line([StatsView::filterKey($dimension), 'visitors', 'views']);
-            foreach ((new StatsQuery($db))->top($dimension, $filter, null, $group) as $row) {
+            foreach ((new StatsQuery($db, $cityMin))->top($dimension, $filter, null, $group) as $row) {
                 $line([
-                    $row['value'] === StatsQuery::OTHER ? t('stats.other_small', ['count' => (string) StatsQuery::SMALL]) : $row['value'],
+                    $row['value'] === StatsQuery::OTHER ? StatsView::label($dimension, $row['value'], $cityMin) : $row['value'],
                     $row['visitors'] ?? '',
                     $row['views'],
                 ]);

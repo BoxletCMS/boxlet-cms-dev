@@ -60,7 +60,8 @@ final class StatsController
 
         $wanted = is_string($request->query['all'] ?? null) ? $request->query['all'] : '';
         $all = in_array($wanted, $shown, true) || $wanted === 'missing' ? $wanted : null;
-        $query = new StatsQuery($db);
+        // The owner's floor under the cities travels with the query (D-109).
+        $query = new StatsQuery($db, $settings['cityMin']);
         $totals = $query->totals($filter);
         $before = $filter->previous();
 
@@ -86,6 +87,7 @@ final class StatsController
             return AdminView::render($this->container, __DIR__ . '/views', 'all', $data + [
                 'dimension' => $all,
                 'rows' => $query->top($all, $filter, null, $settings['group']),
+                'cityMin' => $settings['cityMin'],
                 'missing' => null,
             ]);
         }
@@ -125,9 +127,11 @@ final class StatsController
                 static fn (string $code): string => Url::admin('statistics') . '?' . http_build_query($filter->asQuery(['country' => $code])),
                 // Only where the map is cut to a country: the dots are not drawn on the
                 // world, so asking the database for them there would be work for nothing.
-                $zoom !== '' && in_array('cities', $places, true) ? (new PlaceQuery($db))->markers($filter) : [],
+                $zoom !== '' && in_array('cities', $places, true) ? (new PlaceQuery($db, $settings['cityMin']))->markers($filter) : [],
                 $zoom,
             ),
+            // The floor under the cities, for the gathered row and the note (D-109).
+            'cityMin' => $settings['cityMin'],
             'mapZoom' => $zoom,
             'mapCountry' => $one,
             // Addresses that are not there, while the owner counts them (O-20).

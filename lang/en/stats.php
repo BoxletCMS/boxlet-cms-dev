@@ -85,6 +85,16 @@ return [
     // Under the regions and the cities (D-055). Both halves matter: one says the figure is
     // approximate, the other says why a city may be missing from the list.
     'stats.places_note' => 'Where a visitor is is approximate, and on a mobile network it is usually the operator\'s city rather than the visitor\'s. Cities with fewer than :count visitors in the period are shown together, so that a count never comes close to naming somebody.',
+    // The same note when the owner has lowered the floor to one (D-109). It does not
+    // scold — the choice is theirs and the screen already warned once, on the setting —
+    // but it does not repeat a promise the figures have stopped keeping either.
+    'stats.places_note_all' => 'Where a visitor is is approximate, and on a mobile network it is usually the operator\'s city rather than the visitor\'s. Every city is named, however few visitors it had: a row of one is one person, not a place.',
+    // HOW MANY VISITORS A CITY NEEDS BEFORE IT IS NAMED (D-109). Five was fixed, from the
+    // specification's privacy rule, until a site with twenty visitors a month showed nothing
+    // but "Other" and the owner asked for the choice.
+    'stats.city_min' => 'Name a city from',
+    'stats.city_min_hint' => 'Cities with fewer visitors than this in the period are counted together as “Other”. Five is the usual floor in published statistics: below it a row starts to describe a person rather than a place.',
+    'stats.city_min_one' => 'At one, every city is named — including one a single visitor came from. That row is a person. Your site’s own privacy text drops the sentence promising that a total cannot point at somebody, because it would no longer be true.',
     'stats.places_narrowed' => 'Regions and cities are counted without the page, so they are not shown while the screen is narrowed to one. Remove that to see them.',
     'stats.places_off' => 'Only the country is counted. Settings → Statistics chooses how much of a location is counted.',
     'stats.other' => 'Other',

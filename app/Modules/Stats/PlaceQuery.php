@@ -11,18 +11,31 @@ use App\Core\Db;
  * so a question that narrows by page cannot be asked of it at all, and the screen says so
  * rather than showing a number that means something else.
  *
- * A FLOOR UNDER THE CITIES, always. A city with one or two visitors in a period is close to
- * naming somebody, so cities under SMALL are gathered into one row and the row says how
- * many they were. That is not the "gather small rows" setting, which the owner can turn
- * off; it is the price of counting cities at all.
+ * A FLOOR UNDER THE CITIES. A city with one or two visitors in a period is close to naming
+ * somebody, so cities under the floor are gathered into one row and the row says how many
+ * they were.
+ *
+ * IT IS THE OWNER'S NUMBER SINCE D-109, WHICH IT WAS NOT BEFORE. It was fixed at five, from
+ * the specification's own privacy rule, and on a site with twenty visitors a month that left
+ * the Cities panel showing nothing but "Other" — the owner's words: "nema neke logike da se
+ * ne prikazuju najposjećeniji gradovi". Five is still the default. One is offered and is a
+ * real choice with a real cost: at one a row describes a PERSON, not a place, and the site's
+ * own privacy text drops the sentence promising otherwise (PrivacyText). A setting that
+ * quietly made that sentence false would be the worst kind of wrong.
  */
 final class PlaceQuery
 {
-    /** Fewer visitors than this in the period, and a city is shown with the others. */
-    public const SMALL = 5;
+    /** What the owner may choose. One is in the list deliberately; see the note above. */
+    public const MIN_CHOICES = [1, 2, 3, 5, 10];
 
-    public function __construct(private readonly Db $db)
+    /** Fewer visitors than this in the period, and a city is shown with the others. */
+    public const DEFAULT_MIN = 5;
+
+    private readonly int $cityMin;
+
+    public function __construct(private readonly Db $db, ?int $cityMin = null)
     {
+        $this->cityMin = in_array($cityMin, self::MIN_CHOICES, true) ? $cityMin : self::DEFAULT_MIN;
     }
 
     /**
@@ -47,7 +60,7 @@ final class PlaceQuery
         )));
 
         return $column === 'city'
-            ? self::gathered($rows, self::SMALL, $limit)
+            ? self::gathered($rows, $this->cityMin, $limit)
             : StatsQuery::gathered($rows, $group, $limit, 'visitors');
     }
 
@@ -64,7 +77,7 @@ final class PlaceQuery
             "SELECT city, country, MIN(latitude) AS latitude, MIN(longitude) AS longitude, SUM(visitors) AS visitors
              FROM stats_places
              WHERE {$where} AND city <> '' AND latitude IS NOT NULL
-             GROUP BY city, country HAVING SUM(visitors) >= " . self::SMALL . '
+             GROUP BY city, country HAVING SUM(visitors) >= " . $this->cityMin . '
              ORDER BY visitors DESC',
             $params,
         );
@@ -78,9 +91,16 @@ final class PlaceQuery
         ], $rows));
     }
 
+    /** The floor this query is reading with, for the row that has to say the number. */
+    public function floor(): int
+    {
+        return $this->cityMin;
+    }
+
     /**
-     * The rows with everything under $floor gathered into one, whatever the owner's
-     * setting: this is the floor, not the preference.
+     * The rows with everything under $floor gathered into one, whatever the "gather small
+     * rows" setting says: that setting is about tidiness, this is about a person. At a floor
+     * of one nothing is gathered, which is the point of offering one.
      *
      * @param list<array{value: string, visitors: int|null, views: int}> $rows
      * @return list<array{value: string, visitors: int|null, views: int}>

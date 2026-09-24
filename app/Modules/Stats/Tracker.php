@@ -49,14 +49,15 @@ final class Tracker
      * The module's settings, with their defaults: on, honouring DNT and GPC, two years,
      * and the country as the only thing said about where a visitor is.
      *
-     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string, cityMonths: int}
+     * @return array{enabled: bool, dnt: bool, retention: int, missing: bool, group: bool, location: string, cityMonths: int, cityMin: int}
      */
     public static function settings(Db $db): array
     {
-        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing', 'stats_group', 'stats_location', 'stats_city_months']);
+        $stored = Settings::many($db, ['stats_enabled', 'stats_dnt', 'stats_retention', 'stats_missing', 'stats_group', 'stats_location', 'stats_city_months', 'stats_city_min']);
         $retention = $stored['stats_retention'];
         $location = $stored['stats_location'];
         $cityMonths = $stored['stats_city_months'];
+        $cityMin = $stored['stats_city_min'];
 
         return [
             'enabled' => $stored['stats_enabled'] !== false,
@@ -73,6 +74,10 @@ final class Tracker
             // the city is the point at which a count starts to be about a person.
             'location' => is_string($location) && in_array($location, Place::LEVELS, true) ? $location : 'country',
             'cityMonths' => is_int($cityMonths) && in_array($cityMonths, self::CITY_MONTHS, true) ? $cityMonths : self::CITY_MONTHS_DEFAULT,
+            // How many visitors a city needs before it is named (D-109). Five unless the
+            // owner says otherwise, which is the specification's own privacy rule; one is
+            // allowed and changes what the site tells its visitors (PrivacyText).
+            'cityMin' => is_int($cityMin) && in_array($cityMin, PlaceQuery::MIN_CHOICES, true) ? $cityMin : PlaceQuery::DEFAULT_MIN,
         ];
     }
 

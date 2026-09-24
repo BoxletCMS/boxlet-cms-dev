@@ -13,7 +13,7 @@ namespace App\Modules\Stats;
 final class PrivacyText
 {
     /**
-     * @param array{enabled: bool, dnt: bool, retention: int, location?: string} $settings
+     * @param array{enabled: bool, dnt: bool, retention: int, location?: string, cityMin?: int} $settings
      * @return array<string, array{language: string, text: string}> by language code
      */
     public static function all(array $settings, bool $countries): array
@@ -37,6 +37,14 @@ final class PrivacyText
                     'region' => 'region',
                     default => 'country',
                 }) : '',
+                /* AND THE PROMISE ABOUT SMALL PLACES, ONLY WHILE IT IS TRUE (D-109). The
+                   owner may lower the floor under the cities to one, and then every city is
+                   named however few visitors it had — so the sentence saying a total cannot
+                   point at one person is withheld rather than left standing as a lie. Same
+                   rule as the paragraph above: the text says what the site actually counts. */
+                $countries && ($settings['location'] ?? 'country') === 'city' && ($settings['cityMin'] ?? PlaceQuery::DEFAULT_MIN) > 1
+                    ? $say('privacy.city_floor')
+                    : '',
                 str_replace(':period', $say('privacy.period.' . $settings['retention']), $say('privacy.kept')),
                 $settings['dnt'] ? $say('privacy.dnt') : '',
                 $say('privacy.basis'),

@@ -274,6 +274,73 @@ testBothDrivers('a city too small to name is counted with the others', function 
     assertEquals(t('stats.other_small', ['count' => '5']), App\Modules\Stats\StatsView::label('cities', App\Modules\Stats\StatsQuery::OTHER), 'the row says the floor it stands for');
 });
 
+/*
+ * AND THE FLOOR IS THE OWNER'S NUMBER (PLAN.md D-109).
+ *
+ * Five was fixed, from the specification's privacy rule, and on a site with twenty visitors
+ * a month the Cities panel showed nothing but "Other" — the feature not working rather than
+ * the feature protecting anybody. The owner asked for the choice and took the version that
+ * includes ONE, knowing what one means.
+ *
+ * Checked at both ends, because the two ends are different claims: at one nothing is
+ * gathered at all, and at ten a city that five would have named is not.
+ */
+testBothDrivers('the floor under the cities is the number the owner chose', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    foreach (range(1, 6) as $n) {
+        placeView($db, '198.51.100.' . $n);
+    }
+    placeView($db, '203.0.113.7');
+    $today = statsFilter(['period' => 'today']);
+    $named = static fn (?int $floor): array => array_column(
+        (new App\Modules\Stats\PlaceQuery($db, $floor))->top('city', $today, 10, false),
+        'value',
+    );
+
+    $all = $named(1);
+    assertTrue(in_array('Vienna', $all, true), 'at a floor of one the city with one visitor is named');
+    assertTrue(!in_array(App\Modules\Stats\StatsQuery::OTHER, $all, true), 'at one there is nothing left to gather');
+
+    $ten = $named(10);
+    assertTrue(!in_array('Zagreb', $ten, true), 'at ten the city with six visitors is not named');
+    assertTrue(in_array(App\Modules\Stats\StatsQuery::OTHER, $ten, true), 'and is in the gathered row');
+
+    // A number nobody offered is not a floor: it falls back to five rather than to itself.
+    assertEquals($named(5), $named(4), 'a floor outside the offered set was used anyway');
+
+    // The gathered row has to say the number it stands for, or it is describing the wrong set.
+    assertEquals(t('stats.other_small', ['count' => '10']),
+        App\Modules\Stats\StatsView::label('cities', App\Modules\Stats\StatsQuery::OTHER, 10),
+        'the row says the floor it stands for');
+});
+
+/*
+ * THE MAP OBEYS IT TOO, and so does the export.
+ *
+ * A dot on a map and a row in a CSV name a city exactly as the table does, so a floor the
+ * table kept and they did not would be the same disclosure by another door. That was already
+ * true of the fixed five; this is it staying true of a number that moves.
+ */
+testBothDrivers('the map and the export use the same floor the table does', function (string $driver) {
+    $db = placeSite($driver, 'city');
+    foreach (range(1, 6) as $n) {
+        placeView($db, '198.51.100.' . $n);
+    }
+    placeView($db, '203.0.113.7');
+    $today = statsFilter(['period' => 'today']);
+
+    $dots = static fn (?int $floor): array => array_column(
+        (new App\Modules\Stats\PlaceQuery($db, $floor))->markers($today),
+        'city',
+    );
+    assertTrue(!in_array('Vienna', $dots(5), true), 'at five the small city is a dot on the map');
+    assertTrue(in_array('Vienna', $dots(1), true), 'at one it is not');
+
+    $csv = static fn (?int $floor): string => App\Modules\Stats\StatsExport::csv($db, 'cities', $today, false, $floor);
+    assertTrue(!str_contains($csv(5), 'Vienna'), 'at five the small city is in the CSV');
+    assertContains('Vienna', $csv(1), 'at one it is not in the CSV');
+});
+
 testBothDrivers('the screen shows the places, and says when it cannot', function (string $driver) {
     $db = placeSite($driver, 'city');
     $now = gmdate('Y-m-d H:i:s');

@@ -27,17 +27,31 @@ $button = $content['button'];
 /* The look (PLAN.md D-032, D-036): closed sets resolved by ChromeLook, so each is a class
    and nothing else. Surface and layout arrive as the section's own layers. */
 $look = is_array($resolved['look'] ?? null) ? $resolved['look'] : [];
+/* A colour of the owner's own (D-076) is a CLASS on the bar, and the class is what lets
+   chrome.css set the section's tokens from the --chrome-header-* ones with no fallback —
+   a fallback naming the token itself is a cycle, and a cycle is a token that quietly
+   becomes nothing (D-110). Never on a header laid over the first section: that layout
+   exists to paint nothing and take the colours beneath it. */
+$ownColour = ($resolved['own'] ?? false) === true && $layout !== 'transparent';
 $classes = 'site-header density-' . ($look['density'] ?? 'normal')
     . ' logo-' . ($look['logo_size'] ?? 'medium')
-    . (($look['header_rule'] ?? 'off') === 'on' ? ' has-rule' : '');
+    . (($look['header_rule'] ?? 'off') === 'on' ? ' has-rule' : '')
+    . ($ownColour ? ' own-colour' : '');
 
 /* NOT t(), for the reason the language switcher gives: site_t() says the site's own few
    words in the page's language (lang/{code}/site.php, D-044). */
 $menuLabel = site_t('site.menu', (string) ($locale ?? ''));
+/* THE SITE'S NAME STANDS IN FOR A LOGO IT DOES NOT HAVE (D-110). A header that drew only
+   the menu left a site with no logo — which is most sites on their first day — with no
+   name anywhere on the page. The name is set in the heading face by chrome.css, so it
+   takes the character like everything else. */
+$siteName = is_string($resolved['site_name'] ?? null) ? trim($resolved['site_name']) : '';
 ?>
 <div class="<?= e($classes) ?>" data-site-header>
 <?php if ($logoTag !== ''): ?>
     <a class="site-logo" href="<?= e(\App\Support\Url::page($locale ?? '')) ?>"><?= $logoTag ?></a>
+<?php elseif ($siteName !== ''): ?>
+    <a class="site-logo site-name" href="<?= e(\App\Support\Url::page($locale ?? '')) ?>"><?= e($siteName) ?></a>
 <?php endif; ?>
 
 <?php if ($menu !== []): ?>

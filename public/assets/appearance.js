@@ -43,8 +43,12 @@
    * token-only: they are choices about a thing built out of markup, and the next one added
    * is more likely to be markup than not. A needless reload is the old behaviour; a missed
    * one is a screen showing something the site will not do.
+   *
+   * The two own-colour switches joined the list with D-110: a colour of the owner's own is
+   * a class on the bar now, so flipping the switch changes the markup. The colour itself
+   * still does not — it is a token — and 03-design's guard is what said so.
    */
-  var RELOADS = /^(look_|header_button_|footer_text|footer_small_print|(header_menu|header_bleed|footer_bleed|character)$)/;
+  var RELOADS = /^(look_|header_button_|footer_text|footer_small_print|(header_menu|header_bleed|footer_bleed|header_colour_on|footer_colour_on|character)$)/;
   var mustReload = false;
 
   /**

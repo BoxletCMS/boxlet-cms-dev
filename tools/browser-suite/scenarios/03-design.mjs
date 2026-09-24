@@ -261,6 +261,28 @@ export default {
       JSON.stringify(strip));
 
     /*
+     * A READOUT STAYS INSIDE ITS COLUMN (D-110). "Stays at the top when scrolling" ran past
+     * the edge of the inspector and was cut there, with the label beside it folded into two
+     * lines: flex shrank both. The row now says who gives way, and the whole phrase is in
+     * the readout's title.
+     */
+    const readouts = async () => page.evaluate(() => {
+      const box = document.querySelector('[data-inspector]').getBoundingClientRect();
+      const shown = [...document.querySelectorAll('.readout')].filter((r) => r.getClientRects().length > 0);
+      return {
+        shown: shown.length,
+        outside: shown.filter((r) => { const b = r.getBoundingClientRect(); return b.right > box.right + 0.5 || b.left < box.left - 0.5; }).map((r) => r.textContent.trim()),
+        untitled: shown.filter((r) => r.textContent.trim() !== '' && (r.getAttribute('title') || '') !== r.textContent.trim()).map((r) => r.textContent.trim()),
+      };
+    });
+    await openTab(page, 'chrome');
+    const chromeReadouts = await readouts();
+    report.verdict('every readout on the header tab stays inside the column and carries its whole phrase',
+      chromeReadouts.shown > 0 && chromeReadouts.outside.length === 0 && chromeReadouts.untitled.length === 0,
+      JSON.stringify(chromeReadouts));
+    await openTab(page, 'colour');
+
+    /*
      * THE SPECIMEN IS THE SIZES, DRAWN (docs/ispravci.md §C2).
      *
      * It was fixed at 1.6rem, so the scale slider moved the number beside each line and the

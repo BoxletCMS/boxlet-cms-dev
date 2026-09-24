@@ -106,6 +106,8 @@
         // A group still following the character says so; that is a state, not a value.
         if (!slot.classList.contains('readout-following')) {
           slot.textContent = readouts[name];
+          // The whole phrase, for a readout cut short at the end of its row (D-110).
+          slot.title = readouts[name];
         }
       });
     });

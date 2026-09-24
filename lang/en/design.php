@@ -99,6 +99,9 @@ return [
 
     'design.shape' => 'Space and shape',
     'design.spacing' => 'Spacing',
+    // The seven steps of the spacing scale drawn as a ramp under the Shape controls. The key
+    // was on screen as itself from D-065 until D-110, because nothing looked for a bare key.
+    'design.space_ramp' => 'Spacing scale',
     'design.spacing.compact' => 'Compact',
     'design.spacing.normal' => 'Normal',
     'design.spacing.roomy' => 'Roomy',

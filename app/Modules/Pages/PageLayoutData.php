@@ -3,8 +3,10 @@
 namespace App\Modules\Pages;
 
 use App\Core\Container;
+use App\Core\Db;
 use App\Core\Settings;
 use App\Modules\Design\Design;
+use App\Modules\Design\Tokens;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Menus\MenuTree;
 use App\Modules\Settings\ChromeLook;
@@ -81,7 +83,7 @@ final class PageLayoutData
             // A link preview of an error page is not worth a row, so this is the caller's.
             'shareImage' => $head['shareImage'] ?? null,
             'hreflang' => Alternates::hreflang($alternates, self::primary($container->get('locales'))),
-        ] + self::chrome($container, $locale, $alternates, $current, ['bleeds' => Design::load($db)]);
+        ] + self::chrome($container, $locale, $alternates, $current, self::design($db));
     }
 
     /**
@@ -101,7 +103,7 @@ final class PageLayoutData
      * A choice left at "follow the character" follows the character being PREVIEWED, so
      * Bold's sections never stand under Minimal's header.
      *
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>} $trying
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>} $trying
      * @return LayoutData
      */
     public static function forPreview(Container $container, string $locale, string $title, array $trying = []): array
@@ -119,6 +121,22 @@ final class PageLayoutData
             // An admin address must never announce itself as a translation of anything.
             'hreflang' => [],
         ] + self::chrome($container, $locale, Alternates::for($db, null, $container->get('locales')), '', $trying);
+    }
+
+    /**
+     * What a visitor's page hands the chrome from the DESIGN rather than from the chrome's
+     * own settings: which side of the frame each part renders on (D-067), and whether it
+     * carries a colour of the owner's (D-076). The preview builds the same two from the
+     * query it is drawing (AppearancePreview), so both renderers agree on what a decision
+     * means to the markup.
+     *
+     * @return array{bleeds: array<string, string>, own: array<string, string>}
+     */
+    private static function design(Db $db): array
+    {
+        $decisions = Design::load($db);
+
+        return ['bleeds' => $decisions, 'own' => Tokens::ownChrome($decisions)];
     }
 
     /**
@@ -140,7 +158,7 @@ final class PageLayoutData
      * other, and the templates stay free of URL arithmetic (PLAN.md D-032).
      *
      * @param array<int, array<string, mixed>> $locales the languages, as the switcher shows them
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>} $trying
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>} $trying
      *        what an admin preview is showing unsaved; for a visitor's page only the two
      *        bleeds, which are design decisions rather than chrome ones (D-067)
      * @return array{headerBleed: string, footerBleed: string, headerHtml: string, footerHtml: string}
@@ -188,7 +206,11 @@ final class PageLayoutData
         // for a tag, MediaPicture had no entry for that id and drew nothing at all.
         $media = $header['logo'] === null ? [] : MediaPicture::resolve($db, $locale, [$header['logo']]);
 
-        $hasHeader = $header['logo'] !== null || $header['button']['url'] !== '' || $menu !== [];
+        // The site's name, for a header with no logo to stand under, counts as something to
+        // show (D-110): a page with the site's name at the top is right, and a site without a
+        // logo is most sites on their first day.
+        $siteName = Settings::text($db, 'site_name');
+        $hasHeader = $header['logo'] !== null || $header['button']['url'] !== '' || $menu !== [] || trim($siteName) !== '';
         // "Made with Boxlet", when the owner leaves it on (O-20). It is part of what makes a
         // footer worth drawing: a site whose footer is otherwise empty still has this line,
         // and without it here the credit would be switched on and never appear.
@@ -199,15 +221,19 @@ final class PageLayoutData
         // one: it is about the shape of the page, and the layout reads it so no rule in the
         // stylesheet has to ask whether the page is boxed.
         $bleeds = $trying['bleeds'] ?? [];
+        // A colour of the owner's own on the header or the footer (D-076) is a class the
+        // template emits, and the class is what lets the stylesheet set the section's tokens
+        // without naming them in their own fallback (D-110).
+        $own = $trying['own'] ?? [];
 
         return [
             'headerBleed' => ($bleeds['header_bleed'] ?? 'sheet') === 'full' ? 'full' : 'sheet',
             'footerBleed' => ($bleeds['footer_bleed'] ?? 'sheet') === 'full' ? 'full' : 'sheet',
             'headerHtml' => $hasHeader
-                ? $registry->render('header', $header, ['surface' => $resolved['header_surface']], $resolved['header_layout'], $media, true, 'header', ['menu' => $menu, 'look' => $resolved], $locale, $locales)
+                ? $registry->render('header', $header, ['surface' => $resolved['header_surface']], $resolved['header_layout'], $media, true, 'header', ['menu' => $menu, 'look' => $resolved, 'own' => isset($own['header']), 'site_name' => $siteName], $locale, $locales)
                 : '',
             'footerHtml' => $hasFooter
-                ? $registry->render('footer', $footer, ['surface' => $resolved['footer_surface']], $resolved['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $resolved, 'credit' => $credit], $locale, $locales)
+                ? $registry->render('footer', $footer, ['surface' => $resolved['footer_surface']], $resolved['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $resolved, 'credit' => $credit, 'own' => isset($own['footer'])], $locale, $locales)
                 : '',
         ];
     }

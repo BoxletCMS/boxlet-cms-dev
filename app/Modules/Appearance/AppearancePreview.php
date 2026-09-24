@@ -82,14 +82,14 @@ final class AppearancePreview
         $shown = Url::primaryLocale() !== '' ? Url::primaryLocale() : 'en';
         // Every variable the layout reads comes from ONE place (D-057), and everything the
         // owner is trying comes from the query, validated and never written.
+        $trying = AppearanceForm::trying($request->query, $shown, $character);
+        // Which of the header and the footer has a colour of its own, from the same
+        // decisions the stylesheet is compiled from — so the class the template emits and
+        // the tokens the stylesheet carries can never disagree (D-110).
+        $trying['own'] = Tokens::ownChrome($decisions);
         $body = (new View(dirname(__DIR__) . '/Pages/views'))->render('page', $shown, [
             'blocksHtml' => $html,
-        ] + PageLayoutData::forPreview(
-            $this->container,
-            $shown,
-            t('design.preview'),
-            AppearanceForm::trying($request->query, $shown, $character),
-        ));
+        ] + PageLayoutData::forPreview($this->container, $shown, t('design.preview'), $trying));
         $response = Response::admin($body);
         // The one admin page that may be framed, and only by the admin itself.
         $response->headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data:; form-action 'none'; frame-ancestors 'self'; base-uri 'none'";

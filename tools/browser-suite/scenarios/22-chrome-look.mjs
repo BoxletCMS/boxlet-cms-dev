@@ -46,6 +46,53 @@ async function ensureChild(page, report) {
   return true;
 }
 
+
+/**
+ * The WCAG contrast between two computed colours, as the browser reports them (D-110).
+ * Runs inside the page: the values are `rgb(r, g, b)` strings from getComputedStyle.
+ */
+const CONTRAST = `
+  const channel = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const luminance = (rgb) => { const [r, g, b] = rgb.match(/[\\d.]+/g).map(Number); return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b); };
+  const contrast = (a, b) => { const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const painted = (el) => {
+    // A header laid over the first section paints nothing: what its words stand on is that
+    // section, which is a sibling of the header and not an ancestor — walking up would
+    // find the sheet, and white on the sheet read as 1:1 for words that are white on a
+    // navy hero (the instrument, not the product).
+    const over = el.closest('.layout-transparent') ? document.querySelector('main > .block:first-child') : null;
+    if (over) { el = over; }
+    while (el && getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)' && !/gradient/.test(getComputedStyle(el).backgroundImage)) { el = el.parentElement; }
+    if (!el) { return ['rgb(255, 255, 255)']; }
+    const style = getComputedStyle(el);
+    // A gradient surface has no background colour, only an image: what the words stand on
+    // is anywhere between its two ends, so both are answered and the worse one counts.
+    if (/gradient/.test(style.backgroundImage)) {
+      const hex = (name) => { const h = style.getPropertyValue(name).trim().replace('#', ''); return 'rgb(' + [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)).join(', ') + ')'; };
+      return [hex('--color-gradient-start'), hex('--color-gradient-end')];
+    }
+    return [style.backgroundColor];
+  };
+`;
+
+/**
+ * Every link in the header and the footer against the surface it stands on.
+ *
+ * THE MEASUREMENT THAT WOULD HAVE CAUGHT D-076's CYCLE. The PHP tests prove the tokens are
+ * compiled and the classes reach the page; only a browser resolves a custom property, and a
+ * custom property that names itself resolves to nothing — so the links under a contrast
+ * footer took the page's accent at 2.43:1 for three days while every test was green.
+ */
+async function linkContrast(page) {
+  return page.evaluate(`(() => { ${CONTRAST}
+    return [...document.querySelectorAll('.site-nav a, .site-footer-nav a, .site-footer-text, .site-small-print')]
+      .filter((el) => el.getClientRects().length > 0)
+      .map((el) => ({ where: el.closest('header') ? 'header' : 'footer', text: el.textContent.trim().slice(0, 20),
+        colour: getComputedStyle(el).color, on: painted(el).join(' / '),
+        ratio: Math.round(Math.min(...painted(el).map((bg) => contrast(getComputedStyle(el).color, bg))) * 100) / 100 }));
+  })()`);
+}
+
 export default {
   name: 'chrome-look',
   // Runs against the throwaway copy, never the development site (config.mjs).
@@ -66,6 +113,14 @@ export default {
       await page.setViewport({ width: 1400, height: 900, deviceScaleFactor: 2 });
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
       await report.shot(page, `${character}-desktop`, { fullPage: false });
+
+      // Every word in the chrome reads on the surface it stands on — measured in the
+      // browser, which is the only place a custom property is ever resolved (D-110).
+      const inks = await linkContrast(page);
+      const faint = inks.filter((ink) => ink.ratio < 4.5);
+      report.verdict(`${character}: every link and line in the header and footer reads on its surface`,
+        inks.length > 0 && faint.length === 0,
+        faint.length > 0 ? faint.map((f) => `${f.where} "${f.text}" ${f.colour} on ${f.on} ${f.ratio}:1`).join('; ') : `${inks.length} measured, lowest ${Math.min(...inks.map((i) => i.ratio))}:1`);
 
       // A submenu opens from its own button, and only then.
       const more = await page.$('[data-site-nav-more]');
@@ -115,6 +170,41 @@ export default {
       report.verdict(`${character}: on a phone the menu folds under a button and opens from it`,
         folded === 'none' && opened !== 'none',
         `folded ${folded}, opened ${opened}`);
+      // An open menu stands on a painted bar, whatever the header's arrangement: laid over
+      // the first section it used to grow down over the hero with nothing behind its
+      // items (D-110).
+      const bar = await page.$eval('header.block-header', (header) => getComputedStyle(header).backgroundColor);
+      report.verdict(`${character}: the open menu stands on a painted bar`, bar !== 'rgba(0, 0, 0, 0)', `header paints ${bar}`);
     }
+
+    /*
+     * A COLOUR OF THE OWNER'S OWN reaches the links (D-076, D-110). Tried through the
+     * preview with the screen's own form as the query, exactly as appearance.js sends it,
+     * so nothing is published.
+     */
+    await page.setViewport({ width: 1400, height: 900, deviceScaleFactor: 2 });
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    const query = await page.evaluate(() => {
+      const data = new FormData(document.getElementById('design-form'));
+      data.set('footer_colour', '#222222');
+      data.set('footer_colour_on', '1');
+      data.set('header_colour', '#f4f1e8');
+      data.set('header_colour_on', '1');
+      data.delete('action');
+      return new URLSearchParams(data).toString();
+    });
+    await page.goto(`${BASE}/admin/appearance/preview?${query}`, { waitUntil: 'networkidle2' });
+    const own = await page.evaluate(() => ({
+      footer: getComputedStyle(document.querySelector('footer.block')).backgroundColor,
+      header: getComputedStyle(document.querySelector('header.block')).backgroundColor,
+      classes: [...document.querySelectorAll('.own-colour')].length,
+    }));
+    const ownInks = await linkContrast(page);
+    const ownFaint = ownInks.filter((ink) => ink.ratio < 4.5);
+    await report.shot(page, 'own-colours', { fullPage: false });
+    report.verdict('a colour of the owner\'s own paints the bar and its words read on it',
+      own.footer === 'rgb(34, 34, 34)' && own.classes >= 1 && ownInks.length > 0 && ownFaint.length === 0,
+      `footer ${own.footer}, header ${own.header}, ${own.classes} bar(s) with own-colour, `
+        + (ownFaint.length > 0 ? ownFaint.map((f) => `${f.where} "${f.text}" ${f.colour} on ${f.on} ${f.ratio}:1`).join('; ') : `lowest ${Math.min(...ownInks.map((i) => i.ratio))}:1`));
   },
 };

@@ -4,6 +4,7 @@ use App\Core\Blocks;
 use App\Modules\Design\Derived;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
+use App\Modules\Design\Tokens;
 
 // The block registry and the block contract (SPEC §5.3).
 
@@ -234,6 +235,14 @@ test('every token a front-end stylesheet reads without a fallback is one somethi
     foreach (Presets::names() as $name) {
         $sources[] = (new TokenCompiler())->css(Derived::from(Presets::get($name)));
     }
+    // And a design with a colour of its own on the header and the footer: the --chrome-*
+    // tokens exist only then (D-076), and since D-110 chrome.css reads them with no fallback
+    // under the `own-colour` class the template emits under that same condition. The rule
+    // stays what it was — a token read with no fallback is one the design layer defines —
+    // and this is the design that defines them.
+    $sources[] = (new TokenCompiler())->css(Derived::from(Tokens::validate(
+        ['header_colour' => '#1b3a2f', 'footer_colour' => '#f3e9d2'] + Presets::get(Presets::DEFAULT),
+    )['decisions']));
     foreach ($sheets as $css) {
         $sources[] = $strip((string) file_get_contents($root . '/public/assets/' . $css));
     }
@@ -256,6 +265,36 @@ test('every token a front-end stylesheet reads without a fallback is one somethi
         }
     }
     assertEquals([], array_values(array_unique($missing)), 'tokens read with no fallback and never defined');
+});
+
+/*
+ * A CUSTOM PROPERTY MAY NOT NAME ITSELF, not even in a fallback (D-110).
+ *
+ * `--section-link: var(--chrome-footer-text, var(--section-link))` was written in the belief
+ * that the inner var() would read the value inherited from the parent. The CSS cascade does
+ * not work that way: a declaration that references its own property is a cycle on whatever
+ * element it sits, and a cycle makes the property invalid at computed-value time — silently.
+ * Measured on the served page: every --section-* token on the footer's container was "",
+ * and the links inside a contrast footer took the page's accent at 2.43:1.
+ *
+ * Comments are stripped first, for the same reason as above: the explanation of the rule
+ * names the shape the rule forbids.
+ */
+test('no front-end stylesheet defines a custom property in terms of itself', function () {
+    $root = dirname(__DIR__);
+    $strip = static fn (string $css): string => (string) preg_replace('~/\*.*?\*/~s', '', $css);
+
+    $cycles = [];
+    foreach (['site.css', 'blocks.css', 'chrome.css', 'sections.css'] as $css) {
+        $source = $strip((string) file_get_contents($root . '/public/assets/' . $css));
+        preg_match_all('~(--[a-z0-9]+(?:-[a-z0-9]+)*)\s*:([^;}]*)[;}]~', $source, $found, PREG_SET_ORDER);
+        foreach ($found as [, $name, $value]) {
+            if (preg_match('~var\(\s*' . preg_quote($name, '~') . '\s*[,)]~', $value) === 1) {
+                $cycles[] = "{$css}: {$name}: " . trim($value);
+            }
+        }
+    }
+    assertEquals([], $cycles, 'custom properties that name themselves');
 });
 
 test('no block template or front-end stylesheet hard-codes a colour, size, font or shadow', function () {

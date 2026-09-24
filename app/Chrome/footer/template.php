@@ -29,7 +29,10 @@ $credit = is_string($resolved['credit'] ?? null) ? $resolved['credit'] : '';
 ?>
 <?php /* The menu's columns are a CLASS, not a custom property: the admin's policy refuses a
          style attribute, and a closed set of three is exactly what a class is for (D-067). */ ?>
-<div class="site-footer density-<?= e($look['density'] ?? 'normal') ?> footer-cols-<?= e($look['footer_columns'] ?? '2') ?>">
+<?php /* `own-colour` when the footer takes a colour of the owner's (D-076): the class is what
+         lets chrome.css set the section's tokens with no fallback, because a fallback
+         naming the token itself is a cycle (D-110). */ ?>
+<div class="site-footer density-<?= e($look['density'] ?? 'normal') ?> footer-cols-<?= e($look['footer_columns'] ?? '2') ?><?= ($resolved['own'] ?? false) === true ? ' own-colour' : '' ?>">
 <?php if ($content['text'] !== ''): ?>
     <div class="site-footer-text"><?= nl2br(e($content['text'])) ?></div>
 <?php endif; ?>

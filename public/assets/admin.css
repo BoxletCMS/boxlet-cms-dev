@@ -366,9 +366,23 @@ fieldset {
 
 /* A readout is a number most of the time and a phrase sometimes — "Stays at the top when
    scrolling" — and a phrase that cannot shrink pushes the whole column sideways. It keeps
-   its line and gives way at the end instead. */
+   its line and gives way at the end instead.
+
+   WHO GIVES WAY IS SAID, NOT LEFT TO FLEX (D-110): the label keeps its words and the
+   readout shrinks first, to no more than three fifths of the row, with the whole phrase in
+   its title. Left to the default both shrank at once, which folded "HEADER ARRANGEMENT"
+   into two lines AND ran the readout past the edge of the column. Three fifths rather than
+   half, measured: at half, "68rem · 1088px" — a number, the thing a readout is for — was
+   cut to "68rem · 108…" beside a two-word label. */
+.field-row .field-label,
+.field-row label {
+  flex: 1 1 auto;
+}
+
 .readout {
+  flex: 0 1 auto;
   min-inline-size: 0;
+  max-inline-size: 60%;
   margin-inline-start: auto;
   overflow: hidden;
   color: var(--ui-ink-muted);

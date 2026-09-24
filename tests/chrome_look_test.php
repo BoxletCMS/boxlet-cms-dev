@@ -148,3 +148,77 @@ testBothDrivers('the site can say what made it, and says nothing unless asked', 
     createPage($db, 'hr', '', 'Naslovnica');
     assertContains(site_t('site.credit', 'hr'), dispatch('/hr/')->body, 'the credit in Croatian');
 });
+
+/*
+ * A COLOUR OF THE OWNER'S OWN REACHES THE LINKS (D-110).
+ *
+ * D-076 gave the header and the footer a colour of their own and derived a readable ink for
+ * it — and then set the section's tokens on the container with the token itself in the
+ * fallback, which is a cycle, which is a token that quietly becomes nothing wherever the
+ * primary is absent — which is every site with no colour of its own: measured, a contrast
+ * footer's links took the page's accent at 2.43:1. The class this asserts is what lets
+ * chrome.css set the tokens with no fallback at all; both halves are checked — the class
+ * when there is a colour, and its absence when there is none, so a class that is always
+ * emitted cannot pass.
+ */
+testBothDrivers('a colour of the owner\'s own is a class on the bar, and only then', function (string $driver) {
+    $db = adminSite($driver);
+    lookSite($db);
+
+    $plain = dispatch('/')->body;
+    assertTrue(!str_contains($plain, 'own-colour'), 'no colour was set, so no bar claims one');
+
+    // The menu too: the screen is one form, and a field it does not send is one the owner
+    // cleared (D-059) — without it the header would have nothing left to draw.
+    adminPost('/admin/appearance', appearanceFields([
+        'header_menu' => 'Main',
+        'header_colour' => '#1b3a2f', 'header_colour_on' => '1',
+        'footer_colour' => '#f3e9d2', 'footer_colour_on' => '1',
+        'action' => 'save',
+    ]));
+    $coloured = dispatch('/')->body;
+    assertContains('site-header density-', $coloured, 'the header');
+    assertTrue(preg_match('~class="site-header [^"]*own-colour~', $coloured) === 1, 'the header wears its own colour');
+    assertTrue(preg_match('~class="site-footer [^"]*own-colour~', $coloured) === 1, 'the footer wears its own colour');
+
+    // The preview reads the same decisions from its query, so the class and the tokens
+    // come from one place there too.
+    $preview = dispatch('/admin/appearance/preview?' . http_build_query(appearanceFields([
+        'header_menu' => 'Main',
+        'header_colour' => '#1b3a2f', 'header_colour_on' => '1',
+        'footer_colour_on' => '0',
+    ])))->body;
+    assertTrue(preg_match('~class="site-header [^"]*own-colour~', $preview) === 1, 'the preview\'s header, from the query');
+    assertTrue(preg_match('~class="site-footer [^"]*own-colour~', $preview) === 0, 'the preview\'s footer, whose switch is off');
+
+    // A header laid over the first section paints nothing and takes the colours beneath
+    // it: the two choices contradict each other, and the layout wins (D-076).
+    ChromeLook::save($db, ['header_layout' => 'transparent']);
+    $over = dispatch('/')->body;
+    assertContains('layout-transparent', headerTag($over), 'the header is over the first section');
+    assertTrue(preg_match('~class="site-header [^"]*own-colour~', $over) === 0, 'and claims no colour of its own there');
+});
+
+/*
+ * THE SITE'S NAME STANDS WHERE THE LOGO WOULD (D-110). A header that drew only the menu left
+ * a site with no logo — which is most sites on their first day — without its name anywhere
+ * on the page.
+ */
+testBothDrivers('a site without a logo puts its name in the header', function (string $driver) {
+    $db = adminSite($driver);
+    lookSite($db);
+    Settings::set($db, 'site_name', 'Northwind & Co');
+
+    $body = dispatch('/')->body;
+    assertTrue(preg_match('~<a class="site-logo site-name" href="[^"]*">Northwind &amp; Co</a>~', $body) === 1, 'the name, escaped, linking home');
+
+    // A site with nothing else in its header — no menu, no button — still has a name, so it
+    // still has a header.
+    $bare = installedSite(['en' => 'English'], $driver);
+    createPage($bare, 'en', '', 'Home');
+    Settings::set($bare, 'site_name', 'Bare');
+    $alone = dispatch('/')->body;
+    assertContains('<header class="', $alone, 'a header for the name alone');
+    assertContains('site-name', $alone, 'and the name in it');
+    assertTrue(!str_contains($alone, 'site-nav'), 'with no nav drawn for a menu that is not there');
+});

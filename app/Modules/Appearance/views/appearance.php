@@ -72,9 +72,11 @@ $segmented = static function (string $key, array $labels, string $readout = '', 
     // The right of the label row says either what the choice comes to, or — for a chrome
     // choice nobody has touched — that it is still following the character (D-065, §3.5).
     if ($follows !== '' && $current === '') {
-        $html .= '<span class="readout readout-following" data-readout="' . e($key) . '">' . e($follows) . '</span>';
+        $html .= '<span class="readout readout-following" data-readout="' . e($key) . '" title="' . e($follows) . '">' . e($follows) . '</span>';
     } elseif ($readout !== '') {
-        $html .= '<span class="readout" data-readout="' . e($key) . '">' . e($readout) . '</span>';
+        // The whole phrase in the title: a readout gives way at the end when the row is
+        // short, and a phrase that is cut has to be readable somewhere (D-110).
+        $html .= '<span class="readout" data-readout="' . e($key) . '" title="' . e($readout) . '">' . e($readout) . '</span>';
     }
     // The group itself is segmented_group()'s (D-107): the Section panel asks the same
     // question about a band, and one definition of a control is one definition of its

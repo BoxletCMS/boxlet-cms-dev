@@ -975,3 +975,24 @@ testBothDrivers('a place gives its colour back to the palette in one press', fun
     assertTrue(!str_contains($body, 'name="header_colour_on" value="1" checked'), 'the header colour is the palette\'s again');
     assertTrue(!str_contains($body, 'name="color_text_on" value="1" checked'), 'and so is the text colour');
 });
+
+/*
+ * NO BARE KEY ON THE SCREEN (D-110). `design.space_ramp` stood on the Shape tab as itself,
+ * in capitals, from D-065 until this test existed: t() returns a missing key as the key,
+ * which keeps a page from breaking and also keeps anyone from noticing. The prefixes are
+ * read off the language files rather than listed, so a new file's keys are covered.
+ */
+test('the Appearance screen shows no translation key as itself', function () {
+    $db = adminSite('sqlite');
+    $body = dispatch('/admin/appearance')->body;
+
+    $prefixes = [];
+    foreach (glob(dirname(__DIR__) . '/lang/en/*.php') ?: [] as $file) {
+        foreach (array_keys(require $file) as $key) {
+            $prefixes[explode('.', (string) $key)[0]] = true;
+        }
+    }
+    $text = html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    preg_match_all('~(?<![\w./-])(' . implode('|', array_map('preg_quote', array_keys($prefixes))) . ')\.[a-z0-9_]+(?:\.[a-z0-9_]+)*(?![\w.-])~i', $text, $found);
+    assertEquals([], array_values(array_unique($found[0])), 'keys shown as themselves');
+});

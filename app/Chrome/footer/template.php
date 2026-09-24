@@ -1,7 +1,7 @@
 <?php
 /**
- * The site footer (PLAN.md D-028, D-030) — the only one on the page. Class names only;
- * colours, sizes and fonts come from CSS custom properties (SPEC §5.3).
+ * The site footer (PLAN.md D-028, D-030, D-113) — the only one on the page. Class names
+ * only; colours, sizes and fonts come from CSS custom properties (SPEC §5.3).
  *
  * THE LANGUAGE SWITCHER LIVES HERE, in the one footer the site has, rather than in the
  * frame around it — otherwise "one footer" would be true of the markup and false of what
@@ -14,7 +14,7 @@
  *
  * @var array<string, mixed> $content text and small print, from the chrome screen
  * @var array<string, mixed> $style
- * @var string $layout simple or columns
+ * @var string $layout simple, centred, columns, menu_first or three
  * @var array<int, array<string, mixed>> $media
  * @var bool $eager
  * @var array<string, mixed> $resolved values the renderer resolved: the menu, each entry
@@ -26,15 +26,20 @@
 $menu = is_array($resolved['menu'] ?? null) ? $resolved['menu'] : [];
 $look = is_array($resolved['look'] ?? null) ? $resolved['look'] : [];
 $credit = is_string($resolved['credit'] ?? null) ? $resolved['credit'] : '';
+/* Rich text since D-113, plain before: one rule (ChromeWords::isHtml) decides which the
+   stored string is, so the page and the editor never disagree about it. Plain text is drawn
+   exactly as it always was, so no footer written before D-113 moved. */
+$text = is_string($content['text'] ?? null) ? $content['text'] : '';
+$textHtml = \App\Modules\Settings\ChromeWords::isHtml($text) ? $text : nl2br(e($text));
 ?>
-<?php /* The menu's columns are a CLASS, not a custom property: the admin's policy refuses a
-         style attribute, and a closed set of three is exactly what a class is for (D-067). */ ?>
-<?php /* `own-colour` when the footer takes a colour of the owner's (D-076): the class is what
-         lets chrome.css set the section's tokens with no fallback, because a fallback
-         naming the token itself is a cycle (D-110). */ ?>
-<div class="site-footer density-<?= e($look['density'] ?? 'normal') ?> footer-cols-<?= e($look['footer_columns'] ?? '2') ?><?= ($resolved['own'] ?? false) === true ? ' own-colour' : '' ?>">
-<?php if ($content['text'] !== ''): ?>
-    <div class="site-footer-text"><?= nl2br(e($content['text'])) ?></div>
+<?php /* The menu's columns and the small-print row are CLASSES, not custom properties: the
+         admin's policy refuses a style attribute, and a closed set is exactly what a class
+         is for (D-067, D-113). `own-colour` when the footer takes a colour of the owner's
+         (D-076): the class is what lets chrome.css set the section's tokens with no
+         fallback, because a fallback naming the token itself is a cycle (D-110). */ ?>
+<div class="site-footer density-<?= e($look['density'] ?? 'normal') ?> footer-cols-<?= e($look['footer_columns'] ?? '2') ?> foot-<?= e($look['small_print_row'] ?? 'left') ?><?= ($resolved['own'] ?? false) === true ? ' own-colour' : '' ?>">
+<?php if ($text !== ''): ?>
+    <div class="site-footer-text"><?= $textHtml ?></div>
 <?php endif; ?>
 
 <?php if ($menu !== []): ?>
@@ -50,10 +55,13 @@ $credit = is_string($resolved['credit'] ?? null) ? $resolved['credit'] : '';
 <?php /* One level only, deliberately: a footer menu with submenus is a sitemap, and the
          footer is not where a visitor navigates a hierarchy. Children of a footer item are
          left out rather than flattened, which would put a child beside its own parent. */ ?>
-<?php /* Draws nothing when one locale is enabled, which is the behaviour it has always had:
-         a switcher offering a single choice is a control with nothing to do. */ ?>
+<?php /* THE LAST ROW (D-113): the languages and the small print, side by side, centred, or
+         one under the other — one box, so the arrangements can place it as one thing. Drawn
+         only when it would hold something: the switcher draws nothing with one language
+         (its own rule), and an empty small print is nothing. */ ?>
+<?php if (count($locales) > 1 || $content['small_print'] !== '' || $credit !== ''): ?>
+    <div class="site-footer-foot">
 <?php require __DIR__ . '/../../Modules/Pages/views/partials/locale-switcher.php'; ?>
-
 <?php if ($content['small_print'] !== '' || $credit !== ''): ?>
     <p class="site-small-print">
 <?= $content['small_print'] !== '' ? e($content['small_print']) : '' ?>
@@ -65,5 +73,7 @@ $credit = is_string($resolved['credit'] ?? null) ? $resolved['credit'] : '';
         <span class="site-credit"><a href="<?= e($credit) ?>" rel="noopener"><?= e(site_t('site.credit', $locale)) ?></a></span>
 <?php endif; ?>
     </p>
+<?php endif; ?>
+    </div>
 <?php endif; ?>
 </div>

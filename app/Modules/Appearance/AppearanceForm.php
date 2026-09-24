@@ -22,12 +22,15 @@ final class AppearanceForm
     /** Which menu the header shows, posted by name. A field name is not a settings key. */
     public const MENU = 'header_menu';
 
+    /** The footer's own menu (D-113): '' for the header's, `none` for none, else a name. */
+    public const FOOTER_MENU = 'footer_menu';
+
     /**
      * Everything a save is trying, checked. Design errors are keyed by the decision at
      * fault, word errors by the field that carries them; one screen shows both.
      *
      * @param list<string> $locales
-     * @return array{decisions: array<string, string>, look: array<string, string>, menu: string, words: array<string, array{button_label: string, button_url: string, text: string, small_print: string}>, errors: array<string, string>}
+     * @return array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menu: string, words: array<string, array{button_label: string, button_url: string, text: string, small_print: string}>, errors: array<string, string>}
      */
     public static function read(Request $request, array $locales): array
     {
@@ -44,6 +47,7 @@ final class AppearanceForm
             'decisions' => $design['decisions'],
             'look' => $look,
             'menu' => trim($request->input(self::MENU)),
+            'footer_menu' => trim($request->input(self::FOOTER_MENU)),
             'words' => $words['values'],
             'errors' => $design['errors'] + $words['errors'],
         ];
@@ -56,7 +60,7 @@ final class AppearanceForm
      * The words are only the PREVIEWED LANGUAGE's. The preview draws one page in one
      * language; the other languages' words are on the screen but not in the picture.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, words: array<string, array<string, string>>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menu?: string, words: array<string, array<string, string>>} $state
      * @return array<string, string>
      */
     public static function query(array $state, string $locale, string $character = ''): array
@@ -76,6 +80,7 @@ final class AppearanceForm
             $query[ChromeLook::field($choice)] = $value;
         }
         $query[self::MENU] = $state['menu'];
+        $query[self::FOOTER_MENU] = $state['footer_menu'] ?? '';
         foreach ($state['words'][$locale] ?? [] as $name => $value) {
             $query[ChromeWords::field($name, $locale)] = $value;
         }
@@ -95,7 +100,7 @@ final class AppearanceForm
      * absent field is not a choice of "no menu" — only an empty one is.
      *
      * @param array<mixed> $query
-     * @return array{look: array<string, string>, character: string, menu?: string, words: array<string, string>}
+     * @return array{look: array<string, string>, character: string, menu?: string, footer_menu?: string, words: array<string, string>, bleeds: array<string, string>}
      */
     public static function trying(array $query, string $locale, string $character): array
     {
@@ -112,6 +117,9 @@ final class AppearanceForm
         ];
         if (array_key_exists(self::MENU, $query) && is_string($query[self::MENU])) {
             $trying['menu'] = $query[self::MENU];
+        }
+        if (array_key_exists(self::FOOTER_MENU, $query) && is_string($query[self::FOOTER_MENU])) {
+            $trying['footer_menu'] = $query[self::FOOTER_MENU];
         }
 
         return $trying;
@@ -193,7 +201,10 @@ final class AppearanceForm
         foreach (['button_label', 'button_url', 'text', 'small_print'] as $name) {
             $field = ChromeWords::field($name, $locale);
             if (array_key_exists($field, $query) && is_string($query[$field])) {
-                $words[$name] = $query[$field];
+                // The footer's text is rich text (D-113), and the preview draws it as a
+                // save would store it: cleaned. Markup the whitelist refuses never reaches
+                // the frame, even the owner's own.
+                $words[$name] = $name === 'text' ? ChromeWords::cleanText($query[$field]) : $query[$field];
             }
         }
 

@@ -93,9 +93,27 @@ export default {
     try {
       // ---- saving, and reading back ------------------------------------------------------
       // The footer's words on the Footer tab, the button's on the Header tab (D-111); a
-      // field on a tab that is not open has no box to type into.
+      // field on a tab that is not open has no box to type into. The footer's text is rich
+      // text since D-113: typed into the editor, with the whole of it selected first, the
+      // way a person replaces a line — and with a link in it, which is what rich text is for.
       await openTab(page, 'footer');
-      await retype(page, '[name="footer_text_en"]', `${MARKER} footer`);
+      const footerEditor = '[data-panel="footer"] .ProseMirror';
+      await page.waitForSelector(footerEditor, { timeout: 10000 });
+      await page.click(footerEditor);
+      await page.keyboard.down('Control');
+      await page.keyboard.press('KeyA');
+      await page.keyboard.up('Control');
+      await page.keyboard.type(`${MARKER} footer, write to `, { delay: 20 });
+      await page.keyboard.type('hello@example.com', { delay: 20 });
+      // Select the address and make it a link through the panel.
+      for (let i = 0; i < 'hello@example.com'.length; i++) {
+        await page.keyboard.down('Shift');
+        await page.keyboard.press('ArrowLeft');
+        await page.keyboard.up('Shift');
+      }
+      await page.click('[data-panel="footer"] [data-rt="link"]');
+      await page.type('[data-panel="footer"] .rt-link-input', 'hello@example.com', { delay: 10 });
+      await page.click('[data-panel="footer"] [data-rt-link="apply"]');
       await openTab(page, 'header');
       await retype(page, '[name="header_button_label_en"]', `${MARKER} button`);
       // An address of its own, so the page chooser first goes back to "another address".
@@ -106,7 +124,7 @@ export default {
       await openTab(page, 'header');
       const after = await readChrome(page);
       report.verdict('what was typed is saved and comes back',
-        after.text === `${MARKER} footer` && after.label === `${MARKER} button`,
+        after.text.includes(`${MARKER} footer`) && after.text.includes('mailto:hello@example.com') && after.label === `${MARKER} button`,
         `footer text read back as ${JSON.stringify(after.text)}`);
 
       // ---- what the visitor gets -----------------------------------------------------------
@@ -136,6 +154,10 @@ export default {
         site.switchers === 1 && site.switcherInFooter,
         `${site.switchers} switcher(s), all in the footer: ${site.switcherInFooter}`);
 
+      // The link made in the editor is a link on the site, and an email opens the visitor's
+      // mail app (D-039): the sanitiser turned the bare address into mailto:.
+      const footerLink = await page.$eval('.site-footer-text a', (a) => a.getAttribute('href')).catch(() => null);
+      report.verdict('a link typed into the footer reaches the visitor as a link', footerLink === 'mailto:hello@example.com', `href ${JSON.stringify(footerLink)}`);
       report.verdict('the owner\'s footer words reach the visitor',
         site.footerText.includes(`${MARKER} footer`),
         `the footer says ${JSON.stringify(site.footerText.slice(0, 60))}`);
@@ -151,7 +173,13 @@ export default {
       // Put every word back, whatever happened above.
       await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
       await openTab(page, 'footer');
-      await retype(page, '[name="footer_text_en"]', before.text);
+      // Put the stored HTML back through the plain view of the editor, which is the
+      // textarea underneath; its value reaches the field that carries the name.
+      await page.click('[data-panel="footer"] [data-richtext-toggle]');
+      await page.$eval('[data-panel="footer"] textarea[data-richtext-source]', (el, value) => {
+        el.value = value;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, before.text);
       await openTab(page, 'header');
       // A page the button pointed at is put back as that page, not as its address. The
       // label goes last: choosing a page may offer its title in place of the text.

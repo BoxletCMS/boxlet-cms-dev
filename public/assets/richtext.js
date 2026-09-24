@@ -222,6 +222,9 @@
         } else {
           chain.unsetLink().run();
         }
+        // The address is in the mark now; the box is emptied so it holds nothing the form
+        // could stumble on, and opens clean next time (D-113).
+        link.querySelector('input').value = '';
         closeLink(true);
         refresh();
       });

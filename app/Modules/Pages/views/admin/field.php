@@ -73,14 +73,19 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
                         <div class="richtext-link" data-richtext-link hidden>
                             <?php /* A page first, as in a link field (PLAN.md D-034). The
                                      option's value is the stored reference itself, so
-                                     richtext.js applies whichever of the two is chosen. */ ?>
+                                     richtext.js applies whichever of the two is chosen.
+                                     TEXT, NOT type="url" (D-113): an email or a phone number
+                                     is a link as typed (D-039), and a url input holding one
+                                     is INVALID to the browser — which then refuses to submit
+                                     the whole form, silently. Measured: Publish did nothing
+                                     after an address had been typed here. */ ?>
                             <select class="rt-link-page" aria-label="<?= e(t('richtext.page')) ?>">
                                 <option value=""><?= e(t('pages.field.link_address')) ?></option>
 <?php foreach ($linkPages as $group => $choice): ?>
                                 <option value="<?= e(\App\Modules\Pages\PageLinks::to($group)) ?>"><?= e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) ?></option>
 <?php endforeach; ?>
                             </select>
-                            <input type="url" class="rt-link-input" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>">
+                            <input type="text" inputmode="url" class="rt-link-input" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>">
                             <button type="button" class="button button-secondary" data-rt-link="apply"><?= e(t('richtext.link')) ?></button>
                             <button type="button" class="button button-ghost" data-rt-link="remove"><?= e(t('richtext.unlink')) ?></button>
                         </div>

@@ -123,25 +123,42 @@ final class SiteChrome
     }
 
     /**
-     * A menu was renamed: if the chrome showed it under its old name, it shows the new one.
+     * The footer's own menu, by name (D-113): '' means the header's, and the word `none`
+     * means no menu in the footer at all — a real sajt's footer holds Privacy and Imprint,
+     * not the header's five pages again.
+     */
+    public const FOOTER_MENU_NONE = 'none';
+
+    public static function footerMenuName(Db $db): string
+    {
+        return Settings::text($db, self::key('chrome_footer_menu'));
+    }
+
+    /**
+     * A menu was renamed: wherever the chrome showed it under its old name, it shows the
+     * new one — the header's, and the footer's own.
      */
     public static function followRename(Db $db, string $old, string $new): void
     {
         if (self::menuName($db) === $old) {
             Settings::set($db, self::key('chrome_menu'), $new);
         }
+        if (self::footerMenuName($db) === $old) {
+            Settings::set($db, self::key('chrome_footer_menu'), $new);
+        }
     }
 
     /**
      * What the chrome screen writes: the choices that are the same in every language.
      *
-     * The menu is stored by NAME. Menus are unique per (locale, name), so one name gives
+     * The menus are stored by NAME. Menus are unique per (locale, name), so one name gives
      * each translation its own menu and nothing dangles when a menu is deleted and made
      * again. An id would have had to be re-chosen, per locale, every time.
      */
-    public static function saveShared(Db $db, string $menu): void
+    public static function saveShared(Db $db, string $menu, string $footerMenu = ''): void
     {
         Settings::set($db, self::key('chrome_menu'), $menu);
+        Settings::set($db, self::key('chrome_footer_menu'), $footerMenu);
     }
 
     /**

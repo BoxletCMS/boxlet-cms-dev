@@ -251,11 +251,83 @@ footer.block {
   text-underline-offset: 0.35em;
 }
 
+/* THE FOOTER'S ARRANGEMENTS (D-113). `simple` is the grid above: one column, the words,
+   the menu, the last row. */
+
+/* Centred: everything on one axis. */
+.layout-centred .site-footer {
+  justify-items: center;
+  text-align: center;
+}
+
+.layout-centred .site-footer-nav ul {
+  justify-content: center;
+}
+
 /* Footer in columns: the owner's words beside the navigation, the small print under both. */
 .layout-columns .site-footer {
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   column-gap: var(--space-xl);
   align-items: start;
+}
+
+/* Menu first: the navigation in a row above the words, as a site map's first line. */
+.layout-menu_first .site-footer-nav {
+  order: -1;
+}
+
+/* Three columns: the words, the menu, and the languages with the small print. The last row
+   takes the third column and stacks inside it, whatever the row's own arrangement says. */
+.layout-three .site-footer {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--space-xl);
+  align-items: start;
+}
+
+.layout-three .site-footer-foot {
+  display: grid;
+  gap: var(--space-s);
+  justify-items: start;
+}
+
+/* THE LAST ROW (D-113): the languages and the small print. Side by side with the space
+   between, centred, or one under the other on the left. */
+.site-footer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s) var(--space-l);
+  align-items: baseline;
+}
+
+.foot-split .site-footer-foot {
+  justify-content: space-between;
+}
+
+.foot-centred .site-footer-foot {
+  justify-content: center;
+  text-align: center;
+}
+
+.foot-left .site-footer-foot {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* The row spans every arrangement's columns except the third column of `three`. */
+.layout-columns .site-footer-foot,
+.layout-menu_first .site-footer-foot,
+.layout-centred .site-footer-foot {
+  grid-column: 1 / -1;
+}
+
+/* Words with a link in them (D-113): the link takes the section's link colour like any
+   other, and paragraphs inside keep the footer's rhythm rather than a page's. */
+.site-footer-text p {
+  margin: 0;
+}
+
+.site-footer-text p + p {
+  margin-block-start: var(--space-xs);
 }
 
 /* In columns the menu is a list down the side, and a long one may run in two or three of
@@ -280,7 +352,3 @@ footer.block {
   }
 }
 
-.layout-columns .site-footer .locale-switcher,
-.layout-columns .site-small-print {
-  grid-column: 1 / -1;
-}

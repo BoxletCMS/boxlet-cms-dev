@@ -58,7 +58,26 @@ final class RichText
         'data-trix-attachment', 'data-trix-attributes', 'data-trix-content-type',
     ];
 
-    public static function sanitize(string $html): string
+    /**
+     * What a FOOTER'S text may hold (PLAN.md D-113): a line or two with a link in it — an
+     * address, a phone number, an email — and nothing that makes a document: no headings,
+     * no lists, no quotations. The same sanitiser, a shorter list.
+     */
+    public const INLINE = [
+        'p' => [],
+        'br' => [],
+        'strong' => [],
+        'b' => [],
+        'em' => [],
+        'i' => [],
+        'a' => ['href'],
+    ];
+
+    /**
+     * @param array<string, list<string>> $allowed tag => attributes it may keep; ALLOWED
+     *        for a page's rich text, INLINE for the footer's (D-113)
+     */
+    public static function sanitize(string $html, array $allowed = self::ALLOWED): string
     {
         $html = mb_scrub($html, 'UTF-8');
         if (trim($html) === '') {
@@ -82,7 +101,7 @@ final class RichText
         if ($body === null) {
             return '';
         }
-        self::clean($body);
+        self::clean($body, $allowed);
 
         $output = '';
         foreach ($body->childNodes as $child) {
@@ -92,7 +111,10 @@ final class RichText
         return trim($output);
     }
 
-    private static function clean(DOMNode $parent): void
+    /**
+     * @param array<string, list<string>> $allowed
+     */
+    private static function clean(DOMNode $parent, array $allowed): void
     {
         foreach (iterator_to_array($parent->childNodes) as $node) {
             if ($node instanceof DOMText) {
@@ -108,14 +130,14 @@ final class RichText
                 $parent->removeChild($node);
                 continue;
             }
-            self::clean($node);
+            self::clean($node, $allowed);
 
             // After the children are cleaned, so a nested div has already become a p and
             // the block test inside sees the final shape.
             $node = BlockShape::rename($parent, $node, $tag);
             $tag = strtolower($node->nodeName);
 
-            if (!isset(self::ALLOWED[$tag])) {
+            if (!isset($allowed[$tag])) {
                 while ($node->firstChild !== null) {
                     $parent->insertBefore($node->firstChild, $node);
                 }
@@ -128,7 +150,7 @@ final class RichText
                 $attributes[] = $attribute->nodeName;
             }
             foreach ($attributes as $attribute) {
-                if (!in_array($attribute, self::ALLOWED[$tag], true)) {
+                if (!in_array($attribute, $allowed[$tag], true)) {
                     $node->removeAttribute($attribute);
                 }
             }

@@ -346,7 +346,7 @@ testBothDrivers('loading a character keeps the header and footer the owner has t
 
     assertEquals(200, $loaded->status, 'the character loads');
     // In the textarea it was typed into, not merely somewhere on the page.
-    assertContains('>Made in Zagreb</textarea>', $loaded->body, 'the footer line is still on the screen');
+    assertContains(e('<p>Made in Zagreb</p>') . '</textarea>', $loaded->body, 'the footer line is still on the screen');
     assertContains('value="Write to us"', $loaded->body, 'the button label is still on the screen');
     assertContains('<option value="Main" selected>', $loaded->body, 'the menu is still chosen');
     assertEquals('Main', SiteChrome::menuName($db), 'and nothing was written');
@@ -1034,6 +1034,7 @@ test('every decision and chrome choice is on exactly one tab', function () {
         $expected[] = App\Modules\Settings\ChromeLook::field($choice);
     }
     $expected[] = 'header_menu';
+    $expected[] = 'footer_menu';
     foreach (['button_page', 'button_url', 'button_label', 'text', 'small_print'] as $word) {
         $expected[] = App\Modules\Settings\ChromeWords::field($word, 'en');
     }

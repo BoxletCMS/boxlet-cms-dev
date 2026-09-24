@@ -264,6 +264,13 @@
   border-top-right-radius: 50% var(--divider-depth);
 }
 
+/* The footer may carry a shaped edge too (D-113), and its neighbour is <main>, not a
+   section: the last section inside keeps the room the rule above gives a section above a
+   shaped edge, so the footer's slant never cuts into its words. */
+main:has(+ .block-footer:is(.divider-slant, .divider-curve)) > .block:last-child {
+  padding-bottom: calc(var(--section-rhythm) + var(--divider-depth));
+}
+
 /* A divider marks a transition between two sections. The first section has nothing to
    transition from, and a shaped edge there is simply clipped by the top of the page, so
    the first section never draws one whatever its stored style says. */

@@ -33,7 +33,16 @@ final class ChromeLook
     public const OPTIONS = [
         'header_arrangement' => ['left', 'inline', 'centred', 'split', 'masthead'],
         'header_behaviour' => ['static', 'sticky', 'over'],
-        'footer_layout' => ['simple', 'columns'],
+        // Five arrangements (D-113): one column; everything centred; the words beside the
+        // menu; the menu in a row above the words; three columns — words, menu, and the
+        // languages with the small print.
+        'footer_layout' => ['simple', 'centred', 'columns', 'menu_first', 'three'],
+        // The footer's top edge (D-113): the dividers a section may carry, offered to the
+        // one band that is drawn by the same machinery and was never offered them.
+        'footer_edge' => ['none', 'line', 'slant', 'curve'],
+        // The last row: the small print and the language switcher, side by side, centred,
+        // or one under the other on the left.
+        'small_print_row' => ['left', 'split', 'centred'],
         // Gradient too (D-112): the class is the sections' own and its pairs are measured.
         // Not a picture: the chrome is on every page, and a picture there is a picture
         // repeated on every page.
@@ -89,18 +98,18 @@ final class ChromeLook
     public const CHARACTER = [
         // A masthead: the name in its own row, the menu in small capitals under it, a
         // hairline under both, air around everything.
-        'editorial' => ['header_arrangement' => 'masthead', 'header_behaviour' => 'static', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'line', 'logo_size' => 'medium', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'ink', 'header_button' => 'outline', 'footer_columns' => '2'],
-        // Everything on one axis and as little of it as possible.
-        'minimal' => ['header_arrangement' => 'centred', 'header_behaviour' => 'static', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'plain', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'small', 'brand' => 'logo', 'nav_style' => 'plain', 'nav_ink' => 'accent', 'header_button' => 'text', 'footer_columns' => '2'],
+        'editorial' => ['header_arrangement' => 'masthead', 'header_behaviour' => 'static', 'footer_layout' => 'simple', 'footer_edge' => 'line', 'small_print_row' => 'left', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'line', 'logo_size' => 'medium', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'ink', 'header_button' => 'outline', 'footer_columns' => '2'],
+        // Everything on one axis and as little of it as possible; the footer centred too.
+        'minimal' => ['header_arrangement' => 'centred', 'header_behaviour' => 'static', 'footer_layout' => 'centred', 'footer_edge' => 'none', 'small_print_row' => 'centred', 'header_surface' => 'plain', 'footer_surface' => 'plain', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'small', 'brand' => 'logo', 'nav_style' => 'plain', 'nav_ink' => 'accent', 'header_button' => 'text', 'footer_columns' => '2'],
         // The header over the first section, which is where Bold spends its colour; the
         // current page a pill, the footer a gradient.
-        'bold' => ['header_arrangement' => 'left', 'header_behaviour' => 'over', 'footer_layout' => 'columns', 'header_surface' => 'plain', 'footer_surface' => 'gradient', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'pills', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '3'],
+        'bold' => ['header_arrangement' => 'left', 'header_behaviour' => 'over', 'footer_layout' => 'columns', 'footer_edge' => 'none', 'small_print_row' => 'split', 'header_surface' => 'plain', 'footer_surface' => 'gradient', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'pills', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '3'],
         // Always within reach, on a soft tint, the menu beside the name, the name beside
-        // the logo, with room to breathe.
-        'soft' => ['header_arrangement' => 'inline', 'header_behaviour' => 'sticky', 'footer_layout' => 'columns', 'header_surface' => 'tinted', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'none', 'logo_size' => 'medium', 'brand' => 'both', 'nav_style' => 'plain', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '2'],
+        // the logo, with room to breathe; a footer in three columns under a curved edge.
+        'soft' => ['header_arrangement' => 'inline', 'header_behaviour' => 'sticky', 'footer_layout' => 'three', 'footer_edge' => 'curve', 'small_print_row' => 'split', 'header_surface' => 'tinted', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'none', 'logo_size' => 'medium', 'brand' => 'both', 'nav_style' => 'plain', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '2'],
         // A slab of contrast, the name in the middle of its menu, packed tight, a shadow
-        // under it.
-        'brutalist' => ['header_arrangement' => 'split', 'header_behaviour' => 'static', 'footer_layout' => 'columns', 'header_surface' => 'contrast', 'footer_surface' => 'contrast', 'density' => 'compact', 'header_edge' => 'shadow', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'accent', 'header_button' => 'outline', 'footer_columns' => '3'],
+        // under it; the footer's menu first, under a slanted edge.
+        'brutalist' => ['header_arrangement' => 'split', 'header_behaviour' => 'static', 'footer_layout' => 'menu_first', 'footer_edge' => 'slant', 'small_print_row' => 'left', 'header_surface' => 'contrast', 'footer_surface' => 'contrast', 'density' => 'compact', 'header_edge' => 'shadow', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'accent', 'header_button' => 'outline', 'footer_columns' => '3'],
     ];
 
     /**

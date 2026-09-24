@@ -5,6 +5,7 @@ namespace App\Modules\Settings;
 use App\Core\Db;
 use App\Core\Request;
 use App\Modules\Pages\PageLinks;
+use App\Support\RichText;
 use App\Support\SafeUrl;
 
 /**
@@ -82,7 +83,8 @@ final class ChromeWords
             $entry = [
                 'button_label' => trim($request->input(self::field('button_label', $code))),
                 'button_url' => SafeUrl::normalize($request->input(self::field('button_url', $code))),
-                'text' => trim($request->input(self::field('text', $code))),
+                // Rich text since D-113, cleaned with the footer's short whitelist.
+                'text' => self::cleanText($request->input(self::field('text', $code))),
                 'small_print' => trim($request->input(self::field('small_print', $code))),
             ];
             // A chosen page wins over a typed address, as in a block's link field (D-034);
@@ -100,6 +102,42 @@ final class ChromeWords
         }
 
         return ['values' => $values, 'errors' => $errors];
+    }
+
+    /**
+     * The footer's text as it is stored (D-113): the whitelist's HTML, a line or two with a
+     * link in it. A bare email or phone number in a link becomes the link it was meant to
+     * be, as everywhere (D-039).
+     */
+    public static function cleanText(string $raw): string
+    {
+        return RichText::sanitize($raw, RichText::INLINE);
+    }
+
+    /**
+     * The footer's text as HTML, whatever version stored it. Text stored before D-113 is
+     * plain, with line breaks; handed to an HTML editor — or to the block machinery, which
+     * cleans a rich text field as HTML — as it is, its breaks would collapse into one
+     * paragraph. So a plain text becomes one paragraph with its breaks kept, which is exactly
+     * what the page drew for it, and both the editor and the page are handed that.
+     */
+    public static function asHtml(string $stored): string
+    {
+        if ($stored === '' || self::isHtml($stored)) {
+            return $stored;
+        }
+
+        return '<p>' . nl2br(htmlspecialchars($stored, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), false) . '</p>';
+    }
+
+    /**
+     * Whether a stored footer text is HTML (saved since D-113) or plain (saved before). One
+     * rule, read by the template too, so what the page draws and what the editor is handed
+     * can never disagree about the same string.
+     */
+    public static function isHtml(string $stored): bool
+    {
+        return str_contains($stored, '<');
     }
 
     /**

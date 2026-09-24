@@ -4,6 +4,8 @@ use App\Core\Settings;
 use App\Modules\Design\Composition;
 use App\Modules\Menus\Menu;
 use App\Modules\Settings\ChromeLook;
+use App\Modules\Settings\ChromeWords;
+use App\Modules\Settings\SiteChrome;
 
 // How the header and footer look, the current page in the menu, and the mobile menu
 // (PLAN.md D-032, D-036). Asserted on the served page: a class resolved and never emitted
@@ -361,4 +363,108 @@ testBothDrivers('the dark-surface logo is drawn where the ink on the header is l
     Settings::set($db, 'site_logo_dark', null);
     ChromeLook::save($db, ['header_surface' => 'contrast']);
     assertContains('/m/full/' . $light . '-mark.png', dispatch('/')->body, 'the one logo the site has');
+});
+
+/*
+ * THE FOOTER'S FIVE ARRANGEMENTS, ITS EDGE AND ITS LAST ROW (D-113) reach the page as
+ * classes; the edge is a section divider, drawn by sections.css exactly as on a band.
+ */
+testBothDrivers('the footer is drawn in every arrangement, with its edge and its last row', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    lookSite($db);
+    Settings::set($db, 'site_credit', true);
+
+    foreach (ChromeLook::OPTIONS['footer_layout'] as $layout) {
+        ChromeLook::save($db, ['footer_layout' => $layout]);
+        assertTrue(preg_match('~<footer class="[^"]*layout-' . $layout . '~', dispatch('/')->body) === 1, $layout);
+    }
+    foreach (ChromeLook::OPTIONS['footer_edge'] as $edge) {
+        ChromeLook::save($db, ['footer_edge' => $edge]);
+        assertTrue(preg_match('~<footer class="[^"]*divider-' . $edge . '~', dispatch('/')->body) === 1, $edge);
+    }
+    foreach (ChromeLook::OPTIONS['small_print_row'] as $row) {
+        ChromeLook::save($db, ['small_print_row' => $row]);
+        $body = dispatch('/')->body;
+        assertContains('foot-' . $row, $body, $row);
+        assertContains('<div class="site-footer-foot">', $body, 'the last row, with the credit in it');
+    }
+});
+
+/*
+ * THE FOOTER'S OWN MENU (D-113): the header's unless the owner names one, or none — and a
+ * renamed menu is followed there too.
+ */
+testBothDrivers('the footer shows the header\'s menu, a menu of its own, or none', function (string $driver) {
+    $db = adminSite($driver);
+    lookSite($db);
+    // The credit, so the footer has something to draw with no menu and no words in it: a
+    // footer with nothing to show is not drawn, which is right and not what this tests.
+    Settings::set($db, 'site_credit', true);
+    $legal = Menu::create($db, 'en', 'Legal');
+    Menu::addItem($db, $legal, null, createPage($db, 'en', 'privacy', 'Privacy'), null, 'Privacy');
+
+    $footerNav = static fn (string $body): string => preg_match('~<nav class="site-footer-nav">.*?</nav>~s', $body, $m) === 1 ? $m[0] : '';
+
+    assertContains('>About<', $footerNav(dispatch('/')->body), 'the header\'s menu, by default');
+
+    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu' => 'Legal', 'action' => 'save']));
+    assertEquals('Legal', SiteChrome::footerMenuName($db), 'stored by name');
+    $body = dispatch('/')->body;
+    assertContains('>Privacy<', $footerNav($body), 'the footer\'s own menu');
+    assertTrue(!str_contains($footerNav($body), '>About<'), 'and not the header\'s');
+    assertContains('<a href="/about"', $body, 'the header still has its own');
+
+    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu' => SiteChrome::FOOTER_MENU_NONE, 'action' => 'save']));
+    $body = dispatch('/')->body;
+    assertEquals('', $footerNav($body), 'no menu in the footer');
+    assertContains('<footer class="', $body, 'the footer itself still drawn');
+
+    // A menu that is not there any more is cleared rather than stored (as the header's).
+    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu' => 'Gone', 'action' => 'save']));
+    assertEquals('', SiteChrome::footerMenuName($db), 'a name no menu carries');
+
+    // A rename is followed in the footer as in the header.
+    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu' => 'Legal', 'action' => 'save']));
+    adminPost("/admin/menus/{$legal}/rename", ['name' => 'Small print']);
+    assertEquals('Small print', SiteChrome::footerMenuName($db), 'the footer followed the rename');
+    assertContains('>Privacy<', $footerNav(dispatch('/')->body), 'and still draws it');
+
+    // The preview draws the menu being tried, and writes nothing.
+    $tried = dispatch('/admin/appearance/preview?footer_menu=' . SiteChrome::FOOTER_MENU_NONE)->body;
+    assertEquals('', $footerNav($tried), 'the preview with no footer menu');
+    assertEquals('Small print', SiteChrome::footerMenuName($db), 'nothing written');
+});
+
+/*
+ * THE FOOTER'S TEXT IS RICH TEXT (D-113), with a short whitelist: a link, bold, italic, a
+ * paragraph. What was stored before is plain and draws exactly as it did.
+ */
+testBothDrivers('the footer\'s text keeps a link and loses a heading, and a plain text from before draws as it did', function (string $driver) {
+    $db = adminSite($driver);
+    lookSite($db);
+
+    adminPost('/admin/appearance', appearanceFields([
+        'header_menu' => 'Main',
+        'footer_text_en' => '<h2>Studio</h2><p>Write to <a href="hello@example.com">us</a> or <b>call</b> <script>x()</script>+385 91 234 5678</p><ul><li>one</li></ul>',
+        'action' => 'save',
+    ]));
+    $stored = SiteChrome::footer($db, 'en')['text'];
+    assertTrue(!str_contains($stored, '<h2>'), 'a heading is not a footer\'s: ' . $stored);
+    assertTrue(!str_contains($stored, '<ul>') && !str_contains($stored, '<script'), 'nor a list or a script: ' . $stored);
+    assertContains('<a href="mailto:hello@example.com">us</a>', $stored, 'an email becomes the link it meant (D-039)');
+    assertContains('<b>call</b>', $stored, 'bold stays');
+    assertContains('Studio', $stored, 'the heading\'s words stay');
+
+    $body = dispatch('/')->body;
+    assertContains('<a href="mailto:hello@example.com">us</a>', $body, 'the link reaches the visitor');
+
+    // Plain text from before D-113, with a line break: drawn as it always was, and handed
+    // to the editor as one paragraph with its break.
+    Settings::set($db, 'chrome_footer_text:en', "Line one\nLine two & co");
+    $body = dispatch('/')->body;
+    // <br>, not nl2br's <br />: the block machinery cleans a rich text field on the way to
+    // the template, and the DOM writes a break as <br>. The same break, drawn the same.
+    assertContains("Line one<br>\nLine two &amp; co", $body, 'the break kept, the ampersand escaped');
+    assertContains('<p>Line one<br>' . "\n" . 'Line two &amp; co</p>', ChromeWords::asHtml("Line one\nLine two & co"), 'and the editor is handed a paragraph');
+    assertContains(e('<p>Line one<br>' . "\n" . 'Line two &amp; co</p>'), dispatch('/admin/appearance')->body, 'which is what the screen holds');
 });

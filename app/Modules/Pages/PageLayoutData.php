@@ -12,6 +12,7 @@ use App\Modules\Design\Tokens;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Menus\MenuTree;
 use App\Modules\Settings\ChromeLook;
+use App\Modules\Settings\ChromeWords;
 use App\Modules\Settings\SiteChrome;
 
 /**
@@ -105,7 +106,7 @@ final class PageLayoutData
      * A choice left at "follow the character" follows the character being PREVIEWED, so
      * Bold's sections never stand under Minimal's header.
      *
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>, decisions?: array<string, string>, first_surface?: string} $trying
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, footer_menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>, decisions?: array<string, string>, first_surface?: string} $trying
      * @return LayoutData
      */
     public static function forPreview(Container $container, string $locale, string $title, array $trying = []): array
@@ -193,7 +194,7 @@ final class PageLayoutData
      * other, and the templates stay free of URL arithmetic (PLAN.md D-032).
      *
      * @param array<int, array<string, mixed>> $locales the languages, as the switcher shows them
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>, decisions?: array<string, string>, first_surface?: string} $trying
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, footer_menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>, decisions?: array<string, string>, first_surface?: string} $trying
      *        what an admin preview is showing unsaved; for a visitor's page only the two
      *        bleeds, which are design decisions rather than chrome ones (D-067)
      * @return array{headerBleed: string, footerBleed: string, headerHtml: string, footerHtml: string}
@@ -206,16 +207,28 @@ final class PageLayoutData
         // Which menu: the one being TRIED on the screen, else the one the site shows. A
         // request naming no menu is not a request for no menu — only a choice of '' is.
         $menuName = array_key_exists('menu', $trying) && $trying['menu'] !== null ? $trying['menu'] : SiteChrome::menuName($db);
-        $menu = [];
-        foreach (MenuTree::forVisitors($db, $locale, $menuName) as $item) {
-            $children = [];
-            $below = false;
-            foreach ($item['children'] as $child) {
-                $children[] = $child + ['current' => $current !== '' && $child['url'] === $current];
-                $below = $below || ($current !== '' && $child['url'] === $current);
+        $resolveMenu = static function (string $name) use ($db, $locale, $current): array {
+            $menu = [];
+            foreach (MenuTree::forVisitors($db, $locale, $name) as $item) {
+                $children = [];
+                $below = false;
+                foreach ($item['children'] as $child) {
+                    $children[] = $child + ['current' => $current !== '' && $child['url'] === $current];
+                    $below = $below || ($current !== '' && $child['url'] === $current);
+                }
+                $menu[] = ['children' => $children, 'current' => $current !== '' && $item['url'] === $current, 'current_parent' => $below] + $item;
             }
-            $menu[] = ['children' => $children, 'current' => $current !== '' && $item['url'] === $current, 'current_parent' => $below] + $item;
-        }
+
+            return $menu;
+        };
+        $menu = $resolveMenu($menuName);
+        // THE FOOTER'S OWN MENU (D-113): the header's unless the owner named one, or none.
+        $footerMenuName = array_key_exists('footer_menu', $trying) && $trying['footer_menu'] !== null ? $trying['footer_menu'] : SiteChrome::footerMenuName($db);
+        $footerMenu = match (true) {
+            $footerMenuName === '' => $menu,
+            $footerMenuName === SiteChrome::FOOTER_MENU_NONE => [],
+            default => $resolveMenu($footerMenuName),
+        };
         // Colour, arrangement and size: what the request is trying, else the owner's choice,
         // else the character's.
         $resolved = ChromeLook::resolve($db, $trying['look'] ?? [], $trying['character'] ?? '');
@@ -228,7 +241,9 @@ final class PageLayoutData
         $words = $trying['words'] ?? [];
         $header['button']['label'] = $words['button_label'] ?? $header['button']['label'];
         $header['button']['url'] = $words['button_url'] ?? $header['button']['url'];
-        $footer['text'] = $words['text'] ?? $footer['text'];
+        // The footer's text as HTML whatever version stored it (D-113): a plain text from
+        // before becomes one paragraph with its breaks, which is what the page drew for it.
+        $footer['text'] = ChromeWords::asHtml($words['text'] ?? $footer['text']);
         $footer['small_print'] = $words['small_print'] ?? $footer['small_print'];
         $header['button'] = PageLinks::link(
             $header['button'],
@@ -253,7 +268,7 @@ final class PageLayoutData
         // footer worth drawing: a site whose footer is otherwise empty still has this line,
         // and without it here the credit would be switched on and never appear.
         $credit = Settings::get($db, 'site_credit') === true ? BOXLET_SITE : '';
-        $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $menu !== [] || count($locales) > 1 || $credit !== '';
+        $hasFooter = $footer['text'] !== '' || $footer['small_print'] !== '' || $footerMenu !== [] || count($locales) > 1 || $credit !== '';
 
         // WHICH SIDE OF THE FRAME THE CHROME IS ON (D-067). A design decision, not a chrome
         // one: it is about the shape of the page, and the layout reads it so no rule in the
@@ -274,7 +289,9 @@ final class PageLayoutData
                 ? $registry->render('header', $header, ['surface' => $resolved['header_surface']], $resolved['header_arrangement'], $media, true, 'header', ['menu' => $menu, 'look' => $resolved, 'own' => isset($own['header']), 'site_name' => $siteName, 'logo_dark' => $logoDark], $locale, $locales)
                 : '',
             'footerHtml' => $hasFooter
-                ? $registry->render('footer', $footer, ['surface' => $resolved['footer_surface']], $resolved['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $resolved, 'credit' => $credit, 'own' => isset($own['footer'])], $locale, $locales)
+                // The footer's edge is a section divider (D-113): the same layer-2 key, the
+                // same classes, drawn by sections.css exactly as on a band.
+                ? $registry->render('footer', $footer, ['surface' => $resolved['footer_surface'], 'divider' => $resolved['footer_edge']], $resolved['footer_layout'], [], false, 'footer', ['menu' => $footerMenu, 'look' => $resolved, 'credit' => $credit, 'own' => isset($own['footer'])], $locale, $locales)
                 : '',
         ];
     }

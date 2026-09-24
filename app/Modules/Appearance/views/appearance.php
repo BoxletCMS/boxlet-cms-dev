@@ -153,7 +153,7 @@ $ownColour = static function (string $key) use ($decisions, $error, $colors, $lo
     } else {
         $part = str_replace('_colour', '_surface', $key);
         $surface = ($look[$part] ?? '') !== '' ? $look[$part] : ($characterLook[$part] ?? 'plain');
-        $showing = $colors[['plain' => 'background', 'tinted' => 'surface', 'contrast' => 'contrast'][$surface] ?? 'background'];
+        $showing = $colors[['plain' => 'background', 'tinted' => 'surface', 'contrast' => 'contrast', 'gradient' => 'gradient-start'][$surface] ?? 'background'];
     }
     $free = t('design.by_hand.free', ['role' => $label]);
 
@@ -248,7 +248,7 @@ $summary = static fn (array $decisions, string $header): string => implode(' · 
     t($decisions['boxed'] === 'yes' ? 'appearance.boxed' : 'appearance.full_bleed'),
     // And what header it gives (D-111): a card that said nothing about the chrome was a
     // card about half the design.
-    $header === '' ? '' : t('chrome.look.header_layout.' . $header),
+    $header === '' ? '' : t('chrome.look.header_arrangement.' . $header),
 ]));
 
 /**
@@ -362,7 +362,7 @@ $card = static function (array $decisions, string $header, string $name, string 
 <?php foreach (Presets::names() as $preset): ?>
                     <?= $card(
                         Presets::get($preset),
-                        ChromeLook::CHARACTER[$preset]['header_layout'] ?? '',
+                        ChromeLook::CHARACTER[$preset]['header_arrangement'] ?? '',
                         t('design.preset.' . $preset),
                         $preset === $activeCharacter ? t('design.preset.current') : '',
                         'preset-' . $preset,
@@ -377,7 +377,7 @@ $card = static function (array $decisions, string $header, string $name, string 
                     <?= $card(
                         $saved['decisions'],
                         // Its own choice, else its character's, else nothing to say.
-                        ($saved['look']['header_layout'] ?? '') !== '' ? $saved['look']['header_layout'] : (ChromeLook::CHARACTER[$saved['character']]['header_layout'] ?? ''),
+                        ($saved['look']['header_arrangement'] ?? '') !== '' ? $saved['look']['header_arrangement'] : (ChromeLook::CHARACTER[$saved['character']]['header_arrangement'] ?? ''),
                         $saved['name'],
                         '',
                         'saved-' . $saved['id'],

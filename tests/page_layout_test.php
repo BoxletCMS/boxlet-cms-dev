@@ -145,7 +145,7 @@ test('the chrome follows the character being previewed, not the one the site is 
 
     $body = dispatch('/admin/appearance/preview?character=brutalist')->body;
 
-    assertContains('layout-left', headerTag($body), 'Brutalist\'s arrangement');
+    assertContains('layout-split', headerTag($body), 'Brutalist\'s arrangement');
     assertContains('density-compact', $body, 'Brutalist\'s density');
 });
 

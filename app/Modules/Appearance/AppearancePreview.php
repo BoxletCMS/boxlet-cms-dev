@@ -94,6 +94,14 @@ final class AppearancePreview
         // decisions the stylesheet is compiled from — so the class the template emits and
         // the tokens the stylesheet carries can never disagree (D-110).
         $trying['own'] = Tokens::ownChrome($decisions);
+        // And the design itself with what the first section stands on, for the choice
+        // between the two logos (D-112): the same facts a visitor's page hands the layout.
+        $trying['decisions'] = $decisions;
+        $trying['first_surface'] = '';
+        foreach ($blocks as [$type, $content, $style, $layout]) {
+            $trying['first_surface'] = (string) (($character !== '' ? Composition::style($character, $type) : $style)['surface'] ?? '');
+            break;
+        }
         $body = (new View(dirname(__DIR__) . '/Pages/views'))->render('page', $shown, [
             'blocksHtml' => $html,
         ] + PageLayoutData::forPreview($this->container, $shown, t('design.preview'), $trying));

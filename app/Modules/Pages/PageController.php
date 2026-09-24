@@ -52,6 +52,9 @@ final class PageController
 
         $html = '';
         $first = true;
+        // What the first section stands on, for a header laid over it: the ink on such a
+        // header is that section's, and so is the choice between the two logos (D-112).
+        $firstSurface = '';
         foreach (Sections::group(Sections::forPage($db, (int) $page['id']), $blocks) as $group) {
             $drawable = [];
             foreach ($group['blocks'] as $block) {
@@ -72,6 +75,9 @@ final class PageController
             // fold is lazy, which is the whole point of loading="lazy" — and the first
             // picture is usually the one a visitor is waiting to see.
             $html .= SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], $locale);
+            if ($first) {
+                $firstSurface = (string) ($group['section']['style']['surface'] ?? '');
+            }
             $first = false;
         }
 
@@ -88,6 +94,8 @@ final class PageController
             'shareImage' => SiteChrome::shareImage($db),
             // The one address this page is indexed under, whatever variant reached it.
             'canonical' => Url::canonical($locale, $slug),
+            // What a header laid over the page stands on (D-112).
+            'first_surface' => $firstSurface,
         ], ['blocksHtml' => $html], 200, Url::page($locale, $slug), $page);
     }
 

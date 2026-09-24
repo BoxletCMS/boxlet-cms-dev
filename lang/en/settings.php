@@ -23,6 +23,8 @@ return [
     'settings.branding_intro' => 'The pictures that stand for your site: in its header, on a browser tab, and when someone shares a link to it.',
     'settings.logo' => 'Logo',
     'settings.logo_hint' => 'Shown at the top left of every page, linking to the home page. It keeps its own shape — a wide logo stays wide — and its size is chosen under Design → Header and footer. A PNG or SVG-like picture with a transparent background works best.',
+    'settings.logo_dark' => 'Logo for dark surfaces',
+    'settings.logo_dark_hint' => 'Optional. A version of the logo for a dark header — a contrast surface, a gradient, or a header laid over a dark first section. Shown there instead of the logo above; leave it empty if the logo reads on both.',
     'settings.favicon' => 'Favicon',
     'settings.favicon_hint' => 'The small icon a browser shows on the tab and in bookmarks, and a phone on its home screen. Use a square picture; it is shown at 200×200 pixels and smaller.',
     'settings.share_image' => 'Default sharing image',

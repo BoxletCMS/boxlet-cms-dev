@@ -66,7 +66,7 @@ final class SiteChrome
      * Blocks::render() and the template asks nothing. There is NO menu here: the menu is
      * named once for the whole site and resolved per locale by MenuTree::forVisitors().
      *
-     * @return array{logo: int|null, button: array{label: string, url: string}}
+     * @return array{logo: int|null, logo_dark: int|null, button: array{label: string, url: string}}
      */
     public static function header(Db $db, string $locale): array
     {
@@ -80,6 +80,9 @@ final class SiteChrome
 
         return [
             'logo' => $logo,
+            // The logo for dark surfaces (D-112), set under Branding beside the first; the
+            // renderer chooses between them by the ink on the bar.
+            'logo_dark' => Settings::mediaId($db, 'site_logo_dark'),
             'button' => [
                 'label' => self::string($values[self::key('chrome_button_label', $locale)] ?? ''),
                 'url' => self::string($values[self::key('chrome_button_url', $locale)] ?? ''),

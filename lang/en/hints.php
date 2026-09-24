@@ -111,12 +111,17 @@ return [
     'hint.design.boxed' => '“No” fills the window with the page; “Yes” shows it as a sheet with a margin of colour around it on large screens.',
 
     // The Header and footer screen: hint.look.{choice}
-    'hint.look.header_layout' => 'Where the logo, menu and button sit: name left and menu right, everything centred, laid over the top of each page’s first section, or sticky — staying at the top while visitors scroll.',
+    'hint.look.header_arrangement' => 'Where the name, the menu and the button stand: name left and menu right; menu inline beside the name; everything centred; the name in the middle of its menu; or a masthead, the name in its own row with the menu under it.',
+    'hint.look.header_behaviour' => 'What the bar does as visitors scroll: stays put at the top of the page, sticks to the top of the window, or lies over the top of each page’s first section and takes its colours.',
     'hint.look.footer_layout' => 'The footer’s words in one column, or beside the menu.',
-    'hint.look.header_surface' => 'The header’s background, from the site’s own colours.',
+    'hint.look.header_surface' => 'The header’s background, from the site’s own colours. Not painted at all when the header lies over the first section.',
     'hint.look.footer_surface' => 'The footer’s background, from the site’s own colours.',
     'hint.look.density' => 'How much room there is around the header’s and footer’s contents. One choice for both.',
-    'hint.look.header_rule' => 'A thin line under the header, between it and the page.',
+    'hint.look.header_edge' => 'What separates the header from the page: nothing, a thin line, or a shadow.',
+    'hint.look.brand' => 'What stands for the site at the top of every page: the logo, the site’s name in the heading typeface, or both side by side. A site with no logo shows its name whatever this says.',
+    'hint.look.nav_style' => 'How the menu’s words are set: as they are, in small capitals with a little space between the letters, or with the current page on a pill.',
+    'hint.look.nav_ink' => 'Whether the menu’s words take the accent colour or the ordinary text colour.',
+    'hint.look.header_button' => 'The button at the right of the header: filled with the accent, outlined, or a plain link.',
     'hint.look.footer_columns' => 'How many columns a long menu runs in at the foot of the page. Only does anything when the footer is in columns.',
     'hint.look.logo_size' => 'How tall the logo is drawn. Its shape never changes.',
 

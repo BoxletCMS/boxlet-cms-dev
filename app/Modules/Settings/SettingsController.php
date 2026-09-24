@@ -38,7 +38,7 @@ use DateTimeZone;
 final class SettingsController
 {
     /** The keys this screen owns. site_name and timezone are the installer's, edited here. */
-    private const PICTURES = ['site_logo', 'site_favicon', 'site_share_image'];
+    private const PICTURES = ['site_logo', 'site_logo_dark', 'site_favicon', 'site_share_image'];
 
     public function __construct(private readonly Container $container)
     {

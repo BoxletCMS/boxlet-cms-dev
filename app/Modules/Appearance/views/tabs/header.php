@@ -52,12 +52,20 @@ use App\Support\Url;
                     </span>
                 </div>
 
-                <?= $lookGroup('header_layout') ?>
+                <?php /* In the order a person builds a header (D-112): what stands for the
+                         site, where things stand, what the bar does, what it stands on,
+                         how the menu and the button are set, how big and how far. */ ?>
+                <?= $lookGroup('brand') ?>
+                <?= $lookGroup('logo_size') ?>
+                <?= $lookGroup('header_arrangement') ?>
+                <?= $lookGroup('header_behaviour') ?>
                 <?= $lookGroup('header_surface') ?>
                 <?= $ownColour('header_colour') ?>
+                <?= $lookGroup('header_edge') ?>
+                <?= $lookGroup('nav_style') ?>
+                <?= $lookGroup('nav_ink') ?>
+                <?= $lookGroup('header_button') ?>
                 <?= $lookGroup('density') ?>
-                <?= $lookGroup('header_rule') ?>
-                <?= $lookGroup('logo_size') ?>
                 <?= $segmented('header_width', $labels('header_width', App\Modules\Design\Tokens::HEADER_WIDTH)) ?>
                 <?= $segmented('header_bleed', $labels('header_bleed', App\Modules\Design\Tokens::BLEED)) ?>
             </fieldset>

@@ -39,18 +39,19 @@ testBothDrivers('the chrome dresses as the character says until the owner choose
 
     $body = dispatch('/')->body;
     $tag = headerTag($body);
-    assertContains('layout-left', $tag, 'Brutalist\'s arrangement');
+    assertContains('layout-split', $tag, 'Brutalist\'s arrangement');
     assertContains('surface-contrast', $tag, 'Brutalist\'s header surface');
-    assertContains('site-header density-compact logo-large has-rule', $body, 'Brutalist\'s density, logo size and rule');
+    assertContains('site-header density-compact logo-large behaviour-static edge-shadow nav-caps nav-ink-accent button-outline brand-logo', $body, 'Brutalist\'s density, logo size, behaviour, edge, menu, button and brand');
 
-    ChromeLook::save($db, ['header_layout' => 'sticky', 'header_surface' => 'tinted', 'header_rule' => 'off']);
+    ChromeLook::save($db, ['header_behaviour' => 'sticky', 'header_surface' => 'tinted', 'header_edge' => 'none']);
     $body = dispatch('/')->body;
     $tag = headerTag($body);
-    assertContains('layout-sticky', $tag, 'the owner\'s arrangement');
+    assertContains('behaviour-sticky', $body, 'the owner\'s behaviour');
     assertContains('surface-tinted', $tag, 'the owner\'s surface');
-    assertTrue(!str_contains($body, 'has-rule'), 'the rule the owner switched off');
+    assertContains('edge-none', $body, 'the edge the owner took away');
     // Choices left alone still follow the character.
     assertContains('density-compact', $body, 'a choice left to the character');
+    assertContains('layout-split', headerTag($body), 'the arrangement left to the character');
 
     Composition::remember($db, 'soft');
     assertContains('density-roomy', dispatch('/')->body, 'changing character re-dresses what the owner left alone');
@@ -58,10 +59,10 @@ testBothDrivers('the chrome dresses as the character says until the owner choose
 
 test('a value outside a closed set is stored as "follow the character"', function () {
     $db = installedSite(['en' => 'English']);
-    ChromeLook::save($db, ['header_layout' => 'floating', 'density' => '<script>', 'logo_size' => 'large']);
+    ChromeLook::save($db, ['header_arrangement' => 'floating', 'density' => '<script>', 'logo_size' => 'large']);
 
     $stored = ChromeLook::stored($db);
-    assertEquals('', $stored['header_layout'], 'an unknown arrangement');
+    assertEquals('', $stored['header_arrangement'], 'an unknown arrangement');
     assertEquals('', $stored['density'], 'an unknown density');
     assertEquals('large', $stored['logo_size'], 'a real choice');
 });
@@ -110,12 +111,12 @@ testBothDrivers('the Appearance screen saves the look', function (string $driver
     $db = adminSite($driver);
 
     assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', appearanceFields([
-        'look_header_layout' => 'centred',
+        'look_header_arrangement' => 'centred',
         'look_density' => '',
         'look_logo_size' => 'small',
     ])));
     $stored = ChromeLook::stored($db);
-    assertEquals('centred', $stored['header_layout'], 'the arrangement');
+    assertEquals('centred', $stored['header_arrangement'], 'the arrangement');
     assertEquals('', $stored['density'], 'a choice left to the character');
     assertEquals('small', $stored['logo_size'], 'the logo size');
 
@@ -192,10 +193,10 @@ testBothDrivers('a colour of the owner\'s own is a class on the bar, and only th
     assertTrue(preg_match('~class="site-footer [^"]*own-colour~', $preview) === 0, 'the preview\'s footer, whose switch is off');
 
     // A header laid over the first section paints nothing and takes the colours beneath
-    // it: the two choices contradict each other, and the layout wins (D-076).
-    ChromeLook::save($db, ['header_layout' => 'transparent']);
+    // it: the two choices contradict each other, and the behaviour wins (D-076).
+    ChromeLook::save($db, ['header_behaviour' => 'over']);
     $over = dispatch('/')->body;
-    assertContains('layout-transparent', headerTag($over), 'the header is over the first section');
+    assertContains('behaviour-over', $over, 'the header is over the first section');
     assertTrue(preg_match('~class="site-header [^"]*own-colour~', $over) === 0, 'and claims no colour of its own there');
 });
 
@@ -221,4 +222,143 @@ testBothDrivers('a site without a logo puts its name in the header', function (s
     assertContains('<header class="', $alone, 'a header for the name alone');
     assertContains('site-name', $alone, 'and the name in it');
     assertTrue(!str_contains($alone, 'site-nav'), 'with no nav drawn for a menu that is not there');
+});
+
+/*
+ * THE OLD NAMES ARE STILL READ (D-112). `header_layout` held arrangement and behaviour as
+ * one choice, and `header_rule` was on or off; a site that saved either before this and
+ * nothing since keeps the header it had — and a kept design's row too, through the same
+ * function. The new choices win the moment one is saved.
+ */
+testBothDrivers('a header saved under the old names keeps the header it had', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    lookSite($db);
+    Composition::remember($db, 'minimal');
+    Settings::set($db, 'chrome_look_header_layout', 'transparent');
+    Settings::set($db, 'chrome_look_header_rule', 'on');
+
+    $stored = ChromeLook::stored($db);
+    assertEquals('left', $stored['header_arrangement'], 'transparent meant left');
+    assertEquals('over', $stored['header_behaviour'], 'and over the first section');
+    assertEquals('line', $stored['header_edge'], 'the rule that was on');
+    assertTrue(!isset($stored['header_layout']), 'the old name is not a choice any more');
+
+    $body = dispatch('/')->body;
+    assertContains('layout-left', headerTag($body), 'drawn left');
+    assertContains('behaviour-over edge-line', $body, 'over the first section, with its line');
+
+    // A new choice, once saved, is the answer; the old row is a fact about the past.
+    ChromeLook::save($db, ['header_behaviour' => 'sticky']);
+    $stored = ChromeLook::stored($db);
+    assertEquals('sticky', $stored['header_behaviour'], 'the new choice wins');
+    assertEquals('left', $stored['header_arrangement'], 'the half the old value still answers for');
+
+    // A kept design's look goes through the same reading.
+    assertEquals(['header_arrangement' => 'centred', 'header_behaviour' => 'static', 'header_edge' => 'none'],
+        array_intersect_key(ChromeLook::modernise(['header_layout' => 'centred', 'header_rule' => 'off']), ['header_arrangement' => 1, 'header_behaviour' => 1, 'header_edge' => 1]),
+        'a look kept before D-112');
+});
+
+/*
+ * EVERY ARRANGEMENT AND BEHAVIOUR REACHES THE PAGE AS A CLASS (D-112), and split draws its
+ * menu as two lists around the name — one nav, so the phone's one button folds both.
+ */
+testBothDrivers('every arrangement is drawn, and split puts the name in the middle of its menu', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    lookSite($db);
+    Settings::set($db, 'site_name', 'Northwind');
+
+    foreach (ChromeLook::OPTIONS['header_arrangement'] as $arrangement) {
+        ChromeLook::save($db, ['header_arrangement' => $arrangement]);
+        assertContains('layout-' . $arrangement, headerTag(dispatch('/')->body), $arrangement);
+    }
+    // Split, chosen on purpose: the loop above ends on masthead.
+    ChromeLook::save($db, ['header_arrangement' => 'split']);
+    $split = dispatch('/')->body;
+    assertEquals(1, substr_count($split, '<nav class="site-nav"'), 'one nav');
+    // The header's nav alone: the footer draws a list of its own.
+    assertTrue(preg_match('~<nav class="site-nav".*?</nav>~s', $split, $found) === 1, 'the nav');
+    $nav = $found[0] ?? '';
+    // Two bare lists (a submenu's carries a class), one item in each: the two top-level
+    // items, one a side of the name.
+    assertEquals(2, substr_count($nav, '<ul>'), 'two lists in it');
+    assertEquals(2, preg_match_all('~<ul>\s*<li[ >]~', $nav), 'each list opens with an item');
+    assertEquals(1, preg_match_all('~<li[^>]*>\s*<a[^>]*>About</a>~', $nav), 'About stands in one of them');
+
+    foreach (ChromeLook::OPTIONS['header_behaviour'] as $behaviour) {
+        ChromeLook::save($db, ['header_behaviour' => $behaviour]);
+        assertContains('behaviour-' . $behaviour, dispatch('/')->body, $behaviour);
+    }
+});
+
+/*
+ * WHAT STANDS FOR THE SITE (D-112): the logo, the name, or both — and the name whatever the
+ * choice says when there is no logo (D-110).
+ */
+testBothDrivers('the brand is the logo, the name, or both, and the name when there is no logo', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    lookSite($db);
+    Settings::set($db, 'site_name', 'Northwind');
+    $logo = storedPicture($db, 'mark.png', ['full' => ['width' => 400, 'height' => 100, 'formats' => ['png']]]);
+    Settings::set($db, 'site_logo', $logo);
+
+    ChromeLook::save($db, ['brand' => 'logo']);
+    $body = dispatch('/')->body;
+    assertContains('/m/full/' . $logo . '-mark.png', $body, 'the logo');
+    assertTrue(!str_contains($body, 'site-name'), 'and no name beside it');
+
+    ChromeLook::save($db, ['brand' => 'name']);
+    $body = dispatch('/')->body;
+    assertContains('class="site-logo site-name"', $body, 'the name alone');
+    assertTrue(!str_contains($body, '/m/full/' . $logo), 'and no logo');
+
+    ChromeLook::save($db, ['brand' => 'both']);
+    $body = dispatch('/')->body;
+    assertContains('class="site-logo site-brand"', $body, 'both in one link');
+    assertContains('<span class="site-name">Northwind</span>', $body, 'the name after the picture');
+    assertContains('/m/full/' . $logo . '-mark.png', $body, 'and the picture');
+
+    Settings::set($db, 'site_logo', null);
+    ChromeLook::save($db, ['brand' => 'logo']);
+    assertContains('class="site-logo site-name"', dispatch('/')->body, 'no logo: the name, whatever the choice');
+});
+
+/*
+ * THE LOGO FOR DARK SURFACES (D-112) is chosen by the INK the palette puts on the header,
+ * never by the surface's name: a contrast surface can be cream, and a page set dark by hand
+ * makes a plain header dark. Over the first section it is that section's ink.
+ */
+testBothDrivers('the dark-surface logo is drawn where the ink on the header is light', function (string $driver) {
+    // adminSite, not installedSite: the last case publishes through the screen, which
+    // needs the admin's session.
+    $db = adminSite($driver);
+    lookSite($db);
+    Composition::remember($db, 'minimal');
+    $light = storedPicture($db, 'mark.png', ['full' => ['width' => 400, 'height' => 100, 'formats' => ['png']]]);
+    $dark = storedPicture($db, 'mark-dark.png', ['full' => ['width' => 400, 'height' => 100, 'formats' => ['png']]]);
+    Settings::set($db, 'site_logo', $light);
+    Settings::set($db, 'site_logo_dark', $dark);
+
+    $drawn = static fn (): string => str_contains(dispatch('/')->body, '/m/full/' . $dark . '-mark-dark.png') ? 'dark' : 'light';
+
+    ChromeLook::save($db, ['header_surface' => 'plain', 'header_behaviour' => 'static']);
+    assertEquals('light', $drawn(), 'Minimal\'s plain header is pale');
+    ChromeLook::save($db, ['header_surface' => 'contrast', 'header_behaviour' => 'static']);
+    assertEquals('dark', $drawn(), 'Minimal\'s contrast surface is graphite, so its ink is light');
+    ChromeLook::save($db, ['header_surface' => 'gradient', 'header_behaviour' => 'static']);
+    assertEquals('dark', $drawn(), 'and so is the gradient\'s');
+
+    // Over the first section: that section decides. The home page's first section is plain.
+    ChromeLook::save($db, ['header_surface' => 'contrast', 'header_behaviour' => 'over']);
+    assertEquals('light', $drawn(), 'over a plain first section the ink is dark');
+
+    // A colour of the owner's own: the ink derived for it decides.
+    ChromeLook::save($db, ['header_surface' => 'plain', 'header_behaviour' => 'static']);
+    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'header_colour' => '#111111', 'header_colour_on' => '1', 'action' => 'save']));
+    assertEquals('dark', $drawn(), 'a near-black header of the owner\'s own');
+
+    // Without a second logo there is nothing to choose: the site's logo, on every surface.
+    Settings::set($db, 'site_logo_dark', null);
+    ChromeLook::save($db, ['header_surface' => 'contrast']);
+    assertContains('/m/full/' . $light . '-mark.png', dispatch('/')->body, 'the one logo the site has');
 });

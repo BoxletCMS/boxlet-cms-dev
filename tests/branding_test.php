@@ -38,3 +38,20 @@ testBothDrivers('a logo set on the header screen before the merge still shows, u
     adminPost('/admin/settings', ['site_name' => 'Studio', 'timezone' => 'UTC', 'site_logo' => '']);
     assertEquals(null, SiteChrome::logo($db), 'the retired logo came back');
 });
+
+testBothDrivers('Branding keeps a second logo for dark surfaces, and clearing it takes only that one', function (string $driver) {
+    $db = adminSite($driver);
+    $logo = storedPicture($db, 'mark.png', ['full' => ['width' => 400, 'height' => 100, 'formats' => ['png']]]);
+    $dark = storedPicture($db, 'mark-dark.png', ['full' => ['width' => 400, 'height' => 100, 'formats' => ['png']]]);
+
+    assertContains('name="site_logo_dark"', dispatch('/admin/settings')->body, 'the field, under Branding');
+    assertRedirectedTo('/admin/settings', adminPost('/admin/settings', [
+        'site_name' => 'Studio', 'timezone' => 'UTC', 'site_logo' => (string) $logo, 'site_logo_dark' => (string) $dark,
+    ]));
+    assertEquals($dark, Settings::mediaId($db, 'site_logo_dark'), 'the second logo');
+    assertEquals($dark, SiteChrome::header($db, 'en')['logo_dark'], 'and the header is handed it');
+
+    adminPost('/admin/settings', ['site_name' => 'Studio', 'timezone' => 'UTC', 'site_logo' => (string) $logo, 'site_logo_dark' => '']);
+    assertEquals(null, Settings::mediaId($db, 'site_logo_dark'), 'cleared');
+    assertEquals($logo, SiteChrome::logo($db), 'the first logo untouched');
+});

@@ -130,13 +130,17 @@
    layout exists to paint NOTHING and take the colours of the section beneath, and a header
    with a colour of its own that draws none of it would leave its ink standing on a surface
    it was not measured against. The layout wins: the template does not emit the class. */
-header.block:not(.layout-transparent) {
-  background: var(--chrome-header-bg, var(--section-bg));
+/* background-COLOR, not the shorthand (D-112): the shorthand resets background-image, and a
+   gradient surface IS a background-image (sections.css). With the shorthand a gradient
+   footer painted the page colour under white words — measured by 22-chrome-look at 1:1
+   the first time a character shipped one. */
+header.block:not(:has(> .container > .behaviour-over)) {
+  background-color: var(--chrome-header-bg, var(--section-bg));
   color: var(--chrome-header-text, var(--section-text));
 }
 
 footer.block {
-  background: var(--chrome-footer-bg, var(--section-bg));
+  background-color: var(--chrome-footer-bg, var(--section-bg));
   color: var(--chrome-footer-text, var(--section-text));
 }
 
@@ -176,16 +180,66 @@ footer.block {
 .site-footer.density-normal { padding-block: var(--space-l); }
 .site-footer.density-roomy { padding-block: var(--space-xl); }
 
-.block-header:has(.has-rule) {
+/* THE HEADER'S EDGE (D-112): nothing, a hairline, or a shadow. On the HEADER element,
+   because the bar inside it has no edge of its own to draw. */
+.block-header:has(.edge-line) {
   /* The own colour's muted ink where there is one (D-076). Read here rather than through
-     --section-border, because this rule is on the HEADER and that property is redefined on
-     its container — a custom property cannot carry its own value in its fallback. */
+     --section-border, because this rule is on the HEADER and that property is set on the
+     bar inside it. */
   border-block-end: var(--border-width) solid var(--chrome-header-muted, var(--section-border));
+}
+
+.block-header:has(.edge-shadow) {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-m);
 }
 
 .logo-small .site-logo img { block-size: 2em; }
 .logo-medium .site-logo img { block-size: 2.75em; }
 .logo-large .site-logo img { block-size: 3.75em; }
+
+/* Logo and name side by side (D-112): one link, the name after the picture. */
+.site-brand {
+  align-items: center;
+  gap: var(--space-s);
+}
+
+/* THE MENU'S WORDS (D-112): as they are, in small capitals with air between the letters,
+   or with the current page on a pill. And in the accent or the ink. */
+.nav-caps .site-nav a {
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nav-ink-ink .site-nav a {
+  color: var(--section-text);
+}
+
+.nav-pills .site-nav > ul > li > a {
+  padding: var(--space-xs) var(--space-s);
+  border-radius: var(--radius-button);
+}
+
+.nav-pills .site-nav a[aria-current="page"],
+.nav-pills .site-nav .is-current-parent > a {
+  background: var(--section-card);
+  text-decoration: none;
+}
+
+/* THE BUTTON (D-112): filled is the site's button as everywhere; outlined takes the bar's
+   ink for its edge and its words, which is a pair the palette measures; a link is a link. */
+.site-header-action .button-outline {
+  background: transparent;
+  border-color: var(--section-text);
+  color: var(--section-text);
+  box-shadow: none;
+}
+
+.site-header-link {
+  font-weight: var(--heading-weight);
+}
 
 /* The page being drawn, and the parent it sits under: marked by a rule under the words,
    so it reads the same on every surface without a colour of its own. */
@@ -195,74 +249,6 @@ footer.block {
   text-decoration: underline;
   text-decoration-thickness: 0.12em;
   text-underline-offset: 0.35em;
-}
-
-/* Centred: the name above, the navigation on one axis under it. */
-.layout-centred .site-header {
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.layout-centred .site-nav ul {
-  justify-content: center;
-}
-
-/* Sticky: always within reach, over whatever scrolls beneath on its own surface. */
-.block-header.layout-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-/* Transparent: laid over the first section, taking that section's colours rather than
-   painting its own — which is what makes it readable over any surface a hero can have.
-   The first section gains the header's room above its own rhythm, so nothing sits under
-   the bar.
-
-   THE SHEET IS WHAT IT IS LAID OVER (D-067). A header that BREAKS OUT of the sheet has
-   nothing to overlay — it sits above it, on the colour around the page — so none of these
-   rules match it and it draws as an ordinary header. That is the honest reading of the two
-   decisions together, and it needs no code to say so. */
-.page-sheet {
-  position: relative;
-}
-
-.block-header.layout-transparent {
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  z-index: 10;
-  background: transparent;
-}
-
-.page-sheet:has(> .block-header.layout-transparent) > main > .block:first-child {
-  padding-block-start: calc(var(--section-rhythm) + var(--space-3xl));
-}
-
-.page-sheet:has(> main > .block:first-child:is(.surface-contrast, .surface-image)) > .block-header.layout-transparent {
-  --section-bg: var(--color-contrast);
-  --section-text: var(--color-on-contrast);
-  --section-muted: var(--color-muted-on-contrast);
-  --section-link: var(--color-on-contrast);
-  --section-border: var(--color-muted-on-contrast);
-  --section-button-bg: var(--color-on-contrast);
-  --section-button-text: var(--color-contrast);
-}
-
-.page-sheet:has(> main > .block:first-child.surface-gradient) > .block-header.layout-transparent {
-  --section-bg: var(--color-gradient-start);
-  --section-text: var(--color-on-gradient);
-  --section-muted: var(--color-on-gradient);
-  --section-link: var(--color-on-gradient);
-  --section-border: var(--color-on-gradient);
-  --section-button-bg: var(--color-on-gradient);
-  --section-button-text: var(--color-gradient-start);
-}
-
-.page-sheet:has(> main > .block:first-child.surface-tinted) > .block-header.layout-transparent {
-  --section-bg: var(--color-surface);
-  --section-card: var(--color-background);
 }
 
 /* Footer in columns: the owner's words beside the navigation, the small print under both. */
@@ -297,149 +283,4 @@ footer.block {
 .layout-columns .site-footer .locale-switcher,
 .layout-columns .site-small-print {
   grid-column: 1 / -1;
-}
-
-/* Submenus. Without a script they are listed under their parent, smaller and indented, so
-   nothing is out of reach. With one (site-nav.js), each opens from its own button and
-   drops below its parent on its own surface. */
-.site-nav li {
-  position: relative;
-}
-
-.site-nav-children {
-  display: block;
-  padding-inline-start: var(--space-m);
-  font-size: var(--text-sm);
-}
-
-.site-nav-children li + li {
-  margin-block-start: var(--space-xs);
-}
-
-.nav-ready .site-nav-children {
-  display: none;
-}
-
-.nav-ready .site-nav li.is-open > .site-nav-children {
-  display: block;
-  position: absolute;
-  top: 100%;
-  inset-inline-start: 0;
-  z-index: 11;
-  min-inline-size: 12em;
-  margin-block-start: var(--space-xs);
-  padding: var(--space-s) var(--space-m);
-  background: var(--section-bg);
-  border: var(--border-width) solid var(--section-border);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-m);
-}
-
-/* The controls a script adds: legible at rest, in the section's own ink (CLAUDE.md). */
-.site-nav-more,
-.site-nav-toggle {
-  padding: var(--space-xs) var(--space-s);
-  background: transparent;
-  border: var(--border-width) solid var(--section-border);
-  border-radius: var(--radius-s);
-  color: var(--section-text);
-  font: inherit;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.site-nav-more {
-  margin-inline-start: 0.2em;
-  padding: 0.1em 0.2em;
-  border-color: transparent;
-  font-size: var(--text-sm);
-}
-
-/* The chevron turns when its submenu is open, so the state is visible, not only spoken. */
-.site-nav-more[aria-expanded="true"] span {
-  display: inline-block;
-  transform: rotate(180deg);
-}
-
-.site-header-action .button {
-  white-space: nowrap;
-}
-
-.site-nav > ul > li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.site-nav-toggle {
-  display: none;
-}
-
-@media (max-width: 40rem) {
-  /* On a narrow screen the bar becomes a stack: a logo, its navigation and a button do
-     not share a line at this width without one of them being squeezed to nothing. */
-  .site-header {
-    justify-content: flex-start;
-  }
-
-  /* The real mobile menu (D-032): one button, and the navigation folded under it until it
-     is opened. Only once site-nav.js has run — without it, the navigation wraps openly. */
-  .nav-ready .site-nav-toggle {
-    display: inline-block;
-    margin-inline-start: auto;
-    padding: var(--space-xs) var(--space-m);
-    border-radius: var(--radius-button);
-  }
-
-  /* One shape on a phone, whatever the arrangement on a wide screen: the name and the
-     Menu button on one line, and the navigation and the call to action folded under it.
-     A centred column there scattered three controls down the screen. */
-  .layout-centred .nav-ready.site-header,
-  .nav-ready.site-header {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    text-align: start;
-  }
-
-  .nav-ready .site-nav,
-  .nav-ready .site-header-action {
-    display: none;
-    flex-basis: 100%;
-  }
-
-  .nav-ready.nav-open .site-nav,
-  .nav-ready.nav-open .site-header-action {
-    display: block;
-  }
-
-  /* A header laid over the first section paints nothing — until its menu is open. Open, it
-     grows downward over the hero, and the first section does not move out of its way, so
-     the items landed on the picture and the headline with nothing behind them (D-110). While
-     the menu is open the bar paints the first section's own colour, which the rules above
-     already hand it as --section-bg, so the words stand on the surface they were measured
-     against and nothing under them shows through. */
-  .block-header.layout-transparent:has(.nav-open) {
-    background: var(--section-bg);
-  }
-
-  .layout-centred .nav-ready .site-nav ul {
-    justify-content: flex-start;
-  }
-
-  .nav-ready .site-nav ul {
-    flex-direction: column;
-    gap: var(--space-s);
-  }
-
-  .nav-ready .site-nav li.is-open > .site-nav-children {
-    position: static;
-    margin-block-start: var(--space-xs);
-    box-shadow: none;
-  }
-
-  .layout-columns .site-footer {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }

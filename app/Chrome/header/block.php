@@ -10,7 +10,13 @@
 // pictures arrive already resolved, so a template asks the database nothing. No field type
 // points at a menu and none was added: FIELD_TYPES is frozen (SPEC §5.3).
 //
-// The layouts are the per-character header variants D-028 names.
+// The layouts are the header's ARRANGEMENTS (D-112): where the name, the menu and the
+// button stand. What the bar does as the page scrolls — sticky, over the first section — is
+// a second choice, carried in the look, because the two were one list once and a centred
+// header could never be sticky.
+//
+// Two logos (D-112): the site's, and one for dark surfaces, used when the ink on the header
+// is light. The renderer decides which; the template only draws.
 
 return [
     'type' => 'header',
@@ -18,8 +24,9 @@ return [
     'version' => 1,
     'fields' => [
         'logo' => ['type' => 'media'],
+        'logo_dark' => ['type' => 'media'],
         'button' => ['type' => 'link', 'translatable' => true],
     ],
-    'layouts' => ['left', 'centred', 'transparent', 'sticky'],
+    'layouts' => ['left', 'inline', 'centred', 'split', 'masthead'],
     'defaults' => ['layout' => 'left'],
 ];

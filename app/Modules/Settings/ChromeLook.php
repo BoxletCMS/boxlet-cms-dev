@@ -20,15 +20,38 @@ use App\Modules\Design\Composition;
  */
 final class ChromeLook
 {
-    /** Every choice and its values; the first value is never assumed to be a default. */
+    /**
+     * Every choice and its values; the first value is never assumed to be a default.
+     *
+     * TWO AXES WHERE THERE WAS ONE (PLAN.md D-112). `header_layout` held left, centred,
+     * transparent and sticky — two arrangements and two behaviours in one list, so a centred
+     * header could never be sticky and a header over the hero could never be centred. The
+     * arrangement is where the name, the menu and the button stand; the behaviour is what the
+     * bar does as the page scrolls. Five by three is fifteen headers where there were four.
+     * The old values are still read: see LEGACY and modernise().
+     */
     public const OPTIONS = [
-        'header_layout' => ['left', 'centred', 'transparent', 'sticky'],
+        'header_arrangement' => ['left', 'inline', 'centred', 'split', 'masthead'],
+        'header_behaviour' => ['static', 'sticky', 'over'],
         'footer_layout' => ['simple', 'columns'],
-        'header_surface' => ['plain', 'tinted', 'contrast'],
-        'footer_surface' => ['plain', 'tinted', 'contrast'],
+        // Gradient too (D-112): the class is the sections' own and its pairs are measured.
+        // Not a picture: the chrome is on every page, and a picture there is a picture
+        // repeated on every page.
+        'header_surface' => ['plain', 'tinted', 'contrast', 'gradient'],
+        'footer_surface' => ['plain', 'tinted', 'contrast', 'gradient'],
         'density' => ['compact', 'normal', 'roomy'],
-        'header_rule' => ['on', 'off'],
+        // What separates the header from the page: nothing, a hairline, or a shadow.
+        // `header_rule` on/off is read as line/none (LEGACY).
+        'header_edge' => ['none', 'line', 'shadow'],
         'logo_size' => ['small', 'medium', 'large'],
+        // What stands for the site: its logo, its name in the heading face, or both. A site
+        // with no logo shows its name whatever this says (D-110).
+        'brand' => ['logo', 'name', 'both'],
+        // How the menu's words are set, and whether they take the accent or the ink.
+        'nav_style' => ['plain', 'caps', 'pills'],
+        'nav_ink' => ['accent', 'ink'],
+        // The call to action: a filled button, an outlined one, or a plain link.
+        'header_button' => ['filled', 'outline', 'text'],
         /* How many columns the footer's MENU runs in, and only when the footer is in
          * columns at all (PLAN.md D-067). The handoff asks for the footer's own grid to take
          * this number; measured against what a footer actually holds — the owner's words,
@@ -38,21 +61,46 @@ final class ChromeLook
     ];
 
     /**
+     * The choices that were stored before D-112 and what each of their values means now.
+     * Read wherever a look is loaded — the settings, a kept design's row — and never written
+     * again, so a site or a library saved under the old names keeps the header it had.
+     */
+    public const LEGACY = [
+        'header_layout' => [
+            'left' => ['header_arrangement' => 'left', 'header_behaviour' => 'static'],
+            'centred' => ['header_arrangement' => 'centred', 'header_behaviour' => 'static'],
+            'transparent' => ['header_arrangement' => 'left', 'header_behaviour' => 'over'],
+            'sticky' => ['header_arrangement' => 'left', 'header_behaviour' => 'sticky'],
+        ],
+        'header_rule' => [
+            'on' => ['header_edge' => 'line'],
+            'off' => ['header_edge' => 'none'],
+        ],
+    ];
+
+    /**
      * What each character gives its chrome. Kept beside the choices rather than in
      * Presets, which holds what a character does to the page: the header and footer are
      * their own screen and their own decision (D-028), and this is the only reader.
+     *
+     * Every choice is demonstrated by at least one character (D-112): a control no
+     * character demonstrates is a control nobody finds (D-062).
      */
     public const CHARACTER = [
-        // A masthead: the name on the left, a hairline under it, air around both.
-        'editorial' => ['header_layout' => 'left', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_rule' => 'on', 'logo_size' => 'medium', 'footer_columns' => '2'],
+        // A masthead: the name in its own row, the menu in small capitals under it, a
+        // hairline under both, air around everything.
+        'editorial' => ['header_arrangement' => 'masthead', 'header_behaviour' => 'static', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'line', 'logo_size' => 'medium', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'ink', 'header_button' => 'outline', 'footer_columns' => '2'],
         // Everything on one axis and as little of it as possible.
-        'minimal' => ['header_layout' => 'centred', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'plain', 'density' => 'normal', 'header_rule' => 'off', 'logo_size' => 'small', 'footer_columns' => '2'],
-        // The header over the first section, which is where Bold spends its colour.
-        'bold' => ['header_layout' => 'transparent', 'footer_layout' => 'columns', 'header_surface' => 'plain', 'footer_surface' => 'contrast', 'density' => 'normal', 'header_rule' => 'off', 'logo_size' => 'large', 'footer_columns' => '3'],
-        // Always within reach, on a soft tint, with room to breathe.
-        'soft' => ['header_layout' => 'sticky', 'footer_layout' => 'columns', 'header_surface' => 'tinted', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_rule' => 'off', 'logo_size' => 'medium', 'footer_columns' => '2'],
-        // A slab of contrast, packed tight, ruled off.
-        'brutalist' => ['header_layout' => 'left', 'footer_layout' => 'columns', 'header_surface' => 'contrast', 'footer_surface' => 'contrast', 'density' => 'compact', 'header_rule' => 'on', 'logo_size' => 'large', 'footer_columns' => '3'],
+        'minimal' => ['header_arrangement' => 'centred', 'header_behaviour' => 'static', 'footer_layout' => 'simple', 'header_surface' => 'plain', 'footer_surface' => 'plain', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'small', 'brand' => 'logo', 'nav_style' => 'plain', 'nav_ink' => 'accent', 'header_button' => 'text', 'footer_columns' => '2'],
+        // The header over the first section, which is where Bold spends its colour; the
+        // current page a pill, the footer a gradient.
+        'bold' => ['header_arrangement' => 'left', 'header_behaviour' => 'over', 'footer_layout' => 'columns', 'header_surface' => 'plain', 'footer_surface' => 'gradient', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'pills', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '3'],
+        // Always within reach, on a soft tint, the menu beside the name, the name beside
+        // the logo, with room to breathe.
+        'soft' => ['header_arrangement' => 'inline', 'header_behaviour' => 'sticky', 'footer_layout' => 'columns', 'header_surface' => 'tinted', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'none', 'logo_size' => 'medium', 'brand' => 'both', 'nav_style' => 'plain', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '2'],
+        // A slab of contrast, the name in the middle of its menu, packed tight, a shadow
+        // under it.
+        'brutalist' => ['header_arrangement' => 'split', 'header_behaviour' => 'static', 'footer_layout' => 'columns', 'header_surface' => 'contrast', 'footer_surface' => 'contrast', 'density' => 'compact', 'header_edge' => 'shadow', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'accent', 'header_button' => 'outline', 'footer_columns' => '3'],
     ];
 
     /**
@@ -62,15 +110,42 @@ final class ChromeLook
      */
     public static function stored(Db $db): array
     {
-        $values = SiteChrome::look($db, array_keys(self::OPTIONS));
+        return self::modernise(SiteChrome::look($db, array_merge(array_keys(self::OPTIONS), array_keys(self::LEGACY))));
+    }
 
-        $stored = [];
+    /**
+     * A look as it was stored — by this version or an older one — as the choices of this
+     * version, each from its closed set or '' (PLAN.md D-112).
+     *
+     * AN OLD NAME COUNTS ONLY WHERE THE NEW ONES ARE SILENT. A site that saved
+     * `header_layout: sticky` before D-112 and nothing since gets left + sticky, exactly the
+     * header it had; the moment it saves either new choice, that choice is the answer and
+     * the old row is a fact about the past. The same for a kept design's row, which is why
+     * this is one function with two readers rather than a mapping copied into each.
+     *
+     * @param array<mixed> $raw choice => stored value, old names included
+     * @return array<string, string>
+     */
+    public static function modernise(array $raw): array
+    {
+        $look = [];
         foreach (self::OPTIONS as $name => $options) {
-            $value = $values[$name] ?? '';
-            $stored[$name] = is_string($value) && in_array($value, $options, true) ? $value : '';
+            $value = $raw[$name] ?? '';
+            $look[$name] = is_string($value) && in_array($value, $options, true) ? $value : '';
+        }
+        foreach (self::LEGACY as $old => $meanings) {
+            $value = $raw[$old] ?? '';
+            if (!is_string($value) || !isset($meanings[$value])) {
+                continue;
+            }
+            foreach ($meanings[$value] as $name => $meant) {
+                if ($look[$name] === '') {
+                    $look[$name] = $meant;
+                }
+            }
         }
 
-        return $stored;
+        return $look;
     }
 
     /**

@@ -149,12 +149,8 @@ final class DesignLibrary
      */
     private static function cleanLook(array $look): array
     {
-        $clean = [];
-        foreach (ChromeLook::OPTIONS as $choice => $options) {
-            $value = $look[$choice] ?? '';
-            $clean[$choice] = is_string($value) && in_array($value, $options, true) ? $value : '';
-        }
-
-        return $clean;
+        // A row kept before D-112 names the header's arrangement and behaviour as one
+        // choice; modernise() reads it as this version's two, exactly as the settings are.
+        return ChromeLook::modernise($look);
     }
 }

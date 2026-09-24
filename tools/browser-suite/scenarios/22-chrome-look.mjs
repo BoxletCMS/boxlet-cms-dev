@@ -60,7 +60,7 @@ const CONTRAST = `
     // section, which is a sibling of the header and not an ancestor — walking up would
     // find the sheet, and white on the sheet read as 1:1 for words that are white on a
     // navy hero (the instrument, not the product).
-    const over = el.closest('.layout-transparent') ? document.querySelector('main > .block:first-child') : null;
+    const over = el.closest('.behaviour-over') ? document.querySelector('main > .block:first-child') : null;
     if (over) { el = over; }
     while (el && getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)' && !/gradient/.test(getComputedStyle(el).backgroundImage)) { el = el.parentElement; }
     if (!el) { return ['rgb(255, 255, 255)']; }
@@ -139,7 +139,7 @@ export default {
         await page.keyboard.press('Escape');
       }
 
-      // A sticky header is still on screen after scrolling.
+      // A sticky header is still on screen after scrolling. Soft is the sticky one (D-112).
       if (character === 'soft') {
         await page.evaluate(() => window.scrollTo(0, 1200));
         await wait(150);
@@ -176,6 +176,85 @@ export default {
       const bar = await page.$eval('header.block-header', (header) => getComputedStyle(header).backgroundColor);
       report.verdict(`${character}: the open menu stands on a painted bar`, bar !== 'rgba(0, 0, 0, 0)', `header paints ${bar}`);
     }
+
+    /*
+     * EVERY ARRANGEMENT AND BEHAVIOUR (D-112), tried through the preview with the screen's
+     * own form as the query, so nothing is published: photographed at desktop width, and on
+     * a phone with the menu open, where every arrangement has to fold into the one shape.
+     */
+    await page.setViewport({ width: 1400, height: 900, deviceScaleFactor: 2 });
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    const baseQuery = await page.evaluate(() => {
+      const data = new FormData(document.getElementById('design-form'));
+      data.delete('action');
+      return new URLSearchParams(data).toString();
+    });
+    const tryLook = (look) => {
+      const params = new URLSearchParams(baseQuery);
+      Object.entries(look).forEach(([k, v]) => params.set(`look_${k}`, v));
+      return `${BASE}/admin/appearance/preview?${params.toString()}`;
+    };
+    for (const arrangement of ['left', 'inline', 'centred', 'split', 'masthead']) {
+      const url = tryLook({ header_arrangement: arrangement, header_behaviour: 'static', header_surface: 'tinted', brand: 'both' });
+      await page.setViewport({ width: 1400, height: 900, deviceScaleFactor: 2 });
+      await page.goto(url, { waitUntil: 'networkidle2' });
+      const desk = await page.evaluate(() => {
+        const header = document.querySelector('header.block-header');
+        const logo = document.querySelector('.site-logo');
+        const links = [...document.querySelectorAll('.site-nav > ul > li > a')];
+        const box = (el) => el.getBoundingClientRect();
+        return {
+          drawn: !!header && box(header).height > 0,
+          logoLeftOfEveryLink: !!logo && links.every((a) => box(a).left > box(logo).right - 1),
+          logoBetween: !!logo && links.some((a) => box(a).right <= box(logo).left + 1) && links.some((a) => box(a).left >= box(logo).right - 1),
+          menuBelowLogo: !!logo && links.every((a) => box(a).top >= box(logo).bottom - 1),
+          centred: !!logo && Math.abs((box(logo).left + box(logo).right) / 2 - window.innerWidth / 2) < 40,
+          height: header ? Math.round(box(header).height) : 0,
+        };
+      });
+      await report.shot(page, `arrangement-${arrangement}`, { fullPage: false });
+      const shape = {
+        left: desk.logoLeftOfEveryLink,
+        inline: desk.logoLeftOfEveryLink,
+        centred: desk.centred && desk.menuBelowLogo,
+        split: desk.logoBetween,
+        masthead: desk.menuBelowLogo && !desk.centred,
+      }[arrangement];
+      report.verdict(`${arrangement}: the header is arranged as its name says`, desk.drawn && shape, JSON.stringify(desk));
+
+      await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
+      await page.goto(url, { waitUntil: 'networkidle2' });
+      const toggle = await page.$('[data-site-nav-toggle]');
+      if (toggle === null) {
+        report.fail(`${arrangement}: the phone menu has a button`, 'no Menu button');
+        continue;
+      }
+      await toggle.click();
+      await wait(150);
+      const phone = await page.evaluate(() => {
+        const nav = document.querySelector('.site-nav');
+        const links = [...document.querySelectorAll('.site-nav > ul > li > a')];
+        const toggle = document.querySelector('[data-site-nav-toggle]');
+        return {
+          open: !!nav && getComputedStyle(nav).display !== 'none',
+          stacked: links.length > 1 && links.every((a, i) => i === 0 || a.getBoundingClientRect().top > links[i - 1].getBoundingClientRect().top),
+          inside: links.every((a) => a.getBoundingClientRect().right <= window.innerWidth + 1),
+          toggleOnTop: !!toggle && toggle.getBoundingClientRect().top < 120,
+        };
+      });
+      await report.shot(page, `arrangement-${arrangement}-phone-open`, { fullPage: false });
+      report.verdict(`${arrangement}: on a phone the menu folds into one stacked list under the button`,
+        phone.open && phone.stacked && phone.inside && phone.toggleOnTop, JSON.stringify(phone));
+    }
+    // And a centred header over the first section — a pair the old single choice could not make.
+    await page.setViewport({ width: 1400, height: 900, deviceScaleFactor: 2 });
+    await page.goto(tryLook({ header_arrangement: 'centred', header_behaviour: 'over' }), { waitUntil: 'networkidle2' });
+    const overCentred = await page.evaluate(() => {
+      const header = document.querySelector('header.block-header');
+      return { paints: getComputedStyle(header).backgroundColor, positioned: getComputedStyle(header).position, centred: header.querySelector('.layout-centred, .site-header') !== null && document.querySelector('header.layout-centred') !== null };
+    });
+    await report.shot(page, 'centred-over', { fullPage: false });
+    report.verdict('a centred header can lie over the first section', overCentred.paints === 'rgba(0, 0, 0, 0)' && overCentred.positioned === 'absolute' && overCentred.centred, JSON.stringify(overCentred));
 
     /*
      * A COLOUR OF THE OWNER'S OWN reaches the links (D-076, D-110). Tried through the

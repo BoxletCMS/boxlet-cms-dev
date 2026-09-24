@@ -6,6 +6,8 @@ use App\Core\Container;
 use App\Core\Db;
 use App\Core\Settings;
 use App\Modules\Design\Design;
+use App\Modules\Design\Palette;
+use App\Modules\Design\Color;
 use App\Modules\Design\Tokens;
 use App\Modules\Media\MediaPicture;
 use App\Modules\Menus\MenuTree;
@@ -59,7 +61,7 @@ final class PageLayoutData
      * a "not found" without the site's own header around it reads as a broken site rather
      * than a wrong address.
      *
-     * @param array{title: string, description?: string, canonical?: string|null, shareImage?: string|null} $head
+     * @param array{title: string, description?: string, canonical?: string|null, shareImage?: string|null, first_surface?: string} $head
      * @param array<string, mixed>|null $page the page being drawn; null on an error page
      * @param string $current its address, for marking the menu; '' on an error page
      * @return LayoutData
@@ -83,7 +85,7 @@ final class PageLayoutData
             // A link preview of an error page is not worth a row, so this is the caller's.
             'shareImage' => $head['shareImage'] ?? null,
             'hreflang' => Alternates::hreflang($alternates, self::primary($container->get('locales'))),
-        ] + self::chrome($container, $locale, $alternates, $current, self::design($db));
+        ] + self::chrome($container, $locale, $alternates, $current, self::design($db) + ['first_surface' => $head['first_surface'] ?? '']);
     }
 
     /**
@@ -103,7 +105,7 @@ final class PageLayoutData
      * A choice left at "follow the character" follows the character being PREVIEWED, so
      * Bold's sections never stand under Minimal's header.
      *
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>} $trying
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>, decisions?: array<string, string>, first_surface?: string} $trying
      * @return LayoutData
      */
     public static function forPreview(Container $container, string $locale, string $title, array $trying = []): array
@@ -130,13 +132,46 @@ final class PageLayoutData
      * query it is drawing (AppearancePreview), so both renderers agree on what a decision
      * means to the markup.
      *
-     * @return array{bleeds: array<string, string>, own: array<string, string>}
+     * @return array{bleeds: array<string, string>, own: array<string, string>, decisions: array<string, string>}
      */
     private static function design(Db $db): array
     {
         $decisions = Design::load($db);
 
-        return ['bleeds' => $decisions, 'own' => Tokens::ownChrome($decisions)];
+        return ['bleeds' => $decisions, 'own' => Tokens::ownChrome($decisions), 'decisions' => $decisions];
+    }
+
+    /**
+     * WHETHER THE INK ON THE HEADER IS LIGHT, which is what chooses the logo for dark surfaces
+     * (D-112). Not "is the surface called contrast": a contrast surface can be pale (Soft's
+     * is cream) and a page set dark by hand makes a plain header dark. So it is measured on
+     * the ink the palette actually puts there — the same ink the header's words are drawn in.
+     *
+     * A header laid over the first section takes that section's ink; a colour of the owner's
+     * own takes the ink derived for it (D-076); otherwise the surface's.
+     *
+     * @param array<string, string> $look the resolved look
+     * @param array<string, string> $own colour of the owner's own per part
+     * @param array<string, string> $decisions the design, for the palette
+     */
+    private static function inkIsLight(array $look, array $own, array $decisions, string $firstSurface): bool
+    {
+        if ($decisions === []) {
+            return false;
+        }
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], Tokens::byHand($decisions));
+        $surface = ($look['header_behaviour'] ?? '') === 'over' ? $firstSurface : ($look['header_surface'] ?? 'plain');
+        if (($look['header_behaviour'] ?? '') !== 'over' && isset($own['header'])) {
+            $ink = Palette::inksOn($own['header'], $colors)['text'];
+        } else {
+            $ink = $colors[match ($surface) {
+                'contrast', 'image' => 'on-contrast',
+                'gradient' => 'on-gradient',
+                default => 'text',
+            }];
+        }
+
+        return Color::toOklch($ink)[0] > 0.5;
     }
 
     /**
@@ -158,7 +193,7 @@ final class PageLayoutData
      * other, and the templates stay free of URL arithmetic (PLAN.md D-032).
      *
      * @param array<int, array<string, mixed>> $locales the languages, as the switcher shows them
-     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>} $trying
+     * @param array{look?: array<string, string>, character?: string, menu?: string|null, words?: array<string, string>, bleeds?: array<string, string>, own?: array<string, string>, decisions?: array<string, string>, first_surface?: string} $trying
      *        what an admin preview is showing unsaved; for a visitor's page only the two
      *        bleeds, which are design decisions rather than chrome ones (D-067)
      * @return array{headerBleed: string, footerBleed: string, headerHtml: string, footerHtml: string}
@@ -203,8 +238,11 @@ final class PageLayoutData
         // The logo is a picture like any other and has to be RESOLVED before the template
         // sees it, exactly as a block's pictures are. Handing the header an empty lookup
         // was a silent failure of my own making: the setting was saved, the template asked
-        // for a tag, MediaPicture had no entry for that id and drew nothing at all.
-        $media = $header['logo'] === null ? [] : MediaPicture::resolve($db, $locale, [$header['logo']]);
+        // for a tag, MediaPicture had no entry for that id and drew nothing at all. Both
+        // logos (D-112): the template picks one, and a lookup missing the one it picks
+        // would be that failure again.
+        $logos = array_values(array_filter([$header['logo'], $header['logo_dark']], 'is_int'));
+        $media = $logos === [] ? [] : MediaPicture::resolve($db, $locale, $logos);
 
         // The site's name, for a header with no logo to stand under, counts as something to
         // show (D-110): a page with the site's name at the top is right, and a site without a
@@ -225,12 +263,15 @@ final class PageLayoutData
         // template emits, and the class is what lets the stylesheet set the section's tokens
         // without naming them in their own fallback (D-110).
         $own = $trying['own'] ?? [];
+        // Which logo the header draws (D-112): the one for dark surfaces when the ink on the
+        // bar is light. Decided here, where the palette and the first section are known.
+        $logoDark = self::inkIsLight($resolved, $own, $trying['decisions'] ?? [], $trying['first_surface'] ?? '');
 
         return [
             'headerBleed' => ($bleeds['header_bleed'] ?? 'sheet') === 'full' ? 'full' : 'sheet',
             'footerBleed' => ($bleeds['footer_bleed'] ?? 'sheet') === 'full' ? 'full' : 'sheet',
             'headerHtml' => $hasHeader
-                ? $registry->render('header', $header, ['surface' => $resolved['header_surface']], $resolved['header_layout'], $media, true, 'header', ['menu' => $menu, 'look' => $resolved, 'own' => isset($own['header']), 'site_name' => $siteName], $locale, $locales)
+                ? $registry->render('header', $header, ['surface' => $resolved['header_surface']], $resolved['header_arrangement'], $media, true, 'header', ['menu' => $menu, 'look' => $resolved, 'own' => isset($own['header']), 'site_name' => $siteName, 'logo_dark' => $logoDark], $locale, $locales)
                 : '',
             'footerHtml' => $hasFooter
                 ? $registry->render('footer', $footer, ['surface' => $resolved['footer_surface']], $resolved['footer_layout'], [], false, 'footer', ['menu' => $menu, 'look' => $resolved, 'credit' => $credit, 'own' => isset($own['footer'])], $locale, $locales)

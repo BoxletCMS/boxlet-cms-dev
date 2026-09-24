@@ -109,6 +109,15 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                     <span class="hint"><?= e(t('settings.logo_hint')) ?></span>
                 </div>
 
+                <?php /* A second logo for dark surfaces (D-112): a dark wordmark vanishes on a
+                         contrast header or over a dark hero, and no CSS can fix a picture.
+                         Chosen by the renderer whenever the ink on the header is light. */ ?>
+                <div class="field">
+                    <label for="site_logo_dark"><?= e(t('settings.logo_dark')) ?></label>
+                    <?= $picker('site_logo_dark', $picked('site_logo_dark'), true) ?>
+                    <span class="hint"><?= e(t('settings.logo_dark_hint')) ?></span>
+                </div>
+
                 <div class="field">
                     <label for="site_favicon"><?= e(t('settings.favicon')) ?></label>
                     <?= $picker('site_favicon', $picked('site_favicon')) ?>

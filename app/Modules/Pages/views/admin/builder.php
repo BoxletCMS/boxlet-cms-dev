@@ -269,7 +269,7 @@ foreach ($errors as $key => $message) {
                                  both js-only and both narrow the SAME cards — there is no
                                  second list and nothing is fetched, so without a script the
                                  library is exactly what it has always been. */ ?>
-                        <div class="library-find js-only">
+                        <div class="field library-find js-only">
                             <label class="visually-hidden" for="library-filter"><?= e(t('pages.library.filter')) ?></label>
                             <input type="search" id="library-filter" class="library-filter" data-library-filter
                                    placeholder="<?= e(t('pages.library.filter')) ?>" autocomplete="off">

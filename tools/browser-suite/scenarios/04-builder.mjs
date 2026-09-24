@@ -243,7 +243,7 @@ const panelChecks = async (page, report) => {
       && onContent.contentPainted && !onContent.sectionPainted,
     JSON.stringify(onContent));
 
-  await page.click('[data-panel-tab="section"]');
+  await page.click('.panel-tablist [data-panel-tab="section"]');
   await settle();
   const onSection = await read();
   report.verdict('the Section tab shows the style, and shows it on the first screen',

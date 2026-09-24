@@ -283,6 +283,16 @@
    * screen said which. The column is named only where there is more than one, because
    * "Column 1" under a band of one is a level of nothing — the same rule the outline follows.
    */
+  /** The Section tab's word: the band it would open, or its plain name when there is none. */
+  var sectionTab = form.querySelector('[data-panel-tab="section"]');
+  var sectionTabWord = sectionTab ? sectionTab.textContent : '';
+
+  function nameSectionTab(band) {
+    if (sectionTab) {
+      sectionTab.textContent = band === null ? sectionTabWord : band;
+    }
+  }
+
   function trail(index, bandKey) {
     var strip = form.querySelector('[data-trail]');
     if (!strip) {
@@ -293,6 +303,7 @@
     if (key === null) {
       strip.hidden = true;
       strip.textContent = '';
+      nameSectionTab(null);
 
       return;
     }
@@ -304,6 +315,14 @@
       }
     });
     var parts = [(form.getAttribute('data-text-band') || 'Section') + ' ' + (at + 1)];
+    /* AND THE TAB SAYS WHOSE SETTINGS IT OPENS (PLAN.md D-108). Selecting a BLOCK shows the
+       fields of the BAND it stands in — which is the point of one group per band, and what
+       the design artifact does too — but with the tab reading plain "Section" nothing said
+       that changing Surface there would repaint every other block in that band. The trail
+       under the canvas said `Section 2 › Text`, at the opposite end of the screen from the
+       controls being pressed. The tab carries the same name the trail does, from the same
+       line, so the two cannot drift apart. */
+    nameSectionTab(parts[0]);
     if (group) {
       var band = bands[at];
       var columns = band ? band.querySelectorAll('.section-column').length : 0;
@@ -328,6 +347,25 @@
       strip.appendChild(piece);
     });
   }
+
+  /**
+   * A BLOCK CHOSEN BY THE PERSON — pressed on the page or in the page outline (D-108).
+   *
+   * THE PANEL TURNS TO CONTENT. The Section tab stays open across selections, so pressing a
+   * block while it was open left you looking at the band's settings with a block's name
+   * above them: "zbunjuje", and fairly — you asked for the block and were shown its
+   * container. Only a selection somebody MADE does this. api.show() runs for a dozen other
+   * reasons — an undo, a redraw, a block moved with the arrows — and turning the tab on
+   * those would snap the panel away mid-edit.
+   *
+   * Selecting a BAND does the opposite and still turns to Section, in api.selectBand().
+   */
+  api.chooseBlock = function (index) {
+    api.show(index);
+    if (index >= 0 && form.getAttribute('data-panel-tab') === 'section') {
+      showTab('content');
+    }
+  };
 
   api.show = function (index) {
     selected = index;
@@ -479,7 +517,7 @@
     } else if (event.data.type === 'select') {
       api.target = null;
       // By key when the canvas sent one: its index counts the PAGE's order, not the form's.
-      api.show(typeof event.data.key === 'string' && event.data.key !== ''
+      api.chooseBlock(typeof event.data.key === 'string' && event.data.key !== ''
         ? api.indexForKey(event.data.key)
         : event.data.index);
     } else if (event.data.type === 'selectband') {

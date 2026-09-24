@@ -176,7 +176,46 @@ export default {
     });
     await (await frameNow.$('[data-bx-index="1"]')).click();
     await wait(1200);
-    await page.click('[data-panel-tab="section"]');
+    await page.click('.panel-tablist [data-panel-tab="section"]');
+    await wait(500);
+
+    /* ---- THE TAB SAYS WHOSE SETTINGS IT OPENS, AND GIVES WAY TO THE BLOCK (D-108) ------
+       Selecting a BLOCK shows the fields of the BAND it stands in — one group per band is
+       what makes "a tinted band of three text blocks is one setting" true, and the design
+       artifact does the same. But the tab read plain "Section", so nothing said that
+       changing Surface there would repaint every other block in that band; and the tab
+       stayed open when the next block was pressed, which the owner called confusing: you
+       ask for a block and are shown its container.
+
+       Both are checked here, in the order a person meets them. The tab name is compared
+       with the trail under the canvas, because they are the same claim and must not drift. */
+    const named = await page.evaluate(() => ({
+      tab: document.querySelector('.panel-tablist [data-panel-tab="section"]').textContent.trim(),
+      trail: (document.querySelector('.builder-trail') || {}).textContent.replace(/\s+/g, ' ').trim(),
+    }));
+    report.verdict('the Section tab names the band it would open',
+      /^\S+ [0-9]+$/.test(named.tab) && named.trail.startsWith(named.tab),
+      JSON.stringify(named));
+
+    const turned = await page.evaluate(async () => {
+      const doc = document.querySelector('iframe[data-canvas]').contentDocument;
+      const blocks = [...doc.querySelectorAll('.section-column > *')];
+      const before = document.querySelector('form[data-builder]').getAttribute('data-panel-tab');
+      blocks[3].click();
+      await new Promise((r) => setTimeout(r, 900));
+
+      return { before: before, after: document.querySelector('form[data-builder]').getAttribute('data-panel-tab') };
+    });
+    report.verdict('pressing a block turns the panel back to its own fields',
+      turned.before === 'section' && turned.after === 'content', JSON.stringify(turned));
+
+    // Back to the block and the tab this check was on, so what follows starts where it did.
+    await page.evaluate(() => {
+      document.querySelector('iframe[data-canvas]').contentDocument
+        .querySelectorAll('.section-column > *')[1].click();
+    });
+    await wait(900);
+    await page.click('.panel-tablist [data-panel-tab="section"]');
     await wait(500);
     const was = await bandClasses();
     await page.evaluate(() => {
@@ -195,7 +234,7 @@ export default {
       afterStyle !== was && /surface-(contrast|tinted)/.test(afterStyle),
       `${was} -> ${afterStyle}`);
 
-    await page.click('[data-panel-tab="content"]');
+    await page.click('.panel-tablist [data-panel-tab="content"]');
     await wait(400);
     await page.evaluate(() => {
       const group = [...document.querySelectorAll('[data-block-group]')].find((g) => !g.hidden);
@@ -213,7 +252,7 @@ export default {
     // every block in the band. The server draws the band — the same SectionRender the page
     // uses — so this is the one choice here that costs a round trip, and until it did, the
     // canvas caught up only on save.
-    await page.click('[data-panel-tab="section"]');
+    await page.click('.panel-tablist [data-panel-tab="section"]');
     await wait(400);
     // What the band wears before the arrangement is touched, to prove it still wears it.
     const beforeColumns = await bandClasses();

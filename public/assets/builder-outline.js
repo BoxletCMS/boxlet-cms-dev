@@ -196,7 +196,9 @@
       }
       api.outlineBand = null;
       var index = Number(group.getAttribute('data-block-group'));
-      api.show(index);
+      // A block the person pressed, so the panel turns to Content (D-108) — the same rule
+      // whether it was pressed on the page or here.
+      api.chooseBlock(index);
       api.selectOnCanvas(index);
 
       return;

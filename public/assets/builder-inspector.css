@@ -430,14 +430,15 @@
 
 /* FINDING A BLOCK (PLAN.md D-104): a filter and a row of shelves over the same cards. */
 
+/* IT IS A FIELD, so it says so and wears what every admin field wears (PLAN.md D-108).
+   It carried only a width, so it fell through to the browser's own input: a pale box with a
+   hairline border in a dark panel, with no focus ring and no placeholder colour, because
+   admin-forms.css scopes all of that to `.field input`. The owner spotted it at a glance —
+   "filter input nije u stilu". Marking the wrapper rather than copying the declarations:
+   one definition of what an admin input looks like, not two that drift. `.field` already
+   carries the same `display: grid` and gap this rule used to declare for itself. */
 .library-find {
-  display: grid;
-  gap: var(--ui-2);
   margin-block-end: var(--ui-3);
-}
-
-.library-filter {
-  inline-size: 100%;
 }
 
 .library-groups {

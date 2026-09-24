@@ -156,6 +156,31 @@ export default {
        still fail if the library offered a shelf no card claims, or hid one that a card
        does. Compared as SETS: the buttons come in the order the closed set declares and the
        cards in whatever order the library draws them, and neither order is the rule. */
+    /* ---- AND THE FILTER IS A FIELD, not the browser's own box (PLAN.md D-108) --------
+       It carried only a width, so it fell through to the user agent's input: a pale box
+       with a hairline border in a dark panel, no focus ring, no placeholder colour —
+       admin-forms.css scopes all of that to `.field input`. "filter input nije u stilu".
+       COMPARED WITH A REAL FIELD rather than against written-down values: the claim is that
+       it wears what every other admin field wears, and a literal here would be a second
+       definition of the look, which is the thing being avoided. */
+    const dressed = await page.evaluate(() => {
+      const read = (el) => {
+        if (!el) { return null; }
+        const c = getComputedStyle(el);
+
+        return [c.backgroundColor, c.borderTopColor, c.borderTopLeftRadius, c.color,
+          Math.round(el.getBoundingClientRect().height)].join(' | ');
+      };
+
+      return {
+        filter: read(document.querySelector('.library-filter')),
+        field: read(document.querySelector('#page-title')),
+      };
+    });
+    report.verdict('the block filter wears what every other admin field wears',
+      dressed.filter !== null && dressed.filter === dressed.field,
+      `${dressed.filter}  vs  ${dressed.field}`);
+
     report.verdict('the library offers exactly the shelves its blocks stand on, and All',
       all.shelves[0] === 'All' && all.slugs[0] === ''
         && [...all.slugs.slice(1)].sort().join(',') === all.groups.join(',')

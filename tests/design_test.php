@@ -1088,7 +1088,7 @@ test('a full-width header on a boxed page runs to the sheet\'s width, and to the
     $flat = Derived::from(Tokens::validate(['boxed' => 'no', 'header_width' => 'full', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
     $content = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_width' => 'content', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
 
-    assertEquals('72rem', $boxed['page']['header-width'], 'as wide as the sheet');
+    assertEquals('calc(72rem - 2 * var(--space-l))', $boxed['page']['header-width'], 'as wide as the sheet, less the container\'s own padding');
     assertEquals('72rem', $boxed['page']['sheet-width'], 'which is the sheet');
     assertEquals('100%', $flat['page']['header-width'], 'the window, when the sheet is the window');
     assertEquals('none', $flat['page']['sheet-width'], 'and no sheet width then');

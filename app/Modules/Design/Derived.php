@@ -142,9 +142,12 @@ final class Derived
             'sheet' => $colors['background'],
             // "Full width" on a boxed page is the sheet's width (D-116, the owner's detail):
             // a header as wide as the window over a box narrower than it lined up with
-            // nothing. Unboxed, the sheet is the window and full is 100%.
+            // nothing. Less the container's own side padding, because the container is
+            // content-box and its padding would otherwise stand OUTSIDE the sheet's edge —
+            // measured: 1464px of header over a 1408px sheet. Unboxed, the sheet is the
+            // window and full is 100%, which an auto width already keeps inside it.
             'header-width' => $decisions['header_width'] === 'full'
-                ? ($boxed ? self::rem((float) $decisions['sheet_width']) : '100%')
+                ? ($boxed ? 'calc(' . self::rem((float) $decisions['sheet_width']) . ' - 2 * var(--space-l))' : '100%')
                 : self::rem(Tokens::width($decisions['container']) ?? 56.0),
         ];
     }

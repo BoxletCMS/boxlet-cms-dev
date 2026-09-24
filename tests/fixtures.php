@@ -241,6 +241,11 @@ function appearanceFields(array $fields = []): array
     return $fields + [
         'use_secondary' => $decisions['secondary'] !== '' ? '1' : '0',
         'secondary' => $decisions['secondary'] !== '' ? $decisions['secondary'] : '#000000',
+        // What the screen offers for the footer's first column until something else is
+        // chosen (D-115): the header's menu. A post without it would clear it, and a footer
+        // with no menu and no words is not drawn — which is right, and not what most tests
+        // posting the screen are about.
+        'footer_menu_1' => App\Modules\Settings\SiteChrome::FOOTER_MENU_HEADER,
     ] + $decisions;
 }
 

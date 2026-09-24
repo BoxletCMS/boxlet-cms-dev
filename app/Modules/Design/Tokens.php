@@ -129,6 +129,19 @@ final class Tokens
      * frame's docblock has always been proud of.
      */
     public const FRAME = ['thin' => 1.0, 'narrow' => 2.0, 'normal' => 3.0, 'wide' => 5.0];
+    /*
+     * A BOXED PAGE IS A BOX OF A WIDTH (PLAN.md D-116). The frame gave the sheet a margin
+     * and the sheet took the rest of the window, which at 1600px is a wide sheet with a thin
+     * edge — not the boxed layout anyone means by the word. `sheet_width` is the sheet's own
+     * width in rem, centred in the window; `sheet_gap` is the room ABOVE and BELOW it in
+     * spacing units, apart from the sides, so a header and footer that break out of the
+     * sheet (D-067) can sit glued to it at 0. Both are zero when the page is not boxed, for
+     * the reason the frame is.
+     */
+    public const SHEET_WIDTH_MIN = 40.0;
+    public const SHEET_WIDTH_MAX = 120.0;
+    public const SHEET_WIDTH_STEP = 2.0;
+    public const SHEET_GAP_MAX = 8.0;
     public const SHEET_RADIUS = ['square', 'soft', 'round'];
     public const SHEET_SHADOW = ['none', 'shadow', 'hairline'];
     public const BLEED = ['sheet', 'full'];
@@ -245,6 +258,18 @@ final class Tokens
             $decisions[$key] = self::number((float) (int) round($nudge ?? 0.0));
         }
 
+        // The sheet's width and the room above and below it (D-116): numbers, bounded.
+        $sheetWidth = self::bounded($input['sheet_width'] ?? null, self::SHEET_WIDTH_MIN, self::SHEET_WIDTH_MAX);
+        if ($sheetWidth === null) {
+            $errors['sheet_width'] = t('design.error.width', ['min' => self::number(self::SHEET_WIDTH_MIN), 'max' => self::number(self::SHEET_WIDTH_MAX)]);
+        }
+        $decisions['sheet_width'] = self::number(round(($sheetWidth ?? (float) $fallback['sheet_width']) / self::SHEET_WIDTH_STEP) * self::SHEET_WIDTH_STEP);
+        $sheetGap = self::bounded($input['sheet_gap'] ?? null, 0.0, self::SHEET_GAP_MAX);
+        if ($sheetGap === null) {
+            $errors['sheet_gap'] = t('design.error.nudge', ['min' => '0', 'max' => self::number(self::SHEET_GAP_MAX)]);
+        }
+        $decisions['sheet_gap'] = self::number((float) (int) round($sheetGap ?? (float) $fallback['sheet_gap']));
+
         // The one decision that is a number rather than one of a closed set.
         $width = self::width($input['container'] ?? null);
         if ($width === null) {
@@ -289,7 +314,7 @@ final class Tokens
             array_keys(self::NUDGES),
             ['heading_weight', 'tracking', 'caps', 'spacing', 'radius', 'shadow', 'container',
                 'surface_contrast', 'header_width', 'boxed', 'page_background', 'page_background_colour',
-                'frame', 'sheet_radius', 'sheet_shadow', 'header_bleed', 'footer_bleed',
+                'frame', 'sheet_width', 'sheet_gap', 'sheet_radius', 'sheet_shadow', 'header_bleed', 'footer_bleed',
                 'header_colour', 'footer_colour'],
         );
         $ordered = [];
@@ -320,7 +345,7 @@ final class Tokens
      * its own type is fixed by the --ui-* set and must never follow the site's (SPEC §5.4).
      *
      * @param array<string, string> $decisions validated decisions
-     * @return array{text: array<string, int>, text_phone: int, space: int, section: int, radius: int, container: int, container_rem: float}
+     * @return array{text: array<string, int>, text_phone: int, space: int, section: int, radius: int, container: int, container_rem: float, sheet_width: int, sheet_gap: int}
      */
     public static function readable(array $decisions): array
     {
@@ -347,6 +372,8 @@ final class Tokens
             'radius' => $px((float) rtrim(Derived::RADII[$decisions['radius']]['m'], 'rem')),
             'container' => $px($width),
             'container_rem' => $width,
+            'sheet_width' => $px((float) $decisions['sheet_width']),
+            'sheet_gap' => $px($unit * (float) $decisions['sheet_gap']),
         ];
     }
 

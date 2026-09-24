@@ -57,7 +57,9 @@ final class ChromeLook
         // with no logo shows its name whatever this says (D-110).
         'brand' => ['logo', 'name', 'both'],
         // How the menu's words are set, and whether they take the accent or the ink.
-        'nav_style' => ['plain', 'caps', 'pills'],
+        // Plain; small capitals; the current page on a pill; a bar under the current page and
+        // under the pointer; every link a bordered chip (D-114).
+        'nav_style' => ['plain', 'caps', 'pills', 'bar', 'chips'],
         'nav_ink' => ['accent', 'ink'],
         // The call to action: a filled button, an outlined one, or a plain link.
         'header_button' => ['filled', 'outline', 'text'],

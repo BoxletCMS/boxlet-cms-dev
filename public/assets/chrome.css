@@ -199,6 +199,27 @@ footer.block {
 .logo-medium .site-logo img { block-size: 2.75em; }
 .logo-large .site-logo img { block-size: 3.75em; }
 
+/* On a phone the logo shares its line with the menu button, so it is capped (D-114): a large
+   logo at 3.75em pushed the button onto a second line under it. Its shape stays; only its
+   height is held, and its width is kept off the button. */
+@media (max-width: 40rem) {
+  .site-logo img,
+  .logo-medium .site-logo img,
+  .logo-large .site-logo img {
+    block-size: 2.25em;
+    max-inline-size: 60vw;
+    object-fit: contain;
+  }
+
+  .site-name {
+    font-size: var(--text-lg);
+  }
+
+  .logo-large .site-name {
+    font-size: var(--text-lg);
+  }
+}
+
 /* Logo and name side by side (D-112): one link, the name after the picture. */
 .site-brand {
   align-items: center;
@@ -225,6 +246,45 @@ footer.block {
 .nav-pills .site-nav a[aria-current="page"],
 .nav-pills .site-nav .is-current-parent > a {
   background: var(--section-card);
+  text-decoration: none;
+}
+
+/* A bar under the current page, and under whatever the pointer is on (D-114): a rule that
+   is drawn rather than an underline, in the section's link colour, at the width of the
+   words. The bar is a border so it keeps its distance from the words. */
+.nav-bar .site-nav > ul > li > a {
+  padding-block: var(--space-xs);
+  border-block-end: 0.15em solid transparent;
+  text-decoration: none;
+}
+
+.nav-bar .site-nav > ul > li > a[aria-current="page"],
+.nav-bar .site-nav > ul > li.is-current-parent > a,
+.nav-bar .site-nav > ul > li > a:hover,
+.nav-bar .site-nav > ul > li > a:focus-visible {
+  border-block-end-color: currentColor;
+  text-decoration: none;
+}
+
+/* Every entry a chip (D-114): a bordered box in the bar's own ink, the current one filled
+   with the card tone. Legible at rest by construction — the border is the control. */
+.nav-chips .site-nav > ul > li > a {
+  padding: var(--space-xs) var(--space-s);
+  border: var(--border-width) solid var(--section-border);
+  border-radius: var(--radius-button);
+  text-decoration: none;
+}
+
+.nav-chips .site-nav > ul > li > a[aria-current="page"],
+.nav-chips .site-nav > ul > li.is-current-parent > a {
+  background: var(--section-card);
+  border-color: currentColor;
+  text-decoration: none;
+}
+
+.nav-chips .site-nav > ul > li > a:hover,
+.nav-chips .site-nav > ul > li > a:focus-visible {
+  border-color: currentColor;
   text-decoration: none;
 }
 
@@ -264,30 +324,50 @@ footer.block {
   justify-content: center;
 }
 
-/* Footer in columns: the owner's words beside the navigation, the small print under both. */
-.layout-columns .site-footer {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  column-gap: var(--space-xl);
-  align-items: start;
-}
-
-/* Menu first: the navigation in a row above the words, as a site map's first line. */
-.layout-menu_first .site-footer-nav {
-  order: -1;
-}
-
-/* Three columns: the words, the menu, and the languages with the small print. The last row
-   takes the third column and stacks inside it, whatever the row's own arrangement says. */
-.layout-three .site-footer {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: var(--space-xl);
-  align-items: start;
-}
-
-.layout-three .site-footer-foot {
+/* A COLUMN OF CONTENT (D-115): a title, words and a menu, each drawn only when there is
+   one. The title is the last heading on the page, set a step above the words. */
+.site-footer-col {
   display: grid;
   gap: var(--space-s);
-  justify-items: start;
+  align-content: start;
+}
+
+.site-footer-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-tracking);
+  text-transform: var(--heading-transform);
+}
+
+/* Two columns side by side; three side by side. Equal columns, because each holds what its
+   owner put in it (D-115) — the old two-thirds-and-a-third was for words beside a menu. */
+.layout-columns .site-footer {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-xl);
+  align-items: start;
+}
+
+.layout-three .site-footer {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: var(--space-xl);
+  align-items: start;
+}
+
+/* Fewer columns with something in them than the arrangement allows: they take the room
+   there is rather than leaving a gap where the empty one would stand. */
+.layout-columns .site-footer.drawn-1,
+.layout-three .site-footer.drawn-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.layout-three .site-footer.drawn-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Menu first: the column's navigation in a row above its words, as a site map's first line. */
+.layout-menu_first .site-footer-nav {
+  order: -1;
 }
 
 /* THE LAST ROW (D-113): the languages and the small print. Side by side with the space
@@ -313,11 +393,14 @@ footer.block {
   align-items: flex-start;
 }
 
-/* The row spans every arrangement's columns except the third column of `three`. */
-.layout-columns .site-footer-foot,
-.layout-menu_first .site-footer-foot,
-.layout-centred .site-footer-foot {
+/* The last row spans every column, whatever the arrangement. */
+.site-footer-foot {
   grid-column: 1 / -1;
+}
+
+/* Centred: each column's words and menu centred too. */
+.layout-centred .site-footer-col {
+  justify-items: center;
 }
 
 /* Words with a link in them (D-113): the link takes the section's link colour like any

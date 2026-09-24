@@ -26,10 +26,16 @@ body {
    the page itself (D-067). When the design is not boxed the frame is zero and the sheet
    fills the window, so these three are one box and nothing here is conditional. */
 .page-frame {
-  padding: var(--page-frame, 0);
+  /* Above and below, then the sides (D-116): two tokens, so the chrome that breaks out of
+     the sheet can be glued to it while the sides keep their margin. */
+  padding: var(--page-frame-block, var(--page-frame, 0)) var(--page-frame, 0);
 }
 
 .page-sheet {
+  /* A boxed page is a box of a width, centred (D-116); `none` when the page is not boxed,
+     so the sheet fills the window as it always did. */
+  max-inline-size: var(--page-sheet-width, none);
+  margin-inline: auto;
   background: var(--page-sheet, var(--color-background));
   border-radius: var(--page-sheet-radius, 0);
   box-shadow: var(--page-sheet-shadow, none);
@@ -174,6 +180,6 @@ code {
      measured, Soft's frame took 144 of a 390-pixel screen and left the header 150 to
      draw in. min() leaves an unboxed page (frame 0) exactly as it was. */
   .page-frame {
-    padding: min(var(--page-frame, 0rem), 3vw);
+    padding: min(var(--page-frame-block, var(--page-frame, 0rem)), 3vw) min(var(--page-frame, 0rem), 3vw);
   }
 }

@@ -88,7 +88,10 @@ $at = 0;
 <?php /* The toggle is for narrow screens and exists only once site-nav.js has run: it is
          born hidden, so without a script there is no button that does nothing, and the
          navigation simply wraps under the logo. */ ?>
-    <button type="button" class="site-nav-toggle" aria-expanded="false" aria-controls="site-nav" hidden data-site-nav-toggle><?= e($menuLabel) ?></button>
+<?php /* A hamburger, drawn (D-114): three lines in the bar's own ink, with the word for a
+         screen reader. Drawn, not written, for the reason the link icon gives: an emoji is a
+         box wherever its font is missing, and the word took a whole line beside a logo. */ ?>
+    <button type="button" class="site-nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="<?= e($menuLabel) ?>" hidden data-site-nav-toggle><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <nav class="site-nav" id="site-nav" aria-label="<?= e($menuLabel) ?>">
 <?php foreach ($lists as $items): ?>
         <ul>
@@ -100,7 +103,7 @@ $at = 0;
 <?php /* A submenu opens by its own button, never by hover alone: a menu that appears only
          under a pointer is invisible to a keyboard and to a finger. Without a script the
          button stays hidden and the submenu is simply listed under its parent. */ ?>
-                <button type="button" class="site-nav-more" aria-expanded="false" aria-controls="site-nav-<?= e((string) $i) ?>" aria-label="<?= e($item['label']) ?>" hidden data-site-nav-more><span aria-hidden="true">▾</span></button>
+                <button type="button" class="site-nav-more" aria-expanded="false" aria-controls="site-nav-<?= e((string) $i) ?>" aria-label="<?= e($item['label']) ?>" hidden data-site-nav-more><span aria-hidden="true"><svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></span></button>
                 <ul class="site-nav-children" id="site-nav-<?= e((string) $i) ?>">
 <?php foreach ($item['children'] as $child): ?>
                     <li><a href="<?= e($child['url']) ?>"<?= !empty($child['current']) ? ' aria-current="page"' : '' ?>><?= e($child['label']) ?></a></li>

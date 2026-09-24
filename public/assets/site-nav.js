@@ -34,16 +34,53 @@
   function close(button) {
     button.setAttribute('aria-expanded', 'false');
     button.parentElement.classList.remove('is-open');
+    button.parentElement.classList.remove('is-hover');
+  }
+
+  function open(button) {
+    // One submenu at a time: two dropdowns over each other hide each other.
+    Array.prototype.forEach.call(more, close);
+    button.setAttribute('aria-expanded', 'true');
+    button.parentElement.classList.add('is-open');
   }
 
   Array.prototype.forEach.call(more, function (button) {
     button.hidden = false;
     button.addEventListener('click', function () {
-      var open = button.getAttribute('aria-expanded') !== 'true';
-      // One submenu at a time: two dropdowns over each other hide each other.
-      Array.prototype.forEach.call(more, close);
-      button.setAttribute('aria-expanded', String(open));
-      button.parentElement.classList.toggle('is-open', open);
+      /*
+       * A click on a submenu that a resting mouse has already opened KEEPS it open, and
+       * pins it: the mouse arrived before the click, so the panel was open when the finger
+       * pressed, and a press that shut it read as a button that does the opposite of what
+       * it says. Measured in the browser suite: the driver moves the mouse to the button
+       * and then clicks, and the click closed what the move had opened. Pinned, the panel
+       * no longer closes when the mouse leaves; the next click closes it.
+       */
+      if (button.getAttribute('aria-expanded') === 'true' && !button.parentElement.classList.contains('is-hover')) {
+        close(button);
+      } else {
+        open(button);
+        button.parentElement.classList.remove('is-hover');
+      }
+    });
+    /*
+     * A MOUSE RESTING ON THE PARENT OPENS IT TOO (PLAN.md D-114), and leaving the parent —
+     * which holds the panel, so leaving means leaving both — closes it. A mouse and nothing
+     * else: a finger's tap arrives as a pointer event too, and a submenu that opened under a
+     * tap on the parent link would open and navigate in the same instant. The button stays
+     * for the keyboard and for a finger. Asked of the event rather than of a media query,
+     * because the same device can have both, and the pointer in use is the one that counts.
+     */
+    var parent = button.parentElement;
+    parent.addEventListener('pointerenter', function (event) {
+      if (event.pointerType === 'mouse' && button.getAttribute('aria-expanded') !== 'true') {
+        open(button);
+        parent.classList.add('is-hover');
+      }
+    });
+    parent.addEventListener('pointerleave', function (event) {
+      if (event.pointerType === 'mouse' && parent.classList.contains('is-hover')) {
+        close(button);
+      }
     });
   });
 

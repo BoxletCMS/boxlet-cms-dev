@@ -90,24 +90,66 @@ final class SiteChrome
         ];
     }
 
+    /** The footer's columns (D-115): a title, words and a menu each, three at most. */
+    public const FOOTER_COLUMNS = 3;
+
+    /** A column's menu may be the header's, by this word, or none, by the other; else a name. */
+    public const FOOTER_MENU_HEADER = 'header';
+    public const FOOTER_MENU_NONE = 'none';
+
     /**
-     * What the footer block is drawn from. Both fields are the owner's own words, so both
-     * are per locale — a Croatian page with an English small print is the kind of thing
-     * nobody notices until a visitor does.
+     * What the footer block is drawn from (D-115): up to three columns, each a title and
+     * words in the page's language, and the small print. The menus are not here — they
+     * are resolved once per request by the layout (footerMenus()) and handed to the
+     * template in $resolved, exactly as the header's is.
      *
-     * @return array{text: string, small_print: string}
+     * Column 1's words are the footer text there has always been, under the key it always
+     * had, so nothing written before D-115 moved.
+     *
+     * @return array{columns: list<array{title: string, text: string}>, small_print: string}
      */
     public static function footer(Db $db, string $locale): array
     {
-        $values = Settings::many($db, [
-            self::key('chrome_footer_text', $locale),
-            self::key('chrome_small_print', $locale),
-        ], '');
+        $keys = [self::key('chrome_small_print', $locale)];
+        foreach (range(1, self::FOOTER_COLUMNS) as $n) {
+            $keys[] = self::key(self::footerKey($n, 'title'), $locale);
+            $keys[] = self::key(self::footerKey($n, 'text'), $locale);
+        }
+        $values = Settings::many($db, $keys, '');
+
+        $columns = [];
+        foreach (range(1, self::FOOTER_COLUMNS) as $n) {
+            $columns[] = [
+                'title' => self::string($values[self::key(self::footerKey($n, 'title'), $locale)] ?? ''),
+                'text' => self::string($values[self::key(self::footerKey($n, 'text'), $locale)] ?? ''),
+            ];
+        }
 
         return [
-            'text' => self::string($values[self::key('chrome_footer_text', $locale)] ?? ''),
+            'columns' => $columns,
             'small_print' => self::string($values[self::key('chrome_small_print', $locale)] ?? ''),
         ];
+    }
+
+    /**
+     * Each footer column's menu, by NAME (D-115): `header` for the header's menu, `none` for
+     * none, else a name — one convention for all three, and D-113's exactly, so a site that
+     * saved under D-113 keeps the footer it had. NOTHING STORED, or '', is the default: the
+     * header's menu in column 1, which is what every footer showed before a menu could be
+     * chosen for it (D-028), and none in the others. Answered here as the word, so nothing
+     * downstream reads ''.
+     *
+     * @return array<int, string> column number => header | none | a name
+     */
+    public static function footerMenus(Db $db): array
+    {
+        $menus = [];
+        foreach (range(1, self::FOOTER_COLUMNS) as $n) {
+            $value = Settings::text($db, self::key(self::footerKey($n, 'menu')));
+            $menus[$n] = $value === '' ? ($n === 1 ? self::FOOTER_MENU_HEADER : self::FOOTER_MENU_NONE) : $value;
+        }
+
+        return $menus;
     }
 
     /**
@@ -123,28 +165,18 @@ final class SiteChrome
     }
 
     /**
-     * The footer's own menu, by name (D-113): '' means the header's, and the word `none`
-     * means no menu in the footer at all — a real sajt's footer holds Privacy and Imprint,
-     * not the header's five pages again.
-     */
-    public const FOOTER_MENU_NONE = 'none';
-
-    public static function footerMenuName(Db $db): string
-    {
-        return Settings::text($db, self::key('chrome_footer_menu'));
-    }
-
-    /**
      * A menu was renamed: wherever the chrome showed it under its old name, it shows the
-     * new one — the header's, and the footer's own.
+     * new one — the header's, and each footer column's.
      */
     public static function followRename(Db $db, string $old, string $new): void
     {
         if (self::menuName($db) === $old) {
             Settings::set($db, self::key('chrome_menu'), $new);
         }
-        if (self::footerMenuName($db) === $old) {
-            Settings::set($db, self::key('chrome_footer_menu'), $new);
+        foreach (self::footerMenus($db) as $n => $name) {
+            if ($name === $old) {
+                Settings::set($db, self::key(self::footerKey($n, 'menu')), $new);
+            }
         }
     }
 
@@ -154,11 +186,15 @@ final class SiteChrome
      * The menus are stored by NAME. Menus are unique per (locale, name), so one name gives
      * each translation its own menu and nothing dangles when a menu is deleted and made
      * again. An id would have had to be re-chosen, per locale, every time.
+     *
+     * @param array<int, string> $footerMenus column number => header | none | a name
      */
-    public static function saveShared(Db $db, string $menu, string $footerMenu = ''): void
+    public static function saveShared(Db $db, string $menu, array $footerMenus = []): void
     {
         Settings::set($db, self::key('chrome_menu'), $menu);
-        Settings::set($db, self::key('chrome_footer_menu'), $footerMenu);
+        foreach (range(1, self::FOOTER_COLUMNS) as $n) {
+            Settings::set($db, self::key(self::footerKey($n, 'menu')), $footerMenus[$n] ?? '');
+        }
     }
 
     /**
@@ -185,14 +221,34 @@ final class SiteChrome
      * stays in key(); a controller spelling it out would be the sixth hand-rolled copy of a
      * contract, which is the mistake Settings itself was written to end.
      *
-     * @param array{button_label: string, button_url: string, text: string, small_print: string} $values
+     * @param array<string, mixed> $values button_label, button_url, small_print, and columns:
+     *        a list of title and text, as ChromeWords::fromRequest() builds it
      */
     public static function saveForLocale(Db $db, string $locale, array $values): void
     {
-        Settings::set($db, self::key('chrome_button_label', $locale), $values['button_label']);
-        Settings::set($db, self::key('chrome_button_url', $locale), $values['button_url']);
-        Settings::set($db, self::key('chrome_footer_text', $locale), $values['text']);
-        Settings::set($db, self::key('chrome_small_print', $locale), $values['small_print']);
+        Settings::set($db, self::key('chrome_button_label', $locale), self::string($values['button_label'] ?? ''));
+        Settings::set($db, self::key('chrome_button_url', $locale), self::string($values['button_url'] ?? ''));
+        $columns = is_array($values['columns'] ?? null) ? $values['columns'] : [];
+        foreach (range(1, self::FOOTER_COLUMNS) as $n) {
+            $column = is_array($columns[$n - 1] ?? null) ? $columns[$n - 1] : [];
+            Settings::set($db, self::key(self::footerKey($n, 'title'), $locale), self::string($column['title'] ?? ''));
+            Settings::set($db, self::key(self::footerKey($n, 'text'), $locale), self::string($column['text'] ?? ''));
+        }
+        Settings::set($db, self::key('chrome_small_print', $locale), self::string($values['small_print'] ?? ''));
+    }
+
+    /**
+     * A footer column's key, before the locale (D-115). Column 1's words keep the key the
+     * footer's text has always had, and its menu the one D-113 gave the footer, so nothing
+     * stored before this moved; columns 2 and 3 are new.
+     */
+    private static function footerKey(int $column, string $part): string
+    {
+        if ($column === 1) {
+            return ['title' => 'chrome_footer_title', 'text' => 'chrome_footer_text', 'menu' => 'chrome_footer_menu'][$part];
+        }
+
+        return 'chrome_footer_col' . $column . '_' . $part;
     }
 
     /**

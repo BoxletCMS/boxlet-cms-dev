@@ -13,6 +13,7 @@
  * @var callable(string): string $error one field's message, or an empty slot for the script
  * @var callable(string, array<array-key, string>, string=, string=): string $segmented
  * @var callable(string, list<string>): array<string, string> $labels
+ * @var callable(string, float, float, float): string $slider
  * @var callable(string): string $ownColour
  * @var array<string, string> $colors
  */
@@ -35,7 +36,12 @@
                 <?php /* THE SHEET AND ITS EDGES (D-067). Every one of these only shows on a
                          boxed page, and each hint says so rather than the control hiding:
                          a control that disappears is worse than one that explains itself. */ ?>
+                <?php /* A BOX OF A WIDTH (D-116): the sheet's own width, and the room above
+                         and below it — zero glues a header or footer that breaks out of the
+                         sheet to it. The margin at the sides stays the frame's. */ ?>
+                <?= $slider('sheet_width', App\Modules\Design\Tokens::SHEET_WIDTH_MIN, App\Modules\Design\Tokens::SHEET_WIDTH_MAX, App\Modules\Design\Tokens::SHEET_WIDTH_STEP) ?>
                 <?= $segmented('frame', $labels('frame', array_keys(App\Modules\Design\Tokens::FRAME))) ?>
+                <?= $slider('sheet_gap', 0, App\Modules\Design\Tokens::SHEET_GAP_MAX, 1) ?>
                 <?= $segmented('sheet_radius', $labels('sheet_radius', App\Modules\Design\Tokens::SHEET_RADIUS)) ?>
                 <?= $segmented('sheet_shadow', $labels('sheet_shadow', App\Modules\Design\Tokens::SHEET_SHADOW)) ?>
             </fieldset>

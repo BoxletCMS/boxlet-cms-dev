@@ -7,6 +7,7 @@ use App\Modules\Design\Palette;
 use App\Modules\Design\Tokens;
 use App\Modules\Settings\ChromeLook;
 use App\Modules\Settings\ChromeWords;
+use App\Modules\Settings\SiteChrome;
 
 /**
  * What one Appearance screen sends, and what its preview reads back (PLAN.md D-059).
@@ -22,15 +23,28 @@ final class AppearanceForm
     /** Which menu the header shows, posted by name. A field name is not a settings key. */
     public const MENU = 'header_menu';
 
-    /** The footer's own menu (D-113): '' for the header's, `none` for none, else a name. */
-    public const FOOTER_MENU = 'footer_menu';
+    /**
+     * Each footer column's menu (D-115), posted by column number: '' for none, `header`
+     * for the header's, else a name. Field names, not settings keys.
+     *
+     * @return list<string>
+     */
+    public static function footerMenuFields(): array
+    {
+        $fields = [];
+        foreach (range(1, SiteChrome::FOOTER_COLUMNS) as $n) {
+            $fields[] = 'footer_menu_' . $n;
+        }
+
+        return $fields;
+    }
 
     /**
      * Everything a save is trying, checked. Design errors are keyed by the decision at
      * fault, word errors by the field that carries them; one screen shows both.
      *
      * @param list<string> $locales
-     * @return array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menu: string, words: array<string, array{button_label: string, button_url: string, text: string, small_print: string}>, errors: array<string, string>}
+     * @return array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>}
      */
     public static function read(Request $request, array $locales): array
     {
@@ -47,7 +61,7 @@ final class AppearanceForm
             'decisions' => $design['decisions'],
             'look' => $look,
             'menu' => trim($request->input(self::MENU)),
-            'footer_menu' => trim($request->input(self::FOOTER_MENU)),
+            'footer_menus' => self::footerMenusFrom($request->body),
             'words' => $words['values'],
             'errors' => $design['errors'] + $words['errors'],
         ];
@@ -60,7 +74,7 @@ final class AppearanceForm
      * The words are only the PREVIEWED LANGUAGE's. The preview draws one page in one
      * language; the other languages' words are on the screen but not in the picture.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menu?: string, words: array<string, array<string, string>>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
      * @return array<string, string>
      */
     public static function query(array $state, string $locale, string $character = ''): array
@@ -80,7 +94,9 @@ final class AppearanceForm
             $query[ChromeLook::field($choice)] = $value;
         }
         $query[self::MENU] = $state['menu'];
-        $query[self::FOOTER_MENU] = $state['footer_menu'] ?? '';
+        foreach (self::footerMenuFields() as $i => $field) {
+            $query[$field] = $state['footer_menus'][$i + 1] ?? '';
+        }
         foreach ($state['words'][$locale] ?? [] as $name => $value) {
             $query[ChromeWords::field($name, $locale)] = $value;
         }
@@ -92,6 +108,23 @@ final class AppearanceForm
     }
 
     /**
+     * Each footer column's menu as posted (D-115): '' none, `header`, or a name.
+     *
+     * @param array<mixed> $fields
+     * @return array<int, string>
+     */
+    private static function footerMenusFrom(array $fields): array
+    {
+        $menus = [];
+        foreach (self::footerMenuFields() as $i => $field) {
+            $value = $fields[$field] ?? '';
+            $menus[$i + 1] = is_string($value) ? trim($value) : '';
+        }
+
+        return $menus;
+    }
+
+    /**
      * The other end of query(): what the preview should draw that the site does not have
      * yet, in the shape PageLayoutData::forPreview takes.
      *
@@ -100,7 +133,7 @@ final class AppearanceForm
      * absent field is not a choice of "no menu" — only an empty one is.
      *
      * @param array<mixed> $query
-     * @return array{look: array<string, string>, character: string, menu?: string, footer_menu?: string, words: array<string, string>, bleeds: array<string, string>}
+     * @return array{look: array<string, string>, character: string, menu?: string, footer_menus?: array<int, string>, words: array<string, string>, bleeds: array<string, string>}
      */
     public static function trying(array $query, string $locale, string $character): array
     {
@@ -118,8 +151,15 @@ final class AppearanceForm
         if (array_key_exists(self::MENU, $query) && is_string($query[self::MENU])) {
             $trying['menu'] = $query[self::MENU];
         }
-        if (array_key_exists(self::FOOTER_MENU, $query) && is_string($query[self::FOOTER_MENU])) {
-            $trying['footer_menu'] = $query[self::FOOTER_MENU];
+        // Only the columns the request named, for the same reason as the menu above.
+        $footerMenus = [];
+        foreach (self::footerMenuFields() as $i => $field) {
+            if (array_key_exists($field, $query) && is_string($query[$field])) {
+                $footerMenus[$i + 1] = $query[$field];
+            }
+        }
+        if ($footerMenus !== []) {
+            $trying['footer_menus'] = $footerMenus;
         }
 
         return $trying;
@@ -145,6 +185,8 @@ final class AppearanceForm
             'spacing' => $readable['space'] . 'px',
             'radius' => $readable['radius'] . 'px',
             'container' => $decisions['container'] . 'rem · ' . $readable['container'] . 'px',
+            'sheet_width' => $decisions['sheet_width'] . 'rem · ' . $readable['sheet_width'] . 'px',
+            'sheet_gap' => $readable['sheet_gap'] . 'px',
             'phone' => t('design.readable.phone', ['phone' => $readable['text_phone'] . 'px']),
         ];
         foreach (Tokens::NUDGES as $key => $bounds) {
@@ -198,13 +240,20 @@ final class AppearanceForm
     private static function words(array $query, string $locale): array
     {
         $words = [];
-        foreach (['button_label', 'button_url', 'text', 'small_print'] as $name) {
+        $names = ['button_label', 'button_url', 'small_print'];
+        $texts = [];
+        foreach (ChromeWords::COLUMN_FIELDS as [$title, $text]) {
+            $names[] = $title;
+            $names[] = $text;
+            $texts[] = $text;
+        }
+        foreach ($names as $name) {
             $field = ChromeWords::field($name, $locale);
             if (array_key_exists($field, $query) && is_string($query[$field])) {
-                // The footer's text is rich text (D-113), and the preview draws it as a
-                // save would store it: cleaned. Markup the whitelist refuses never reaches
+                // A column's words are rich text (D-113), and the preview draws them as a
+                // save would store them: cleaned. Markup the whitelist refuses never reaches
                 // the frame, even the owner's own.
-                $words[$name] = $name === 'text' ? ChromeWords::cleanText($query[$field]) : $query[$field];
+                $words[$name] = in_array($name, $texts, true) ? ChromeWords::cleanText($query[$field]) : $query[$field];
             }
         }
 

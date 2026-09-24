@@ -51,7 +51,7 @@ final class AppearanceController
             'decisions' => Design::load($db),
             'look' => ChromeLook::stored($db),
             'menu' => SiteChrome::menuName($db),
-            'footer_menu' => SiteChrome::footerMenuName($db),
+            'footer_menus' => SiteChrome::footerMenus($db),
             'words' => ChromeWords::stored($db, $this->locales()),
         ], [], null);
     }
@@ -153,12 +153,18 @@ final class AppearanceController
         // than stored: the header would render nothing for it, and a setting that silently
         // means nothing is worse than an empty one the owner can see.
         $goneMenu = $state['menu'] !== '' && !in_array($state['menu'], self::menuNames($db), true);
-        // The footer's own menu likewise (D-113); '' and `none` are choices, not names.
-        $footerMenu = $state['footer_menu'];
-        $goneFooterMenu = $footerMenu !== '' && $footerMenu !== SiteChrome::FOOTER_MENU_NONE && !in_array($footerMenu, self::menuNames($db), true);
+        // Each footer column's menu likewise (D-115); `header` and `none` are choices, not
+        // names, and a name no menu carries is stored as none.
+        $footerMenus = [];
+        $goneFooterMenu = false;
+        foreach ($state['footer_menus'] as $n => $name) {
+            $gone = $name !== '' && $name !== SiteChrome::FOOTER_MENU_HEADER && $name !== SiteChrome::FOOTER_MENU_NONE && !in_array($name, self::menuNames($db), true);
+            $goneFooterMenu = $goneFooterMenu || $gone;
+            $footerMenus[$n] = $gone ? SiteChrome::FOOTER_MENU_NONE : $name;
+        }
 
         Design::save($db, $state['decisions'], (string) $this->container->get('config')->get('app.cache_path'));
-        SiteChrome::saveShared($db, $goneMenu ? '' : $state['menu'], $goneFooterMenu ? '' : $footerMenu);
+        SiteChrome::saveShared($db, $goneMenu ? '' : $state['menu'], $footerMenus);
         ChromeLook::save($db, $state['look']);
         ChromeWords::save($db, $state['words']);
 
@@ -191,7 +197,7 @@ final class AppearanceController
      * redirect — a redirect would hand back the PUBLISHED design, so the owner would press
      * "keep this design" and watch their work vanish from the screen it was just kept from.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menu?: string, words: array<string, array<string, string>>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
      */
     private function library(Request $request, string $action, array $state): Response
     {
@@ -248,7 +254,7 @@ final class AppearanceController
     }
 
     /**
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menu?: string, words: array<string, array<string, string>>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
      * @param bool $confirm whether Publish is asking how to apply that character
@@ -298,7 +304,7 @@ final class AppearanceController
             // The chrome half of the screen.
             'look' => $state['look'],
             'menu' => $state['menu'],
-            'footerMenu' => $state['footer_menu'] ?? '',
+            'footerMenus' => $state['footer_menus'] ?? SiteChrome::footerMenus($db),
             'menus' => self::menuNames($db),
             'words' => $state['words'],
             'locales' => $this->container->get('locales'),

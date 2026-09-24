@@ -159,19 +159,37 @@
   display: none;
 }
 
+/* An open submenu drops below its parent on the bar's own surface, with a lift and no
+   border (D-114): a bordered box under a bar of plain words read as a form control, and the
+   words inside it follow the menu's own style — capitals, pills, chips — because the rules
+   above match them too. Opened by its button, and by a mouse resting on its parent
+   (site-nav.js, which is where the pointer's kind can be asked); the button stays for the
+   keyboard and for a finger. */
 .nav-ready .site-nav li.is-open > .site-nav-children {
-  display: block;
+  display: grid;
+  gap: var(--space-xs);
   position: absolute;
   top: 100%;
   inset-inline-start: 0;
   z-index: 11;
   min-inline-size: 12em;
-  margin-block-start: var(--space-xs);
+  margin-block-start: 0;
   padding: var(--space-s) var(--space-m);
   background: var(--section-bg);
-  border: var(--border-width) solid var(--section-border);
   border-radius: var(--radius-m);
   box-shadow: var(--shadow-m);
+  font-size: inherit;
+}
+
+/* Room under the parent for the pointer to travel into the panel without it closing:
+   the panel begins at the parent's bottom edge, so the parent carries the gap. */
+.nav-ready .site-nav > ul > li {
+  padding-block-end: var(--space-xs);
+  margin-block-end: calc(var(--space-xs) * -1);
+}
+
+.nav-ready .site-nav-children li + li {
+  margin-block-start: 0;
 }
 
 /* The controls a script adds: legible at rest, in the section's own ink (CLAUDE.md). */
@@ -224,10 +242,23 @@
   /* The real mobile menu (D-032): one button, and the navigation folded under it until it
      is opened. Only once site-nav.js has run — without it, the navigation wraps openly. */
   .nav-ready .site-nav-toggle {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
     margin-inline-start: auto;
-    padding: var(--space-xs) var(--space-m);
+    padding: var(--space-xs);
     border-radius: var(--radius-button);
+  }
+
+  .nav-ready .site-nav-toggle svg {
+    display: block;
+  }
+
+  /* The logo keeps to its line beside the button: it may shrink, the button may not. */
+  .nav-ready .site-logo {
+    flex: 0 1 auto;
+    min-inline-size: 0;
   }
 
   /* One shape on a phone, whatever the arrangement on a wide screen: the name and the
@@ -296,7 +327,13 @@
   .nav-ready .site-nav li.is-open > .site-nav-children {
     position: static;
     margin-block-start: var(--space-xs);
+    padding-block: 0;
     box-shadow: none;
+  }
+
+  .nav-ready .site-nav > ul > li {
+    padding-block-end: 0;
+    margin-block-end: 0;
   }
 
   .layout-columns .site-footer {

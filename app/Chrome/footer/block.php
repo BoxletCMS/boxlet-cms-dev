@@ -11,9 +11,9 @@
 // D-113 it may be a menu of the footer's own, or none; the renderer decides, the template
 // draws what it is handed.
 //
-// The text is RICH TEXT since D-113, with the footer's short whitelist (RichText::INLINE):
-// a line or two with a link in it. Text stored before D-113 is plain and is drawn as it
-// always was (ChromeWords::isHtml).
+// Each column's words are RICH TEXT since D-113, with the footer's short whitelist
+// (RichText::INLINE): a line or two with a link in it. Text stored before D-113 is plain and
+// is handed over as one paragraph (ChromeWords::asHtml).
 //
 // The layouts are the footer's arrangements (D-113).
 
@@ -22,7 +22,16 @@ return [
     'icon' => 'footer',
     'version' => 1,
     'fields' => [
-        'text' => ['type' => 'richtext', 'translatable' => true],
+        // Up to three columns of content (D-115): a title and words each. A column's menu
+        // is not a field — menus are resolved by the layout and arrive in $resolved.
+        'columns' => [
+            'type' => 'repeater',
+            'max' => 3,
+            'fields' => [
+                'title' => ['type' => 'text', 'translatable' => true],
+                'text' => ['type' => 'richtext', 'translatable' => true],
+            ],
+        ],
         'small_print' => ['type' => 'text', 'translatable' => true],
     ],
     'layouts' => ['simple', 'centred', 'columns', 'menu_first', 'three'],

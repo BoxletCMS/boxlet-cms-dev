@@ -291,11 +291,14 @@ test('the decisions are shown as numbers a person reads, never as CSS', function
     assertContains($readable['text']['base'] . 'px', $numbers, 'the body size');
     assertContains($readable['radius'] . 'px', $numbers, 'the corner radius');
     assertContains($readable['container'] . 'px', $numbers, 'the content width');
-    // rem is allowed in exactly one place, because it is the unit that control is IN: the
-    // width slider says "42rem · 672px". Nowhere else may leak the compiler's language.
+    // rem is allowed only where it is the unit the control is IN: the two width sliders say
+    // "42rem · 672px" and "80rem · 1280px" (the content, and since D-116 the boxed sheet).
+    // Nowhere else may leak the compiler's language, and each gives pixels beside it.
     $remOnly = array_values(array_filter($readouts[1], static fn (string $r): bool => str_contains($r, 'rem')));
-    assertEquals(1, count($remOnly), 'readouts mentioning rem: ' . implode(' | ', $remOnly));
-    assertContains('·', $remOnly[0] ?? '', 'and it gives pixels beside it');
+    assertEquals(2, count($remOnly), 'readouts mentioning rem: ' . implode(' | ', $remOnly));
+    foreach ($remOnly as $readout) {
+        assertContains('·', $readout, 'and it gives pixels beside it');
+    }
 });
 
 test('Publish stands in the screen\'s own bar and still submits the form', function () {
@@ -350,7 +353,7 @@ testBothDrivers('loading a character keeps the header and footer the owner has t
     assertContains('value="Write to us"', $loaded->body, 'the button label is still on the screen');
     assertContains('<option value="Main" selected>', $loaded->body, 'the menu is still chosen');
     assertEquals('Main', SiteChrome::menuName($db), 'and nothing was written');
-    assertEquals('Made in Zagreb', SiteChrome::footer($db, 'en')['text'], 'the stored footer line');
+    assertEquals('Made in Zagreb', SiteChrome::footer($db, 'en')['columns'][0]['text'], 'the stored footer line');
 });
 
 test('the merged screen carries both halves, and the old addresses lead to it', function () {
@@ -413,7 +416,7 @@ test('the preview draws the words being typed, before anything is published', fu
 
     assertContains('A line nobody has published', $body, 'the footer line being typed');
     assertContains('Press me', $body, 'the button label being typed');
-    assertEquals('', SiteChrome::footer($db, 'en')['text'], 'and nothing was written');
+    assertEquals('', SiteChrome::footer($db, 'en')['columns'][0]['text'], 'and nothing was written');
 });
 
 test('the picture has a toolbar, and it is not there for anyone without a script', function () {
@@ -1034,8 +1037,10 @@ test('every decision and chrome choice is on exactly one tab', function () {
         $expected[] = App\Modules\Settings\ChromeLook::field($choice);
     }
     $expected[] = 'header_menu';
-    $expected[] = 'footer_menu';
-    foreach (['button_page', 'button_url', 'button_label', 'text', 'small_print'] as $word) {
+    foreach (App\Modules\Appearance\AppearanceForm::footerMenuFields() as $menuField) {
+        $expected[] = $menuField;
+    }
+    foreach (['button_page', 'button_url', 'button_label', 'title', 'text', 'col2_title', 'col2_text', 'col3_title', 'col3_text', 'small_print'] as $word) {
         $expected[] = App\Modules\Settings\ChromeWords::field($word, 'en');
     }
     $missing = [];
@@ -1075,4 +1080,17 @@ testBothDrivers('the preview draws the page that is asked for, and only a publis
     assertContains('Zebra crossing', $asked, 'the page that was asked for');
     assertTrue(!str_contains($asked, 'Front door'), 'and not the home page');
     assertContains('Front door', dispatch('/admin/appearance/preview?page=' . $draft)->body, 'a draft falls back to the home page');
+});
+
+// The owner's detail on D-116: "full width" for the header follows the sheet on a boxed page.
+test('a full-width header on a boxed page runs to the sheet\'s width, and to the window\'s otherwise', function () {
+    $boxed = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_width' => 'full', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+    $flat = Derived::from(Tokens::validate(['boxed' => 'no', 'header_width' => 'full', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+    $content = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_width' => 'content', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+
+    assertEquals('72rem', $boxed['page']['header-width'], 'as wide as the sheet');
+    assertEquals('72rem', $boxed['page']['sheet-width'], 'which is the sheet');
+    assertEquals('100%', $flat['page']['header-width'], 'the window, when the sheet is the window');
+    assertEquals('none', $flat['page']['sheet-width'], 'and no sheet width then');
+    assertEquals('56rem', $content['page']['header-width'], 'the content, when that is the choice');
 });

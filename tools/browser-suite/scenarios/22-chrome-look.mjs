@@ -137,6 +137,23 @@ export default {
           before === 'none' && after !== 'none' && expanded === 'true',
           `before ${before}, after ${after}, aria-expanded ${expanded}`);
         await page.keyboard.press('Escape');
+        // And under a resting mouse (D-114), on the bar's own surface with no border; and it
+        // closes when the mouse leaves the parent, which holds the panel.
+        // The mouse is still on the button from the click above, and a mouse that is
+        // already inside the parent does not enter it: it is moved away first.
+        await page.mouse.move(5, 700);
+        await wait(100);
+        const shut = await page.$eval('.site-nav-children', (list) => getComputedStyle(list).display);
+        const parent = await page.$('.site-nav > ul > li:has([data-site-nav-more])');
+        await parent.hover();
+        await wait(150);
+        const hovered = await page.$eval('.site-nav-children', (list) => ({ display: getComputedStyle(list).display, border: getComputedStyle(list).borderTopWidth }));
+        await page.mouse.move(5, 700);
+        await wait(150);
+        const left = await page.$eval('.site-nav-children', (list) => getComputedStyle(list).display);
+        report.verdict(`${character}: a submenu opens under a resting mouse and closes when it leaves`,
+          shut === 'none' && hovered.display !== 'none' && hovered.border === '0px' && left === 'none',
+          `shut ${shut}, hovered ${hovered.display} with a ${hovered.border} border, left ${left}`);
       }
 
       // A sticky header is still on screen after scrolling. Soft is the sticky one (D-112).

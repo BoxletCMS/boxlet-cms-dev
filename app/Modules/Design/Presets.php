@@ -28,7 +28,7 @@ final class Presets
      * corners, no lift, chrome inside the sheet. Soft is the one that is boxed, so it is the
      * one where any of this shows (D-067). */
     private const SHEET = [
-        'frame' => 'normal', 'sheet_radius' => 'square', 'sheet_shadow' => 'none',
+        'frame' => 'normal', 'sheet_width' => '80', 'sheet_gap' => '3', 'sheet_radius' => 'square', 'sheet_shadow' => 'none',
         'header_bleed' => 'sheet', 'footer_bleed' => 'sheet',
     ];
 

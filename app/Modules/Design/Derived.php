@@ -118,6 +118,12 @@ final class Derived
                 ? $decisions['page_background_colour']
                 : ($colors[$decisions['page_background']] ?? $colors['surface']),
             'frame' => $boxed ? self::rem($spacingUnit * (Tokens::FRAME[$decisions['frame']] ?? 3.0)) : '0',
+            // The room above and below the sheet, apart from the sides (D-116): zero glues a
+            // header or footer that breaks out of the sheet to it.
+            'frame-block' => $boxed ? self::rem($spacingUnit * (float) $decisions['sheet_gap']) : '0',
+            // The sheet's own width, centred in the window; `none` when it is not boxed, so
+            // the sheet fills the window as it always did (D-116).
+            'sheet-width' => $boxed ? self::rem((float) $decisions['sheet_width']) : 'none',
             // The sheet's own corners and lift, and both are ZERO WHEN IT IS NOT BOXED for
             // the same reason the frame is: an unboxed sheet fills the window, and a
             // rounded corner or a shadow on something with no edge visible is a rule that
@@ -134,7 +140,12 @@ final class Derived
             } : 'none',
             // The sheet keeps the page background; only what surrounds it changes.
             'sheet' => $colors['background'],
-            'header-width' => $decisions['header_width'] === 'full' ? '100%' : self::rem(Tokens::width($decisions['container']) ?? 56.0),
+            // "Full width" on a boxed page is the sheet's width (D-116, the owner's detail):
+            // a header as wide as the window over a box narrower than it lined up with
+            // nothing. Unboxed, the sheet is the window and full is 100%.
+            'header-width' => $decisions['header_width'] === 'full'
+                ? ($boxed ? self::rem((float) $decisions['sheet_width']) : '100%')
+                : self::rem(Tokens::width($decisions['container']) ?? 56.0),
         ];
     }
 

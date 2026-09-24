@@ -29,9 +29,19 @@ final class ChromeWords
         'button_label' => 'header_button_label',
         'button_url' => 'header_button_url',
         'button_page' => 'header_button_page',
+        // The footer's columns (D-115): column 1's words keep the field the footer's text
+        // always had, so a scenario or a test that typed into it still does.
+        'title' => 'footer_title',
         'text' => 'footer_text',
+        'col2_title' => 'footer_col2_title',
+        'col2_text' => 'footer_col2_text',
+        'col3_title' => 'footer_col3_title',
+        'col3_text' => 'footer_col3_text',
         'small_print' => 'footer_small_print',
     ];
+
+    /** The word fields of one footer column, by column number: [title field, text field]. */
+    public const COLUMN_FIELDS = [1 => ['title', 'text'], 2 => ['col2_title', 'col2_text'], 3 => ['col3_title', 'col3_text']];
 
     /**
      * The posted name of one field. The view and the controller must agree on it exactly,
@@ -46,7 +56,7 @@ final class ChromeWords
      * What is stored, for every language the site has.
      *
      * @param list<string> $locales
-     * @return array<string, array{button_label: string, button_url: string, text: string, small_print: string}>
+     * @return array<string, array<string, string>>
      */
     public static function stored(Db $db, array $locales): array
     {
@@ -54,12 +64,16 @@ final class ChromeWords
         foreach ($locales as $code) {
             $header = SiteChrome::header($db, $code);
             $footer = SiteChrome::footer($db, $code);
-            $words[$code] = [
+            $entry = [
                 'button_label' => $header['button']['label'],
                 'button_url' => $header['button']['url'],
-                'text' => $footer['text'],
                 'small_print' => $footer['small_print'],
             ];
+            foreach (self::COLUMN_FIELDS as $n => [$title, $text]) {
+                $entry[$title] = $footer['columns'][$n - 1]['title'] ?? '';
+                $entry[$text] = $footer['columns'][$n - 1]['text'] ?? '';
+            }
+            $words[$code] = $entry;
         }
 
         return $words;
@@ -70,23 +84,38 @@ final class ChromeWords
      * the screen can put each message beside its own input.
      *
      * @param list<string> $locales
-     * @return array{values: array<string, array{button_label: string, button_url: string, text: string, small_print: string}>, errors: array<string, string>}
+     * @return array{values: array<string, array<string, mixed>>, errors: array<string, string>}
      */
     public static function fromRequest(Request $request, array $locales): array
     {
         $values = [];
         $errors = [];
         foreach ($locales as $code) {
-            // Written out rather than built in a loop: saveForLocale() takes all four keys,
-            // and a loop only ever establishes "these keys might be present", which is a
-            // promise asserted at the boundary and proved nowhere.
+            // Written out rather than built in a loop: saveForLocale() takes every key, and
+            // a loop only ever establishes "these keys might be present", which is a
+            // promise asserted at the boundary and proved nowhere. The columns are the one
+            // list, and each is written out inside it.
+            $columns = [];
+            foreach (self::COLUMN_FIELDS as [$title, $text]) {
+                $columns[] = [
+                    'title' => trim($request->input(self::field($title, $code))),
+                    // Rich text since D-113, cleaned with the footer's short whitelist.
+                    'text' => self::cleanText($request->input(self::field($text, $code))),
+                ];
+            }
             $entry = [
                 'button_label' => trim($request->input(self::field('button_label', $code))),
                 'button_url' => SafeUrl::normalize($request->input(self::field('button_url', $code))),
-                // Rich text since D-113, cleaned with the footer's short whitelist.
-                'text' => self::cleanText($request->input(self::field('text', $code))),
+                'columns' => $columns,
                 'small_print' => trim($request->input(self::field('small_print', $code))),
             ];
+            // And the same words under their field names, which is how the screen reads
+            // them back when a post is answered with the screen — a character loaded, a
+            // refusal — rather than a redirect. Both shapes, one source.
+            foreach (self::COLUMN_FIELDS as $n => [$title, $text]) {
+                $entry[$title] = $columns[$n - 1]['title'];
+                $entry[$text] = $columns[$n - 1]['text'];
+            }
             // A chosen page wins over a typed address, as in a block's link field (D-034);
             // the address input is hidden while a page is chosen.
             $page = trim($request->input(self::field('button_page', $code)));
@@ -141,7 +170,7 @@ final class ChromeWords
     }
 
     /**
-     * @param array<string, array{button_label: string, button_url: string, text: string, small_print: string}> $values
+     * @param array<string, array<string, mixed>> $values each language's entry, as fromRequest() returns it
      */
     public static function save(Db $db, array $values): void
     {

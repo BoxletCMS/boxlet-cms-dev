@@ -23,6 +23,9 @@ use App\Support\Url;
 
         <div class="media-side media-file">
             <h2><?= e(t('media.details')) ?></h2>
+            <?php /* One block after the heading, so the space a picture's page keeps under its
+                     facts is kept here under the words and the facts together. */ ?>
+            <div class="stack">
             <p class="hint"><?= e(t('media.file_details')) ?></p>
             <dl class="media-facts-list">
                 <dt><?= e(t('media.original_name')) ?></dt>
@@ -38,6 +41,7 @@ use App\Support\Url;
                 <dt><?= e(t('media.file_address')) ?></dt>
                 <dd><a href="<?= e($file['download']) ?>"><?= e($file['download']) ?></a></dd>
             </dl>
+            </div>
 
             <h2><?= e(t('media.used_by')) ?></h2>
 <?php if ($usedBy === []): ?>

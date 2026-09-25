@@ -137,6 +137,22 @@
   --section-card: var(--color-background);
 }
 
+/* A first band that is a cover hero standing alone (D-118) is a picture under a veil of the
+   contrast colour, whatever the band's own surface, so a header laid over it takes the
+   contrast colours — after the gradient and tinted rules above, which a band of either surface
+   under a cover hero would otherwise win. Both of the band's shapes, as in blocks-hero.css. */
+.page-sheet:has(> main > .block-hero:first-child > .container > .hero.is-cover) > .block-header:has(.behaviour-over),
+.page-sheet:has(> main > .block:first-child > .container > .section-cols > .section-column:only-child > :only-child > .hero.is-cover) > .block-header:has(.behaviour-over) {
+  --section-bg: var(--color-contrast);
+  --section-card: var(--color-contrast-raised);
+  --section-text: var(--color-on-contrast);
+  --section-muted: var(--color-muted-on-contrast);
+  --section-link: var(--color-on-contrast);
+  --section-border: var(--color-muted-on-contrast);
+  --section-button-bg: var(--color-on-contrast);
+  --section-button-text: var(--color-contrast);
+}
+
 
 /* Submenus. Without a script they are listed under their parent, smaller and indented, so
    nothing is out of reach. With one (site-nav.js), each opens from its own button and

@@ -23,6 +23,7 @@ use App\Support\Url;
     <title><?= e($title) ?></title>
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-hero.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-words.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-media.css')) ?>">

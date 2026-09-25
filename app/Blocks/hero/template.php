@@ -12,8 +12,29 @@
  * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}> $media id => resolved picture
  * @var bool $eager the first section on the page, which is never lazy-loaded
  */
+
+/* THE PICTURE BEHIND THE WORDS (PLAN.md D-118): the three cover arrangements. The hero's own
+   picture, so it is content and keeps its alt, laid under the words with a veil of the
+   contrast colour between them; blocks-hero.css decides how far it reaches — the whole band
+   when the hero stands alone in it, its own box when it shares one. The layer is drawn even
+   with no picture chosen: its colour is the contrast surface the words are set for, so an
+   empty cover hero is a panel of that colour with its own words, never words set for the
+   contrast surface standing on a plain one. */
+$cover = str_starts_with($layout, 'cover-');
+$coverTag = '';
+if ($cover) {
+    $coverPicture = is_int($content['image'] ?? null) ? ($media[$content['image']] ?? null) : null;
+    $coverTag = \App\Modules\Media\MediaPicture::tag($coverPicture, ['wide', 'hero', 'full'], '100vw', $eager);
+}
 ?>
-<div class="hero">
+<div class="hero<?= $cover ? ' is-cover height-' . e($content['height']) . ' veil-' . e($content['veil']) : '' ?>">
+<?php if ($cover): ?>
+    <div class="hero-cover-picture"<?= $coverTag === '' && $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?>>
+<?php if ($coverTag !== ''): ?>
+        <?= $coverTag ?>
+<?php endif; ?>
+    </div>
+<?php endif; ?>
     <div class="hero-text">
         <h1 class="hero-heading"><?= e($content['heading']) ?></h1>
 <?php if ($content['subheading'] !== ''): ?>
@@ -39,7 +60,7 @@ $reservesPictureArea = in_array($layout, ['split'], true);
 $picture = is_int($content['image'] ?? null) ? ($media[$content['image']] ?? null) : null;
 $tag = \App\Modules\Media\MediaPicture::tag($picture, ['hero', 'full'], '(max-width: 40rem) 100vw, 50vw', $eager);
 ?>
-<?php if ($reservesPictureArea || $content['image'] !== null): ?>
+<?php if (!$cover && ($reservesPictureArea || $content['image'] !== null)): ?>
     <div class="hero-media">
 <?php if ($tag !== ''): ?>
         <?= $tag ?>

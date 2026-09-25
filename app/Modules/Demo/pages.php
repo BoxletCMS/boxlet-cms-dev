@@ -226,6 +226,33 @@ return [
                 'heading' => 'Everything you can put on a page',
                 'subheading' => 'One of each, in each of its shapes. Switch the character and every one of them changes with it.',
             ], ['rhythm' => 'tight'], 'center'],
+            // THE HERO WITH A PICTURE BEHIND ITS WORDS (PLAN.md D-118), in its three
+            // arrangements, each at another height and shade. With no picture chosen, which
+            // is what a showroom without media has, the contrast colour stands in for one.
+            // The band's own width, not full: the picture reaches the band's edges whatever
+            // the width, and the width is what lines the words up with the rest of the page
+            // — at full, they stood at the window's edge under a header that did not.
+            ['text', ['heading' => 'A picture behind the words', 'body' => '<p>Three arrangements of the hero, each with a height and a shade of its own. Choose a picture and it fills the band.</p>'], ['width' => 'narrow'], 'single'],
+            ['hero', [
+                'heading' => 'Words in the middle',
+                'subheading' => 'As tall as the words, with the lightest shade.',
+                'cta' => ['label' => 'See what we do', 'url' => 'demo:services'],
+                'height' => 'content',
+                'veil' => 'light',
+            ], ['rhythm' => 'airy'], 'cover-center'],
+            ['hero', [
+                'heading' => 'Words on the left',
+                'subheading' => 'Tall, with a shade that clears away from the words.',
+                'height' => 'tall',
+                'veil' => 'medium',
+            ], [], 'cover-left'],
+            ['hero', [
+                'heading' => 'Words low on the left',
+                'subheading' => 'Tall, with the strongest shade gathered under the words.',
+                'cta' => ['label' => 'Start a project', 'url' => 'mailto:hello@example.com'],
+                'height' => 'tall',
+                'veil' => 'strong',
+            ], [], 'cover-low'],
             ['text', ['heading' => 'A picture on its own', 'body' => '<p>Fills the column, or sits inset with room around it.</p>'], ['width' => 'narrow'], 'single'],
             ['picture', ['caption' => 'Filling the column', 'shape' => 'wide'], ['rhythm' => 'tight'], 'full'],
             ['picture', ['caption' => 'Inset, with room around it', 'shape' => 'wide'], ['surface' => 'tinted', 'rhythm' => 'tight'], 'inset'],

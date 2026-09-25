@@ -388,6 +388,16 @@ final class BlockForm
                 if (is_string($raw) && in_array($raw, $options, true)) {
                     return [$raw, null];
                 }
+                /* NOT SENT IS NOT WRONG (PLAN.md D-118). A form that has never heard of a
+                   choice — an editor opened before the block gained it, a save written
+                   before it existed — says nothing about it, and the choice takes its first
+                   option, as a stored block without it does (Blocks::normalize). A value that
+                   IS sent and is not one of the options is still refused. Adding two choices
+                   to the hero failed every such save with "Choose one of the options" against
+                   fields the author could not see. */
+                if ($raw === null) {
+                    return [$options[0], null];
+                }
 
                 return [$options[0], t('pages.field.select')];
 

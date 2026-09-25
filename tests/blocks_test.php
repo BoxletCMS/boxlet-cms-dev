@@ -226,7 +226,7 @@ test('stored content of the wrong shape renders as empty values, never an error'
  */
 test('every token a front-end stylesheet reads without a fallback is one something defines', function () {
     $root = dirname(__DIR__);
-    $sheets = ['site.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'chrome.css', 'chrome-header.css', 'sections.css'];
+    $sheets = ['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'chrome.css', 'chrome-header.css', 'sections.css'];
     // Comments first: this file explains itself with `var(--section-*)` in prose, and a
     // scanner that cannot tell prose from a declaration reports the prose.
     $strip = static fn (string $css): string => (string) preg_replace('~/\*.*?\*/~s', '', $css);
@@ -285,7 +285,7 @@ test('no front-end stylesheet defines a custom property in terms of itself', fun
     $strip = static fn (string $css): string => (string) preg_replace('~/\*.*?\*/~s', '', $css);
 
     $cycles = [];
-    foreach (['site.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'chrome.css', 'chrome-header.css', 'sections.css'] as $css) {
+    foreach (['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'chrome.css', 'chrome-header.css', 'sections.css'] as $css) {
         $source = $strip((string) file_get_contents($root . '/public/assets/' . $css));
         preg_match_all('~(--[a-z0-9]+(?:-[a-z0-9]+)*)\s*:([^;}]*)[;}]~', $source, $found, PREG_SET_ORDER);
         foreach ($found as [, $name, $value]) {
@@ -317,7 +317,7 @@ test('no block template or front-end stylesheet hard-codes a colour, size, font 
     // this test passed over it; the rule was never "no # character", it was "no colour of
     // its own" (D-084).
     $encoded = '~%23[0-9a-fA-F]{3,8}\b~';
-    foreach (['site.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'chrome.css', 'chrome-header.css', 'sections.css'] as $css) {
+    foreach (['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'chrome.css', 'chrome-header.css', 'sections.css'] as $css) {
         $source = (string) file_get_contents($root . '/public/assets/' . $css);
         assertTrue(!preg_match($literal, $source, $match), "{$css} contains the literal " . ($match[0] ?? ''));
         assertTrue(!preg_match($encoded, $source, $match), "{$css} contains the encoded colour " . ($match[0] ?? ''));

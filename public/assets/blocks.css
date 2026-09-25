@@ -1,4 +1,4 @@
-/* The page blocks' own styles: hero, text, image and text, columns, form. Split out of site.css,
+/* The page blocks' own styles: text, image and text, columns, form. Split out of site.css,
    which keeps the page and what every block shares, when the two together passed the size
    limit. The same rule: only custom properties from tokens.css and the --section-*
    properties each section sets in sections.css. No literal colours, pixel values, fonts or
@@ -6,68 +6,8 @@
 
    The nine blocks D-105 added are in blocks-words.css and blocks-media.css, linked straight
    after this one: together they passed the hard size limit (PLAN.md D-117), and those nine
-   are the seam — they arrived together and share nothing with the five above. */
-
-/* Hero */
-
-.hero {
-  display: grid;
-  gap: var(--space-xl);
-  align-items: center;
-}
-
-/* Column placement and text alignment are two different things. The section's column is
-   centred on the page by .container; a left-ranged hero then fills that column, so its
-   first line sits on the same spine as every other section. Only a centred hero takes a
-   narrower measure of its own, centred within the column (see .layout-center below). */
-.hero-text {
-  display: grid;
-  gap: var(--space-m);
-}
-
-.hero-heading {
-  margin: 0;
-  font-size: var(--text-4xl);
-  /* A word longer than a phone is wide — "Northwind" at Bold's largest size — is broken
-     with a hyphen where the language allows and anywhere at all where it does not, rather
-     than pushing the page sideways. Measured on the demo's About page at 390 across.
-     anywhere, not break-word: only anywhere lets the word stop sizing the grid column the
-     heading sits in, and with break-word the column grew to 448 and took the page along. */
-  hyphens: auto;
-  overflow-wrap: anywhere;
-}
-
-.hero-subheading {
-  margin: 0;
-  color: var(--section-muted);
-  font-size: var(--text-lg);
-}
-
-.hero-action {
-  margin: var(--space-s) 0 0;
-}
-
-.layout-center .hero,
-.layout-center .hero-text {
-  justify-items: center;
-  text-align: center;
-}
-
-/* A centred hero reads better on a shorter line than the full column gives it. */
-.layout-center .hero-text {
-  max-width: var(--container-narrow);
-  margin-inline: auto;
-}
-
-
-.layout-split .hero {
-  grid-template-columns: 1fr 1fr;
-}
-
-/* A split hero always has a media element now, whether or not a picture has been chosen,
-   so the rules that re-flowed one WITHOUT it have gone rather than staying as selectors
-   that can no longer match. What they did — heading in one column, subheading and button
-   in the other — avoided an empty half but still left the lower part of the section dead. */
+   are the seam — they arrived together and share nothing with the five above. The hero is
+   blocks-hero.css, linked straight BEFORE this one, where its rules stood (D-118). */
 
 /* Text and image-text */
 

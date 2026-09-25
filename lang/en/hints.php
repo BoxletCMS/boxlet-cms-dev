@@ -14,6 +14,8 @@ return [
     'hint.block.hero.heading' => 'The large headline at the top of this section. A few words that say what the page is about.',
     'hint.block.hero.subheading' => 'One or two sentences under the headline that explain it.',
     'hint.block.hero.image' => 'A photograph beside or behind the headline, depending on the layout. Wide photographs work best.',
+    'hint.block.hero.height' => 'For the arrangements with the picture behind the words: how tall the block stands.',
+    'hint.block.hero.veil' => 'For the arrangements with the picture behind the words: how much the picture is darkened or lightened so the words stay readable. Every choice keeps them readable.',
     'hint.block.hero.cta' => 'An optional button under the text, for the one next step you want the visitor to take.',
     'hint.block.text.heading' => 'An optional heading above the text.',
     'hint.block.text.body' => 'The text of this section. The toolbar gives you bold, italic, links, headings, quotes and lists.',

@@ -129,14 +129,17 @@ return [
 
     'design.page' => 'The page',
     'design.page_hint' => 'How the whole page sits: whether it is a sheet with a margin around it, and what that margin looks like.',
-    // What the header's CONTENTS line up with, and apart from it, how far its BACKGROUND
-    // reaches (PLAN.md D-122). Both used to be a "width" with a "Full width" in each.
-    'design.header_width' => 'Header contents',
-    'design.header_width.content' => 'Line up with the text',
-    'design.header_width.full' => 'Line up with the page edges',
-    'design.footer_width' => 'Footer contents',
-    'design.footer_width.content' => 'Line up with the text',
-    'design.footer_width.full' => 'Line up with the page edges',
+    // THE OWNER'S MODEL (PLAN.md D-123): what the header's CONTENTS line up with — the text,
+    // the box, or the window — under the key that always held it (`header_width`), while the
+    // bar's own width is `header_bleed` below.
+    'design.header_width' => 'Header content',
+    'design.header_width.content' => 'Text',
+    'design.header_width.full' => 'Boxed',
+    'design.header_width.window' => 'Full',
+    'design.footer_width' => 'Footer content',
+    'design.footer_width.content' => 'Text',
+    'design.footer_width.full' => 'Boxed',
+    'design.footer_width.window' => 'Full',
     'design.boxed' => 'Boxed page',
     'design.boxed.no' => 'No',
     'design.boxed.yes' => 'Yes',
@@ -157,15 +160,15 @@ return [
     'design.sheet_shadow.none' => 'No',
     'design.sheet_shadow.shadow' => 'Shadow',
     'design.sheet_shadow.hairline' => 'Hairline',
-    'design.header_bleed' => 'Header background',
-    'design.footer_bleed' => 'Footer background',
+    'design.header_bleed' => 'Header width',
+    'design.footer_bleed' => 'Footer width',
     // One label per decision AND value, which is the convention section_test enforces:
     // "design.header_bleed.sheet", not a shared "design.bleed.sheet" that no rule would
     // ever look for.
-    'design.header_bleed.sheet' => 'Inside the page',
-    'design.header_bleed.full' => 'Across the whole window',
-    'design.footer_bleed.sheet' => 'Inside the page',
-    'design.footer_bleed.full' => 'Across the whole window',
+    'design.header_bleed.sheet' => 'Boxed',
+    'design.header_bleed.full' => 'Full',
+    'design.footer_bleed.sheet' => 'Boxed',
+    'design.footer_bleed.full' => 'Full',
 
     'design.page_background.surface' => 'Tinted',
     'design.page_background.border' => 'Border',

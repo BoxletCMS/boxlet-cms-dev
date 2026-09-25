@@ -95,9 +95,14 @@ final class Tokens
      * §5.4 uses to refuse a free colour per section. It shows only around a boxed page, so
      * no text ever sits on it and Palette::failures() gains no pairs.
      */
-    public const HEADER_WIDTH = ['content', 'full'];
-    /** The footer's contents likewise (D-116, the owner's third round): the same two answers. */
-    public const FOOTER_WIDTH = ['content', 'full'];
+    /* THREE SINCE D-123, in the owner's words: the header's contents line up with the TEXT
+       (`content`), with the BOX (`full`, the sheet's edges on a boxed page), or with the
+       window, FULL (`window`) — the one a boxed page could not have before, a bar across
+       the window whose contents run across it too. The stored names are the old ones, so
+       nothing already saved changes meaning. */
+    public const HEADER_WIDTH = ['content', 'full', 'window'];
+    /** The footer's contents likewise (D-116, D-123): the same three answers. */
+    public const FOOTER_WIDTH = ['content', 'full', 'window'];
     public const BOXED = ['no', 'yes'];
     public const PAGE_BACKGROUND = ['surface', 'border', 'contrast'];
 

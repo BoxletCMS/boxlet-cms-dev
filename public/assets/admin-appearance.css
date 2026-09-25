@@ -262,3 +262,14 @@
 .design-form:has(input[name="boxed"][value="no"]:checked) [data-when-boxed] {
   display: none;
 }
+
+/* AN ANSWER THAT WOULD CHANGE NOTHING IS NOT OFFERED (D-123), and one already chosen never
+   hides — a radio group with nothing visible pressed reads as broken. Content lined up with
+   the BOX means nothing on a page that is not boxed; content across the WINDOW means nothing
+   when the bar itself stays inside the box, since it can be no wider than the bar. */
+.design-form:has(input[name="boxed"][value="no"]:checked) .segment:has(input[name="header_width"][value="full"]:not(:checked)),
+.design-form:has(input[name="boxed"][value="no"]:checked) .segment:has(input[name="footer_width"][value="full"]:not(:checked)),
+.design-form:has(input[name="boxed"][value="yes"]:checked):has(input[name="header_bleed"][value="sheet"]:checked) .segment:has(input[name="header_width"][value="window"]:not(:checked)),
+.design-form:has(input[name="boxed"][value="yes"]:checked):has(input[name="footer_bleed"][value="sheet"]:checked) .segment:has(input[name="footer_width"][value="window"]:not(:checked)) {
+  display: none;
+}

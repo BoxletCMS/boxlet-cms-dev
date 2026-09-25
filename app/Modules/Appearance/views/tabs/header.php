@@ -66,10 +66,13 @@ use App\Support\Url;
                 <?= $lookGroup('nav_ink') ?>
                 <?= $lookGroup('header_button') ?>
                 <?= $lookGroup('density') ?>
-                <?= $segmented('header_width', $labels('header_width', App\Modules\Design\Tokens::HEADER_WIDTH)) ?>
-                <?php /* Where the header's BACKGROUND reaches is a question only a boxed page asks:
-                         on any other the page is the window (D-122). */ ?>
+                <?php /* THE BAR, THEN WHAT STANDS IN IT (D-123, the owner's model): Header width —
+                         the bar inside the box or across the window, a question only a boxed page
+                         asks — and Header content — the logo and menu in line with the text, the
+                         box, or the window. An answer that would change nothing is not offered
+                         (admin-appearance.css), and one already chosen is never hidden. */ ?>
                 <div class="when-boxed" data-when-boxed><?= $segmented('header_bleed', $labels('header_bleed', App\Modules\Design\Tokens::BLEED)) ?></div>
+                <?= $segmented('header_width', $labels('header_width', App\Modules\Design\Tokens::HEADER_WIDTH)) ?>
             </fieldset>
 
 <?php foreach ($locales as $locale): ?>

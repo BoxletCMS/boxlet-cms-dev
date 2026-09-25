@@ -1082,6 +1082,24 @@ testBothDrivers('the preview draws the page that is asked for, and only a publis
     assertContains('Front door', dispatch('/admin/appearance/preview?page=' . $draft)->body, 'a draft falls back to the home page');
 });
 
+// The owner's model, D-123: Header content is Text, Boxed or Full, and Full is the bar's
+// own width — the window when the bar runs across it, even on a boxed page.
+test('header content can line up with the window on a boxed page, as well as with the box and the text', function () {
+    $window = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_bleed' => 'full', 'header_width' => 'window', 'footer_width' => 'window', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+    assertEquals('100%', $window['page']['header-width'], 'the header\'s contents across the bar');
+    assertEquals('100%', $window['page']['footer-width'], 'and the footer\'s');
+    assertEquals('window', Tokens::validate(['header_width' => 'window'] + Presets::get('soft'))['decisions']['header_width'], 'the third answer is kept');
+
+    // Characters whose page is not boxed ask for the window by name now: `full` on such a
+    // page meant the window already, and says "Boxed" on the screen since D-123.
+    foreach (Presets::names() as $name) {
+        $character = Presets::get($name);
+        if ($character['boxed'] === 'no') {
+            assertTrue($character['header_width'] !== 'full', "{$name} asks for the box on a page that has none");
+        }
+    }
+});
+
 // The owner's detail on D-116: "full width" for the header follows the sheet on a boxed page.
 test('a full-width header on a boxed page runs to the sheet\'s width, and to the window\'s otherwise', function () {
     $boxed = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_width' => 'full', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);

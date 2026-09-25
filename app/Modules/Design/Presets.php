@@ -71,7 +71,7 @@ final class Presets
         'bold' => [
             'seed' => '#6d28d9', 'secondary' => '#1e1045', 'typography' => 'grotesk', 'text_size' => 'normal', 'scale' => '1.5',
             'spacing' => 'normal', 'radius' => 'round', 'shadow' => 'layered', 'container' => '68', 'surface_contrast' => 'high',
-            'header_width' => 'full', 'boxed' => 'no', 'page_background' => 'contrast',
+            'header_width' => 'window', 'boxed' => 'no', 'page_background' => 'contrast',
         ],
         // Gentle: sage green, a rounded family, generous spacing, pill shapes, soft
         // shadows, a pale cream second colour for contrast sections.
@@ -88,7 +88,7 @@ final class Presets
         'brutalist' => [
             'seed' => '#1f1fd1', 'secondary' => '#ffe600', 'typography' => 'mono', 'text_size' => 'normal', 'scale' => '1.414',
             'spacing' => 'compact', 'radius' => 'none', 'shadow' => 'hard', 'container' => '80', 'surface_contrast' => 'high',
-            'header_width' => 'full', 'boxed' => 'no', 'page_background' => 'border',
+            'header_width' => 'window', 'boxed' => 'no', 'page_background' => 'border',
         ],
     ];
 

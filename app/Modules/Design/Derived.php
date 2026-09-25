@@ -163,6 +163,11 @@ final class Derived
      */
     private static function chromeWidth(string $choice, array $decisions, bool $boxed): string
     {
+        // `window` (D-123): as wide as the bar it stands in — the window when the bar runs
+        // across it, the sheet when the bar is inside it.
+        if ($choice === 'window') {
+            return '100%';
+        }
         if ($choice !== 'full') {
             return self::rem(Tokens::width($decisions['container']) ?? 56.0);
         }

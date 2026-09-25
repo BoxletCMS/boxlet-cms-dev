@@ -25,6 +25,9 @@ use App\Core\Db;
  */
 final class MediaReference
 {
+    /** The field types that point into the library: a picture, and a file (D-126). */
+    public const REFERENCES = ['media', 'file'];
+
     /**
      * Every media id inside one block's content, wherever it lives (PLAN.md O-11).
      *
@@ -45,9 +48,6 @@ final class MediaReference
      * @param list<string> $types
      * @return list<int>
      */
-    /** The field types that point into the library: a picture, and a file (D-126). */
-    public const REFERENCES = ['media', 'file'];
-
     public static function idsIn(Blocks $registry, string $type, array $content, array $types = ['media']): array
     {
         if (!$registry->has($type)) {

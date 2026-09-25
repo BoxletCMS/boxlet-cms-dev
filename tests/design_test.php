@@ -1093,4 +1093,10 @@ test('a full-width header on a boxed page runs to the sheet\'s width, and to the
     assertEquals('100%', $flat['page']['header-width'], 'the window, when the sheet is the window');
     assertEquals('none', $flat['page']['sheet-width'], 'and no sheet width then');
     assertEquals('56rem', $content['page']['header-width'], 'the content, when that is the choice');
+
+    // The footer's contents answer the same question with their own decision.
+    $footer = Derived::from(Tokens::validate(['boxed' => 'yes', 'footer_width' => 'full', 'header_width' => 'content', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+    assertEquals('calc(72rem - 2 * var(--space-l))', $footer['page']['footer-width'], 'the footer to the sheet');
+    assertEquals('56rem', $footer['page']['header-width'], 'while the header keeps to the content');
+    assertEquals('56rem', $content['page']['footer-width'], 'and content is every character\'s default for the footer');
 });

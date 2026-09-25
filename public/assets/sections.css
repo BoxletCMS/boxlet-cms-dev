@@ -72,6 +72,11 @@
   --section-width: var(--page-header-width, var(--container-width));
 }
 
+/* And the footer's, its own decision since D-116. */
+.block-footer {
+  --section-width: var(--page-footer-width, var(--container-width));
+}
+
 /* Surface */
 
 .surface-tinted {

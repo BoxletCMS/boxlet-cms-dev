@@ -102,6 +102,7 @@ return [
     'hint.design.page_background_colour' => 'Any colour, not only a shade of the palette. Nothing is written here until you pick one.',
     'hint.design.header_colour' => 'Any colour. The text on it is worked out from it, so it stays readable, and the contrast gauge measures it like every other pair.',
     'hint.design.footer_colour' => 'Any colour. The text on it is worked out from it, so it stays readable, and the contrast gauge measures it like every other pair.',
+    'hint.design.footer_width' => 'Whether the footer’s contents line up with the page’s content or run the full width — of the window, or of the sheet when the page is boxed. Like the header’s.',
     'hint.design.header_width' => 'Whether the header’s contents line up with the page’s content or run the full width — of the window, or of the sheet when the page is boxed.',
     'hint.design.sheet_width' => 'How wide the boxed page is, centred in the window. Only shows on a boxed page.',
     'hint.design.sheet_gap' => 'The room above and below the sheet. At 0 a header or footer set to full width sits glued to the page. Only shows on a boxed page.',
@@ -126,7 +127,7 @@ return [
     'hint.look.nav_style' => 'How the menu’s words are set: as they are; in small capitals with a little space between the letters; the current page on a pill; a bar under the current page and under the pointer; or every entry a bordered chip. Submenus follow the same style.',
     'hint.look.nav_ink' => 'Whether the menu’s words take the accent colour or the ordinary text colour.',
     'hint.look.header_button' => 'The button at the right of the header: filled with the accent, outlined, or a plain link.',
-    'hint.look.footer_columns' => 'How many columns a long menu runs in at the foot of the page. Only does anything when the footer is in columns.',
+    'hint.look.footer_columns' => 'How a LONG menu inside a footer column is listed: as one list, or split into two or three lists side by side. Not the footer’s columns — those are the arrangement above.',
     'hint.look.logo_size' => 'How tall the logo is drawn. Its shape never changes.',
 
     // Media

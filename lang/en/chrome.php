@@ -118,10 +118,12 @@ return [
     'chrome.look.header_button.filled' => 'Filled',
     'chrome.look.header_button.outline' => 'Outline',
     'chrome.look.header_button.text' => 'Link',
-    'chrome.look.footer_columns' => 'Footer menu columns',
-    'chrome.look.footer_columns.2' => 'One',
-    'chrome.look.footer_columns.3' => 'Two',
-    'chrome.look.footer_columns.4' => 'Three',
+    // Renamed (D-116's third round): "Footer menu columns: Three" read as the footer's three
+    // columns, and the owner set it looking for them. It is how a long menu is listed.
+    'chrome.look.footer_columns' => 'Long menu',
+    'chrome.look.footer_columns.2' => 'One list',
+    'chrome.look.footer_columns.3' => 'Two lists',
+    'chrome.look.footer_columns.4' => 'Three lists',
     'chrome.look.logo_size' => 'Logo size',
     'chrome.look.logo_size.small' => 'Small',
     'chrome.look.logo_size.medium' => 'Medium',

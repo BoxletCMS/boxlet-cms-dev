@@ -96,6 +96,7 @@ $richInline = static function (string $name, string $value, string $code, string
                 <?= $lookGroup('footer_surface') ?>
                 <?= $ownColour('footer_colour') ?>
                 <?= $lookGroup('footer_edge') ?>
+                <?= $segmented('footer_width', $labels('footer_width', App\Modules\Design\Tokens::FOOTER_WIDTH)) ?>
                 <?= $segmented('footer_bleed', $labels('footer_bleed', App\Modules\Design\Tokens::BLEED)) ?>
             </fieldset>
 

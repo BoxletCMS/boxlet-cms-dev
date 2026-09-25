@@ -30,6 +30,9 @@ final class Presets
     private const SHEET = [
         'frame' => 'normal', 'sheet_width' => '80', 'sheet_gap' => '3', 'sheet_radius' => 'square', 'sheet_shadow' => 'none',
         'header_bleed' => 'sheet', 'footer_bleed' => 'sheet',
+        // The footer's contents line up with the page's content unless the owner says
+        // otherwise (D-116): every character had that and keeps it.
+        'footer_width' => 'content',
     ];
 
     private const NOTHING_NUDGED = [

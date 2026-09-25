@@ -96,6 +96,8 @@ final class Tokens
      * no text ever sits on it and Palette::failures() gains no pairs.
      */
     public const HEADER_WIDTH = ['content', 'full'];
+    /** The footer's contents likewise (D-116, the owner's third round): the same two answers. */
+    public const FOOTER_WIDTH = ['content', 'full'];
     public const BOXED = ['no', 'yes'];
     public const PAGE_BACKGROUND = ['surface', 'border', 'contrast'];
 
@@ -162,6 +164,7 @@ final class Tokens
             'text_size' => array_keys(self::TEXT_SIZE),
             'surface_contrast' => self::SURFACE_CONTRAST,
             'header_width' => self::HEADER_WIDTH,
+            'footer_width' => self::FOOTER_WIDTH,
             'boxed' => self::BOXED,
             'page_background' => self::PAGE_BACKGROUND,
             'frame' => array_keys(self::FRAME),
@@ -315,6 +318,9 @@ final class Tokens
             ['heading_weight', 'tracking', 'caps', 'spacing', 'radius', 'shadow', 'container',
                 'surface_contrast', 'header_width', 'boxed', 'page_background', 'page_background_colour',
                 'frame', 'sheet_width', 'sheet_gap', 'sheet_radius', 'sheet_shadow', 'header_bleed', 'footer_bleed',
+                // With the sheet's decisions, where Presets::SHEET puts it: the presets test
+                // asserts a character survives validation in the order it was written.
+                'footer_width',
                 'header_colour', 'footer_colour'],
         );
         $ordered = [];

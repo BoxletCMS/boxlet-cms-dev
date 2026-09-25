@@ -146,15 +146,30 @@ final class Derived
             // content-box and its padding would otherwise stand OUTSIDE the sheet's edge —
             // measured: 1464px of header over a 1408px sheet. Unboxed, the sheet is the
             // window and full is 100%, which an auto width already keeps inside it.
-            'header-width' => $decisions['header_width'] === 'full'
-                ? ($boxed ? 'calc(' . self::rem((float) $decisions['sheet_width']) . ' - 2 * var(--space-l))' : '100%')
-                : self::rem(Tokens::width($decisions['container']) ?? 56.0),
+            'header-width' => self::chromeWidth($decisions['header_width'], $decisions, $boxed),
+            // And the footer's contents, by the same two answers (D-116).
+            'footer-width' => self::chromeWidth($decisions['footer_width'], $decisions, $boxed),
         ];
     }
 
     /**
-     * @return array<string, string>
+     * How wide the header's or the footer's contents run (D-031, D-116): the page's content
+     * column, or "full" — the sheet's width on a boxed page, less the container's own side
+     * padding, because the container is content-box and its padding would otherwise stand
+     * outside the sheet's edge (measured: 1464px of header over a 1408px sheet); 100% when
+     * the page is not boxed, which an auto width already keeps inside the window.
+     *
+     * @param array<string, string> $decisions
      */
+    private static function chromeWidth(string $choice, array $decisions, bool $boxed): string
+    {
+        if ($choice !== 'full') {
+            return self::rem(Tokens::width($decisions['container']) ?? 56.0);
+        }
+
+        return $boxed ? 'calc(' . self::rem((float) $decisions['sheet_width']) . ' - 2 * var(--space-l))' : '100%';
+    }
+
     /**
      * The nudges in rem, keyed by the step each one moves (D-066). Pixels on the screen,
      * because that is what a person is nudging; rem here, because that is what the scale is

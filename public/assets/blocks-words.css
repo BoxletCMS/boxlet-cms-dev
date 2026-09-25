@@ -209,6 +209,14 @@
   margin: 0 0 var(--space-l);
 }
 
+/* THE BLOCK MEASURES ITS OWN ROOM, not the window's (D-125). Three or four numbers side by
+   side need a width a narrow column does not have: measured, three in a column of 211 pixels,
+   "120+" 110 wide in a track of 70, running into its neighbour. The rule for a narrow window
+   below could not see that — the window was wide. */
+.stats {
+  container-type: inline-size;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -239,13 +247,24 @@
   font-size: var(--text-sm);
 }
 
-/* On a narrow screen everything that was a row becomes fewer columns, or one. */
-@media (max-width: 40rem) {
+/* Numbers in fewer columns as their own room narrows, whether a phone or a column made it
+   narrow (D-125): two, then one. */
+@container (max-width: 36rem) {
   .stats-grid,
   .layout-four .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
+@container (max-width: 18rem) {
+  .stats-grid,
+  .layout-four .stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* On a narrow screen everything else that was a row becomes one column. */
+@media (max-width: 40rem) {
   .layout-beside .cta {
     grid-template-columns: minmax(0, 1fr);
   }

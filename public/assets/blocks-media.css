@@ -142,7 +142,9 @@
 .logos-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xl);
+  /* Rows closer than the marks across (D-125): the spacing scale's largest step between
+     rows left a mark that wrapped standing alone a screen's worth further down. */
+  gap: var(--space-m) var(--space-xl);
   align-items: center;
   justify-content: center;
   margin: 0;
@@ -156,11 +158,15 @@
   gap: var(--space-l);
 }
 
+/* ONE HEIGHT FOR EVERY MARK, AND NOT THE SPACING SCALE'S (PLAN.md D-125). It was
+   --space-2xl, so a character with generous air drew its logos 120 pixels tall (Editorial,
+   7.5rem) — a size for space between things, not for a row of marks. A mark carrying only a
+   name is as tall as its words. */
 .logos-mark {
   display: flex;
   align-items: center;
   justify-content: center;
-  block-size: var(--space-2xl);
+  block-size: 3.5rem;
   color: var(--section-muted);
   text-decoration: none;
 }
@@ -171,6 +177,10 @@
    natural size — measured, 107 and 160 pixels tall in a mark of 84, spilling over the block
    above and below it. With the picture laid out as its contents, the img's parent IS the
    mark. */
+.logos-mark:has(> .logos-name) {
+  block-size: auto;
+}
+
 .logos-mark picture {
   display: contents;
 }

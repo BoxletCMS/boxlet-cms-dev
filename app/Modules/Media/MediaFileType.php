@@ -35,6 +35,29 @@ final class MediaFileType
     ];
 
     /**
+     * FILES FOR VISITORS TO DOWNLOAD (PLAN.md O-17, D-126): extension => every MIME finfo may
+     * report for it, the first being what the file is served as.
+     *
+     * Documents and archives, and nothing a browser would run or render as a page: no HTML,
+     * no SVG, no script, whatever it is called (NEVER, below, still applies). The office
+     * formats are ZIP archives inside, and an older libmagic reports them as exactly that,
+     * so `application/zip` is accepted for them — the extension must still be on this list,
+     * and a file is only ever served as an attachment, never shown.
+     */
+    private const DOCUMENTS = [
+        'pdf' => ['application/pdf'],
+        'zip' => ['application/zip', 'application/x-zip-compressed'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'],
+        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'],
+        'odt' => ['application/vnd.oasis.opendocument.text', 'application/zip'],
+        'ods' => ['application/vnd.oasis.opendocument.spreadsheet', 'application/zip'],
+        'odp' => ['application/vnd.oasis.opendocument.presentation', 'application/zip'],
+        'txt' => ['text/plain'],
+        'csv' => ['text/csv', 'text/plain', 'application/csv'],
+    ];
+
+    /**
      * Refused by name whatever the bytes say. finfo would catch a real script anyway, but
      * a file called .php that reached a servable directory through some future path is a
      * class of accident worth refusing twice.
@@ -63,6 +86,38 @@ final class MediaFileType
         }
 
         return $extension === 'jpeg' ? 'jpg' : $extension;
+    }
+
+    /**
+     * The extension a DOCUMENT may be stored under, or null when it is not one (D-126). The
+     * same two tests a picture passes — the name on the list, the bytes agreeing — against
+     * the documents' list.
+     */
+    public static function documentExtension(string $claimed, string $sniffed): ?string
+    {
+        $extension = strtolower(pathinfo($claimed, PATHINFO_EXTENSION));
+        if ($extension === '' || in_array($extension, self::NEVER, true) || !isset(self::DOCUMENTS[$extension])) {
+            return null;
+        }
+
+        return in_array($sniffed, self::DOCUMENTS[$extension], true) ? $extension : null;
+    }
+
+    /** What a stored document is served as: its format's own type, not whatever finfo said. */
+    public static function documentMime(string $extension): string
+    {
+        return self::DOCUMENTS[$extension][0] ?? 'application/octet-stream';
+    }
+
+    /**
+     * Every extension the library accepts, pictures and documents, for the file chooser's
+     * `accept` and for the words that say what may be uploaded.
+     *
+     * @return list<string>
+     */
+    public static function acceptedExtensions(): array
+    {
+        return array_merge(array_keys(self::ALLOWED), array_keys(self::DOCUMENTS));
     }
 
     /**

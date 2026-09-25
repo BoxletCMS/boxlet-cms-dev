@@ -12,7 +12,7 @@
 return [
     // What a refusal says has to name the thing that was wrong: "invalid file" sends
     // someone back to try the same file again.
-    'media.refused' => 'That file is not a picture Boxlet accepts (it looks like :type). Use a JPEG, PNG, WebP, GIF or AVIF.',
+    'media.refused' => 'That file is not one Boxlet accepts (it looks like :type). Pictures: JPEG, PNG, WebP, GIF or AVIF. Files to download: PDF, ZIP, Word, Excel, PowerPoint, OpenDocument, TXT or CSV.',
     'media.refused_avif' => 'This server cannot read AVIF pictures. Save it as a JPEG or PNG and upload that.',
     // Refused rather than accepted-and-broken. Without GD or Imagick nothing can be
     // generated, and the picture would sit in the library as a card with no thumbnail and
@@ -29,12 +29,24 @@ return [
     // reaches a page of ours, so this is the only place it can be explained.
     'media.too_large_named' => ':name is :size, which is more than this server accepts (:limit per picture). It was not uploaded.',
     'media.too_large_total' => 'Those pictures come to :size together, and this server accepts :limit per upload. Send them in smaller batches.',
-    'media.limits' => 'JPEG, PNG, WebP, GIF or AVIF · up to :file each, :request at once',
+    'media.limits' => 'Pictures (JPEG, PNG, WebP, GIF, AVIF) and files to download (PDF, ZIP, Word, Excel, PowerPoint, OpenDocument, TXT, CSV) · up to :file each, :request at once',
+    // Files for visitors to download (PLAN.md D-126).
+    'media.kind' => 'Pictures or files',
+    'media.kind.all' => 'Everything',
+    'media.kind.pictures' => 'Pictures',
+    'media.kind.files' => 'Files',
+    'media.downloads_one' => ':count download',
+    'media.downloads_many' => ':count downloads',
+    'media.file_details' => 'A file for visitors to download. It is never shown as a page: whoever opens its address is asked to save it.',
+    'media.file_address' => 'Address to download it from',
+    'media.file_downloads' => 'Downloaded',
+    'media.file_try' => 'Download it',
+    'media.file_used_by_none' => 'No page offers this file yet.',
 
     // The library screen.
     'media.title' => 'Media',
     // The library as a table (D-052).
-    'media.lede' => 'Every picture is kept in several sizes, made on upload. Descriptions are read to visitors who cannot see the picture.',
+    'media.lede' => 'Every picture is kept in several sizes, made on upload. Descriptions are read to visitors who cannot see the picture. Files for visitors to download — PDFs, documents, archives — live here too.',
     'media.drop_anywhere' => 'Drop pictures anywhere on this screen, or',
     'media.show' => 'Show',
     'media.show.all' => 'All',

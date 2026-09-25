@@ -284,6 +284,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // A visitor sending a form (D-046). Unprefixed: the form knows its own language.
     $router->visitorPost('/form/{id:\d+}', [FormSubmitController::class, 'submit']);
     // The sitemap for a host where public/sitemap.xml cannot be written (D-049).
+    // A file from the library, to save (D-126). Two segments, so no page's address — one
+    // segment (O-10) — can ever be it.
+    $router->get('/download/{id:\d+}/{name:[^/]+}', [\App\Modules\Media\DownloadController::class, 'download']);
     $router->get('/sitemap', [PageController::class, 'sitemap']);
     $router->get('/', [PageController::class, 'show']);
     $router->get('/{slug:[a-z0-9]+(?:-[a-z0-9]+)*}', [PageController::class, 'show']);

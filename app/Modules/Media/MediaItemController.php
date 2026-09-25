@@ -38,6 +38,21 @@ final class MediaItemController
             return MediaController::missing();
         }
 
+        // A FILE FOR VISITORS (D-126) has its own short page: what it is, where it is
+        // downloaded from, how often it was, and Delete. Nothing a picture's page offers —
+        // a preview, a crop, a focal point, a description to read aloud — applies to it.
+        if ((string) ($media['kind'] ?? 'picture') === 'file') {
+            return AdminView::render($this->container, __DIR__ . '/views', 'admin/file', [
+                'title' => (string) $media['filename'],
+                'nav' => 'media',
+                'styles' => ['admin-media.css'],
+                'file' => MediaController::card($media),
+                'usedBy' => $library->usedBy($id),
+                'added' => Dates::local((string) $media['created_at'], Dates::zone($this->container->get('db'))),
+                'mime' => (string) $media['mime'],
+            ]);
+        }
+
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/show', [
             'title' => (string) $media['filename'],
             'nav' => 'media',
@@ -74,7 +89,8 @@ final class MediaItemController
         $library = $this->library();
         $id = (int) $params['id'];
         $media = $library->find($id);
-        if ($media === null) {
+        // A file (D-126) is never cut, so it has no point to keep in frame.
+        if ($media === null || (string) ($media['kind'] ?? 'picture') !== 'picture') {
             return MediaController::missing();
         }
 
@@ -128,7 +144,8 @@ final class MediaItemController
     public function replace(Request $request, string $locale, array $params): Response
     {
         $id = (int) $params['id'];
-        if ($this->library()->find($id) === null) {
+        // Replacing is a picture's (D-126): a file is deleted and uploaded again.
+        if ((string) ($this->library()->find($id)['kind'] ?? '') !== 'picture') {
             return MediaController::missing();
         }
 

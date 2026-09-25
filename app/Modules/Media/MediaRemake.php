@@ -39,7 +39,8 @@ final class MediaRemake
     /** Marks every complete picture as owed a remake; returns how many. */
     public function start(): int
     {
-        $this->db->query("UPDATE media SET remake = '' WHERE status = 'complete'");
+        // Pictures only: a file (D-126) has no sizes to make again.
+        $this->db->query("UPDATE media SET remake = '' WHERE status = 'complete' AND kind = 'picture'");
 
         return $this->left();
     }

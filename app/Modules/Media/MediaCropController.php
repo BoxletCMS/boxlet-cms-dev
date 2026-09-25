@@ -44,7 +44,8 @@ final class MediaCropController
     {
         $id = (int) $params['id'];
         $media = $this->library()->find($id);
-        if ($media === null) {
+        // A file (D-126) has nothing to cut.
+        if ($media === null || (string) ($media['kind'] ?? 'picture') !== 'picture') {
             return MediaController::missing();
         }
 

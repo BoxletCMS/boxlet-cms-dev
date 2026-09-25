@@ -38,16 +38,26 @@ final class MediaLibrary
      *
      * @return list<array<string, mixed>>
      */
-    public function all(string $search = '', int $limit = 200): array
+    public function all(string $search = '', int $limit = 200, ?string $kind = null): array
     {
+        // Pictures, files (D-126), or both. Bound, never spliced: it is a value from a query
+        // string by the time it gets here, however the caller narrowed it.
+        $where = [];
+        $params = [];
+        if ($kind !== null) {
+            $where[] = 'kind = ?';
+            $params[] = $kind;
+        }
         $search = trim($search);
-        if ($search === '') {
-            return $this->rows('SELECT * FROM media ORDER BY id DESC LIMIT ' . $limit);
+        if ($search !== '') {
+            $where[] = '(filename LIKE ? OR original_name LIKE ?)';
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
         }
 
         return $this->rows(
-            'SELECT * FROM media WHERE filename LIKE ? OR original_name LIKE ? ORDER BY id DESC LIMIT ' . $limit,
-            ['%' . $search . '%', '%' . $search . '%'],
+            'SELECT * FROM media' . ($where === [] ? '' : ' WHERE ' . implode(' AND ', $where)) . ' ORDER BY id DESC LIMIT ' . $limit,
+            $params,
         );
     }
 

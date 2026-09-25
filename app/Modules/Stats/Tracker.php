@@ -43,7 +43,7 @@ final class Tracker
     private const CITY_MONTHS_DEFAULT = 3;
 
     /** First path segments that are never a visitor's page. */
-    private const SKIPPED = ['admin', 'form', 'sitemap', 'install', 'install.php', '_boxlet'];
+    private const SKIPPED = ['admin', 'form', 'sitemap', 'download', 'install', 'install.php', '_boxlet'];
 
     /**
      * The module's settings, with their defaults: on, honouring DNT and GPC, two years,

@@ -47,9 +47,14 @@ final class MediaController
     {
         $search = $request->query['q'] ?? '';
         $search = is_string($search) ? trim($search) : '';
+        // Pictures, files, or both (D-126). The picker only ever shows pictures: a picture
+        // field has nothing to do with a document.
+        $picking = ($request->query['picker'] ?? '') !== '';
+        $kind = in_array($request->query['kind'] ?? '', ['pictures', 'files'], true) ? (string) $request->query['kind'] : '';
+        $only = $picking || $kind === 'pictures' ? 'picture' : ($kind === 'files' ? 'file' : null);
 
         $pictures = [];
-        foreach ($this->library()->all($search) as $row) {
+        foreach ($this->library()->all($search, 200, $only) as $row) {
             $pictures[] = self::card($row);
         }
 
@@ -65,7 +70,7 @@ final class MediaController
         // card, one set of markup, so the library and the picker cannot drift apart. HTML
         // rather than JSON, because the server answers with markup everywhere in this
         // admin and a second representation would be a second thing to keep correct.
-        if (($request->query['picker'] ?? '') !== '') {
+        if ($picking) {
             return Response::admin((new View(__DIR__ . '/views'))->render('admin/cards', $locale, [
                 'pictures' => $pictures,
                 'search' => $search,
@@ -91,10 +96,11 @@ final class MediaController
             $row = $picture + [
                 'pages' => $usage[$picture['id']]['pages'] ?? 0,
                 'site' => $usage[$picture['id']]['site'] ?? false,
-                'described' => $described[$picture['id']] ?? 'missing',
+                // A file has no description to miss (D-126).
+                'described' => $picture['kind'] === 'file' ? 'none' : ($described[$picture['id']] ?? 'missing'),
             ];
             if (($show === 'unused' && ($row['pages'] > 0 || $row['site']))
-                || ($show === 'undescribed' && $row['described'] === 'set')) {
+                || ($show === 'undescribed' && $row['described'] !== 'missing')) {
                 continue;
             }
             $rows[] = $row;
@@ -109,7 +115,9 @@ final class MediaController
             'pictures' => $pictures,
             'rows' => $rows,
             'show' => $show,
+            'kind' => $kind,
             'bytes' => $bytes,
+            'accept' => implode(',', array_map(static fn (string $ext): string => '.' . $ext, MediaFileType::acceptedExtensions())),
             'remakeLeft' => $this->container->get('media_remake')->left(),
             'search' => $search,
             'limits' => Bytes::limits(),
@@ -165,7 +173,10 @@ final class MediaController
             }
 
             $stored++;
-            $this->container->get('media_variants')->generate($result['id'], self::budget($started));
+            // A file (D-126) has nothing to make; only a picture has sizes.
+            if ((string) ($this->library()->find((int) $result['id'])['kind'] ?? 'picture') === 'picture') {
+                $this->container->get('media_variants')->generate($result['id'], self::budget($started));
+            }
             Activity::record($this->container->get('db'), 'media', 'uploaded', (int) $result['id'], (string) ($this->library()->find((int) $result['id'])['filename'] ?? $file['name']));
         }
 
@@ -209,15 +220,17 @@ final class MediaController
      * What a list entry shows for one picture, including the thumbnail to draw it with.
      *
      * @param array<string, mixed> $row
-     * @return array{id: int, filename: string, original: string, ext: string, size: string, bytes: int, width: int, height: int, complete: bool, thumb: string|null}
+     * @return array{id: int, filename: string, original: string, ext: string, size: string, bytes: int, width: int, height: int, complete: bool, thumb: string|null, kind: string, downloads: int, download: string}
      */
     public static function card(array $row): array
     {
+        $ext = strtolower(pathinfo((string) $row['path'], PATHINFO_EXTENSION));
+
         return [
             'id' => (int) $row['id'],
             'filename' => (string) $row['filename'],
             'original' => (string) $row['original_name'],
-            'ext' => strtolower(pathinfo((string) $row['path'], PATHINFO_EXTENSION)),
+            'ext' => $ext,
             'size' => Bytes::human((int) $row['size']),
             'bytes' => (int) $row['size'],
             'width' => (int) $row['width'],
@@ -227,6 +240,11 @@ final class MediaController
             // is a 200px square in a list, the saving would be a few kilobytes, and format
             // negotiation belongs to the front end where the bytes actually matter.
             'thumb' => MediaVariants::url($row, 'thumb'),
+            // A file for visitors (D-126): what it is, how often it was taken, and the address
+            // it is taken from.
+            'kind' => (string) ($row['kind'] ?? 'picture'),
+            'downloads' => (int) ($row['downloads'] ?? 0),
+            'download' => DownloadController::url((int) $row['id'], (string) $row['filename'], $ext),
         ];
     }
 

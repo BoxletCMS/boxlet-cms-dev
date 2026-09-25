@@ -7,7 +7,7 @@ use App\Support\Url;
  * need something — no description, used nowhere, not finished. Required by admin/index.php.
  * The picker keeps the grid (admin/cards.php): choosing a picture is choosing by eye.
  *
- * @var list<array{id: int, filename: string, ext: string, size: string, width: int, height: int, complete: bool, thumb: string|null, pages: int, site: bool, described: string}> $rows
+ * @var list<array{id: int, filename: string, ext: string, size: string, width: int, height: int, complete: bool, thumb: string|null, kind: string, downloads: int, download: string, pages: int, site: bool, described: string}> $rows
  * @var string $csrf
  */
 ?>
@@ -31,7 +31,9 @@ use App\Support\Url;
     ?>
                     <tr class="media-row" data-media-id="<?= e((string) $row['id']) ?>">
                         <td class="media-row-thumb">
-<?php if ($row['thumb'] !== null): ?>
+<?php if ($row['kind'] === 'file'): ?>
+                            <span class="media-row-file" aria-hidden="true"><?= icon('file-text') ?></span>
+<?php elseif ($row['thumb'] !== null): ?>
                             <img class="media-thumb" src="<?= e($row['thumb']) ?>" alt="" width="38" height="28" loading="lazy">
 <?php else: ?>
                             <span class="media-row-none" aria-hidden="true"></span>
@@ -43,7 +45,13 @@ use App\Support\Url;
                             <span class="badge badge-warning"><?= e(t('media.unfinished')) ?></span>
 <?php endif; ?>
                         </td>
+<?php if ($row['kind'] === 'file'): ?>
+                        <?php /* A file has no dimensions (D-126): what it is, and how often it
+                                 was taken, instead. */ ?>
+                        <td class="numeric media-facts"><?= e(strtoupper($row['ext'])) ?> · <?= e(t($row['downloads'] === 1 ? 'media.downloads_one' : 'media.downloads_many', ['count' => (string) $row['downloads']])) ?></td>
+<?php else: ?>
                         <td class="numeric media-facts"><?= e(t('media.dimensions', ['width' => (string) $row['width'], 'height' => (string) $row['height']])) ?></td>
+<?php endif; ?>
                         <td class="numeric media-facts"><?= e($row['size']) ?></td>
                         <td class="media-used">
 <?php if ($row['pages'] > 0): ?>
@@ -57,6 +65,8 @@ use App\Support\Url;
                         <td>
 <?php if ($row['described'] === 'missing'): ?>
                             <a class="badge badge-accent" href="<?= e($link) ?>#meta"><?= e(t('media.described.missing')) ?></a>
+<?php elseif ($row['described'] === 'none'): ?>
+                            <span class="media-unused">—</span>
 <?php else: ?>
                             <span class="media-described"><?= e(t('media.described.set')) ?></span>
 <?php endif; ?>

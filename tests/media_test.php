@@ -236,7 +236,9 @@ testBothDrivers('a file whose bytes are not a picture is refused with a message 
     $upload = new MediaUpload($db, $storage, new MediaEncoder());
 
     file_put_contents($script = tmpPath('not-a-picture.jpg'), "<?php echo 'hello';");
-    assertThrows(static fn () => $upload->store($script, 'not-a-picture.jpg'), 'not a picture');
+    // "not one Boxlet accepts" since the library took files to download as well (D-126): the
+    // refusal names what IS accepted, pictures and files, rather than pictures alone.
+    assertThrows(static fn () => $upload->store($script, 'not-a-picture.jpg'), 'not one Boxlet accepts');
     assertEquals(0, count($db->all('SELECT id FROM media')), 'it recorded the refused file');
 });
 

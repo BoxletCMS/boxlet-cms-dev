@@ -8,6 +8,8 @@ use App\Support\Url;
  * @var list<array{id: int, filename: string, original: string, ext: string, size: string, bytes: int, width: int, height: int, complete: bool, thumb: string|null}> $pictures every picture the search found
  * @var list<array{id: int, filename: string, ext: string, size: string, width: int, height: int, complete: bool, thumb: string|null, pages: int, site: bool, described: string}> $rows what the filter leaves
  * @var string $show the filter: '', 'unused' or 'undescribed'
+ * @var string $kind pictures, files or both: '', 'pictures' or 'files' (D-126)
+ * @var string $accept what the file chooser offers, every extension the library takes
  * @var int $bytes what the pictures found weigh together
  * @var string $search
  * @var int $remakeLeft pictures still owed a remake (D-048)
@@ -32,13 +34,22 @@ use App\Support\Url;
 <?php if ($show !== ''): ?>
                 <input type="hidden" name="show" value="<?= e($show) ?>">
 <?php endif; ?>
+<?php if ($kind !== ''): ?>
+                <input type="hidden" name="kind" value="<?= e($kind) ?>">
+<?php endif; ?>
                 <label for="media-search" class="visually-hidden"><?= e(t('media.search')) ?></label>
                 <input type="search" id="media-search" name="q" value="<?= e($search) ?>" placeholder="<?= e(t('media.search_placeholder')) ?>">
                 <button type="submit" class="button button-secondary"><?= e(t('media.search_submit')) ?></button>
             </form>
+            <?php /* Pictures or files (D-126), beside what they are missing. */ ?>
+            <nav class="segmented" aria-label="<?= e(t('media.kind')) ?>">
+<?php foreach (['' => 'media.kind.all', 'pictures' => 'media.kind.pictures', 'files' => 'media.kind.files'] as $value => $key): ?>
+                <a href="<?= e(Url::admin('media') . (($query = array_filter(['q' => $search, 'show' => $show, 'kind' => $value])) !== [] ? '?' . http_build_query($query) : '')) ?>"<?= $kind === $value ? ' aria-current="page"' : '' ?>><?= e(t($key)) ?></a>
+<?php endforeach; ?>
+            </nav>
             <nav class="segmented" aria-label="<?= e(t('media.show')) ?>">
 <?php foreach (['' => 'media.show.all', 'unused' => 'media.show.unused', 'undescribed' => 'media.show.undescribed'] as $value => $key): ?>
-                <a href="<?= e(Url::admin('media') . (($query = array_filter(['q' => $search, 'show' => $value])) !== [] ? '?' . http_build_query($query) : '')) ?>"<?= $show === $value ? ' aria-current="page"' : '' ?>><?= e(t($key)) ?></a>
+                <a href="<?= e(Url::admin('media') . (($query = array_filter(['q' => $search, 'show' => $value, 'kind' => $kind])) !== [] ? '?' . http_build_query($query) : '')) ?>"<?= $show === $value ? ' aria-current="page"' : '' ?>><?= e(t($key)) ?></a>
 <?php endforeach; ?>
             </nav>
             <span class="list-count"><?= e(t('media.count', ['count' => (string) count($pictures), 'size' => \App\Support\Bytes::human($bytes)])) ?></span>
@@ -82,7 +93,7 @@ use App\Support\Url;
                 <span class="dropzone-limits"><?= e(t('media.limits', ['file' => $limits['fileLabel'], 'request' => $limits['requestLabel']])) ?></span>
             </label>
             <input type="file" id="media-files" name="files[]" multiple class="visually-hidden"
-                   accept="image/jpeg,image/png,image/webp,image/gif,image/avif" data-media-input>
+                   accept="<?= e($accept) ?>" data-media-input>
             <p class="field-error" data-media-error role="alert" hidden></p>
             <?php /* Only without a script, where nothing uploads by itself. */ ?>
             <button type="submit" class="button no-js-only"><?= e(t('media.upload_submit')) ?></button>

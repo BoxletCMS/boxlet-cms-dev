@@ -84,6 +84,11 @@ final class MediaUpload
     public function store(string $temporaryFile, string $originalName): array
     {
         $sniffed = MediaFileType::sniff($temporaryFile);
+        // A DOCUMENT goes its own way (D-126): nothing to measure, nothing to make from it.
+        $document = MediaFileType::documentExtension($originalName, $sniffed);
+        if ($document !== null) {
+            return $this->storeDocument($temporaryFile, $originalName, $document);
+        }
         $extension = MediaFileType::extensionFor($originalName, $sniffed);
         if ($extension === null) {
             throw new RuntimeException(t('media.refused', ['type' => $sniffed === '' ? '?' : $sniffed]));
@@ -141,6 +146,56 @@ final class MediaUpload
         MediaAlt::fill($this->db, $id, $target, $originalName);
 
         return ['id' => $id, 'duplicate' => false];
+    }
+
+    /**
+     * A file for visitors to download (PLAN.md O-17, D-126): stored like a picture's original
+     * — under its hash, outside the web root, never modified — and recorded as a `file`.
+     *
+     * No encoder is asked and no size is measured: there is nothing to make from it. So it is
+     * complete the moment it is stored, and nothing that finishes or remakes pictures will
+     * ever pick it up. It is served whole, as an attachment, by DownloadController.
+     *
+     * @return array{id: int, duplicate: bool}
+     */
+    private function storeDocument(string $temporaryFile, string $originalName, string $extension): array
+    {
+        $hash = (string) sha1_file($temporaryFile);
+        $existing = $this->existing($hash);
+        if ($existing !== null) {
+            return ['id' => (int) $existing['id'], 'duplicate' => true];
+        }
+
+        $relative = 'uploads/' . $hash . '.' . $extension;
+        $target = $this->storagePath . '/' . $relative;
+        $directory = dirname($target);
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new RuntimeException(t('media.storage_unwritable'));
+        }
+        if (!self::place($temporaryFile, $target)) {
+            throw new RuntimeException(t('media.storage_unwritable'));
+        }
+
+        $filename = Slug::fromTitle(pathinfo($originalName, PATHINFO_FILENAME));
+        $this->db->query(
+            'INSERT INTO media (filename, original_name, path, mime, size, width, height, hash, created_at, status, kind)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                substr($filename === '' ? 'file' : $filename, 0, 80),
+                substr($originalName, 0, 255),
+                $relative,
+                MediaFileType::documentMime($extension),
+                (int) filesize($target),
+                0,
+                0,
+                $hash,
+                gmdate('Y-m-d H:i:s'),
+                'complete',
+                'file',
+            ],
+        );
+
+        return ['id' => (int) $this->db->lastInsertId(), 'duplicate' => false];
     }
 
     /**

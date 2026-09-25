@@ -68,10 +68,11 @@ export default {
         detail.facts >= 4 && detail.previewDecoded > 0,
         `${detail.facts} facts, preview decoded at ${detail.previewDecoded}px wide`);
 
-      // The owner's review (D-038): no focal point, and three actions of one word and an icon,
-      // Replace's form closed until it is asked for.
-      report.verdict('the picture screen offers Crop, Replace and Delete, and no focal point',
-        !detail.focal && detail.replaceOpen === false
+      // The owner's review (D-038): three actions of one word and an icon, Replace's form
+      // closed until it is asked for. The focal point D-038 took away is back since D-121, by
+      // the owner's decision once he had seen what it was for — so this now asks for it.
+      report.verdict('the picture screen offers Crop, Replace and Delete, and the focal point',
+        detail.focal && detail.replaceOpen === false
           && ['Crop', 'Replace', 'Delete'].every((word) => detail.actions.some((label) => label.startsWith(word))),
         `actions ${JSON.stringify(detail.actions)}, focal form ${detail.focal}, replace open ${detail.replaceOpen}`);
 

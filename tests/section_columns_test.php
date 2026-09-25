@@ -250,6 +250,20 @@ test('a character composes a section from the type its blocks agree on', functio
     assertEquals(SectionStyle::DEFAULTS, Composition::section(null, []), 'no character');
 });
 
+testBothDrivers('applying a character resets a hero\'s arrangement, but never takes a cover hero\'s picture from behind its words', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [
+        ['type' => 'hero', 'content' => ['heading' => 'Behind'], 'layout' => 'cover-left'],
+        ['type' => 'hero', 'content' => ['heading' => 'Beside'], 'layout' => 'split'],
+    ]);
+    // Minimal composes a hero `center`: the one the owner applied (D-120).
+    Composition::apply($db, blockRegistry(), 'minimal');
+
+    $layouts = array_column($db->all('SELECT layout FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'layout');
+    assertEquals('cover-left', $layouts[0] ?? null, 'the cover hero was reset to the character\'s arrangement');
+    assertEquals(Composition::layout(blockRegistry(), 'minimal', 'hero'), $layouts[1] ?? null, 'a hero beside its picture is still reset, as the button says');
+});
+
 testBothDrivers('applying a character composes each section once, from what it holds', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', false, [

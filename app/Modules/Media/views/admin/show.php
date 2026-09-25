@@ -13,6 +13,7 @@ use App\Support\Url;
  * @var array{file: int, request: int, fileLabel: string, requestLabel: string} $limits
  * @var string $added
  * @var string $mime
+ * @var array{x: int, y: int} $focal
  * @var string $csrf
  */
 ?>
@@ -24,8 +25,45 @@ use App\Support\Url;
         <div class="media-detail">
             <div class="media-preview">
 <?php if ($preview !== null): ?>
-                <?php /* The uncropped picture: `full` is the only preset that keeps all of it. */ ?>
-                <img class="media-preview-image" src="<?= e($preview) ?>" alt="<?= e($picture['original']) ?>">
+                <?php /* THE FOCAL POINT, CHOSEN ON THE PICTURE ITSELF (PLAN.md D-121). The
+                         preview is the uncropped `full`, the only size where a click means what
+                         it looks like it means. Without JavaScript the two number fields are the
+                         control, and they are what the form posts either way: media.js only
+                         fills them in from a click, and shows the two cuts beside it. */ ?>
+                <form class="media-focal" method="post" action="<?= e(Url::admin('media', $picture['id'], 'focal')) ?>" data-focal-form>
+                    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                    <div class="focal-frame" data-focal-frame>
+                        <img class="media-preview-image" src="<?= e($preview) ?>" alt="<?= e($picture['original']) ?>">
+                        <span class="focal-marker js-only" data-focal-marker aria-hidden="true"></span>
+                    </div>
+                    <h2><?= e(t('media.focal')) ?></h2>
+                    <p class="hint"><?= e(t('media.focal_hint')) ?></p>
+                    <?php /* The same picture cut two ways, following the point as it moves:
+                             what a hero's background shows on a computer and on a phone. Only
+                             with a script, which is what moves them; without one they would
+                             show the middle whatever the point says. */ ?>
+                    <div class="focal-samples js-only" aria-hidden="true">
+                        <figure class="focal-sample focal-sample-wide">
+                            <div class="focal-sample-frame"><img src="<?= e($preview) ?>" alt="" data-focal-sample></div>
+                            <figcaption class="hint"><?= e(t('media.focal_wide')) ?></figcaption>
+                        </figure>
+                        <figure class="focal-sample focal-sample-tall">
+                            <div class="focal-sample-frame"><img src="<?= e($preview) ?>" alt="" data-focal-sample></div>
+                            <figcaption class="hint"><?= e(t('media.focal_tall')) ?></figcaption>
+                        </figure>
+                    </div>
+                    <div class="focal-fields">
+                        <div class="field">
+                            <label for="focal-x"><?= e(t('media.focal_x')) ?></label>
+                            <input type="number" id="focal-x" name="x" min="0" max="100" value="<?= $focal['x'] ?>" data-focal-input-x>
+                        </div>
+                        <div class="field">
+                            <label for="focal-y"><?= e(t('media.focal_y')) ?></label>
+                            <input type="number" id="focal-y" name="y" min="0" max="100" value="<?= $focal['y'] ?>" data-focal-input-y>
+                        </div>
+                        <button type="submit" class="button button-secondary"><?= e(t('media.focal_save')) ?></button>
+                    </div>
+                </form>
 <?php else: ?>
                 <p class="hint"><?= e(t('media.no_thumb')) ?></p>
 <?php endif; ?>

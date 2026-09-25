@@ -28,6 +28,63 @@
     });
   }
 
+  /*
+   * 2. THE FOCAL POINT, BY CLICKING THE PICTURE (PLAN.md D-121). The click only fills in the
+   *    two number fields the form posts anyway, so there is one path to the server, not two.
+   *    The marker and the two sample cuts follow the fields, typed or clicked.
+   */
+  var focal = document.querySelector('[data-focal-form]');
+  if (focal) {
+    focalPoint(focal);
+  }
+
+  function focalPoint(form) {
+    var frame = form.querySelector('[data-focal-frame]');
+    var marker = form.querySelector('[data-focal-marker]');
+    var samples = form.querySelectorAll('[data-focal-sample]');
+    var x = form.querySelector('[data-focal-input-x]');
+    var y = form.querySelector('[data-focal-input-y]');
+    if (!x || !y) {
+      return;
+    }
+
+    function clamp(value) {
+      var number = parseInt(value, 10);
+      if (isNaN(number)) {
+        return 50;
+      }
+      return Math.max(0, Math.min(100, number));
+    }
+
+    function place() {
+      var across = clamp(x.value) + '%';
+      var down = clamp(y.value) + '%';
+      if (marker) {
+        marker.style.insetInlineStart = across;
+        marker.style.insetBlockStart = down;
+      }
+      // What a cut to this shape keeps: the same object-position a cover draws with.
+      Array.prototype.forEach.call(samples, function (sample) {
+        sample.style.objectPosition = across + ' ' + down;
+      });
+    }
+
+    if (frame) {
+      frame.addEventListener('click', function (event) {
+        var box = frame.getBoundingClientRect();
+        if (!box.width || !box.height) {
+          return;
+        }
+        x.value = Math.round(((event.clientX - box.left) / box.width) * 100);
+        y.value = Math.round(((event.clientY - box.top) / box.height) * 100);
+        place();
+      });
+    }
+    x.addEventListener('input', place);
+    y.addEventListener('input', place);
+    place();
+  }
+
   // The library's drop zone, and a picture's Replace (D-039): the same behaviour for both.
   Array.prototype.forEach.call(document.querySelectorAll('[data-media-upload]'), upload);
 

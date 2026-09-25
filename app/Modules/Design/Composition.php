@@ -167,9 +167,17 @@ final class Composition
             );
             // The layout is the block's own layer 3 and stays on the block row, so it is
             // composed per type however many types the section turned out to hold.
+            //
+            // A COVER HERO KEEPS ITS COVER (PLAN.md D-120). Its arrangement says what its
+            // picture IS — the thing behind the words — and that is content, which a character
+            // does not own. Reset with the rest, it went to the character's `center` and the
+            // picture chosen to stand behind the words dropped under them; the owner met
+            // exactly that applying Minimal. Every other arrangement is still reset, as the
+            // button says.
             foreach (array_unique($types) as $type) {
                 $db->query(
-                    'UPDATE page_blocks SET layout = ?, updated_at = ? WHERE section_id = ? AND block_type = ?',
+                    'UPDATE page_blocks SET layout = ?, updated_at = ? WHERE section_id = ? AND block_type = ?'
+                    . ($type === 'hero' ? " AND layout NOT LIKE 'cover-%'" : ''),
                     [self::layout($registry, $character, $type), $now, $id, $type],
                 );
             }

@@ -35,6 +35,7 @@ return [
     'activity.media.described' => 'Described :name',
     'activity.media.replaced' => 'Replaced :name',
     'activity.media.cropped' => 'Cropped :name',
+    'activity.media.focal' => 'Moved the focal point of :name',
     'activity.media.deleted' => 'Deleted :name',
     'activity.media.remade' => 'Started making every picture\'s sizes again (:name pictures)',
 

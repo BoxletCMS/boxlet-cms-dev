@@ -90,17 +90,44 @@ testBothDrivers('alt text is kept per locale, and an empty alt is stored as a ch
     assertContains('A harbour at dawn', mediaAdminGet('/admin/media/' . $id)->body, 'the screen does not show what was saved');
 });
 
-// The focal point is no longer something the owner sets (D-038, the owner's review): its
-// screen controls and its route are gone. A stored point keeps its meaning — the centre
-// unless an older version moved it — and "Save as new" in the crop dialog still carries it.
-testBothDrivers('a picture\'s page offers no focal point, and its route is gone', function (string $driver) {
+/*
+ * THE FOCAL POINT IS BACK (PLAN.md D-121), and moving it makes the cut sizes again safely.
+ *
+ * D-038 took it away because the owner had not seen what it was for; the cover hero, cut to
+ * a phone's shape, is what it is for. The first version emptied the picture's sizes and
+ * made them again under the same addresses. This one goes through the remake: the files
+ * are replaced whole, the uncropped sizes are left alone, and the revision — part of every
+ * address — goes up, so no browser keeps the old cut.
+ */
+testBothDrivers('a picture\'s page offers the focal point, and moving it makes the cut sizes again', function (string $driver) {
     $db = mediaAdminSite($driver);
     adminUpload('/admin/media', [['name' => 'plain.jpg', 'tmp_name' => imageFixture(tmpPath('plain.jpg'), 600, 400)]]);
     $id = (int) ($db->one('SELECT id FROM media')['id'] ?? 0);
+    $before = $db->one('SELECT revision, variants_json FROM media WHERE id = ?', [$id]) ?? fail('no row');
 
     $body = mediaAdminGet('/admin/media/' . $id)->body;
-    assertTrue(!str_contains($body, 'data-focal-form') && !str_contains($body, 'id="focal-x"'), 'the focal point form is still there');
-    assertEquals(404, adminUpload('/admin/media/' . $id . '/focal', [], ['x' => '20', 'y' => '80'])->status, 'the focal route still answers');
+    assertContains('data-focal-form', $body, 'the page offers no focal point');
+    assertContains('id="focal-x" name="x" min="0" max="100" value="50"', $body, 'the point is not shown where it is');
+
+    $response = adminUpload('/admin/media/' . $id . '/focal', [], ['x' => '20', 'y' => '80']);
+    assertEquals(302, $response->status, 'the move was not accepted');
+
+    $after = $db->one('SELECT focal_x, focal_y, remake, revision, variants_json FROM media WHERE id = ?', [$id]) ?? fail('no row');
+    assertEquals([20, 80], [(int) $after['focal_x'], (int) $after['focal_y']], 'the point that was stored');
+    assertEquals(null, $after['remake'], 'the cut sizes were not all made again');
+    assertEquals((int) $before['revision'] + 1, (int) $after['revision'], 'the addresses did not change, so a browser keeps the old cut');
+    // Made again, not emptied: every size the picture had, it still has.
+    assertEquals(
+        array_keys((array) json_decode((string) $before['variants_json'], true)),
+        array_keys((array) json_decode((string) $after['variants_json'], true)),
+        'the picture lost sizes',
+    );
+    assertEquals(1, (int) ($db->one("SELECT COUNT(*) AS n FROM activity WHERE kind = 'media' AND action = 'focal'")['n'] ?? 0), 'the move is not in the log');
+
+    // Out of range is held to the picture, not refused.
+    adminUpload('/admin/media/' . $id . '/focal', [], ['x' => '140', 'y' => '-5']);
+    $held = $db->one('SELECT focal_x, focal_y FROM media WHERE id = ?', [$id]) ?? fail('no row');
+    assertEquals([100, 0], [(int) $held['focal_x'], (int) $held['focal_y']], 'a point off the picture');
 });
 
 testBothDrivers('replacing a picture keeps its id, so pages using it need no editing', function (string $driver) {

@@ -201,6 +201,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/media/{id:\d+}', [MediaItemController::class, 'show'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}', [MediaItemController::class, 'save'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/crop', [MediaCropController::class, 'crop'], $requireAdmin);
+    $router->post('/admin/media/{id:\d+}/focal', [MediaItemController::class, 'focal'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/replace', [MediaItemController::class, 'replace'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/delete', [MediaItemController::class, 'delete'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/finish', [MediaController::class, 'finish'], $requireAdmin);

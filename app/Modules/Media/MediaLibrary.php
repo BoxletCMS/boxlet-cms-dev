@@ -222,6 +222,20 @@ final class MediaLibrary
     }
 
     /**
+     * Moves the point every crop keeps in frame, and nothing else (PLAN.md D-121): the crops
+     * are made again by MediaRemake::now(), which replaces each file only once its successor
+     * is whole. setFocalPoint() above empties the variants as well, which is right for a
+     * picture that has none yet — the crop dialog's new one — and wrong for one on show.
+     */
+    public function moveFocalPoint(int $mediaId, int $x, int $y): void
+    {
+        $this->db->query(
+            'UPDATE media SET focal_x = ?, focal_y = ? WHERE id = ?',
+            [max(0, min(100, $x)), max(0, min(100, $y)), $mediaId],
+        );
+    }
+
+    /**
      * Blocks that MIGHT hold this id, narrowed by the database and confirmed by the
      * caller. The page title travels with them so a refusal can name pages.
      *

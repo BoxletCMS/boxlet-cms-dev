@@ -43,7 +43,7 @@ final class MediaItemController
             'nav' => 'media',
             // Cropper is loaded HERE and nowhere else: it is 38KB for one dialog on one
             // screen, and the library listing has no use for it (D-026).
-            'styles' => ['admin-media.css', 'vendor/cropper.min.css', 'admin-crop.css'],
+            'styles' => ['admin-media.css', 'admin-focal.css', 'vendor/cropper.min.css', 'admin-crop.css'],
             'scripts' => ['media.js', 'vendor/cropper.min.js', 'media-crop.js'],
             'picture' => MediaController::card($media),
             // The uncropped variant, and only that one — see below.
@@ -55,7 +55,35 @@ final class MediaItemController
             'limits' => \App\Support\Bytes::limits(),
             'added' => Dates::local((string) $media['created_at'], Dates::zone($this->container->get('db'))),
             'mime' => (string) $media['mime'],
+            'focal' => ['x' => (int) $media['focal_x'], 'y' => (int) $media['focal_y']],
         ]);
+    }
+
+    /**
+     * Moves the point every crop keeps in frame (PLAN.md D-121, back after D-038 took it away:
+     * the owner had not seen what it was for, and a picture behind a hero's words — cut to
+     * a phone's shape — is what it is for).
+     *
+     * THE POINT IS CHOSEN ON THE UNCROPPED PICTURE. `full` keeps all of it, so a click on it
+     * means what it looks like it means; on a cropped preview the edges are already gone.
+     *
+     * @param array<string, string> $params
+     */
+    public function focal(Request $request, string $locale, array $params): Response
+    {
+        $library = $this->library();
+        $id = (int) $params['id'];
+        $media = $library->find($id);
+        if ($media === null) {
+            return MediaController::missing();
+        }
+
+        $library->moveFocalPoint($id, (int) $request->input('x'), (int) $request->input('y'));
+        $finished = $this->container->get('media_remake')->now($id, MediaController::budget(microtime(true)));
+        Activity::record($this->container->get('db'), 'media', 'focal', $id, (string) $media['filename']);
+        $this->container->get('session')->set('flash', t($finished ? 'media.focal_saved' : 'media.focal_saved_later'));
+
+        return Response::redirect(Url::admin('media', $id));
     }
 
     /**

@@ -51,6 +51,46 @@ final class MediaRemake
     }
 
     /**
+     * ONE PICTURE MADE AGAIN NOW, because its focal point moved (PLAN.md D-121).
+     *
+     * The same safe pass as a remake of every picture: each file written beside the old one
+     * and moved over it when whole, so the picture goes on showing everywhere while it is
+     * made, and its addresses change once it is — which is what gets the new crop past a
+     * browser's cache. The first version of this (before D-038) emptied the picture's
+     * variants and made them again under the same addresses: for as long as that took, every
+     * page showed a placeholder, and afterwards every browser that had seen it kept the old
+     * crop.
+     *
+     * ONLY THE CROPPED SIZES. `natural` and `full` hold the whole picture wherever its point
+     * is, so they are counted as made before the pass starts. What the budget does not allow
+     * stays owed, and the Media screen finishes it (D-048).
+     *
+     * @return bool true when the picture is finished inside the budget
+     */
+    public function now(int $id, ?float $budgetSeconds): bool
+    {
+        $media = $this->db->one("SELECT * FROM media WHERE id = ? AND status = 'complete'", [$id]);
+        if ($media === null) {
+            // Not finished being made at all: generation reads the point as it goes, so
+            // whatever it has still to make will already hold the new one.
+            return false;
+        }
+        $whole = [];
+        $formats = $this->encoder->formatsFor(strtolower(pathinfo((string) $media['path'], PATHINFO_EXTENSION)));
+        foreach (MediaPresets::ALL as $preset => $size) {
+            if ($size['height'] === 0) {
+                foreach ($formats as $format) {
+                    $whole[] = $preset . '.' . $format;
+                }
+            }
+        }
+        $this->db->query('UPDATE media SET remake = ? WHERE id = ?', [implode(',', $whole), $id]);
+        $media['remake'] = implode(',', $whole);
+
+        return $this->one($media, microtime(true), $budgetSeconds);
+    }
+
+    /**
      * Remakes what fits in $budgetSeconds, oldest picture first.
      *
      * @param float|null $budgetSeconds null for no limit

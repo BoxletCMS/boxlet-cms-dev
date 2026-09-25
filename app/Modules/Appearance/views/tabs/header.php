@@ -67,7 +67,9 @@ use App\Support\Url;
                 <?= $lookGroup('header_button') ?>
                 <?= $lookGroup('density') ?>
                 <?= $segmented('header_width', $labels('header_width', App\Modules\Design\Tokens::HEADER_WIDTH)) ?>
-                <?= $segmented('header_bleed', $labels('header_bleed', App\Modules\Design\Tokens::BLEED)) ?>
+                <?php /* Where the header's BACKGROUND reaches is a question only a boxed page asks:
+                         on any other the page is the window (D-122). */ ?>
+                <div class="when-boxed" data-when-boxed><?= $segmented('header_bleed', $labels('header_bleed', App\Modules\Design\Tokens::BLEED)) ?></div>
             </fieldset>
 
 <?php foreach ($locales as $locale): ?>

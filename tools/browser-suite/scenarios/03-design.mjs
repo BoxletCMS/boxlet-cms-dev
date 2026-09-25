@@ -499,7 +499,15 @@ export default {
     await mark();
     await press('label.segment:has(input[name="radius"][value="pill"])');
     const survivedTokens = await marked();
-    // Where the header breaks out is on the Header tab since D-111.
+    // Where the header breaks out is on the Header tab since D-111, and shown only on a
+    // boxed page since D-122 — so the page is boxed first, if it is not, and the mark set
+    // again after that change, which is markup of its own.
+    await openTab(page, 'page');
+    const wasBoxed = await page.evaluate(() => (document.querySelector('input[name="boxed"]:checked') || {}).value);
+    if (wasBoxed !== 'yes') {
+      await press('label.segment:has(input[name="boxed"][value="yes"])');
+    }
+    await mark();
     await openTab(page, 'header');
     await press('label.segment:has(input[name="header_bleed"][value="full"])');
     const survivedMarkup = await marked();
@@ -508,6 +516,10 @@ export default {
       `after a corner radius the document ${survivedTokens ? 'survived' : 'WAS RELOADED'};`
       + ` after a header bleed it ${survivedMarkup ? 'SURVIVED' : 'was reloaded'}`);
     await page.click('label.segment:has(input[name="header_bleed"][value="sheet"])');
+    if (wasBoxed !== 'yes') {
+      await openTab(page, 'page');
+      await page.click(`label.segment:has(input[name="boxed"][value="${wasBoxed}"])`);
+    }
     await openTab(page, 'colour');
 
     /*

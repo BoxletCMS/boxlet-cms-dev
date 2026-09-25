@@ -256,3 +256,9 @@
   font-size: var(--ui-text-xs);
 }
 
+/* ONLY ON A BOXED PAGE (PLAN.md D-122): the sheet's own controls, what is around it, and how
+   far a header or footer background reaches. Read off the form's own radio, so the controls
+   come and go the moment the choice is pressed, with no script and no round trip. */
+.design-form:has(input[name="boxed"][value="no"]:checked) [data-when-boxed] {
+  display: none;
+}

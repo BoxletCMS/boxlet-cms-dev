@@ -26,6 +26,15 @@
             <fieldset class="fieldset">
                 <p class="hint"><?= e(t('design.page_hint')) ?></p>
                 <?= $segmented('boxed', $labels('boxed', App\Modules\Design\Tokens::BOXED)) ?>
+                <?php /* EVERYTHING BELOW ONLY EXISTS ON A BOXED PAGE, AND IS ONLY SHOWN THERE
+                         (PLAN.md D-122). D-067 kept these on screen with a hint saying so, on the
+                         argument that a control that disappears is worse than one that explains
+                         itself; the owner then set a sheet's width for a page that was not
+                         boxed, saw nothing happen, and took the page to be boxed. A hint read
+                         only when hints are on does not stop that. Hidden by the stylesheet on
+                         the form's own state, so it follows the choice at once; the fields
+                         stay in the form and are posted either way. */ ?>
+                <div class="when-boxed" data-when-boxed>
                 <?= $segmented('page_background', $labels('page_background', App\Modules\Design\Tokens::PAGE_BACKGROUND)) ?>
                 <p class="hint"><?= e(t('design.page_background_hint')) ?></p>
                 <?php /* Or a colour of its own (D-076). The one place on the page where a
@@ -33,9 +42,7 @@
                          page, so no text ever lands on it and the gauge gains no pair. */ ?>
                 <?= $ownColour('page_background_colour') ?>
 
-                <?php /* THE SHEET AND ITS EDGES (D-067). Every one of these only shows on a
-                         boxed page, and each hint says so rather than the control hiding:
-                         a control that disappears is worse than one that explains itself. */ ?>
+                <?php /* THE SHEET AND ITS EDGES (D-067), shown only on a boxed page since D-122. */ ?>
                 <?php /* A BOX OF A WIDTH (D-116): the sheet's own width, and the room above
                          and below it — zero glues a header or footer that breaks out of the
                          sheet to it. The margin at the sides stays the frame's. */ ?>
@@ -44,4 +51,5 @@
                 <?= $slider('sheet_gap', 0, App\Modules\Design\Tokens::SHEET_GAP_MAX, 1) ?>
                 <?= $segmented('sheet_radius', $labels('sheet_radius', App\Modules\Design\Tokens::SHEET_RADIUS)) ?>
                 <?= $segmented('sheet_shadow', $labels('sheet_shadow', App\Modules\Design\Tokens::SHEET_SHADOW)) ?>
+                </div>
             </fieldset>

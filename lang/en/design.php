@@ -129,17 +129,19 @@ return [
 
     'design.page' => 'The page',
     'design.page_hint' => 'How the whole page sits: whether it is a sheet with a margin around it, and what that margin looks like.',
-    'design.header_width' => 'Header width',
-    'design.header_width.content' => 'Content width',
-    'design.header_width.full' => 'Full width',
-    'design.footer_width' => 'Footer width',
-    'design.footer_width.content' => 'Content width',
-    'design.footer_width.full' => 'Full width',
+    // What the header's CONTENTS line up with, and apart from it, how far its BACKGROUND
+    // reaches (PLAN.md D-122). Both used to be a "width" with a "Full width" in each.
+    'design.header_width' => 'Header contents',
+    'design.header_width.content' => 'Line up with the text',
+    'design.header_width.full' => 'Line up with the page edges',
+    'design.footer_width' => 'Footer contents',
+    'design.footer_width.content' => 'Line up with the text',
+    'design.footer_width.full' => 'Line up with the page edges',
     'design.boxed' => 'Boxed page',
     'design.boxed.no' => 'No',
     'design.boxed.yes' => 'Yes',
     'design.page_background' => 'Around the page',
-    'design.page_background_hint' => 'Only shows when the page is boxed. Drawn from the palette, so it is checked like every other colour.',
+    'design.page_background_hint' => 'The colour around the boxed page. Drawn from the palette, so it is checked like every other colour.',
     'design.sheet_width' => 'Sheet width',
     'design.sheet_gap' => 'Room above and below',
     'design.frame' => 'Side margin',
@@ -155,15 +157,15 @@ return [
     'design.sheet_shadow.none' => 'No',
     'design.sheet_shadow.shadow' => 'Shadow',
     'design.sheet_shadow.hairline' => 'Hairline',
-    'design.header_bleed' => 'Header reach',
-    'design.footer_bleed' => 'Footer reach',
+    'design.header_bleed' => 'Header background',
+    'design.footer_bleed' => 'Footer background',
     // One label per decision AND value, which is the convention section_test enforces:
     // "design.header_bleed.sheet", not a shared "design.bleed.sheet" that no rule would
     // ever look for.
-    'design.header_bleed.sheet' => 'In the sheet',
-    'design.header_bleed.full' => 'Full width',
-    'design.footer_bleed.sheet' => 'In the sheet',
-    'design.footer_bleed.full' => 'Full width',
+    'design.header_bleed.sheet' => 'Inside the page',
+    'design.header_bleed.full' => 'Across the whole window',
+    'design.footer_bleed.sheet' => 'Inside the page',
+    'design.footer_bleed.full' => 'Across the whole window',
 
     'design.page_background.surface' => 'Tinted',
     'design.page_background.border' => 'Border',

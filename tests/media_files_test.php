@@ -97,3 +97,46 @@ testBothDrivers('a file is downloaded as an attachment, and counted for a visito
     assertEquals(404, dispatch('/download/' . $id . '/price-list.pdf')->status, 'a picture served as a download');
     assertEquals(404, dispatch('/download/99999/nothing.pdf')->status, 'a download of nothing');
 });
+
+/*
+ * THE DOWNLOADS BLOCK (PLAN.md D-127).
+ */
+testBothDrivers('a Downloads block offers its files with their type and size, and never a download of nothing', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    adminUpload('/admin/media', [['name' => 'Price list.pdf', 'tmp_name' => pdfFixture(tmpPath('dl.pdf'))]]);
+    $file = (int) ($db->one("SELECT id FROM media WHERE kind = 'file'")['id'] ?? 0);
+    $registry = App\Core\Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    $content = $registry->normalize('downloads', ['heading' => 'Take it with you', 'items' => [
+        ['file' => $file, 'title' => '', 'description' => 'Every service and what it costs.'],
+        ['file' => null, 'title' => 'Not chosen yet', 'description' => ''],
+    ]]);
+    $files = App\Modules\Media\MediaFiles::forBlocks($db, $registry, [['type' => 'downloads', 'content' => $content]]);
+    $html = $registry->render('downloads', $content, [], 'list', [], false, 'none', ['files' => $files], 'en');
+
+    assertContains('href="/download/' . $file . '/price-list.pdf" download', $html, 'the link to save it');
+    assertContains('<span class="downloads-type" aria-hidden="true">PDF</span>', $html, 'its type, from the file');
+    assertContains('<span class="downloads-title">price-list</span>', $html, 'an empty title is the file\'s own name');
+    assertContains('PDF · ', $html, 'and its size beside the type');
+    assertContains('downloads-item is-empty', $html, 'an item with no file is marked, for the stylesheet to hide');
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/blocks-downloads.css');
+    assertTrue((bool) preg_match('~\.downloads-item\.is-empty\s*\{\s*display:\s*none;~', $css), 'an item with no file is drawn on the page');
+});
+
+testBothDrivers('a file field keeps only a file and a picture field only a picture', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    adminUpload('/admin/media', [['name' => 'terms.pdf', 'tmp_name' => pdfFixture(tmpPath('terms.pdf'))]]);
+    $file = (int) ($db->one("SELECT id FROM media WHERE kind = 'file'")['id'] ?? 0);
+    $picture = storedPicture($db, 'harbour', []);
+    $registry = App\Core\Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+
+    $downloads = App\Modules\Media\MediaReference::resolve($db, $registry, 'downloads', $registry->normalize('downloads', ['items' => [['file' => $file], ['file' => $picture]]]));
+    assertEquals([$file, null], array_column($downloads['items'], 'file'), 'a picture offered as a download');
+    $hero = App\Modules\Media\MediaReference::resolve($db, $registry, 'hero', $registry->normalize('hero', ['heading' => 'Hi', 'image' => $file]));
+    assertEquals(null, $hero['image'], 'a file drawn as a picture');
+
+    // And a file a page offers is refused deletion, naming the page, as a picture is.
+    $page = createPage($db, 'en', 'forms', 'Forms', true, [['type' => 'downloads', 'content' => ['items' => [['file' => $file, 'title' => 'Terms']]]]]);
+    $library = new App\Modules\Media\MediaLibrary($db, $registry, tmpPath('storage'), tmpPath('admin-media-public'));
+    assertEquals([$page => 'Forms'], $library->usedBy($file), 'the page that offers it');
+    assertEquals(false, $library->delete($file)['deleted'], 'a file still offered was deleted');
+});

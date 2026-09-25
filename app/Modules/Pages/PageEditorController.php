@@ -394,6 +394,8 @@ final class PageEditorController
             'registry' => $this->registry(),
             // What a media field offers. The editor asks for a picture by name, never by id.
             'pictures' => MediaReference::choices($this->db()),
+            // The files a Downloads block may offer (D-127).
+            'files' => \App\Modules\Media\MediaFiles::choices($this->db()),
             // What a form field offers: the forms of the page's own language (D-046).
             'formChoices' => \App\Modules\Forms\Form::choices($this->db(), (string) $page['locale']),
             // What a link field offers: this page's language, in tree order (D-034).

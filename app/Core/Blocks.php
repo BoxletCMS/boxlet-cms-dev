@@ -206,7 +206,7 @@ final class Blocks
 
         return match ($field['type']) {
             // A reference, like media: an id or nothing (PLAN.md D-046).
-            'media', 'form' => is_int($value) && $value > 0 ? $value : null,
+            'media', 'file', 'form' => is_int($value) && $value > 0 ? $value : null,
             'link' => [
                 'label' => is_array($value) && is_string($value['label'] ?? null) ? $value['label'] : '',
                 'url' => is_array($value) && is_string($value['url'] ?? null) ? $value['url'] : '',

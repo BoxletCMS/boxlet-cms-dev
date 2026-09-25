@@ -259,6 +259,17 @@ return [
                 'height' => 'tall',
                 'veil' => 'strong',
             ], [], 'cover-low'],
+            // FILES TO TAKE AWAY (PLAN.md D-127), in both arrangements. The seed ships no
+            // files, as it ships no pictures, so the items name none: on the page they are not
+            // drawn, and the editor shows each as the place to choose one.
+            ['downloads', ['heading' => 'Price lists and forms', 'items' => [
+                ['title' => 'Price list', 'description' => 'Every service and what it costs.'],
+                ['title' => 'Project questionnaire', 'description' => 'Fill it in before we meet.'],
+            ]], ['width' => 'narrow'], 'list'],
+            ['downloads', ['heading' => 'Brochures', 'items' => [
+                ['title' => 'The studio', 'description' => 'Who we are, in four pages.'],
+                ['title' => 'Our process', 'description' => 'From the first talk to going live.'],
+            ]], [], 'cards'],
             ['text', ['heading' => 'A picture on its own', 'body' => '<p>Fills the column, or sits inset with room around it.</p>'], ['width' => 'narrow'], 'single'],
             ['picture', ['caption' => 'Filling the column', 'shape' => 'wide'], ['rhythm' => 'tight'], 'full'],
             ['picture', ['caption' => 'Inset, with room around it', 'shape' => 'wide'], ['surface' => 'tinted', 'rhythm' => 'tight'], 'inset'],

@@ -427,3 +427,16 @@
      these controls are drawn in, and it is paired with the white ring above for contrast. */
   text-shadow: 0 0 2px #ffffff, 0 0 2px #ffffff;
 }
+
+/* A Downloads item with no file chosen (PLAN.md D-127). blocks-downloads.css hides it on
+   the page, where it would be a download of nothing; here it is the place to choose one,
+   drawn in the editor's own dashed edge like an empty column, never in a site colour. */
+.bx-canvas .downloads-item.is-empty {
+  display: grid;
+  outline: 2px dashed var(--bx-hover);
+  outline-offset: -2px;
+}
+
+.bx-canvas .downloads-item.is-empty .downloads-type {
+  min-block-size: 2rem;
+}

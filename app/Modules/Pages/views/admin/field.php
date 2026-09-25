@@ -108,6 +108,21 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
 <?php endforeach; ?>
                     </select>
                     <span class="hint"><?php if ($formChoices === []): ?><?= e(t('pages.field.form_empty')) ?> <?php endif; ?><a href="<?= e(\App\Support\Url::admin('forms')) ?>" target="_blank" rel="noopener"><?= e(t('pages.field.form_manage')) ?></a></span>
+<?php elseif ($fieldSpec['type'] === 'file'): ?>
+                    <?php /* A FILE FOR VISITORS TO DOWNLOAD (D-127): a plain choice of the
+                             library's files by name, type and size. No picker — there is no
+                             picture to recognise — and so no JavaScript between the choice and
+                             what is posted. */ ?>
+                    <select id="<?= e($fieldId) ?>" name="<?= e($fieldName) ?>" data-file-field>
+                        <option value=""><?= e(t('pages.field.file_none')) ?></option>
+<?php foreach (($files ?? []) as $fileId => $fileLabel): ?>
+                        <option value="<?= e((string) $fileId) ?>"<?= (int) $fieldValue === $fileId ? ' selected' : '' ?>><?= e($fileLabel) ?></option>
+<?php endforeach; ?>
+                    </select>
+<?php if (($files ?? []) === []): ?>
+                    <span class="hint"><?= e(t('pages.field.file_empty')) ?></span>
+<?php endif; ?>
+                    <span class="hint"><a href="<?= e(\App\Support\Url::admin('media') . '?kind=files') ?>" target="_blank" rel="noopener"><?= e(t('pages.field.file_library')) ?></a></span>
 <?php elseif ($fieldSpec['type'] === 'media'): ?>
                     <?php /* A choice, never a number. Without JavaScript this select IS the
                              control: nobody can know that "7" is the harbour photograph, so

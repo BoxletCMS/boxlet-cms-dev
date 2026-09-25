@@ -36,10 +36,19 @@ final class MediaReference
      * would have met. Two traversals of one shape is how one gets fixed and the other does
      * not, so forBlocks() now asks this.
      *
+     * WHICH KINDS OF FIELD: `media` (a picture) by default, which is what drawing pictures
+     * asks for; `file` (D-126) as well wherever the question is whether the library item is
+     * used at all — so a file on a Downloads block is refused deletion exactly as a picture
+     * on a page is. `REFERENCES` names both.
+     *
      * @param array<string, mixed> $content normalized content
+     * @param list<string> $types
      * @return list<int>
      */
-    public static function idsIn(Blocks $registry, string $type, array $content): array
+    /** The field types that point into the library: a picture, and a file (D-126). */
+    public const REFERENCES = ['media', 'file'];
+
+    public static function idsIn(Blocks $registry, string $type, array $content, array $types = ['media']): array
     {
         if (!$registry->has($type)) {
             return [];
@@ -48,7 +57,7 @@ final class MediaReference
         $ids = [];
         foreach ($registry->get($type)['fields'] as $name => $field) {
             $value = $content[$name] ?? null;
-            if (($field['type'] ?? '') === 'media') {
+            if (in_array($field['type'] ?? '', $types, true)) {
                 if (is_int($value) && $value > 0) {
                     $ids[] = $value;
                 }
@@ -58,7 +67,7 @@ final class MediaReference
                 continue;
             }
             foreach ($field['fields'] as $itemName => $itemField) {
-                if (($itemField['type'] ?? '') !== 'media') {
+                if (!in_array($itemField['type'] ?? '', $types, true)) {
                     continue;
                 }
                 foreach ($value as $item) {
@@ -145,17 +154,21 @@ final class MediaReference
         // One query for every id the block carries, wherever it lives, rather than one per
         // field — and the same traversal idsIn() uses, so the rule reaches inside a
         // repeater's items exactly as far as the renderer does.
+        // What each id is — a picture or a file (D-126) — so a picture field keeps only a
+        // picture and a file field only a file: an id of the wrong kind names nothing that
+        // field can show, the same as an id nobody has.
         $known = [];
-        foreach (self::idsIn($registry, $type, $content) as $id) {
-            $known[$id] = false;
+        foreach (self::idsIn($registry, $type, $content, self::REFERENCES) as $id) {
+            $known[$id] = '';
         }
         if ($known !== []) {
             $placeholders = implode(', ', array_fill(0, count($known), '?'));
-            foreach ($db->all("SELECT id FROM media WHERE id IN ({$placeholders})", array_keys($known)) as $row) {
-                $known[(int) $row['id']] = true;
+            foreach ($db->all("SELECT id, kind FROM media WHERE id IN ({$placeholders})", array_keys($known)) as $row) {
+                $known[(int) $row['id']] = (string) $row['kind'];
             }
         }
-        $keep = static fn (mixed $id): ?int => is_int($id) && $id > 0 && ($known[$id] ?? false) ? $id : null;
+        $kindFor = static fn (string $fieldType): string => $fieldType === 'file' ? 'file' : 'picture';
+        $keep = static fn (mixed $id, string $fieldType): ?int => is_int($id) && $id > 0 && ($known[$id] ?? '') === $kindFor($fieldType) ? $id : null;
 
         foreach ($registry->get($type)['fields'] as $name => $field) {
             // Only fields the content actually carries: this never adds a key that
@@ -163,8 +176,8 @@ final class MediaReference
             if (!array_key_exists($name, $content)) {
                 continue;
             }
-            if (($field['type'] ?? '') === 'media') {
-                $content[$name] = $keep($content[$name]);
+            if (in_array($field['type'] ?? '', self::REFERENCES, true)) {
+                $content[$name] = $keep($content[$name], (string) $field['type']);
                 continue;
             }
             if (($field['type'] ?? '') !== 'repeater' || !is_array($content[$name])) {
@@ -180,8 +193,8 @@ final class MediaReference
                     continue;
                 }
                 foreach ($field['fields'] as $itemName => $itemField) {
-                    if (($itemField['type'] ?? '') === 'media' && array_key_exists($itemName, $item)) {
-                        $item[$itemName] = $keep($item[$itemName]);
+                    if (in_array($itemField['type'] ?? '', self::REFERENCES, true) && array_key_exists($itemName, $item)) {
+                        $item[$itemName] = $keep($item[$itemName], (string) $itemField['type']);
                     }
                 }
                 $items[] = $item;

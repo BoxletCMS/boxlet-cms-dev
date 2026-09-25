@@ -89,6 +89,8 @@ final class PageBuilderController
         $links = PageLinks::targets($this->db(), $registry, (string) $page['locale'], $blocks);
         // Forms drawn as a visitor sees them (D-046); the canvas's CSP stops a send.
         $forms = FormBlocks::resolve($this->db(), $blocks, (string) $page['locale'], null, (string) $this->container->get('config')->get('app.key'));
+        // And the files a Downloads block offers (D-127), as the page gets them.
+        $files = \App\Modules\Media\MediaFiles::forBlocks($this->db(), $registry, $blocks);
 
         // A translation's blocks that have fallen behind their source are marked on the
         // section itself (D-043, step 3); canvas.css draws the mark, builder-blocks.js keeps
@@ -125,7 +127,7 @@ final class PageBuilderController
             }
             // ALWAYS AS COLUMNS HERE (D-103): a column is what a block is dragged into and
             // what the + in it adds to, and a band that draws none has neither.
-            $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], (string) $page['locale'], true);
+            $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms, 'files' => $files], (string) $page['locale'], true);
             /* THE BAND SAYS WHICH BAND IT IS, for the editor only (D-099). The canvas draws
                the visitor's markup and this is the one thing added to it: without a name on
                the band, the + in an empty column has no way to say which column of which
@@ -385,6 +387,8 @@ final class PageBuilderController
             )),
             // What a media field offers. The editor asks for a picture by name, never by id.
             'pictures' => MediaReference::choices($this->db()),
+            // The files a Downloads block may offer (D-127).
+            'files' => \App\Modules\Media\MediaFiles::choices($this->db()),
             // What a form field offers: the forms of the page's own language (D-046).
             'formChoices' => \App\Modules\Forms\Form::choices($this->db(), (string) $page['locale']),
             // What a link field offers: this page's language, in tree order (D-034).

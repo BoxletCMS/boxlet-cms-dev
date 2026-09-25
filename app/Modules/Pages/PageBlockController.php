@@ -105,6 +105,8 @@ final class PageBlockController
                 array_values(array_unique(array_map(static fn (array $b): string => (string) $b['type'], $blocks))),
             ),
             'pictures' => MediaReference::choices($this->db()),
+            // The files a Downloads block may offer (D-127).
+            'files' => \App\Modules\Media\MediaFiles::choices($this->db()),
             'registry' => $registry,
             'bandHtml' => SectionRender::draw(
                 $registry,
@@ -112,7 +114,9 @@ final class PageBlockController
                 $blocks,
                 MediaPicture::forBlocks($this->db(), $registry, $locale, $blocks),
                 false,
-                ['forms' => FormBlocks::resolve($this->db(), $blocks, $locale, null, (string) $this->container->get('config')->get('app.key'))],
+                ['forms' => FormBlocks::resolve($this->db(), $blocks, $locale, null, (string) $this->container->get('config')->get('app.key')),
+                    // The files a Downloads block names (D-127), as the page gets them.
+                    'files' => \App\Modules\Media\MediaFiles::forBlocks($this->db(), $registry, $blocks)],
                 $locale,
                 // The editor's shape, like the canvas it is going into (D-103).
                 true,
@@ -196,6 +200,8 @@ final class PageBlockController
             'character' => $character,
             'registry' => $registry,
             'pictures' => MediaReference::choices($this->db()),
+            // The files a Downloads block may offer (D-127).
+            'files' => \App\Modules\Media\MediaFiles::choices($this->db()),
             // What a form field offers: the forms of the page's own language (D-046).
             'formChoices' => \App\Modules\Forms\Form::choices($this->db(), (string) $page['locale']),
             'linkPages' => PageLinks::choices($this->db(), (string) $page['locale']),
@@ -217,7 +223,9 @@ final class PageBlockController
                    one has been pressed. */
                 'none',
                 // The form this block shows, drawn as a visitor sees it (D-046).
-                ['forms' => FormBlocks::resolve($this->db(), [$block], (string) $page['locale'], null, (string) $this->container->get('config')->get('app.key'))],
+                ['forms' => FormBlocks::resolve($this->db(), [$block], (string) $page['locale'], null, (string) $this->container->get('config')->get('app.key')),
+                    // The files a Downloads block names (D-127), as the page gets them.
+                    'files' => \App\Modules\Media\MediaFiles::forBlocks($this->db(), $registry, [$block])],
                 (string) $page['locale'],
             ),
         ], null);

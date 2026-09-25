@@ -375,6 +375,7 @@ final class BlockForm
                 return [$value, null];
 
             case 'media':
+            case 'file':
             case 'form':
                 $text = self::line($raw);
                 if ($text === '') {

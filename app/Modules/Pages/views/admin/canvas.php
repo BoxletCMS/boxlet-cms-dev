@@ -27,6 +27,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-words.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-media.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-downloads.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas.css')) ?>">
     <?php /* Reordering happens here, inside the canvas, because drag events do not cross

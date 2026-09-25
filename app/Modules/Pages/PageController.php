@@ -49,6 +49,8 @@ final class PageController
             (string) $this->container->get('config')->get('app.key'),
             is_string($sent) && ctype_digit($sent) ? (int) $sent : null,
         );
+        // The files the page's Downloads blocks offer (D-127), in one query.
+        $files = \App\Modules\Media\MediaFiles::forBlocks($db, $registry, $blocks);
 
         $html = '';
         $first = true;
@@ -74,7 +76,7 @@ final class PageController
             // Only the first section that actually draws is eager. Everything below the
             // fold is lazy, which is the whole point of loading="lazy" — and the first
             // picture is usually the one a visitor is waiting to see.
-            $html .= SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms], $locale);
+            $html .= SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms, 'files' => $files], $locale);
             if ($first) {
                 $firstSurface = (string) ($group['section']['style']['surface'] ?? '');
             }

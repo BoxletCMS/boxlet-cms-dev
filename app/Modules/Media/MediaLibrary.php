@@ -89,7 +89,7 @@ final class MediaLibrary
             // picture could be deleted from under its page (D-052). The exact comparison
             // the LIKE could not make: 7 is not 70.
             $content = json_decode((string) $row['content_json'], true);
-            if (is_array($content) && in_array($mediaId, MediaReference::idsIn($this->registry, (string) $row['block_type'], $content), true)) {
+            if (is_array($content) && in_array($mediaId, MediaReference::idsIn($this->registry, (string) $row['block_type'], $content, MediaReference::REFERENCES), true)) {
                 $used[(int) $row['page_id']] = (string) $row['title'];
             }
 
@@ -125,7 +125,7 @@ final class MediaLibrary
              FROM page_blocks b LEFT JOIN page_sections s ON s.id = b.section_id',
         ) as $row) {
             $content = json_decode((string) $row['content_json'], true);
-            $ids = is_array($content) ? MediaReference::idsIn($this->registry, (string) $row['block_type'], $content) : [];
+            $ids = is_array($content) ? MediaReference::idsIn($this->registry, (string) $row['block_type'], $content, MediaReference::REFERENCES) : [];
             $style = json_decode((string) ($row['style_json'] ?? ''), true);
             if (is_array($style) && is_int($style[SectionStyle::IMAGE] ?? null)) {
                 $ids[] = $style[SectionStyle::IMAGE];
@@ -269,11 +269,11 @@ final class MediaLibrary
         $names = [];
         foreach ($this->registry->types() as $type) {
             foreach ($this->registry->get($type)['fields'] as $name => $field) {
-                if (($field['type'] ?? '') === 'media') {
+                if (in_array($field['type'] ?? '', MediaReference::REFERENCES, true)) {
                     $names[(string) $name] = true;
                 }
                 foreach (($field['type'] ?? '') === 'repeater' ? $field['fields'] : [] as $itemName => $itemField) {
-                    if (($itemField['type'] ?? '') === 'media') {
+                    if (in_array($itemField['type'] ?? '', MediaReference::REFERENCES, true)) {
                         $names[(string) $itemName] = true;
                     }
                 }

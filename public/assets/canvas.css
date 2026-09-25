@@ -267,6 +267,49 @@
   padding-block-end: 3.5rem;
 }
 
+/* A BLOCK THAT DRAWS NOTHING YET (PLAN.md D-117), in the editor only.
+
+   A new Text, Call to action, Quote or Form arrives empty, and empty they draw nothing:
+   measured, all four were 0px tall on the canvas the moment they were added. The block
+   existed, was selected, and could not be seen or pressed — the owner's "neki blokovi kad
+   se ubace ne vide se u previewu". The rule D-106 wrote for an empty column holds for an
+   empty block: an editor has to show the places things are, and a place with no size is
+   not one. canvas.js marks a block that measures no height; on the page it stays nothing.
+
+   The words are ink on white, the two tones every control in here wears, because they sit
+   on whatever surface the site's design gave the band. */
+.bx-canvas [data-bx-empty] {
+  display: grid;
+  /* One cell, which the words and the block's own empty markup share: in rows of their
+     own, the words stood at the top of the place and not in it. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  min-block-size: 5rem;
+  background: var(--bx-select-soft);
+  outline: 2px dashed var(--bx-hover);
+  outline-offset: -2px;
+  border-radius: 0.5rem;
+}
+
+.bx-canvas [data-bx-empty]::before,
+.bx-canvas [data-bx-empty] > * {
+  grid-area: 1 / 1;
+}
+
+.bx-canvas [data-bx-empty]::before {
+  content: attr(data-bx-empty);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--bx-ink);
+  font: 500 0.8125rem/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.bx-canvas .bx-selected[data-bx-empty] {
+  outline: 3px solid var(--bx-select);
+  outline-offset: -3px;
+}
+
 /* A column with nothing in it yet (the Columns block marks it is-empty). On the page it is
    a blank cell; here it is outlined and given height, so a new block shows its grid rather
    than an empty band, and a forgotten column is seen before it is published. */

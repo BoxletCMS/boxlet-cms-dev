@@ -91,7 +91,7 @@ final class SectionRender
         $first = $eager;
         foreach ($blocks as $block) {
             $at = SectionLayout::clamp((int) $block['column'], $layout);
-            $columns[$at] .= $registry->render(
+            $drawn = $registry->render(
                 (string) $block['type'],
                 is_array($block['content']) ? $block['content'] : [],
                 $style,
@@ -102,6 +102,15 @@ final class SectionRender
                 $resolved,
                 $locale,
             );
+            /* THE EDITOR'S NAME FOR THE BLOCK, on the block (PLAN.md D-117). The panel holds
+               the same block's fields under the same key, and the key is the only thing the
+               two sides agree on once anything moves: the canvas is in the page's order and
+               the form is not. Pairing them by counting deleted the wrong block. Only in the
+               editor's shape — a visitor's page carries no editor marks. */
+            if ($asColumns && is_string($block['key'] ?? null) && $block['key'] !== '') {
+                $drawn = (string) preg_replace('~^(\s*<div)\b~', '$1 data-bx-key="' . e($block['key']) . '"', $drawn, 1);
+            }
+            $columns[$at] .= $drawn;
             $first = false;
         }
 

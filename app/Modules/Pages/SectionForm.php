@@ -49,6 +49,12 @@ final class SectionForm
      * BlockForm::parse() follows for a block id: a stale key makes a section of its own
      * instead of writing over a stranger's.
      *
+     * AN ID IS CLAIMED ONCE. A second section sending an id an earlier one already sent is
+     * treated as new (PLAN.md D-117). The editor's band copy once kept its original's id,
+     * and the save then wrote both into the one row: the original held every block twice,
+     * took the copy's place and style, and the copy was gone. The editor no longer sends it;
+     * this is the reason a form that ever does again cannot merge two bands into one.
+     *
      * @param array<int, int> $stored section id => id, for the sections this page has
      * @return list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>
      */
@@ -56,14 +62,18 @@ final class SectionForm
     {
         $sections = [];
         $ordinal = 0;
+        $claimed = [];
         foreach (is_array($posted) ? $posted : [] as $sent => $raw) {
             if (!is_array($raw)) {
                 continue;
             }
             $key = is_string($sent) && preg_match(self::KEY, $sent) === 1 ? $sent : null;
             $id = is_string($raw['id'] ?? null) && ctype_digit($raw['id']) ? (int) $raw['id'] : null;
-            if ($id !== null && !isset($stored[$id])) {
+            if ($id !== null && (!isset($stored[$id]) || isset($claimed[$id]))) {
                 $id = null;
+            }
+            if ($id !== null) {
+                $claimed[$id] = true;
             }
             $sections[] = [
                 'key' => $key ?? self::key($id, $ordinal++),

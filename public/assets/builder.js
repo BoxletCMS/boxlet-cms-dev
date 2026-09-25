@@ -1,6 +1,8 @@
 /*
- * The visual editor shell: selection, the panel's two modes, the device width and the
- * unsaved-changes guard.
+ * The visual editor shell: selection and the panel's two modes. The trail and the Section
+ * tab's name are builder-trail.js; the page's own settings, the device width and the
+ * unsaved-changes guard are builder-page.js — both split off at the hard size limit
+ * (PLAN.md D-117).
  *
  * Changes to the page itself live in builder-blocks.js, which attaches to the object
  * this file exposes. Both are deferred, so this one runs first.
@@ -50,34 +52,6 @@
   };
 
   /**
-   * The canvas elements this form's field groups pair with, ONE PER BLOCK (PLAN.md D-099).
-   *
-   * A band holding one block is that block, the <section> it has always been, so on every
-   * page written before columns existed this returns what it always did and the pairing by
-   * ordinal goes on holding. A band with columns holds its blocks inside them, and those
-   * are what the groups pair with — because a group IS a block, and pairing a group with a
-   * band made the tools act on the band's first block whichever one was clicked.
-   *
-   * The same rule canvas.js's blocks() follows, written out on both sides rather than
-   * asked for across the frame: the parent needs it before the canvas has answered.
-   */
-  api.sections = function () {
-    var doc = frame.contentDocument;
-    if (!doc) {
-      return [];
-    }
-    var found = [];
-    doc.querySelectorAll('[data-bx-blocks] > section').forEach(function (band) {
-      // The editor's canvas always draws columns (D-103), so every block is inside one.
-      band.querySelectorAll('.section-column > *').forEach(function (block) {
-        found.push(block);
-      });
-    });
-
-    return found;
-  };
-
-  /**
    * A BAND SELECTED, which is not a block being selected (PLAN.md D-101).
    *
    * The panel has shown one block at a time since it existed, and a band with nothing in it
@@ -117,7 +91,9 @@
     if (api.markOutline) {
       api.markOutline(-1);
     }
-    trail(-1, key);
+    if (api.trail) {
+      api.trail(-1, key);
+    }
     api.tellCanvas('band', { key: key });
   };
 
@@ -275,80 +251,6 @@
   }
 
   /**
-   * WHERE YOU ARE, in words (PLAN.md D-102): Section 2 › Column 1 › Text.
-   *
-   * A page used to be a list of blocks, and the block under the cursor said everything there
-   * was to say about where it stood. On a page of bands and columns it does not: the same
-   * block can be the whole of one band or one of four things in another, and nothing on the
-   * screen said which. The column is named only where there is more than one, because
-   * "Column 1" under a band of one is a level of nothing — the same rule the outline follows.
-   */
-  /** The Section tab's word: the band it would open, or its plain name when there is none. */
-  var sectionTab = form.querySelector('[data-panel-tab="section"]');
-  var sectionTabWord = sectionTab ? sectionTab.textContent : '';
-
-  function nameSectionTab(band) {
-    if (sectionTab) {
-      sectionTab.textContent = band === null ? sectionTabWord : band;
-    }
-  }
-
-  function trail(index, bandKey) {
-    var strip = form.querySelector('[data-trail]');
-    if (!strip) {
-      return;
-    }
-    var group = index >= 0 ? groups.querySelector('[data-block-group="' + index + '"]') : null;
-    var key = bandKey || (group ? group.getAttribute('data-section-key') : null);
-    if (key === null) {
-      strip.hidden = true;
-      strip.textContent = '';
-      nameSectionTab(null);
-
-      return;
-    }
-    var at = 0;
-    var bands = api.bands();
-    bands.forEach(function (band, n) {
-      if (band.getAttribute('data-bx-section') === key) {
-        at = n;
-      }
-    });
-    var parts = [(form.getAttribute('data-text-band') || 'Section') + ' ' + (at + 1)];
-    /* AND THE TAB SAYS WHOSE SETTINGS IT OPENS (PLAN.md D-108). Selecting a BLOCK shows the
-       fields of the BAND it stands in — which is the point of one group per band, and what
-       the design artifact does too — but with the tab reading plain "Section" nothing said
-       that changing Surface there would repaint every other block in that band. The trail
-       under the canvas said `Section 2 › Text`, at the opposite end of the screen from the
-       controls being pressed. The tab carries the same name the trail does, from the same
-       line, so the two cannot drift apart. */
-    nameSectionTab(parts[0]);
-    if (group) {
-      var band = bands[at];
-      var columns = band ? band.querySelectorAll('.section-column').length : 0;
-      if (columns > 1) {
-        var column = Number((group.querySelector('[data-block-column]') || {}).value || 0);
-        parts.push((form.getAttribute('data-text-column') || 'Column') + ' ' + (column + 1));
-      }
-      var labelled = group.querySelector('[data-block-label]');
-      if (labelled) {
-        parts.push(labelled.getAttribute('data-block-label'));
-      }
-    }
-    strip.hidden = false;
-    strip.textContent = '';
-    parts.forEach(function (part, n) {
-      if (n > 0) {
-        strip.appendChild(document.createTextNode(' \u203A '));
-      }
-      // The last part is what is selected; the ones before it are where it stands.
-      var piece = n === parts.length - 1 ? document.createElement('strong') : document.createElement('span');
-      piece.textContent = part;
-      strip.appendChild(piece);
-    });
-  }
-
-  /**
    * A BLOCK CHOSEN BY THE PERSON — pressed on the page or in the page outline (D-108).
    *
    * THE PANEL TURNS TO CONTENT. The Section tab stays open across selections, so pressing a
@@ -425,7 +327,9 @@
         field.focus({ preventScroll: true });
       }
     }
-    trail(index, null);
+    if (api.trail) {
+      api.trail(index, null);
+    }
   };
 
   // Keys pair a section with its field group and survive reordering, so a drag in the
@@ -452,14 +356,23 @@
     api.tellCanvas('select', { index: index, key: group ? group.getAttribute('data-block-key') : null });
   };
 
-  api.pairKeys = function () {
-    var list = api.sections();
-    api.groupNodes().forEach(function (group, index) {
-      var section = list[index];
-      if (section && !group.getAttribute('data-block-key')) {
-        group.setAttribute('data-block-key', section.getAttribute('data-bx-key'));
-      }
-    });
+  /**
+   * THE CANVAS ELEMENT FOR A FIELD GROUP, found by the key both carry (PLAN.md D-117).
+   *
+   * Never by position. The form's order is not the page's: a block added to a band that has
+   * no group yet goes to the end of the form, and a band dragged on the canvas leaves its
+   * blocks' groups where they were. Every action that found its block as
+   * `api.sections()[index]` — remove, move, duplicate, redraw — acted on whatever block
+   * happened to stand at the form's position on the page. Measured: a block added fourth
+   * on the page and seventh in the form, and Remove took the page's LAST block, off the
+   * screen, while its own stayed. The server writes the key on both halves, so the pairing
+   * exists from the first render and nothing has to reconstruct it.
+   */
+  api.canvasBlock = function (group) {
+    var doc = frame.contentDocument;
+    var key = group ? group.getAttribute('data-block-key') : null;
+
+    return doc && key ? doc.querySelector('.section-column > [data-bx-key="' + key + '"]') : null;
   };
 
   /**
@@ -512,14 +425,11 @@
       return;
     }
     if (event.data.type === 'ready') {
-      api.pairKeys();
       api.show(failedGroup());
     } else if (event.data.type === 'select') {
       api.target = null;
-      // By key when the canvas sent one: its index counts the PAGE's order, not the form's.
-      api.chooseBlock(typeof event.data.key === 'string' && event.data.key !== ''
-        ? api.indexForKey(event.data.key)
-        : event.data.index);
+      // By key, never by index: the canvas's index counts the PAGE's order, not the form's.
+      api.chooseBlock(api.indexForKey(event.data.key));
     } else if (event.data.type === 'selectband') {
       // A band pressed in the page. Named apart from the 'band' message going the other
       // way, which is this editor TELLING the canvas what is marked.
@@ -557,77 +467,11 @@
     }
   });
 
-  form.addEventListener('click', function (event) {
-    if (event.target.closest && event.target.closest('[data-deselect]')) {
-      event.preventDefault();
-      api.show(-1);
-      api.tellCanvas('select', { index: -1 });
-      return;
-    }
-    var device = event.target.closest && event.target.closest('[data-device]');
-    if (device) {
-      event.preventDefault();
-      form.querySelectorAll('[data-device]').forEach(function (button) {
-        button.setAttribute('aria-pressed', String(button === device));
-      });
-      frame.style.width = device.getAttribute('data-width');
-    }
-  });
-
-  // The toolbar shows the page's name; the panel owns the field.
-  var titleField = form.querySelector('#page-title');
-  var titleEcho = form.querySelector('[data-title-echo]');
-  var slugField = form.querySelector('[data-slug-field]');
-  var statusField = form.querySelector('[data-status-field]');
-  var slugEdited = false;
-
-  if (slugField) {
-    slugField.addEventListener('input', function () { slugEdited = true; });
-  }
-
-  /**
-   * The address follows the title, but only while the page is a draft and only until the
-   * address is touched. Two deliberate refusals: a published page's address never changes
-   * behind its author, and an empty address is never generated over — empty means "the
-   * home page of this language", so filling it in would move the site's root.
-   *
-   * The server's Slug is authoritative; this is a convenience that it validates.
-   */
-  function followTitle() {
-    if (!slugField || !titleField || slugEdited) {
-      return;
-    }
-    if (slugField.value === '' || (statusField && statusField.value !== 'draft')) {
-      return;
-    }
-    slugField.value = titleField.value
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 90);
-  }
-
-  if (titleField) {
-    titleField.addEventListener('input', function () {
-      if (titleEcho) {
-        titleEcho.textContent = titleField.value;
-      }
-      followTitle();
-    });
-  }
-
-  form.addEventListener('input', function () { api.dirty = true; });
-  form.addEventListener('change', function () { api.dirty = true; });
-  form.addEventListener('submit', function () { api.dirty = false; });
-  window.addEventListener('beforeunload', function (event) {
-    if (api.dirty) {
-      event.preventDefault();
-      event.returnValue = '';
-    }
-  });
-
   window.boxletBuilder = api;
-  api.show(failedGroup());
+  /* THE FIRST SELECTION WAITS FOR THE REST OF THE EDITOR. The trail and the outline are
+     files of their own (PLAN.md D-117) and run after this one; every deferred script has
+     run by DOMContentLoaded, so this is the first moment all of them can answer. */
+  document.addEventListener('DOMContentLoaded', function () {
+    api.show(failedGroup());
+  });
 })();

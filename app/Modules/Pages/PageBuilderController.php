@@ -246,9 +246,14 @@ final class PageBuilderController
             }
             $content = $block['content'] ?? null;
             $blocks[] = [
-                // Drawn, never saved: pending_canvas holds a refused save, and these ids
-                // were left behind with it. The key only has to be unique in this drawing.
-                'key' => BlockForm::key(null, count($blocks)),
+                /* THE KEY THE SAVE WAS SUBMITTED UNDER, because the form that comes back
+                   with it names its groups by the same keys, and the canvas pairs with the
+                   form by key alone (PLAN.md D-117). A fresh n0, n1 … here named the canvas
+                   one way and the panel another. The id is still dropped: this is drawn,
+                   never saved. */
+                'key' => is_string($block['key'] ?? null) && preg_match(BlockForm::KEY, $block['key']) === 1
+                    ? $block['key']
+                    : BlockForm::key(null, count($blocks)),
                 'id' => null,
                 'type' => $block['type'],
                 'content' => is_array($content) ? $content : null,

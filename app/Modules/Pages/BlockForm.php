@@ -14,7 +14,7 @@ use App\Support\SafeUrl;
 final class BlockForm
 {
     /** What a key may look like when it arrives from a form: b42, n7. */
-    private const KEY = '~^[bn][0-9]{1,9}$~';
+    public const KEY = '~^[bn][0-9]{1,9}$~';
 
     /**
      * A BLOCK'S NAME IN THE EDITOR (PLAN.md D-094), stable while the block exists.

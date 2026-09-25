@@ -157,11 +157,21 @@
    */
   function mintSection() {
     var highest = -1;
-    document.querySelectorAll('[data-block] [data-block-section]').forEach(function (input) {
-      var found = String(input.value).match(/^m([0-9]+)$/);
+    var seen = function (key) {
+      var found = String(key).match(/^m([0-9]+)$/);
       if (found && Number(found[1]) > highest) {
         highest = Number(found[1]);
       }
+    };
+    document.querySelectorAll('[data-block] [data-block-section]').forEach(function (input) {
+      seen(input.value);
+    });
+    /* AND EVERY BAND'S OWN GROUP, because a band nobody has put a block in yet is named
+       only there (D-117). Counting blocks alone gave the second "+ Section" pressed in a row
+       the same `m0` as the first — two bands with one name, and "+ Block" in the second
+       filled the first. */
+    document.querySelectorAll('[data-section-group]').forEach(function (group) {
+      seen(group.getAttribute('data-section-group'));
     });
 
     return 'm' + (highest + 1);

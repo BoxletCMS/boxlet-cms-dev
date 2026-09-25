@@ -315,13 +315,15 @@ test('the selected block\'s controls are on the canvas, and the builder acts on 
     }
     assertContains('data-icons=', $canvas, 'the canvas does not know where the icons are');
 
-    $script = (string) file_get_contents(dirname(__DIR__) . '/public/assets/canvas.js');
+    // The tool bar is canvas-tools.js since the split of D-117.
+    $script = (string) file_get_contents(dirname(__DIR__) . '/public/assets/canvas-tools.js');
     foreach (['up', 'down', 'duplicate', 'remove'] as $action) {
-        assertContains("['{$action}',", $script, "canvas.js offers no {$action} control");
+        assertContains("['{$action}',", $script, "canvas-tools.js offers no {$action} control");
     }
     $builder = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder.js');
     assertContains("event.data.type === 'action' && api.act", $builder, 'builder.js does not route a canvas action');
-    assertContains('api.act = act;', (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js'), 'act() is not exposed');
+    // builder-actions.js since the split of D-117.
+    assertContains('api.act = act;', (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-actions.js'), 'act() is not exposed');
 
     assertTrue(!str_contains(dispatch('/admin/pages/' . $id)->body, 'data-block-action="up"'), 'the panel still carries the controls');
 });

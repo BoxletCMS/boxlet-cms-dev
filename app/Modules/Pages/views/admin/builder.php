@@ -356,7 +356,7 @@ foreach ($errors as $key => $message) {
 
                     <div class="panel-blocks" data-block-groups>
 <?php foreach ($blocks as $index => $block): ?>
-                        <div class="panel-block" data-block-group="<?= e($index) ?>" data-section-key="<?= e($block['section'] ?? '') ?>" hidden>
+                        <div class="panel-block" data-block-group="<?= e($index) ?>" data-block-key="<?= e($block['key']) ?>" data-section-key="<?= e($block['section'] ?? '') ?>" hidden>
 <?php $showSection = false; ?>
 <?php require __DIR__ . '/block.php'; ?>
                         </div>
@@ -407,7 +407,11 @@ foreach ($errors as $key => $message) {
         <?php /* Deferred, so they run in this order: the shell, then the changes, then the
                  history — which replaces the shell's own do-nothing commit() (D-079). */ ?>
         <script src="<?= e(Url::versioned('assets/builder.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-trail.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-page.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-blocks.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-redraw.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/builder-actions.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-undo.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-save.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/builder-library.js')) ?>" defer></script>

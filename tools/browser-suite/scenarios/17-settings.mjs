@@ -8,7 +8,7 @@
  * that saving the site name changes the admin bar, which is the one effect the owner sees
  * immediately.
  *
- * IT PUTS BOTH BACK. The maintenance switch closes this copy to visitors and the site name
+ * IT PUTS BOTH BACK. The maintenance switch closes the site to visitors and the site name
  * shows in every later screenshot, so the scenario restores each one — the maintenance one
  * in a finally, because a scenario that throws halfway must not leave the copy shut for
  * every check that runs after it.
@@ -63,7 +63,10 @@ export default {
     }));
 
     const invisible = pickers.filter((p) => !p.selectVisible && !p.replacementVisible);
-    report.verdict('every picture picker is visible at rest', pickers.length === 3 && invisible.length === 0,
+    /* COUNTED, NOT WRITTEN DOWN (PLAN.md D-117). This said 3 until the header gained a logo
+       for dark surfaces (D-112) and went red with all four shown. What it checks is that
+       there ARE pickers and that none is invisible, not how many a screen has. */
+    report.verdict('every picture picker is visible at rest', pickers.length > 0 && invisible.length === 0,
       `${pickers.length} pickers (${pickers.map((p) => p.name).join(', ')})`
       + (invisible.length ? `; INVISIBLE: ${invisible.map((p) => p.name).join(', ')}` : '; all shown'));
 
@@ -100,6 +103,13 @@ export default {
       `the bar says ${JSON.stringify(restored)}, it was ${JSON.stringify(was)}`);
 
     // ---- the maintenance switch, which moved here from the dashboard ------------------------
+    //
+    // WHICH WAY ROUND THE SITE WAS FOUND, so the end puts back exactly that (D-090, D-117). It
+    // used to leave the site open whatever it found — and on 2026-09-25 that opened the
+    // development site the owner had closed an hour before.
+    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    const found = await page.$eval('form[action$="/admin/maintenance"] input[name="state"]', (i) => i.value)
+      .catch(() => 'on');
     try {
       await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
       const before = await page.$eval('form[action$="/admin/maintenance"] button', (b) => b.textContent.trim());
@@ -116,17 +126,18 @@ export default {
       report.verdict('the dashboard no longer carries the switch', onDashboard === 0,
         `${onDashboard} maintenance forms on the dashboard`);
     } finally {
-      // Whatever happened above, this copy must be open when the scenario ends.
+      // Whatever happened above, the switch ends where it was found. The hidden input is
+      // what the button would DO: `on` offers to close the site, so the site is open.
       await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
       const button = await page.$eval('form[action$="/admin/maintenance"] input[name="state"]', (i) => i.value)
         .catch(() => null);
-      if (button === 'off') {
+      if (button !== null && button !== found) {
         await clickAndWait(page, 'form[action$="/admin/maintenance"] button', 40000);
       }
       const state = await page.$eval('form[action$="/admin/maintenance"] input[name="state"]', (i) => i.value)
         .catch(() => '(unknown)');
-      report.verdict('the scenario leaves the site open', state === 'on',
-        `the switch now offers to turn maintenance ${state}`);
+      report.verdict('the scenario leaves the site open or closed, as it found it', state === found,
+        `found offering to turn maintenance ${found}, now offering ${state}`);
     }
   },
 };

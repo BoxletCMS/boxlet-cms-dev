@@ -72,9 +72,17 @@ test('the canvas renders the real page, with sections as direct children of main
         (bool) preg_match('~<main data-bx-blocks>\s*<section [^>]*class="block ~', $response->body),
         'the first section is not a direct child of main',
     );
+    /* The block carries its key before its class since D-117, the band's rule applied to
+       the block: `b<id>`, the same name its field group has in the panel, which is the only
+       thing the two sides may pair by. What this asserted before is unchanged — the hero
+       stands in a column of the first band — and the key is asserted apart, beside it. */
     assertTrue(
-        (bool) preg_match('~<div class="section-column">\s*<div class="block-hero ~', $response->body),
+        (bool) preg_match('~<div class="section-column">\s*<div [^>]*class="block-hero ~', $response->body),
         'the hero is not standing in a column of the first band',
+    );
+    assertTrue(
+        (bool) preg_match('~<div class="section-column">\s*<div data-bx-key="b[0-9]+" class="block-hero ~', $response->body),
+        'the hero does not carry the key its field group has, so the editor would pair them by counting',
     );
     assertTrue(
         // Its KEY and not its id — `s8` for a stored band, `m0` for one made in this

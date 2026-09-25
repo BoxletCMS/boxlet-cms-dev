@@ -72,6 +72,9 @@ final class PageBlockController
                 continue;
             }
             $blocks[] = [
+                // The key goes back on the drawn block (PLAN.md D-117), so the editor pairs
+                // the redrawn band with its fields by name rather than by counting.
+                'key' => $block['key'],
                 'type' => $block['type'],
                 'content' => $block['content'],
                 'layout' => $block['layout'],

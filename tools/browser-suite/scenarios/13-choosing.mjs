@@ -16,7 +16,7 @@
  *
  * Whether those pictures survive all five characters is 14-front.mjs.
  *
- * Everything it stores it takes back: the demo is left as the seed ships it.
+ * Everything it stores it takes back: every picture field is left as it was found (D-117).
  */
 import { existsSync } from 'node:fs';
 import { BASE, ADMIN } from '../config.mjs';
@@ -55,6 +55,13 @@ export default {
     }
     const formUrl = `${BASE}/admin/pages/${pageId}/form`;
     await page.goto(formUrl, { waitUntil: 'networkidle2' });
+    /* EVERY PICTURE FIELD AS IT STANDS, before anything is chosen, so the end can put back
+       exactly this (PLAN.md D-090, D-117). The end used to set them ALL to nothing, on the
+       belief that the demo's first page has no pictures. It had them — the owner put a
+       gallery and three pictures on it — and a whole-suite run on 2026-09-25 took every one
+       of them off the development site. */
+    const original = await page.$$eval('select[data-media-field]',
+      (els) => els.map((el) => ({ name: el.name, value: el.value })));
 
     // ---- choose ---------------------------------------------------------------------------
     const first = await pick(page, CONTENT_FIELD, 0);
@@ -179,31 +186,33 @@ export default {
       }
     }
 
-    // ---- leave the demo as the seed ships it ------------------------------------------------
+    // ---- leave the page as it was found --------------------------------------------------
     //
-    // BOTH fields, not just the content one. This scenario saved a surface picture, so a
-    // check that looked only at the content field would report success while leaving a
-    // background picture on the demo — every later screenshot, and the owner's own look at
-    // the site, then judges content these checks changed.
-    //
-    // Set directly and fire the events the editors listen for, rather than re-driving the
-    // picker: a restore that went through the control it is undoing can fail the same way.
+    // BOTH kinds of field, content and section background, and every one of them back to
+    // the value it had when this scenario opened the page — not to nothing. Set directly
+    // and fire the events the editors listen for, rather than re-driving the picker: a
+    // restore that went through the control it is undoing can fail the same way.
     await page.goto(formUrl, { waitUntil: 'networkidle2' });
-    await page.$$eval('select[data-media-field]', (els) => {
+    await page.$$eval('select[data-media-field]', (els, was) => {
+      const by = Object.fromEntries(was.map((field) => [field.name, field.value]));
       for (const el of els) {
-        el.value = '';
+        el.value = by[el.name] ?? '';
         el.dispatchEvent(new Event('change', { bubbles: true }));
       }
-    });
+    }, original);
     await save(page);
 
     await page.goto(formUrl, { waitUntil: 'networkidle2' });
-    const leftBehind = await page.$$eval('select[data-media-field]',
-      (els) => els.map((el) => ({ name: el.name, value: el.value })).filter((f) => f.value !== ''));
-    report.verdict('the demo page is left as the seed ships it, with no picture of either kind',
-      leftBehind.length === 0,
-      leftBehind.length === 0
-        ? 'neither a content picture nor a section background is stored'
-        : `still stored: ${JSON.stringify(leftBehind)}`);
+    const now = await page.$$eval('select[data-media-field]',
+      (els) => els.map((el) => ({ name: el.name, value: el.value })));
+    const differs = original.filter((field) => {
+      const found = now.find((other) => other.name === field.name);
+      return !found || found.value !== field.value;
+    });
+    report.verdict('the page is left with exactly the pictures it had, of either kind',
+      differs.length === 0,
+      differs.length === 0
+        ? `${original.filter((f) => f.value !== '').length} picture(s) as they were`
+        : `not as found: ${JSON.stringify(differs)}`);
   },
 };

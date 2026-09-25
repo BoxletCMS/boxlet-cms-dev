@@ -46,12 +46,15 @@
       close();
     }
   });
+  // In the capture phase and marked as handled, so the page editor's own Escape — which
+  // drops the selection — sees that this one was for the picker (PLAN.md D-117).
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && open) {
+      event.preventDefault();
       close();
       open = null;
     }
-  });
+  }, true);
 
   function text(select, name) {
     return select.getAttribute('data-text-' + name) || '';

@@ -315,6 +315,8 @@ return [
     'block.group.marketing' => 'Marketing',
     'block.group.embed' => 'Embed',
     'pages.insert_here' => 'Add a section here',
+    // On a block that draws nothing yet, in the canvas only (PLAN.md D-117).
+    'pages.canvas_empty_block' => 'Empty — fill it in on the right',
     'pages.insert_at_end' => 'Add a section at the end',
     'pages.insert_in_column' => 'Add a block in this column',
     // THE WORD ON THE CONTROL ITSELF, where the sentence above is what it is called for

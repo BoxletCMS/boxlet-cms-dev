@@ -54,6 +54,8 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-words.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-media.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-header.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">

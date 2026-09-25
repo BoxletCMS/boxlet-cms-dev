@@ -54,6 +54,8 @@
      known to have changed something — a drag that ends where it began must not leave an
      undo step that appears to do nothing. */
   var beforeDrag = null;
+  // And the arrangement it was taken from, both kinds, read at the same moment.
+  var beforeArrangement = null;
   /* Whether the field that has focus has been typed in since it got it — which is what
      tells a cursor the author placed from one api.show() left behind. */
   var typed = false;
@@ -97,39 +99,74 @@
     });
   }
 
+  /**
+   * The page as it stands: the blocks' fields, the BANDS' fields, and the canvas.
+   *
+   * The bands' fields are a sibling of the blocks' in the panel, not inside them, and were
+   * left out when bands arrived (D-099). Measured (D-117): remove a band, undo, and the
+   * band and its blocks came back on the canvas while its own fields did not — so its
+   * Section tab was empty, and the save put each of its blocks in a band of its own at the
+   * foot of the page.
+   */
   function snapshot() {
     var page = main();
+    var bands = api.sectionGroups();
     sync(api.groups);
+    if (bands) {
+      sync(bands);
+    }
 
     return page === null ? null : {
       groups: api.groups.innerHTML,
+      bands: bands ? bands.innerHTML : null,
       canvas: page.innerHTML,
       selected: api.selected(),
+      band: api.band || null,
     };
   }
 
-  /**
-   * The page's arrangement as the FORM holds it, said the same way the canvas says it, so
-   * the two can be compared to decide whether a drag moved anything (PLAN.md D-103).
-   */
-  function order(kind) {
-    if (kind === 'bands') {
-      var seen = [];
-      api.groupNodes().forEach(function (group) {
-        var key = group.getAttribute('data-section-key');
-        if (key && seen.indexOf(key) < 0) {
-          seen.push(key);
-        }
-      });
-
-      return seen.join('|');
+  function push(state) {
+    history.push(state);
+    if (history.length > DEPTH) {
+      history.shift();
     }
+    offer();
+  }
 
-    return api.groupNodes().map(function (group) {
-      return group.getAttribute('data-block-key') + '@'
-        + group.getAttribute('data-section-key') + ':'
-        + ((group.querySelector('[data-block-column]') || {}).value || '0');
-    }).join('|');
+  /**
+   * The page's arrangement as the CANVAS holds it, said the way the canvas reports a drag,
+   * so the two can be compared to decide whether a drag moved anything (PLAN.md D-103).
+   *
+   * READ WHEN THE DRAG STARTS, from the canvas (D-117). It used to be read from the FORM
+   * when the drag was reported — after builder.js had already replayed the drag onto the
+   * form, since its listener runs first — so before and after were always the same and no
+   * drag was ever undoable. Measured on the copy, on the code before and after this entry:
+   * a block moved into another column, and the undo control stayed disabled. The form was
+   * never the right thing to compare with anyway: its order is not the page's.
+   */
+  function arrangement(kind) {
+    var page = main();
+    if (page === null) {
+      return '';
+    }
+    var bands = Array.prototype.filter.call(page.children, function (node) {
+      return node.tagName === 'SECTION';
+    });
+    if (kind === 'bands') {
+      return bands.map(function (band) {
+        return band.getAttribute('data-bx-section');
+      }).join('|');
+    }
+    var where = [];
+    bands.forEach(function (band) {
+      Array.prototype.forEach.call(band.querySelectorAll('.section-column'), function (column, at) {
+        Array.prototype.forEach.call(column.children, function (block) {
+          where.push(block.getAttribute('data-bx-key') + '@' + band.getAttribute('data-bx-section') + ':' + at);
+        });
+      });
+    });
+
+    return where.join('|');
   }
 
   function show(message) {
@@ -160,17 +197,82 @@
     if (state === null) {
       return;
     }
-    history.push(state);
-    if (history.length > DEPTH) {
-      history.shift();
-    }
+    /* A structural change ends any edit in progress, and the next keystroke is a new step
+       — recorded from the page as it is once this change has been made, which is after the
+       caller's own code has run. The cursor can stay in a field across the change, and
+       that field would otherwise never be recorded again until it lost focus. */
+    settle();
+    push(state);
     if (message) {
       show(message);
     } else {
       hide();
     }
-    offer();
   };
+
+  /*
+   * AN EDIT IS A STEP OF ITS OWN (PLAN.md D-117).
+   *
+   * Undo restores the page as it was before the last change it knows about — and it used to
+   * know only about structural ones. So everything typed since then went with it: remove
+   * block A, rewrite block B's heading, press Undo, and A came back while B's heading
+   * reverted. Measured on the development site, "… else PROBE" back to "… else".
+   *
+   * Now the page is recorded before a field can change. It is read whenever something
+   * among the fields is entered — by focus, or by the pointer, which can change a value
+   * before focus has moved: a label, a radio, a picture chosen in the picker — and pushed
+   * only when a value actually changes. One entry, one step, however many keystrokes: typing a sentence is one thing
+   * to take back, not forty. Undo then takes back the writing first and the structure
+   * after it, in the order they happened.
+   *
+   * The canvas in that record is the canvas BEFORE the edit, so the redraw an edit causes
+   * is undone with it; which is why the band redraw no longer takes a step of its own.
+   */
+  var editing = null;
+  var armed = false;
+
+  /**
+   * RECORD THE PAGE AS IT NOW STANDS, ready for whatever changes next — once the canvas is
+   * ready, after a structural change, after an undo, after a drag. Read after the caller's
+   * own code has run, so it holds the change just made and not the page before it.
+   *
+   * Entering a field records it again (arm, below), which is what keeps one entry one step.
+   * This is what covers a change that arrives WITHOUT anyone entering a field: the cursor
+   * left in a field across a structural change, or a value set by a script — measured, the
+   * 46-drag-columns scenario sets a band's columns that way, and the change took no step.
+   */
+  function settle() {
+    editing = null;
+    armed = false;
+    window.setTimeout(function () {
+      editing = snapshot();
+      armed = editing !== null;
+    }, 0);
+  }
+
+  function arm(event) {
+    if (!event.target.closest || !event.target.closest('[data-block-groups], [data-section-groups]')) {
+      return;
+    }
+    editing = snapshot();
+    armed = true;
+  }
+
+  function edited(event) {
+    if (!armed || editing === null || !event.target.closest
+      || !event.target.closest('[data-block-groups], [data-section-groups]')) {
+      return;
+    }
+    armed = false;
+    push(editing);
+    editing = null;
+    hide();
+  }
+
+  api.form.addEventListener('focusin', arm);
+  api.form.addEventListener('pointerdown', arm, true);
+  api.form.addEventListener('input', edited, true);
+  api.form.addEventListener('change', edited, true);
 
   api.undo = function () {
     var state = history.pop();
@@ -180,27 +282,42 @@
     }
     hide();
 
+    var bands = api.sectionGroups();
     api.groups.innerHTML = state.groups;
+    if (bands && state.bands !== null) {
+      bands.innerHTML = state.bands;
+    }
     page.innerHTML = state.canvas;
 
     /* A restored group's rich text and picker are dead markup for exactly the reason a
        clone's are: the editor host and the picker panel are still bound to the elements
        they were raised on, which this has just replaced. So they are taken back down to
-       the plain textarea and select the server sent, and raised again. */
-    api.unsetLive(api.groups);
-    if (window.boxletRichText) {
-      window.boxletRichText.scan(api.groups);
-    }
-    if (window.boxletPicker) {
-      window.boxletPicker.scan(api.groups);
-    }
+       the plain textarea and select the server sent, and raised again. A band's picture
+       is a picker too. */
+    [api.groups, bands].forEach(function (root) {
+      if (!root) {
+        return;
+      }
+      api.unsetLive(root);
+      if (window.boxletRichText) {
+        window.boxletRichText.scan(root);
+      }
+      if (window.boxletPicker) {
+        window.boxletPicker.scan(root);
+      }
+    });
 
     api.renumber();
     // An answer already in flight was asked for by a page that no longer exists.
     api.forget();
     api.tellCanvas('refresh', {});
-    api.show(state.selected);
-    api.selectOnCanvas(state.selected);
+    if (state.band && api.selectBand) {
+      api.selectBand(state.band);
+    } else {
+      api.show(state.selected);
+      api.selectOnCanvas(state.selected);
+    }
+    settle();
     offer();
   };
 
@@ -208,27 +325,27 @@
     if (event.origin !== window.location.origin || !event.data || event.data.source !== 'boxlet-canvas') {
       return;
     }
-    if (event.data.type === 'drag-start') {
+    if (event.data.type === 'ready') {
+      settle();
+    } else if (event.data.type === 'drag-start') {
       beforeDrag = snapshot();
+      beforeArrangement = { bands: arrangement('bands'), placed: arrangement('placed') };
     } else if (event.data.type === 'placed' || event.data.type === 'bands') {
-      /* The form still holds the old arrangement at this moment, so comparing the two says
-         whether the drag moved anything at all. PLACES and not an order since D-103: a
-         block that crossed into another column can leave the reading order untouched, and
-         comparing orders called that "nothing happened" — an un-undoable move. */
+      /* Compared with the arrangement the drag started from. PLACES and not an order since
+         D-103: a block that crossed into another column can leave the reading order
+         untouched, and comparing orders called that "nothing happened" — an un-undoable
+         move. */
       var now = event.data.type === 'bands'
         ? event.data.keys.join('|')
         : event.data.at.map(function (where) {
           return where.key + '@' + where.section + ':' + where.column;
         }).join('|');
-      var moved = beforeDrag !== null && now !== order(event.data.type);
-      if (moved) {
-        history.push(beforeDrag);
-        if (history.length > DEPTH) {
-          history.shift();
-        }
-        offer();
+      if (beforeDrag !== null && beforeArrangement !== null && now !== beforeArrangement[event.data.type]) {
+        push(beforeDrag);
+        settle();
       }
       beforeDrag = null;
+      beforeArrangement = null;
     } else if (event.data.type === 'undo') {
       api.undo();
     }
@@ -242,6 +359,12 @@
   });
 
   document.addEventListener('keydown', function (event) {
+    /* An Escape something else has already answered — the link box in rich text, the
+       picture picker — was for that, and closing it must not also drop the selection and
+       hide the panel the person is working in. */
+    if (event.key === 'Escape' && event.defaultPrevented) {
+      return;
+    }
     if (event.key === 'Escape') {
       api.show(-1);
       api.tellCanvas('select', { index: -1 });

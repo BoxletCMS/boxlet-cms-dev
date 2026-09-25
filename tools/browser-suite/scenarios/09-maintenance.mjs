@@ -10,8 +10,9 @@
  * else the browser has cached about that origin.
  *
  * The flag is switched through the admin's own toggle, not by writing the file, so this
- * exercises the control the owner actually uses. It is switched off again in a finally,
- * because leaving it on would break every scenario that runs after this one.
+ * exercises the control the owner actually uses. It is put back as it was found in a
+ * finally: left on by this scenario, every scenario after it would break; left off over the
+ * owner's own choice, the site he closed is shown.
  */
 import { BASE, ADMIN } from '../config.mjs';
 import { login, clickAndWait, heading, SHOTS } from '../harness.mjs';
@@ -29,6 +30,15 @@ export default {
 
     let visitor = null;
     let context = null;
+    /* THE SITE MAY BE CLOSED ALREADY — the owner closes the development site when he wants
+       it hidden. The checks below start from open, so a closed site is opened first and
+       closed again at the end: the finally used to leave it open whatever it found, and on
+       2026-09-25 that opened a site the owner had closed (PLAN.md D-117). */
+    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    const foundClosed = await page.evaluate(() => /Turn off maintenance mode/i.test(document.body.textContent));
+    if (foundClosed) {
+      await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');
+    }
 
     try {
       // ---- the settings screen says which way round the site is -----------------------
@@ -114,11 +124,12 @@ export default {
         back.status() === 200 && !/back in a moment/i.test(backText),
         `status ${back.status()}, page says "${backText.slice(0, 60)}"`);
     } finally {
-      // Never leave the site closed: every scenario after this one would fail.
+      // As it was found: open, or closed by the owner. Left closed by this scenario, every
+      // scenario after it would fail; left open over the owner's choice, the site is shown.
       try {
         await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
-        const stillOn = await page.evaluate(() => /Turn off maintenance mode/i.test(document.body.textContent));
-        if (stillOn) {
+        const closedNow = await page.evaluate(() => /Turn off maintenance mode/i.test(document.body.textContent));
+        if (closedNow !== foundClosed) {
           await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');
         }
       } catch {

@@ -77,6 +77,7 @@ foreach ($rail as $entries) {
     <title><?= e($title) ?></title>
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-tokens.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-choices.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-shell.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-strip.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/admin-rail-compact.css')) ?>">

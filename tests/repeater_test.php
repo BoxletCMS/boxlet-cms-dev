@@ -307,9 +307,11 @@ test('guard (source, not behaviour): a picker can be raised on markup that arriv
     // Idempotent, or a duplicated block would get two buttons in front of one field.
     assertContains('data-picker-ready', $picker, 'upgrading twice is no longer refused');
 
+    // Adding and duplicating live in two files since the split of D-117.
     $builder = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js');
     assertContains('boxletPicker.scan', $builder, 'an inserted block never becomes a picker');
-    assertContains('unsetPicker', $builder, 'a duplicated block keeps its clone\'s dead picker');
+    $actions = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-actions.js');
+    assertContains('unsetPicker', $actions, 'a duplicated block keeps its clone\'s dead picker');
 });
 
 test('moving an item swaps it with its neighbour, and only within its own block', function (): void {

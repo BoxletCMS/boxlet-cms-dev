@@ -462,6 +462,40 @@ test('a section key is a closed shape, like a block key', function () {
     assertEquals('m0', $odd[0]['key'], 'a key nobody should have sent was echoed back');
 });
 
+testBothDrivers('a band copy that still carries its original\'s id is saved as a band of its own', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'hero', 'content' => ['heading' => 'Hi']]]);
+    [$hero] = blockIdsInOrder($db, $id);
+    $sectionId = (int) array_key_first(Sections::forPage($db, $id));
+
+    /* WHAT THE EDITOR POSTED before D-117: the copy `m0` kept `sections[m0][id]` at the
+       original's id, and its block — a new one — named `m0` as its section. The save wrote
+       both bands into the one row. */
+    $parsed = App\Modules\Pages\BlockForm::parse(blockRegistry(), [
+        'b' . $hero => ['id' => (string) $hero, 'type' => 'hero', 'heading' => 'Hi', 'section' => 's' . $sectionId, 'column' => '0'],
+        'n0' => ['type' => 'hero', 'heading' => 'Hi', 'section' => 'm0', 'column' => '0'],
+    ], [$hero => Page::editable($db, blockRegistry(), $id)[0]]);
+    $sections = App\Modules\Pages\SectionForm::parse([
+        's' . $sectionId => ['id' => (string) $sectionId, 'layout' => 'one', 'style' => ['surface' => 'plain']],
+        'm0' => ['id' => (string) $sectionId, 'layout' => 'one', 'style' => ['surface' => 'contrast']],
+    ], [$sectionId => $sectionId]);
+    assertEquals($sectionId, $sections[0]['id'], 'the first to send the id keeps it');
+    assertEquals(null, $sections[1]['id'], 'the second was believed to be the first');
+
+    Page::update($db, blockRegistry(), $id, [
+        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
+    ], $parsed['blocks'], $sections);
+
+    $after = Sections::forPage($db, $id);
+    assertEquals(2, count($after), 'two bands were posted and this many were saved');
+    assertEquals('plain', $after[$sectionId]['style']['surface'] ?? null, 'the original took the copy\'s style');
+    $held = [];
+    foreach (Page::editable($db, blockRegistry(), $id) as $block) {
+        $held[$block['section']] = ($held[$block['section']] ?? 0) + 1;
+    }
+    assertEquals([1, 1], array_values($held), 'each band holds its own block, not one band both');
+});
+
 testBothDrivers('a revision remembers how the page was arranged, and restoring puts it back', function (string $driver) {
     $db = adminSite($driver);
     $registry = blockRegistry();

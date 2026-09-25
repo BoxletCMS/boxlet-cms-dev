@@ -62,8 +62,9 @@ test('guard (source, not behaviour): a rich text edit announces itself', functio
         'the editor stopped announcing its edits, so the canvas will not follow the text',
     );
 
-    // The listener the event has to reach, and the delay it is debounced by.
-    $blocks = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js');
+    // The listener the event has to reach, and the delay it is debounced by — in
+    // builder-redraw.js since the split of D-117.
+    $blocks = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-redraw.js');
     assertContains("api.groups.addEventListener('input'", $blocks, 'the field groups no longer listen for input');
     assertTrue(
         (bool) preg_match('~setTimeout\(redraw,\s*(\d{2,4})\)~', $blocks, $delay) && (int) $delay[1] <= 400,
@@ -102,7 +103,8 @@ test('guard (source, not behaviour): naming a group knows nothing about the rich
 });
 
 test('guard (source, not behaviour): a duplicate is reset to a plain textarea before it is placed', function () {
-    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js');
+    // builder-actions.js since the split of D-117.
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-actions.js');
 
     /* A duplicate no longer becomes a band of its own at the next position on the page
        (D-103) — it stands beside the block it was copied from, in the same column — so what

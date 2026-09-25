@@ -13,7 +13,7 @@
  * @var bool $eager the first section on the page, which is never lazy-loaded
  */
 
-/* THE PICTURE BEHIND THE WORDS (PLAN.md D-118): the three cover arrangements. The hero's own
+/* THE PICTURE BEHIND THE WORDS (PLAN.md D-118): the four cover arrangements. The hero's own
    picture, so it is content and keeps its alt, laid under the words with a veil of the
    contrast colour between them; blocks-hero.css decides how far it reaches — the whole band
    when the hero stands alone in it, its own box when it shares one. The layer is drawn even

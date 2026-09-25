@@ -170,22 +170,32 @@
 .layout-cover-left .hero.is-cover,
 .layout-cover-low .hero.is-cover,
 .layout-cover-left .hero.is-cover > .hero-text,
-.layout-cover-low .hero.is-cover > .hero-text {
+.layout-cover-low .hero.is-cover > .hero-text,
+.layout-cover-right .hero.is-cover > .hero-text {
   justify-items: start;
   text-align: start;
 }
 
 .layout-cover-left .hero.is-cover > .hero-text,
+.layout-cover-right .hero.is-cover > .hero-text,
 .layout-cover-low .hero.is-cover > .hero-text {
   max-width: var(--container-narrow);
+}
+
+/* ON THE RIGHT (the owner, 2026-09-25: "trebala bi i opcija desno"). The column of words
+   stands against the right edge, and the words in it are still ranged left: a paragraph
+   ranged right is hard to read past its first line, and the edge the arrangement names is
+   the column's, not every line's. */
+.layout-cover-right .hero.is-cover {
+  justify-items: end;
 }
 
 .layout-cover-low .hero.is-cover {
   align-content: end;
 }
 
-/* A VEIL THAT FOLLOWS THE WORDS, where the words have a side to be on. Left: dense across
-   the part of the band the words can reach, clearing towards the other edge. Low: dense
+/* A VEIL THAT FOLLOWS THE WORDS, where the words have a side to be on. Left or right: dense
+   across the part of the band the words can reach, clearing towards the other edge. Low: dense
    over the lower half, clearing upwards — only when the hero is taller than its words,
    since a hero as tall as its words has words all the way up. The dense part is the full
    strength, so the guarantee above holds wherever the words are. On a narrow screen the
@@ -196,6 +206,11 @@
     background-image: linear-gradient(90deg, var(--color-contrast) 0%, var(--color-contrast) 55%, transparent 100%);
   }
 
+  .layout-cover-right .hero-cover-picture::after {
+    background: none;
+    background-image: linear-gradient(270deg, var(--color-contrast) 0%, var(--color-contrast) 55%, transparent 100%);
+  }
+
   .layout-cover-low .hero.is-cover:not(.height-content) .hero-cover-picture::after {
     background: none;
     background-image: linear-gradient(0deg, var(--color-contrast) 0%, var(--color-contrast) 50%, transparent 100%);
@@ -204,8 +219,10 @@
 
 /* ---- how tall ------------------------------------------------------------------------------ */
 
+/* 56svh: 70 was a fifth too tall, the owner's measure (2026-09-25, "Tall je malo previsok,
+   treba ga smanjiti za 20%"). */
 .hero.is-cover.height-tall {
-  min-block-size: 70svh;
+  min-block-size: 56svh;
 }
 
 /* The whole window, less the band's own padding above and below, which the picture covers

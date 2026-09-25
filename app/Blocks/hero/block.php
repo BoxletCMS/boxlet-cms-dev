@@ -21,6 +21,6 @@ return [
         'height' => ['type' => 'select', 'options' => ['content', 'tall', 'screen']],
         'veil' => ['type' => 'select', 'options' => ['light', 'medium', 'strong']],
     ],
-    'layouts' => ['left', 'center', 'split', 'cover-center', 'cover-left', 'cover-low'],
+    'layouts' => ['left', 'center', 'split', 'cover-center', 'cover-left', 'cover-right', 'cover-low'],
     'defaults' => ['layout' => 'center'],
 ];

@@ -80,6 +80,11 @@ test('a cover arrangement draws the picture behind the words, and the others dra
     assertContains('alt="The harbour at dusk"', $cover, 'it is content, so it keeps its alt');
     assertTrue(!str_contains($cover, 'hero-media'), 'a cover hero also drew the picture beside the words');
 
+    // Every cover arrangement is one: the fourth, on the right, came after the first three.
+    foreach (['cover-center', 'cover-left', 'cover-right', 'cover-low'] as $arrangement) {
+        assertContains('hero is-cover', coverHero($content, $arrangement, $media), "{$arrangement} is not a cover");
+    }
+
     // No picture yet: the layer is still drawn, because its colour is what the words are
     // set for.
     $empty = coverHero(['heading' => 'Welcome'], 'cover-center');

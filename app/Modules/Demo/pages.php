@@ -226,13 +226,13 @@ return [
                 'heading' => 'Everything you can put on a page',
                 'subheading' => 'One of each, in each of its shapes. Switch the character and every one of them changes with it.',
             ], ['rhythm' => 'tight'], 'center'],
-            // THE HERO WITH A PICTURE BEHIND ITS WORDS (PLAN.md D-118), in its three
+            // THE HERO WITH A PICTURE BEHIND ITS WORDS (PLAN.md D-118), in its four
             // arrangements, each at another height and shade. With no picture chosen, which
             // is what a showroom without media has, the contrast colour stands in for one.
             // The band's own width, not full: the picture reaches the band's edges whatever
             // the width, and the width is what lines the words up with the rest of the page
             // — at full, they stood at the window's edge under a header that did not.
-            ['text', ['heading' => 'A picture behind the words', 'body' => '<p>Three arrangements of the hero, each with a height and a shade of its own. Choose a picture and it fills the band.</p>'], ['width' => 'narrow'], 'single'],
+            ['text', ['heading' => 'A picture behind the words', 'body' => '<p>Four arrangements of the hero, each with a height and a shade of its own. Choose a picture and it fills the band.</p>'], ['width' => 'narrow'], 'single'],
             ['hero', [
                 'heading' => 'Words in the middle',
                 'subheading' => 'As tall as the words, with the lightest shade.',
@@ -246,6 +246,12 @@ return [
                 'height' => 'tall',
                 'veil' => 'medium',
             ], [], 'cover-left'],
+            ['hero', [
+                'heading' => 'Words on the right',
+                'subheading' => 'Tall, the same shade turned the other way.',
+                'height' => 'tall',
+                'veil' => 'medium',
+            ], [], 'cover-right'],
             ['hero', [
                 'heading' => 'Words low on the left',
                 'subheading' => 'Tall, with the strongest shade gathered under the words.',

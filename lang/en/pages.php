@@ -39,6 +39,7 @@ return [
     // The picture behind the words (PLAN.md D-118).
     'block.hero.layout.cover-center' => 'Picture behind, words centred',
     'block.hero.layout.cover-left' => 'Picture behind, words on the left',
+    'block.hero.layout.cover-right' => 'Picture behind, words on the right',
     'block.hero.layout.cover-low' => 'Picture behind, words low on the left',
     'block.hero.height' => 'Height',
     'block.hero.height.content' => 'As tall as the words',

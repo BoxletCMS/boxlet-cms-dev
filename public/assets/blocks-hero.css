@@ -67,13 +67,16 @@
 
 /* ---- THE PICTURE BEHIND THE WORDS (D-118) -----------------------------------------------
 
-   Three arrangements — words centred, on the left, low on the left — a height, and a veil.
+   Four arrangements — words centred, on the left, on the right, low on the left — a height,
+   and a veil.
 
    HOW FAR THE PICTURE REACHES. Alone in its band (one column, one block), the hero lets its
    picture reach the whole band, edge to edge and through the band's own padding, the way a
    section's background picture does (D-024): the picture is positioned against the band,
-   which is already position: relative. Sharing a band, it stays a panel in its own box, so
-   it never lies under a neighbour whose words are set for another surface. Said in :has()
+   which is already position: relative. Sharing a band of one column, it reaches the band's
+   edges across and only its own height down (D-124, below). Beside a neighbour, in a band
+   of columns, it stays a panel in its own box, so it never lies under a neighbour whose
+   words are set for another surface. Said in :has()
    on both of the band's shapes: the page's, where a lone block IS the band, and the
    editor's, where it stands in a column (D-103). */
 
@@ -104,6 +107,31 @@
   position: static;
   padding: 0;
   overflow: visible;
+  border-radius: 0;
+}
+
+/* SHARING A BAND OF ONE COLUMN, IT STILL REACHES BOTH EDGES (PLAN.md D-124, the owner:
+   "da, može"). Across, from edge to edge of the band — the box's edges on a boxed page,
+   the window's otherwise — and down, only its own height, so it never lies under the block
+   above or below it, whose words are set for the band's own surface. Its words stay in
+   line with the column's, the page's text.
+
+   The band measures itself for it: a band holding a cover hero is an inline-size container,
+   so 100cqi is the band's width whatever decided it, and the hero steps out of its column by
+   exactly the difference on each side. A band of two columns keeps it a panel in its own
+   box — there the neighbour stands BESIDE it. */
+.block:has(.hero.is-cover) {
+  container-type: inline-size;
+}
+
+/* No width of its own: a block with an automatic width and negative side margins widens by
+   exactly those margins. Given `inline-size: 100cqi` instead, the hero widened its own
+   wrapper, which the column sizes to its content — so the 50% the margins are measured
+   against grew with it and the margins came to nothing (measured: 50% and 50cqi both 640
+   pixels, the hero 1280 wide and starting at the column's edge, 32 pixels past the band's). */
+.block:has(> .container > .section-cols > .section-column:only-child > * + *) .section-column > * > .hero.is-cover {
+  margin-inline: calc(50% - 50cqi);
+  padding-inline: calc(50cqi - 50%);
   border-radius: 0;
 }
 

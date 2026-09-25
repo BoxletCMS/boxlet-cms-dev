@@ -11,7 +11,8 @@ use Throwable;
  * problem: a shared host cuts a request off mid-work).
  *
  * Measured on this machine, a 2400×1600 photograph: one full-size AVIF takes 1272 ms
- * through Imagick, and the whole set of five presets in three formats takes about 5.6 s.
+ * through Imagick, and the whole set of the five presets there then were, in three formats,
+ * takes about 5.6 s.
  * A 30-second host survives one upload and not two at once. So generation does what it
  * can inside a budget the caller passes, records what it made, and leaves the row
  * incomplete for someone to finish.
@@ -21,13 +22,14 @@ use Throwable;
  * would be dead code in development and first exercised on a customer's server.
  *
  * Order is priority order. thumb and card are what the library and most pages show, so
- * they exist first even if nothing else does; full is last because it is the most
- * expensive and the least often needed.
+ * they exist first even if nothing else does, and natural, which logos and uncropped
+ * pictures draw from, right after them; full is last because it is the most expensive and
+ * the least often needed.
  */
 final class MediaVariants
 {
     /** Cheapest and most needed first. */
-    public const ORDER = ['thumb', 'card', 'wide', 'hero', 'full'];
+    public const ORDER = ['thumb', 'card', 'natural', 'wide', 'hero', 'full'];
 
     /**
      * Where variants_json records the best-effort formats this picture cannot have.

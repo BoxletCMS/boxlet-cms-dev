@@ -3,7 +3,8 @@
  * One picture, with an optional caption under it.
  *
  * `card` and `wide` rather than `hero`: this block is as wide as the column it stands in,
- * and a column is at most the container (SPEC §5.5). A picture that has been deleted, or
+ * and a column is at most the container (SPEC §5.5). The natural shape asks for `natural`
+ * and `full` instead, the two that are not cropped. A picture that has been deleted, or
  * whose variants are still being made, shows the same placeholder every other block shows
  * rather than a broken URL.
  *
@@ -14,7 +15,11 @@
  * @var bool $eager
  */
 $picture = is_int($content['image'] ?? null) ? ($media[$content['image']] ?? null) : null;
-$tag = \App\Modules\Media\MediaPicture::tag($picture, ['card', 'wide'], '(max-width: 40rem) 100vw, 50vw', $eager);
+/* A NATURAL SHAPE IS THE PICTURE'S OWN (D-119). `card` and `wide` are cropped to 3:2 and
+   1.9:1, so "natural" drew every picture landscape — a portrait 1000×1333 as 600×400. The
+   other shapes are drawn by the stylesheet over a crop, and keep asking for one. */
+$presets = $content['shape'] === 'natural' ? ['natural', 'full'] : ['card', 'wide'];
+$tag = \App\Modules\Media\MediaPicture::tag($picture, $presets, '(max-width: 40rem) 100vw, 50vw', $eager);
 ?>
 <figure class="picture shape-<?= e($content['shape']) ?>">
     <div class="picture-frame">

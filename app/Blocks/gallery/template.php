@@ -16,6 +16,8 @@
  * @var bool $eager
  */
 $sizes = '(max-width: 40rem) 50vw, ' . (['two' => '50vw', 'four' => '25vw'][$layout] ?? '33vw');
+// A natural shape is each picture's own, so it asks for the uncropped presets (D-119).
+$presets = $content['shape'] === 'natural' ? ['natural', 'full'] : ['card', 'wide'];
 ?>
 <div class="gallery shape-<?= e($content['shape']) ?>">
 <?php if ($content['heading'] !== ''): ?>
@@ -25,7 +27,7 @@ $sizes = '(max-width: 40rem) 50vw, ' . (['two' => '50vw', 'four' => '25vw'][$lay
 <?php foreach ($content['items'] as $item): ?>
 <?php
     $picture = is_int($item['image']) ? ($media[$item['image']] ?? null) : null;
-    $tag = \App\Modules\Media\MediaPicture::tag($picture, ['card', 'wide'], $sizes, $eager);
+    $tag = \App\Modules\Media\MediaPicture::tag($picture, $presets, $sizes, $eager);
 ?>
         <figure class="gallery-item<?= $item['image'] === null && $item['caption'] === '' ? ' is-empty' : '' ?>">
             <div class="gallery-frame">

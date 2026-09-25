@@ -5,8 +5,9 @@ use App\Modules\Media\MediaPresets;
 // The arithmetic behind every cropped variant. Pure, so it is worth pinning precisely:
 // a mistake here cuts heads off photographs, and does it silently.
 
-test('the five presets of SPEC 5.5 exist and nothing else does', function () {
-    assertEquals(['thumb', 'card', 'wide', 'hero', 'full'], MediaPresets::names(), 'presets');
+// Six since D-119, by the owner's decision: `natural` is the small size that is never cut.
+test('the six presets of SPEC 5.5 exist and nothing else does', function () {
+    assertEquals(['thumb', 'card', 'natural', 'wide', 'hero', 'full'], MediaPresets::names(), 'presets');
     assertTrue(MediaPresets::exists('hero'), 'hero');
     assertTrue(!MediaPresets::exists('2400x1600'), 'a size named in a URL is not a preset');
 });
@@ -65,6 +66,18 @@ test('full keeps the proportions and bounds the width', function () {
     assertEquals(4000, $full['width'], 'the whole source');
     assertEquals(2400, $full['targetWidth'], 'bounded at 2400');
     assertEquals(1800, $full['targetHeight'], '4:3 kept');
+});
+
+test('natural keeps the whole picture, bounded at 960 and never enlarged', function () {
+    // The wordmark D-119 was measured on: thumb made it 69×69 and card 103×69.
+    $mark = MediaPresets::crop('natural', 320, 69);
+    assertEquals([0, 0, 320, 69], [$mark['x'], $mark['y'], $mark['width'], $mark['height']], 'the whole source');
+    assertEquals([320, 69], [$mark['targetWidth'], $mark['targetHeight']], 'drawn at its own size');
+
+    // A portrait photograph, which card drew landscape.
+    $portrait = MediaPresets::crop('natural', 1000, 1333);
+    assertEquals([0, 0, 1000, 1333], [$portrait['x'], $portrait['y'], $portrait['width'], $portrait['height']], 'the whole portrait, nothing cut');
+    assertEquals([960, 1280], [$portrait['targetWidth'], $portrait['targetHeight']], 'bounded at 960, 3:4 kept');
 });
 
 test('a variant\'s path is its URL, and carries the preset and the id', function () {

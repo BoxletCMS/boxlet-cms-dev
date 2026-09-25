@@ -80,8 +80,12 @@ test('the admin renders identically whatever the site design is', function () {
     createPage($db, 'en', 'about', 'About');
     $chrome = static function (): string {
         $body = dispatch('/admin/pages')->body;
-        // Everything but the cache-busting version of the admin's own assets.
-        return (string) preg_replace('~\?v=[0-9a-f]+~', '', $body);
+        // Everything but the cache-busting version of the admin's own assets, and the
+        // strip's clock: the two renders straddled a minute on 2026-09-25 (14:58, 14:59)
+        // and the admin was reported as changing with the design (PLAN.md D-119).
+        $body = (string) preg_replace('~\?v=[0-9a-f]+~', '', $body);
+
+        return (string) preg_replace('~ · [0-9]{2}:[0-9]{2}</span>~', ' · --:--</span>', $body);
     };
 
     adminPost('/admin/appearance', designFields(\App\Modules\Design\Presets::get('editorial')) + ['action' => 'save']);

@@ -34,9 +34,10 @@ $onDark = ($resolved['logo_dark'] ?? false) === true;
 $logoId = $onDark && is_int($content['logo_dark'] ?? null) && isset($media[$content['logo_dark']])
     ? $content['logo_dark']
     : (is_int($content['logo'] ?? null) ? $content['logo'] : null);
-/* `full`, the one preset that is never cropped (SPEC §5.5): a logo keeps the shape it was
-   uploaded in (D-038). thumb and card cut a wide logo down to its middle. */
-$logoTag = \App\Modules\Media\MediaPicture::tag($logoId === null ? null : ($media[$logoId] ?? null), ['full'], '20em', true);
+/* `natural` and `full`, the presets that are never cropped (SPEC §5.5): a logo keeps the
+   shape it was uploaded in (D-038). thumb and card cut a wide logo down to its middle.
+   `natural` first since D-119, so a logo 20em wide is not sent at up to 2400 px. */
+$logoTag = \App\Modules\Media\MediaPicture::tag($logoId === null ? null : ($media[$logoId] ?? null), ['natural', 'full'], '20em', true);
 $button = $content['button'];
 
 /* A colour of the owner's own (D-076) is a CLASS on the bar, and the class is what lets

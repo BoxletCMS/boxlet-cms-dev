@@ -248,7 +248,8 @@ testBothDrivers('a budget stops the set part-way, and continuing finishes it', f
             static fn (string $made): string => explode('.', $made)[0],
             $rest['made'],
         ))),
-    ), 0, 5), 'the order variants were made in');
+    // Counted from ORDER: this read 5, the number of presets, until D-119 made it six.
+    ), 0, count(MediaVariants::ORDER)), 'the order variants were made in');
 });
 
 testBothDrivers('variants land where their URL says they do', function (string $driver) {

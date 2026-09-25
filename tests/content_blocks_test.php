@@ -123,6 +123,42 @@ test('a number and the word under it are one pair, not two lists', function (): 
     assertContains('300+', $html, 'a number that is not a number');
 });
 
+/*
+ * WHAT MUST NOT BE CUT ASKS ONLY FOR WHAT IS NOT CUT (PLAN.md D-119).
+ *
+ * Logos asked for `thumb` and `card`, and a Picture set to its natural shape for `card` and
+ * `wide` — every one of them cropped to a proportion. A picture that has every preset is
+ * the only way to see which ones a block chose.
+ */
+test('a logo, and a picture in its natural shape, are drawn from the presets that keep its shape', function (): void {
+    $variants = [];
+    foreach (['thumb' => [200, 200], 'card' => [600, 400], 'natural' => [320, 69], 'wide' => [1200, 630], 'hero' => [1920, 1080], 'full' => [320, 69]] as $preset => [$w, $h]) {
+        $variants[$preset] = ['width' => $w, 'height' => $h, 'formats' => ['webp', 'png']];
+    }
+    $media = [9 => [
+        'id' => 9, 'filename' => 'wordmark', 'width' => 320, 'height' => 69, 'focalX' => 50, 'focalY' => 50,
+        'variants' => $variants, 'alt' => 'Wordmark', 'version' => '',
+    ]];
+    $cut = static fn (string $html): bool => str_contains($html, '/m/thumb/') || str_contains($html, '/m/card/')
+        || str_contains($html, '/m/wide/') || str_contains($html, '/m/hero/');
+
+    $logos = drawBlock('logos', ['items' => [['image' => 9, 'name' => 'Wordmark']]], 'row', $media);
+    assertContains('/m/natural/9-wordmark', $logos, 'the logo is not drawn from natural');
+    assertTrue(!$cut($logos), 'the logo can still be drawn from a cropped preset');
+
+    $natural = drawBlock('picture', ['image' => 9, 'shape' => 'natural'], 'full', $media);
+    assertContains('/m/natural/9-wordmark', $natural, 'a natural picture is not drawn from natural');
+    assertTrue(!$cut($natural), 'a natural picture can still be drawn from a cropped preset');
+
+    // The other shapes are drawn by the stylesheet over a crop, and keep asking for one.
+    $square = drawBlock('picture', ['image' => 9, 'shape' => 'square'], 'full', $media);
+    assertContains('/m/card/9-wordmark', $square, 'a square picture stopped asking for a crop');
+
+    $gallery = drawBlock('gallery', ['items' => [['image' => 9]], 'shape' => 'natural'], 'three', $media);
+    assertContains('/m/natural/9-wordmark', $gallery, 'a natural gallery is not drawn from natural');
+    assertTrue(!$cut($gallery), 'a natural gallery can still be drawn from a cropped preset');
+});
+
 test('a logo with no picture shows its name, which is a way to run the block', function (): void {
     $html = drawBlock('logos', [
         'items' => [['name' => 'Marić Bakery'], ['image' => 9, 'name' => 'Sjever Bindery']],

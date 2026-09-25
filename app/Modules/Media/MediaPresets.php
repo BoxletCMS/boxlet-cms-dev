@@ -16,6 +16,12 @@ final class MediaPresets
     public const ALL = [
         'thumb' => ['width' => 200, 'height' => 200],
         'card' => ['width' => 600, 'height' => 400],
+        /* THE ONE SMALL SIZE THAT KEEPS THE PICTURE'S OWN SHAPE (PLAN.md D-119). Every other
+           preset below `full` is cropped to a proportion, so a wide logo came out as its
+           middle (320×69 to 69×69 and 103×69, measured) and a picture set to "natural" came
+           out 3:2 whatever it was. `full` keeps the shape but runs to 2400 px, which is a
+           lot to send for a mark 160 px wide. */
+        'natural' => ['width' => 960, 'height' => 0],
         'wide' => ['width' => 1200, 'height' => 630],
         'hero' => ['width' => 1920, 'height' => 1080],
         'full' => ['width' => 2400, 'height' => 0],

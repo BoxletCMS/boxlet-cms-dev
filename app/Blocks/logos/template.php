@@ -2,8 +2,11 @@
 /**
  * A row of client marks, each at one height and its own width.
  *
- * NEVER CROPPED. `thumb` and `card`, drawn with object-fit: contain and no fixed proportion,
- * because a logo cut to fit a square is a logo somebody is entitled to complain about.
+ * NEVER CROPPED. `natural`, and `full` until a picture has one — the two presets that keep a
+ * picture's own shape — drawn with object-fit: contain and no fixed proportion, because a
+ * logo cut to fit a square is a logo somebody is entitled to complain about. It asked for
+ * `thumb` and `card` until D-119, and both ARE cut to a shape: a 320×69 wordmark came out
+ * as its middle.
  *
  * A mark with a name and no picture shows the NAME, set in the site's own type. That is a
  * legitimate way to run this block, not a fallback: half the marks a small studio can show
@@ -24,7 +27,7 @@
 <?php foreach ($content['items'] as $item): ?>
 <?php
     $picture = is_int($item['image']) ? ($media[$item['image']] ?? null) : null;
-    $tag = \App\Modules\Media\MediaPicture::tag($picture, ['thumb', 'card'], '10rem', $eager);
+    $tag = \App\Modules\Media\MediaPicture::tag($picture, ['natural', 'full'], '10rem', $eager);
     $link = $item['link']['url'] !== '';
     $empty = $item['image'] === null && $item['name'] === '';
 ?>

@@ -120,8 +120,9 @@ async function nested(page, report) {
   const address = `${parent.address}${child.address}`;
   try {
     await place(parent.id);
-    const shown = await page.$eval('form.editor-form #page-slug ~ .hint:last-of-type', (e) => e.textContent).catch(() => '');
-    report.verdict('the editor shows the whole address under the slug', shown.includes(address), shown);
+    // A save lands in the visual editor, not the form it came from; both carry the line.
+    const shown = await page.$$eval('#page-slug ~ .hint', (hints) => hints.map((e) => e.textContent.trim()).join(' | '));
+    report.verdict('the editor shows the whole address under the slug', shown.includes(address), `${page.url()}: ${shown}`);
 
     const visited = await fetch(`${BASE}${address}`, { headers: { 'user-agent': 'Mozilla/5.0 Chrome/126.0' } });
     const html = await visited.text();

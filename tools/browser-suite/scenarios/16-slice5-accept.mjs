@@ -107,7 +107,7 @@ export default {
       const drawn = await page.evaluate((i, wanted) => {
         const frame = document.querySelector('iframe[data-canvas]');
         const img = frame.contentDocument.querySelector(`[data-bx-index="${i}"] img[src*="${wanted}"]`);
-        return img ? { current: img.currentSrc, largest: img.src, width: img.naturalWidth } : null;
+        return img ? { current: img.currentSrc, largest: img.src, width: img.naturalWidth, height: img.naturalHeight } : null;
       }, index, NAME);
       await report.shot(page, '01-hero-with-4mb-photo', { fullPage: false });
       report.verdict('place it in a hero', drawn !== null,
@@ -128,8 +128,14 @@ export default {
 
       report.verdict('the served file is WebP (SPEC §8) or AVIF (§5.1)', isWebp || isAvif,
         `a 1920-wide window at 2x chose ${preset}: ${chosen.type}, ${human(chosen.bytes)}`);
-      report.verdict('the served file is under 200 KB', chosen.bytes < LIMIT,
-        `${human(chosen.bytes)} of ${human(size)}; the largest candidate, ${drawn.largest.split('/m/')[1]}, is ${human(largest.bytes)}`);
+      // THE BUDGET FOLLOWS THE PICTURE'S SIZE since O-35 (2026-09-26), a rule changed on
+      // purpose, not a check loosened to pass: 200 KB for a 1920×1080, and as much again for
+      // every 1920×1080 of pixels above that. A cover hero (D-118) fills the window, so at
+      // 2x it is served `full`, 2400 across; §8's 200 KB was written for the half-width
+      // hero, which asked for 1920. MediaVariants::retryOver() is the same sum.
+      const budget = Math.max(LIMIT, Math.round(LIMIT * drawn.width * drawn.height / (1920 * 1080)));
+      report.verdict('the served file is within the budget for its size', chosen.bytes <= budget,
+        `${human(chosen.bytes)} for ${drawn.width}×${drawn.height} (budget ${human(budget)}) of ${human(size)}; the largest candidate, ${drawn.largest.split('/m/')[1]}, is ${human(largest.bytes)}`);
 
       // ---- a second request, answered from disk --------------------------------------------
       const second = await fetchOf(drawn.current);

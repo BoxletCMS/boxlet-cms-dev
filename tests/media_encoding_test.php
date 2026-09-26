@@ -179,6 +179,47 @@ testBothDrivers('an oversized AVIF is never replaced by a larger one, and leaves
     assertEquals([], glob($public . '/m/*/*.retry') ?: [], 'a retry left its working file in the public directory');
 });
 
+test('a full-size AVIF is retried against a budget scaled by its pixels, a cropped one against 200 KB', function () {
+    assertEquals(200 * 1024, MediaVariants::retryOver('hero', 1920, 1080), 'hero');
+    assertEquals(200 * 1024, MediaVariants::retryOver('card', 800, 600), 'a small cropped preset keeps the same figure');
+    assertEquals(200 * 1024, MediaVariants::retryOver('full', 1000, 700), 'a small full never falls under it');
+    // §8's photograph at full, 2400×1590: 1.84 heroes of pixels, so about 368 KB. It was
+    // served at 707 KB before (O-35).
+    assertEquals((int) round(200 * 1024 * 2400 * 1590 / (1920 * 1080)), MediaVariants::retryOver('full', 2400, 1590), 'a large full');
+});
+
+testBothDrivers('a heavy full-size AVIF is retried too, and is never replaced by a larger one', function (string $driver) {
+    [$storage, $public] = mediaPaths();
+    $db = installedSite(['en' => 'English'], $driver);
+    $encoder = new MediaEncoder();
+    if (!$encoder->supports('avif')) {
+        skip('this machine cannot write avif, so the rule never applies', 'avif');
+    }
+    $upload = new MediaUpload($db, $storage, $encoder);
+    $variants = new MediaVariants($db, $encoder, new MediaWriter($encoder), $storage, $public);
+
+    // Noise at 2600 wide, so `full` is 2400 across and heavy enough to engage the rule.
+    $source = noiseFixture(tmpPath('retry-full.jpg'), 2600, 1600);
+    $direct = (new MediaWriter($encoder))->encode($source, tmpPath('retry-full-direct.avif'), MediaPresets::crop('full', 2600, 1600), 'avif', 1);
+
+    $id = $upload->store($source, 'retry-full.jpg')['id'];
+    $variants->generate($id, null);
+
+    $stored = glob($public . '/m/full/*-retry-full.avif') ?: [];
+    if ($stored === []) {
+        fail('no full avif was written at all');
+    }
+    $engaged = $direct['bytes'] > MediaVariants::retryOver('full', $direct['width'], $direct['height']);
+    // Where the rule engages, the stored file must be the retry's: smaller than one encode.
+    // Where it does not, it is that one encode. Both hold on every driver.
+    if ($engaged) {
+        assertTrue((int) filesize($stored[0]) < $direct['bytes'], sprintf('the stored full is %d bytes, not under the %d a single encode gives', (int) filesize($stored[0]), $direct['bytes']));
+    } else {
+        assertTrue((int) filesize($stored[0]) <= $direct['bytes'], 'the stored full is larger than a single encode');
+    }
+    assertEquals([], glob($public . '/m/*/*.retry') ?: [], 'a retry left its working file in the public directory');
+});
+
 // The orientation case, tested by GEOMETRY. A 400×200 source with a white block in its
 // stored top-left, tagged orientation 6 (a quarter turn clockwise on display), presents
 // as 200×400 — and a crop taken after the turn is a crop of the upright picture.

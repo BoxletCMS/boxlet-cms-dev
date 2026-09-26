@@ -39,8 +39,14 @@ final class MediaVariants
      */
     public const UNAVAILABLE = '_unavailable';
 
-    /** Over this, a cropped AVIF is written once more at RETRY_QUALITY (SPEC §8). */
+    /**
+     * Over this, an AVIF is written once more at RETRY_QUALITY (SPEC §8): the figure for a
+     * `hero`, 1920×1080, and scaled by pixels above that for `full` (retryOver()).
+     */
     private const RETRY_OVER = 200 * 1024;
+
+    /** The picture RETRY_OVER is the budget for: `hero`'s 1920×1080. */
+    private const RETRY_PIXELS = 1920 * 1080;
 
     private const RETRY_QUALITY = 40;
 
@@ -169,8 +175,15 @@ final class MediaVariants
      * `hero`: 279 KB at the default, 139 KB on the retry (PLAN.md O-18).
      *
      * ONCE, never a loop, and only where it applies: AVIF, because it is already the
-     * smallest of the three and the one the page serves, and cropped presets, because
-     * `full` is the largest public version by design (height 0 = keep the proportions).
+     * smallest of the three and the one the page serves.
+     *
+     * `full` WAS LEFT OUT until 2026-09-26, as the largest public version by design, and
+     * that stopped holding when a cover hero (D-118) put it on screen: a 1920 window at 2x
+     * asks for 3840 pixels and gets `full`. §8's photograph came out at 707 KB there, and
+     * at 415 KB at quality 40 with no difference to see side by side (O-35). It is judged
+     * against a budget scaled by its pixels, retryOver(), since 200 KB for 2400×1590 would
+     * push the finest photographs down where the grain goes soft. Ordinary photographs in
+     * the library stayed at 25 to 140 KB at `full`, under that budget and untouched.
      *
      * The retry is written beside the target and moved over it only when it wins. Writing
      * straight over would mean a second pass that came out LARGER had destroyed the better
@@ -191,10 +204,7 @@ final class MediaVariants
         int $orientation,
         array $result,
     ): array {
-        if ($format !== 'avif' || $result['bytes'] <= self::RETRY_OVER) {
-            return $result;
-        }
-        if ((MediaPresets::ALL[$preset]['height'] ?? 0) === 0) {
+        if ($format !== 'avif' || $result['bytes'] <= self::retryOver($preset, $result['width'], $result['height'])) {
             return $result;
         }
 
@@ -215,6 +225,20 @@ final class MediaVariants
         @unlink($candidate);
 
         return $result;
+    }
+
+    /**
+     * The size over which an AVIF of $preset, written at $width × $height, gets its second
+     * attempt: RETRY_OVER for every cropped preset, and for `full`, whose size follows the
+     * photograph, RETRY_OVER for each `hero` of pixels it holds — never less.
+     */
+    public static function retryOver(string $preset, int $width, int $height): int
+    {
+        if ((MediaPresets::ALL[$preset]['height'] ?? 0) !== 0) {
+            return self::RETRY_OVER;
+        }
+
+        return max(self::RETRY_OVER, (int) round(self::RETRY_OVER * $width * $height / self::RETRY_PIXELS));
     }
 
     /**

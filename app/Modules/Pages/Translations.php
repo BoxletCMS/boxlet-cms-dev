@@ -4,6 +4,7 @@ namespace App\Modules\Pages;
 
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Modules\Redirects\Redirects;
 
 /**
  * A page in another language (SPEC §5.2, PLAN.md D-043): the row-based model, where a
@@ -96,6 +97,7 @@ final class Translations
                 ],
             );
             $id = (int) $db->lastInsertId();
+            Redirects::claimed($db, $locale, $slug);
 
             /*
              * THE SECTIONS COME TOO (D-095). A translation is a copy, and since the layer-2

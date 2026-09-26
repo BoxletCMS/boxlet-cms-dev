@@ -179,7 +179,12 @@ final class PageEditorController
         Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks, $sections);
         Activity::record($db, 'page', 'saved', $id, $title);
         Sitemap::refresh($this->container);
-        $this->container->get('session')->set('flash', t('pages.saved'));
+        // Said when it happens, so the owner knows a link out there did not just break
+        // (D-129): the same test Redirects::slugChanged() keeps the old slug by.
+        $kept = (string) $page['slug'] !== $slug && (string) $page['slug'] !== '' && $page['published_at'] !== null;
+        $this->container->get('session')->set('flash', $kept
+            ? t('pages.saved_old_address', ['old' => Url::page((string) $page['locale'], (string) $page['slug'])])
+            : t('pages.saved'));
 
         return Response::redirect(Url::admin('pages', $id));
     }

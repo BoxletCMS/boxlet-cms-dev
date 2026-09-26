@@ -8,6 +8,7 @@ use App\Core\Response;
 use App\Core\View;
 use App\Modules\Forms\FormBlocks;
 use App\Modules\Media\MediaPicture;
+use App\Modules\Redirects\Redirects;
 use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
 
@@ -27,6 +28,10 @@ final class PageController
     {
         $db = $this->container->get('db');
         $slug = $params['slug'] ?? '';
+        // The home page with a query may be an old site's address, `/?p=12` (D-129).
+        if ($slug === '' && ($target = Redirects::queryTarget($db, $request)) !== null) {
+            return Response::redirect($target, 301);
+        }
         $page = Page::published($db, $locale, $slug);
         if ($page === null) {
             return $this->notFound($request, $locale, $params);
@@ -117,6 +122,16 @@ final class PageController
      */
     public function notFound(Request $request, string $locale, array $params): Response
     {
+        // An address that used to lead somewhere still does (D-129): a page's old slug, or
+        // a rule the owner made for the site this one replaced. Only here, after nothing
+        // else answered, so a live page always wins.
+        if ($request->method === 'GET' || $request->method === 'HEAD') {
+            $target = Redirects::target($this->container->get('db'), $request, $locale);
+            if ($target !== null) {
+                return Response::redirect($target, 301);
+            }
+        }
+
         return $this->render('404', $locale, [
             'title' => site_t('site.not_found.title', $locale),
         ], ['intro' => site_t('site.not_found.intro', $locale)], 404);

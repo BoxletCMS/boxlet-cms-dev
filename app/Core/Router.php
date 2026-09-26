@@ -191,7 +191,11 @@ final class Router
             return Response::html('Not Found', 404);
         }
         $response = $this->call($this->notFound, $request, $locale, []);
-        $response->status = 404;
+        // An address that used to lead somewhere is answered from here with a 301 (PLAN.md
+        // D-129), and stays one; anything else the handler says is a 404.
+        if ($response->status !== 301) {
+            $response->status = 404;
+        }
 
         return $response;
     }

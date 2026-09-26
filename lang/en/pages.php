@@ -211,6 +211,7 @@ return [
     'pages.delete_confirm' => 'Delete “:title”? This cannot be undone.',
     'pages.created' => 'The page was created as a draft. Fill in its blocks and save.',
     'pages.saved' => 'Saved.',
+    'pages.saved_old_address' => 'Saved. The old address :old still leads here.',
     'pages.published' => 'The page is published.',
     'pages.unpublished' => 'The page is a draft again and no longer visible to visitors.',
     'pages.deleted' => 'The page was deleted.',

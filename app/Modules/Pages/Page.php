@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Media\MediaReference;
+use App\Modules\Redirects\Redirects;
 
 /**
  * Pages and their blocks. All SQL is portable between MySQL and SQLite (SPEC §5.0).
@@ -221,6 +222,7 @@ final class Page
             );
             $id = (int) $db->lastInsertId();
             $db->query('UPDATE pages SET content_group_id = id WHERE id = ?', [$id]);
+            Redirects::claimed($db, $locale, $slug);
             foreach ($blockTypes as $sort => $type) {
                 $block = [
                     // Never rendered in an editor, so the key only has to exist and differ.
@@ -277,7 +279,7 @@ final class Page
             // A page that changes parent joins a different set of siblings, where its old
             // position means nothing and collides with whoever already holds it. It goes
             // last in the group it arrives in, the same rule a new page follows.
-            $current = $db->one('SELECT locale, parent_id, sort FROM pages WHERE id = ?', [$id]);
+            $current = $db->one('SELECT locale, slug, parent_id, sort, published_at FROM pages WHERE id = ?', [$id]);
             $sort = (int) ($current['sort'] ?? 0);
             if ($current !== null && (int) ($current['parent_id'] ?? 0) !== (int) ($page['parent_id'] ?? 0)) {
                 $sort = PageTree::nextSort($db, (string) $current['locale'], $page['parent_id']);
@@ -300,6 +302,10 @@ final class Page
                     $id,
                 ],
             );
+            // The old slug of a page visitors could have known keeps leading here (D-129).
+            if ($current !== null) {
+                Redirects::slugChanged($db, $id, (string) $current['locale'], (string) $current['slug'], $page['slug'], $current['published_at'] !== null);
+            }
 
             /*
              * THE SECTIONS ARE WRITTEN FIRST, so every block row has one to point at, and
@@ -399,10 +405,12 @@ final class Page
     }
 
     /**
-     * Deletes the page; its blocks go with it through the foreign key.
+     * Deletes the page; its blocks go with it through the foreign key, and its old
+     * addresses with it by hand, so they answer 404 rather than lead nowhere (D-129).
      */
     public static function delete(Db $db, int $id): void
     {
+        Redirects::pageDeleted($db, $id);
         $db->query('DELETE FROM pages WHERE id = ?', [$id]);
     }
 

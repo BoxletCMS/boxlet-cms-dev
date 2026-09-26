@@ -114,6 +114,7 @@ return [
     'media.delete' => 'Delete',
     'media.delete_confirm' => 'Delete :name? This cannot be undone.',
     'media.deleted' => 'The picture was deleted.',
+    'media.deleted_file' => 'The file was deleted.',
     // A refusal that does not say WHICH pages sends someone hunting through the site.
     'media.in_use' => 'It is still used on :pages. Remove it there first, then delete it.',
     'media.replace_drop' => 'Drop the new picture here or',

@@ -70,6 +70,9 @@ export default {
       // As a visitor would: a fresh context with no admin cookie, reading what came back.
       const visitor = await page.browser().createBrowserContext();
       const tab = await visitor.newPage();
+      // A browser's User-Agent: headless Chrome says "HeadlessChrome", which Bots::is()
+      // rightly never counts, and the count below read 0 for that reason alone.
+      await tab.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36');
       // On the site first: from a blank tab the fetch is cross-origin, and was refused as
       // such — a "Failed to fetch" that was the instrument, not the download.
       await tab.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
@@ -101,7 +104,7 @@ export default {
     } finally {
       await page.goto(url, { waitUntil: 'networkidle2' });
       const gone = await attemptDelete(page);
-      report.verdict('the scenario removes the file it uploaded', gone !== null && /deleted/i.test(gone), String(gone));
+      report.verdict('the scenario removes the file it uploaded', gone !== null && /file was deleted/i.test(gone), String(gone));
     }
   },
 };

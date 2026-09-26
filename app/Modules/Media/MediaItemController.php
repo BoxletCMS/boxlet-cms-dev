@@ -183,7 +183,8 @@ final class MediaItemController
     public function delete(Request $request, string $locale, array $params): Response
     {
         $id = (int) $params['id'];
-        $name = (string) ($this->library()->find($id)['filename'] ?? '');
+        $row = $this->library()->find($id);
+        $name = (string) ($row['filename'] ?? '');
         $result = $this->library()->delete($id);
 
         // delete() reports the same "not deleted, nothing using it" for a row that was
@@ -199,7 +200,7 @@ final class MediaItemController
         }
 
         Activity::record($this->container->get('db'), 'media', 'deleted', $id, $name);
-        $this->container->get('session')->set('flash', t('media.deleted'));
+        $this->container->get('session')->set('flash', t(($row['kind'] ?? 'picture') === 'file' ? 'media.deleted_file' : 'media.deleted'));
 
         return Response::redirect(Url::admin('media'));
     }

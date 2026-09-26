@@ -55,6 +55,11 @@ testBothDrivers('a document uploaded to the library is stored as a file, whole a
     assertTrue(!str_contains($page, 'data-focal-form') && !str_contains($page, 'data-crop'), 'a file offers a crop or a focal point');
     assertEquals(404, adminUpload('/admin/media/' . $id . '/focal', [], ['x' => '10', 'y' => '10'])->status, 'a focal point for a file');
     assertEquals(404, adminUpload('/admin/media/' . $id . '/crop', [], ['action' => 'new'])->status, 'a crop of a file');
+
+    // Deleted as a file, and called one: it said "The picture was deleted." until D-128.
+    assertEquals(302, adminUpload('/admin/media/' . $id . '/delete', [])->status, 'the delete');
+    assertEquals(null, $db->one('SELECT id FROM media WHERE id = ?', [$id]), 'still there');
+    assertEquals(t('media.deleted_file'), $_SESSION['flash'] ?? null, 'what the owner is told');
 });
 
 testBothDrivers('a file is downloaded as an attachment, and counted for a visitor only', function (string $driver) {

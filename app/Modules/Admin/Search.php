@@ -112,7 +112,7 @@ final class Search
 
         foreach ([
             [t('pages.new'), Url::admin('pages', 'new'), 'create add page'],
-            [t('media.upload'), Url::admin('media'), 'add pictures images'],
+            [t('media.upload'), Url::admin('media'), 'add pictures images documents pdf download'],
             [t('menus.new'), Url::admin('menus'), 'create add menu'],
             [t('forms.new'), Url::admin('forms'), 'create add form'],
             [t('admin.view_site'), Url::asset(''), 'open live site'],

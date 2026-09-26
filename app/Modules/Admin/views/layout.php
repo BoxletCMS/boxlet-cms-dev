@@ -54,6 +54,7 @@ $rail = [
     // Statistics last, so dropping it leaves the others where they were.
     'administration' => array_filter([
         ['nav' => 'settings', 'href' => Url::admin('settings'), 'icon' => 'settings', 'label' => t('admin.nav.settings'), 'count' => null],
+        ['nav' => 'redirects', 'href' => Url::admin('redirects'), 'icon' => 'signpost', 'label' => t('admin.nav.redirects'), 'count' => null],
         $statsOn ? ['nav' => 'statistics', 'href' => Url::admin('statistics'), 'icon' => 'chart-column', 'label' => t('admin.nav.statistics'), 'count' => null] : null,
     ]),
 ];

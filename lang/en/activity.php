@@ -43,6 +43,8 @@ return [
     'activity.menu.renamed' => 'Renamed a menu to “:name”',
     'activity.menu.edited' => 'Changed the items of “:name”',
     'activity.menu.deleted' => 'Deleted the menu “:name”',
+    'activity.redirect.created' => 'Added a redirect for :name',
+    'activity.redirect.deleted' => 'Deleted the redirect for :name',
 
     'activity.form.created' => 'Created the form “:name”',
     'activity.form.saved' => 'Edited the form “:name”',

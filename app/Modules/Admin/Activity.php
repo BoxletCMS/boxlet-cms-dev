@@ -89,6 +89,7 @@ final class Activity
             'menu' => Url::admin('menus', $subjectId),
             'form' => Url::admin('forms', $subjectId),
             'message' => Url::admin('forms', $subjectId, 'messages'),
+            'redirect' => Url::admin('redirects'),
             default => null,
         };
     }

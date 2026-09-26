@@ -140,3 +140,69 @@ test('an address is compared lower case, without its last slash, with its query 
     assertEquals('/', $normalize('/'), 'the root');
     assertEquals('/index.php?a=1&b=2', $normalize('/index.php', 'b=2&a=1'), 'the query');
 });
+
+/*
+ * The Redirects screen (D-129, step 2).
+ */
+
+testBothDrivers('the owner adds a rule for an old address, to a page or to an address', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'contact', 'Contact');
+
+    // The whole address from the old site, cut to its path and query, in one order.
+    assertRedirectedTo('/admin/redirects', adminPost('/admin/redirects', ['from' => 'https://old.example.com/Kontakt.php?b=2&a=1', 'page' => (string) $id, 'url' => '']));
+    $rule = $db->one("SELECT path, page_id, url FROM redirects WHERE kind = 'rule'");
+    assertEquals(['path' => '/kontakt.php?a=1&b=2', 'page_id' => $id, 'url' => null], $rule === null ? null : ['path' => $rule['path'], 'page_id' => (int) $rule['page_id'], 'url' => $rule['url']], 'what was stored');
+    assertMovedTo('/contact', dispatch('/kontakt.php?a=1&b=2'), 'the rule, followed');
+
+    assertRedirectedTo('/admin/redirects', adminPost('/admin/redirects', ['from' => 'shop', 'page' => '', 'url' => 'https://shop.example.org/']));
+    assertMovedTo('https://shop.example.org/', dispatch('/shop'), 'a path typed without its slash');
+
+    // Listed, with where each leads and how often it was used.
+    $screen = dispatch('/admin/redirects')->body;
+    foreach (['/kontakt.php?a=1&amp;b=2', 'Contact', 'https://shop.example.org/', e(t('redirects.used_one', ['count' => '1', 'date' => gmdate('Y-m-d')]))] as $shown) {
+        assertContains($shown, $screen, 'the screen shows ' . $shown);
+    }
+});
+
+testBothDrivers('a rule that could never be used, or leads nowhere safe, is refused in words', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'contact', 'Contact');
+    $refused = function (array $body, string $key, array $with = []) use ($db): void {
+        $response = adminPost('/admin/redirects', $body + ['from' => '', 'page' => '', 'url' => '']);
+        assertEquals(422, $response->status, $key . ': status');
+        assertContains(e(t($key, $with)), $response->body, $key . ': said');
+        assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM redirects')['n'] ?? -1), $key . ': stored anyway');
+    };
+
+    $refused(['from' => '', 'page' => (string) $id], 'redirects.from_required');
+    $refused(['from' => '/', 'page' => (string) $id], 'redirects.from_required');
+    $refused(['from' => '/admin/pages', 'page' => (string) $id], 'redirects.from_system');
+    $refused(['from' => '/Contact/', 'page' => (string) $id], 'redirects.from_live', ['page' => 'Contact']);
+    $refused(['from' => '/old.html'], 'redirects.to_required');
+    $refused(['from' => '/old.html', 'page' => '999'], 'redirects.to_required');
+    $refused(['from' => '/old.html', 'page' => (string) $id, 'url' => 'https://x.example/'], 'redirects.to_both');
+    $refused(['from' => '/old.html', 'url' => 'javascript:alert(1)'], 'redirects.url_invalid');
+    $refused(['from' => '/old.html', 'url' => '//evil.example/'], 'redirects.url_invalid');
+
+    adminPost('/admin/redirects', ['from' => '/old.html', 'page' => (string) $id, 'url' => '']);
+    $response = adminPost('/admin/redirects', ['from' => '/OLD.html', 'page' => (string) $id, 'url' => '']);
+    assertContains(e(t('redirects.from_taken')), $response->body, 'the same address twice');
+});
+
+testBothDrivers('a rule or a kept old address is deleted from the screen, and then answers 404', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'team', 'Team');
+    renamePage($id, 'Team', 'people');
+    adminPost('/admin/redirects', ['from' => '/team.html', 'page' => (string) $id, 'url' => '']);
+
+    $screen = dispatch('/admin/redirects')->body;
+    assertContains('/team', $screen, 'the kept old address is listed');
+    assertContains('/team.html', $screen, 'and the rule');
+
+    foreach ($db->all('SELECT id FROM redirects') as $row) {
+        assertRedirectedTo('/admin/redirects', adminPost('/admin/redirects/' . (int) $row['id'] . '/delete', []));
+    }
+    assertEquals(404, dispatch('/team')->status, 'a deleted kept address');
+    assertEquals(404, dispatch('/team.html')->status, 'a deleted rule');
+});

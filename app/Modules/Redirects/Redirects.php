@@ -162,4 +162,5 @@ final class Redirects
 
         return $db->one('SELECT * FROM redirects WHERE kind = ? AND locale = ? AND path = ?', [self::HISTORY, $locale, $last]);
     }
+
 }

@@ -36,6 +36,8 @@ const ICONS = [
     // is three blocks nobody can tell apart at a glance.
     'frame', 'quote', 'separator-horizontal', 'images', 'circle-help', 'megaphone',
     'building-2', 'square-play',
+    // The Redirects screen in the rail (D-129).
+    'signpost',
 ];
 
 if (PHP_SAPI !== 'cli') {

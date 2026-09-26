@@ -45,6 +45,7 @@ return [
     'admin.nav.design_style' => 'Character and colours',
     'admin.nav.open' => 'Menu',
     'admin.nav.settings' => 'Settings',
+    'admin.nav.redirects' => 'Redirects',
     'admin.logout' => 'Log out',
     'admin.view_site' => 'View site',
 

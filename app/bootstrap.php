@@ -40,6 +40,7 @@ use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageEditorController;
 use App\Modules\Pages\PagesController;
 use App\Modules\Pages\TranslationController;
+use App\Modules\Redirects\RedirectsController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Stats\StatsController;
 use App\Modules\Stats\StatsDataController;
@@ -217,6 +218,11 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/menus/{id:\d+}/items/{item:\d+}', [MenusController::class, 'updateItem'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/items/{item:\d+}/delete', [MenusController::class, 'deleteItem'], $requireAdmin);
     $router->post('/admin/menus/{id:\d+}/order', [MenusController::class, 'order'], $requireAdmin);
+
+    // Redirects (D-129): the owner's rules for old addresses, and the ones Boxlet kept.
+    $router->get('/admin/redirects', [RedirectsController::class, 'index'], $requireAdmin);
+    $router->post('/admin/redirects', [RedirectsController::class, 'store'], $requireAdmin);
+    $router->post('/admin/redirects/{id:\d+}/delete', [RedirectsController::class, 'delete'], $requireAdmin);
 
     // Forms (D-046): the list, a new one, and its edit screen, where every button saves.
     $router->get('/admin/forms', [FormsController::class, 'index'], $requireAdmin);

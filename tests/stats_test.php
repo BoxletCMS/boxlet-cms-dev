@@ -39,13 +39,24 @@ function statsView(
 }
 
 /**
- * A filter as the address would give it, on 19 September 2026.
+ * A filter as the address would give it, on 19 September 2026 unless another day is named.
  *
  * @param array<string, string> $query
  */
-function statsFilter(array $query): App\Modules\Stats\StatsFilter
+function statsFilter(array $query, string $today = '2026-09-19'): App\Modules\Stats\StatsFilter
 {
-    return App\Modules\Stats\StatsFilter::fromQuery($query, new DateTimeImmutable('2026-09-19'));
+    return App\Modules\Stats\StatsFilter::fromQuery($query, new DateTimeImmutable(substr($today, 0, 10)));
+}
+
+/**
+ * Ten o'clock on the real day, for a test that also opens the Statistics screen: the screen
+ * counts its period back from the real today, so a visit on a fixed date falls out of "the
+ * last 7 days" a week after the test was written — and on 26 September 2026 five tests
+ * did exactly that. The filter these tests build is anchored to the same day.
+ */
+function statsToday(): string
+{
+    return (new DateTimeImmutable('now', new DateTimeZone('Europe/Zagreb')))->format('Y-m-d 10:00:00');
 }
 
 function statsSite(string $driver): Db
@@ -712,18 +723,18 @@ testBothDrivers('narrowing by a country changes every figure, and says what it c
     $storage = geoStorage();
     writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
     App\Modules\Stats\Geo::install($storage, tmpPath('geo.mmdb'));
-    $at = '2026-09-19 10:00:00';
+    $at = statsToday();
     $croatian = fn (string $path, string $ip) => Tracker::record($db, new Request('GET', $path, '', [], [], ['user-agent' => STATS_CHROME, 'host' => 'example.test'], $ip), Response::html('x'), new DateTimeImmutable($at), $storage);
     $croatian('/about', '198.51.100.73');
     $croatian('/about', '198.51.100.74');
     $croatian('/hr/kontakt', '8.8.8.8');
 
     $query = new App\Modules\Stats\StatsQuery($db);
-    assertEquals(3, $query->totals(statsFilter(['period' => '7d']))['views'], 'every view');
-    $onlyHr = statsFilter(['period' => '7d', 'country' => 'HR']);
+    assertEquals(3, $query->totals(statsFilter(['period' => '7d'], $at))['views'], 'every view');
+    $onlyHr = statsFilter(['period' => '7d', 'country' => 'HR'], $at);
     assertEquals(2, $query->totals($onlyHr)['views'], 'the Croatian ones');
     assertEquals([['value' => '/about', 'visitors' => null, 'views' => 2]], $query->top('pages', $onlyHr), 'pages, with visitors it cannot split');
-    assertEquals(2, $query->top('pages', statsFilter(['period' => '7d']))[0]['visitors'], 'and with them when nothing else is narrowed');
+    assertEquals(2, $query->top('pages', statsFilter(['period' => '7d'], $at))[0]['visitors'], 'and with them when nothing else is narrowed');
 
     $screen = dispatch('/admin/statistics?period=7d&country=HR')->body;
     assertContains(e(t('stats.narrowed')), $screen, 'the screen says it is narrowed');
@@ -735,7 +746,7 @@ testBothDrivers('narrowing by a country changes every figure, and says what it c
 
 testBothDrivers('a value in a table is a link that narrows the screen to it', function (string $driver) {
     $db = statsSite($driver);
-    statsView($db, '/about', ['referer' => 'https://news.example.org/']);
+    statsView($db, '/about', ['referer' => 'https://news.example.org/'], statsToday());
 
     $screen = dispatch('/admin/statistics?period=7d')->body;
     assertContains('?period=7d&amp;source=news.example.org', $screen, 'the source narrows');
@@ -764,7 +775,8 @@ testBothDrivers('a range of its own is shown, and kept while narrowing', functio
 
 testBothDrivers('a 404 is counted only when the owner asks for it, and never as a page view', function (string $driver) {
     $db = statsSite($driver);
-    $gone = fn () => statsView($db, '/no-such-page', [], response: Response::html('Not found', 404));
+    $at = statsToday();
+    $gone = fn () => statsView($db, '/no-such-page', [], $at, response: Response::html('Not found', 404));
 
     assertTrue(!$gone(), 'counted while switched off');
     assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM stats_missing')['n'] ?? -1), 'rows while switched off');
@@ -772,15 +784,15 @@ testBothDrivers('a 404 is counted only when the owner asks for it, and never as 
     Settings::set($db, 'stats_missing', true);
     assertTrue($gone(), 'not counted while switched on');
     $gone();
-    statsView($db, '/no-such-page', ['referer' => 'https://news.example.org/piece'], response: Response::html('Not found', 404));
+    statsView($db, '/no-such-page', ['referer' => 'https://news.example.org/piece'], $at, response: Response::html('Not found', 404));
 
     assertEquals(0, statsTotals($db)['views'], 'a 404 among the page views');
     $query = new App\Modules\Stats\StatsQuery($db);
     assertEquals([
         ['path' => '/no-such-page', 'source' => '', 'views' => 2],
         ['path' => '/no-such-page', 'source' => 'news.example.org', 'views' => 1],
-    ], $query->missing(statsFilter(['period' => '7d'])), 'the addresses, and who links to them');
-    assertEquals(null, $query->missing(statsFilter(['period' => '7d', 'country' => 'HR'])), 'narrowed to something it cannot answer');
+    ], $query->missing(statsFilter(['period' => '7d'], $at)), 'the addresses, and who links to them');
+    assertEquals(null, $query->missing(statsFilter(['period' => '7d', 'country' => 'HR'], $at)), 'narrowed to something it cannot answer');
 
     $screen = dispatch('/admin/statistics?period=7d')->body;
     assertContains(e(t('stats.table.missing')), $screen, 'the table');
@@ -829,7 +841,7 @@ test('the map that ships with Boxlet has the countries it says it has', function
 
 testBothDrivers('rows of one or two visitors are gathered as Other, and only where asked', function (string $driver) {
     $db = statsSite($driver);
-    $at = '2026-09-19 10:00:00';
+    $at = statsToday();
     // Three sources: one with four visitors, two with one each.
     foreach (['a', 'b', 'c', 'd'] as $n) {
         statsView($db, '/about', ['referer' => 'https://busy.example/' . $n], $at, '198.51.100.' . ord($n));
@@ -838,7 +850,7 @@ testBothDrivers('rows of one or two visitors are gathered as Other, and only whe
     statsView($db, '/about', ['referer' => 'https://quiet-two.example/'], $at, '198.51.100.202');
 
     $query = new App\Modules\Stats\StatsQuery($db);
-    $week = statsFilter(['period' => '7d']);
+    $week = statsFilter(['period' => '7d'], $at);
     assertEquals(
         ['busy.example', 'quiet-one.example', 'quiet-two.example'],
         array_column($query->top('sources', $week), 'value'),
@@ -861,8 +873,8 @@ testBothDrivers('rows of one or two visitors are gathered as Other, and only whe
 
 testBothDrivers('a table comes out as the CSV the screen is showing', function (string $driver) {
     $db = statsSite($driver);
-    statsView($db, '/about', ['referer' => 'https://news.example.org/']);
-    statsView($db, '/hr/kontakt');
+    statsView($db, '/about', ['referer' => 'https://news.example.org/'], statsToday());
+    statsView($db, '/hr/kontakt', [], statsToday());
 
     $csv = dispatch('/admin/statistics/export?period=7d&table=pages');
     assertEquals('text/csv; charset=utf-8', $csv->headers['Content-Type'] ?? null, 'what it is');

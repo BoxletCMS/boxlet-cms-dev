@@ -60,7 +60,7 @@ final class MediaFiles
                 'name' => (string) $row['filename'],
                 'extension' => $extension,
                 'size' => Bytes::human((int) $row['size']),
-                'url' => DownloadController::url((int) $row['id'], (string) $row['filename'], $extension),
+                'url' => DownloadController::url((int) $row['id'], (string) $row['filename']),
             ];
         }
 

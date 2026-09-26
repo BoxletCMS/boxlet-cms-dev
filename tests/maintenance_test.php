@@ -37,8 +37,15 @@ testBothDrivers('with maintenance on a visitor gets 503 and the admin gets the r
     createPage($db, 'en', 'about', 'About');
     turnMaintenanceOn();
 
-    // The admin, logged in by adminSite(), still sees the page — with the bar on it.
-    $asAdmin = dispatch('/about');
+    // The admin, logged in by adminSite(), still sees the page — with the bar on it. Their
+    // browser sends the session cookie, and since D-128 the gate asks for it before it
+    // opens the session: a request without one is a visitor's.
+    $_SERVER['HTTP_COOKIE'] = 'boxlet_session=abc';
+    try {
+        $asAdmin = dispatch('/about');
+    } finally {
+        unset($_SERVER['HTTP_COOKIE']);
+    }
     assertEquals(200, $asAdmin->status, 'the admin was locked out of their own site');
     assertContains('About', $asAdmin->body, 'the real page');
     assertContains('boxlet-maintenance-bar', $asAdmin->body, 'the bar saying the site is hidden');
@@ -55,6 +62,28 @@ testBothDrivers('with maintenance on a visitor gets 503 and the admin gets the r
     assertTrue(!str_contains($asVisitor->body, t('update.public.body')), 'it called maintenance an update');
 
     turnMaintenanceOff();
+});
+
+testBothDrivers('a visitor to a closed site is given no session, so is never taken for the admin after it opens', function (string $driver) {
+    $db = adminSite($driver);
+    createPage($db, 'en', 'about', 'About');
+    turnMaintenanceOn();
+    try {
+        // The session is still logged in: only the cookie is missing, as it is from a
+        // visitor's browser. Resolving the session is what would have set one (D-128).
+        $opened = false;
+        $response = dispatch('/about', null, 'GET', [], '203.0.113.10', function ($container) use (&$opened): void {
+            $container->set('session', function () use (&$opened) {
+                $opened = true;
+
+                return new App\Core\Session();
+            });
+        });
+        assertEquals(503, $response->status, 'a request without the cookie was served the site');
+        assertEquals(false, $opened, 'a session was opened for a visitor, and with it a cookie');
+    } finally {
+        turnMaintenanceOff();
+    }
 });
 
 testBothDrivers('switching maintenance off restores the site', function (string $driver) {

@@ -124,7 +124,7 @@ final class Router
         // While maintenance is on, a logged-in admin sees the real site with a bar saying
         // so. Appended to the finished HTML rather than threaded through every template,
         // so the page above it is exactly the page it would otherwise be.
-        return UpdateGate::bar($this->container, $response);
+        return UpdateGate::bar($this->container, $request, $response);
     }
 
     private function dispatcher(): Dispatcher

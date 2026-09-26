@@ -49,7 +49,9 @@ testBothDrivers('a document uploaded to the library is stored as a file, whole a
     // Its own short page, and none of a picture's actions.
     $id = (int) $row['id'];
     $page = mediaAdminGet('/admin/media/' . $id)->body;
-    assertContains('/download/' . $id . '/price-list-2026.pdf', $page, 'the address it is downloaded from');
+    // No extension at its end (D-128): a host serves `.zip` or `.pdf` as a file on disk and
+    // answers 404, and a download so addressed never reached PHP.
+    assertContains('/download/' . $id . '/price-list-2026"', $page, 'the address it is downloaded from, ending in its name');
     assertTrue(!str_contains($page, 'data-focal-form') && !str_contains($page, 'data-crop'), 'a file offers a crop or a focal point');
     assertEquals(404, adminUpload('/admin/media/' . $id . '/focal', [], ['x' => '10', 'y' => '10'])->status, 'a focal point for a file');
     assertEquals(404, adminUpload('/admin/media/' . $id . '/crop', [], ['action' => 'new'])->status, 'a crop of a file');
@@ -65,7 +67,7 @@ testBothDrivers('a file is downloaded as an attachment, and counted for a visito
     // request with none was measured not being counted, correctly.
     $_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
     try {
-        $response = dispatch('/download/' . $id . '/price-list.pdf');
+        $response = dispatch('/download/' . $id . '/price-list');
     } finally {
         unset($_SERVER['HTTP_USER_AGENT']);
     }
@@ -113,7 +115,7 @@ testBothDrivers('a Downloads block offers its files with their type and size, an
     $files = App\Modules\Media\MediaFiles::forBlocks($db, $registry, [['type' => 'downloads', 'content' => $content]]);
     $html = $registry->render('downloads', $content, [], 'list', [], false, 'none', ['files' => $files], 'en');
 
-    assertContains('href="/download/' . $file . '/price-list.pdf" download', $html, 'the link to save it');
+    assertContains('href="/download/' . $file . '/price-list" download', $html, 'the link to save it, with no extension for a host to claim');
     assertContains('<span class="downloads-type" aria-hidden="true">PDF</span>', $html, 'its type, from the file');
     assertContains('<span class="downloads-title">price-list</span>', $html, 'an empty title is the file\'s own name');
     assertContains('PDF · ', $html, 'and its size beside the type');

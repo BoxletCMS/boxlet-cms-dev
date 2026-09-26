@@ -18,8 +18,13 @@ use App\Support\Url;
  * every download, which a small site does not notice; the file is streamed, never held.
  *
  * `/download/{id}/{name}`: the id finds the file, the name is for the person who sees the
- * address and the file they end up with. A new public address, added before v0.1 on
- * purpose (SPEC §5).
+ * address. A new public address, added before v0.1 on purpose (SPEC §5).
+ *
+ * THE ADDRESS NEVER ENDS IN THE FILE'S EXTENSION (D-128). Hosts serve "static" extensions
+ * straight from disk and answer 404 when nothing is there: this server's nginx does it for
+ * `.zip`, and another host's list may hold `.pdf` or `.txt`. A download whose address ended
+ * `.zip` never reached PHP. The name the visitor saves, extension included, comes from
+ * Content-Disposition, which the browser prefers to the address.
  */
 final class DownloadController
 {
@@ -27,10 +32,10 @@ final class DownloadController
     {
     }
 
-    /** Where a file is downloaded from. */
-    public static function url(int $id, string $filename, string $extension): string
+    /** Where a file is downloaded from: its name, and no extension for a host to claim. */
+    public static function url(int $id, string $filename): string
     {
-        return Url::asset('download/' . $id . '/' . rawurlencode($filename) . ($extension === '' ? '' : '.' . $extension));
+        return Url::asset('download/' . $id . '/' . rawurlencode($filename));
     }
 
     /**

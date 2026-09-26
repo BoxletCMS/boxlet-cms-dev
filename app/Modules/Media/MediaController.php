@@ -244,7 +244,7 @@ final class MediaController
             // it is taken from.
             'kind' => (string) ($row['kind'] ?? 'picture'),
             'downloads' => (int) ($row['downloads'] ?? 0),
-            'download' => DownloadController::url((int) $row['id'], (string) $row['filename'], $ext),
+            'download' => DownloadController::url((int) $row['id'], (string) $row['filename']),
         ];
     }
 

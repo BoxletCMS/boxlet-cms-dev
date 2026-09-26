@@ -89,7 +89,7 @@ if ($gate !== null) {
 // only one of the two call sites did it, the tests and the live site would disagree about
 // whether the owner can see that their site is hidden.
 $request = $container->get('request');
-$response = UpdateGate::bar($container, $container->get('router')->dispatch($request));
+$response = UpdateGate::bar($container, $request, $container->get('router')->dispatch($request));
 $response->send();
 
 // Visit statistics (PLAN.md D-051), counted after the page has gone: the connection is

@@ -65,7 +65,7 @@ export default {
       }));
       await report.shot(page, '01-file-page', { fullPage: false });
       report.verdict('its page gives the address it is downloaded from, and no picture controls',
-        own.address.includes(`/download/`) && own.address.endsWith(`${marker}.pdf`) && !own.focal, JSON.stringify(own));
+        own.address.includes(`/download/`) && own.address.endsWith(`/${marker}`) && !own.focal, JSON.stringify(own));
 
       // As a visitor would: a fresh context with no admin cookie, reading what came back.
       const visitor = await page.browser().createBrowserContext();
@@ -85,9 +85,19 @@ export default {
         };
       }, own.address).catch((error) => ({ error: String(error) }));
       await visitor.close();
-      report.verdict('a visitor gets the file itself, as an attachment of its own type',
-        got.status === 200 && got.type === 'application/pdf' && /attachment/.test(got.disposition || '')
+      report.verdict('a visitor gets the file itself, as an attachment of its own type and name',
+        got.status === 200 && got.type === 'application/pdf' && (got.disposition || '').includes(`filename="${marker}.pdf"`)
           && got.nosniff === 'nosniff' && got.pdf, JSON.stringify(got));
+
+      // Counted: the visitor's download, not the admin's visits to the library (D-126). The
+      // visitor went through the site's home page first, as a real one does, and so this also
+      // holds the site to giving a visitor no session cookie (D-128).
+      await page.goto(`${BASE}/admin/media?kind=files`, { waitUntil: 'networkidle2' });
+      const counted = await page.$$eval('tr.media-row', (rows, wanted) => {
+        const found = rows.find((r) => r.textContent.includes(wanted));
+        return found ? found.querySelector('.media-facts').textContent.trim() : null;
+      }, marker);
+      report.verdict('the library counts the visitor\'s download', /PDF · 1 download\b/.test(counted || ''), String(counted));
     } finally {
       await page.goto(url, { waitUntil: 'networkidle2' });
       const gone = await attemptDelete(page);

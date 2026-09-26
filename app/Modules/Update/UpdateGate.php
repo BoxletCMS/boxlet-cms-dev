@@ -59,7 +59,7 @@ final class UpdateGate
         // The admin keeps the whole admin, and sees the real site with a bar on it. The
         // session is resolved only here: an ordinary visit to a healthy site must not
         // start one, and so must not set a cookie, because this feature exists.
-        if (self::isAdmin($container)) {
+        if (self::isAdmin($container, $request)) {
             return null;
         }
 
@@ -73,12 +73,12 @@ final class UpdateGate
      * front end renders through one place, the 404 page included, and a page under
      * inspection must not change above the bar.
      */
-    public static function bar(Container $container, Response $response): Response
+    public static function bar(Container $container, Request $request, Response $response): Response
     {
         if (!$container->get('installed')
             || !$container->get('maintenance')->isOn()
             || $container->get('update')->pending() !== []
-            || !self::isAdmin($container)
+            || !self::isAdmin($container, $request)
             || !str_contains((string) ($response->headers['Content-Type'] ?? ''), 'text/html')) {
             return $response;
         }
@@ -94,8 +94,18 @@ final class UpdateGate
         return $response;
     }
 
-    private static function isAdmin(Container $container): bool
+    /**
+     * ONLY A REQUEST CARRYING THE SESSION COOKIE CAN BE THE ADMIN'S, and only then is the
+     * session opened (D-128). Opening it for every visitor to a closed site gave each one a
+     * `boxlet_session` cookie, and that cookie is how the statistics and the download count
+     * tell the admin apart without a session (Tracker::wanted()): a visitor who met the
+     * maintenance page went on being skipped as the admin after the site reopened.
+     */
+    private static function isAdmin(Container $container, Request $request): bool
     {
+        if (preg_match('~(?:^|;)\s*boxlet_session=~', $request->header('cookie') ?? '') !== 1) {
+            return false;
+        }
         $id = $container->get('session')->get('admin_id');
 
         return is_int($id) && $container->get('db')->one('SELECT id FROM admin WHERE id = ?', [$id]) !== null;

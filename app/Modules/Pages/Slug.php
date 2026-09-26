@@ -16,7 +16,10 @@ final class Slug
     // (D-020 moved originals to storage/uploads/). An install that predates that change
     // may still have files there, and a page at /uploads would be shadowed by them on
     // disk. Reserving a name costs nothing; un-reserving one breaks those sites quietly.
-    public const SYSTEM = ['admin', 'assets', 'cache', 'uploads', 'm', 'install', '_boxlet'];
+    // 'sitemap' is the route a host without a writable public/ serves the sitemap from, which
+    // a page there would never be reached past; 'download' leads nested addresses (D-129)
+    // into /download/{id}/{name}, a file's.
+    public const SYSTEM = ['admin', 'assets', 'cache', 'uploads', 'm', 'install', '_boxlet', 'download', 'sitemap'];
 
     public const MAX_LENGTH = 100;
 

@@ -10,6 +10,7 @@ use App\Support\Url;
  * @var string $content rendered HTML of the page template
  * @var string|null $canonical absolute canonical URL; null on error pages
  * @var list<array{hreflang: string, href: string}> $hreflang this page's alternates in other languages
+ * @var string $breadcrumbs BreadcrumbList JSON-LD for a page under a parent, '' otherwise (D-129)
  * @var string $description meta description; empty when the page gives none (D-004)
  * @var array{url: string, type: string}|null $icon the site's tab icon (D-028)
  * @var string|null $shareImage absolute URL of the default sharing picture (D-028)
@@ -41,6 +42,11 @@ use App\Support\Url;
 <?php foreach ($hreflang as $alternate): ?>
     <link rel="alternate" hreflang="<?= e($alternate['hreflang']) ?>" href="<?= e($alternate['href']) ?>">
 <?php endforeach; ?>
+<?php /* Where the page sits under its parents, for search engines to show in place of the
+         address (D-129). Encoded with JSON_HEX_TAG, so it cannot close this element. */ ?>
+<?php if ($breadcrumbs !== ''): ?>
+    <script type="application/ld+json"><?= $breadcrumbs ?></script>
+<?php endif; ?>
 <?php /* One 200×200 file for both: a browser downscales it for the tab, and iOS takes the
          same picture for a home-screen icon. sizes="any" says it is not a fixed 16 or 32
          rather than claiming a size it is not (D-028). */ ?>

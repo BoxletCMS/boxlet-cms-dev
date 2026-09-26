@@ -175,16 +175,16 @@ final class PageEditorController
         // What the page was, before it stops being that (D-088). Recorded here rather than
         // inside Page::update() because a revision is an editing event: the demo seed calls
         // update() too, and a fresh install does not want history nobody made.
+        // Said when it happens, so the owner knows a link out there did not just break
+        // (D-129): the same test Redirects::slugChanged() keeps the old slug by. The old
+        // address is read before the save, while the page is still there.
+        $kept = (string) $page['slug'] !== $slug && (string) $page['slug'] !== '' && $page['published_at'] !== null;
+        $oldAddress = Url::page((string) $page['locale'], (string) $page['slug']);
         PageRevision::record($db, $registry, $id);
         Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug] + $settings, $blocks, $sections);
         Activity::record($db, 'page', 'saved', $id, $title);
         Sitemap::refresh($this->container);
-        // Said when it happens, so the owner knows a link out there did not just break
-        // (D-129): the same test Redirects::slugChanged() keeps the old slug by.
-        $kept = (string) $page['slug'] !== $slug && (string) $page['slug'] !== '' && $page['published_at'] !== null;
-        $this->container->get('session')->set('flash', $kept
-            ? t('pages.saved_old_address', ['old' => Url::page((string) $page['locale'], (string) $page['slug'])])
-            : t('pages.saved'));
+        $this->container->get('session')->set('flash', $kept ? t('pages.saved_old_address', ['old' => $oldAddress]) : t('pages.saved'));
 
         return Response::redirect(Url::admin('pages', $id));
     }

@@ -39,6 +39,7 @@ use App\Modules\Settings\SiteChrome;
  *     icon: array{url: string, type: string}|null,
  *     shareImage: string|null,
  *     hreflang: list<array{hreflang: string, href: string}>,
+ *     breadcrumbs: string,
  *     headerBleed: string,
  *     footerBleed: string,
  *     headerHtml: string,
@@ -51,7 +52,7 @@ final class PageLayoutData
      * What the layout is handed, beside View's own $locale and $content. The test above
      * asserts this list against the template, so it is a fact rather than a comment.
      */
-    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'headerBleed', 'footerBleed', 'headerHtml', 'footerHtml'];
+    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'breadcrumbs', 'headerBleed', 'footerBleed', 'headerHtml', 'footerHtml'];
 
     /**
      * A visitor's page, or an error page.
@@ -62,7 +63,7 @@ final class PageLayoutData
      * a "not found" without the site's own header around it reads as a broken site rather
      * than a wrong address.
      *
-     * @param array{title: string, description?: string, canonical?: string|null, shareImage?: string|null, first_surface?: string} $head
+     * @param array{title: string, description?: string, canonical?: string|null, shareImage?: string|null, first_surface?: string, breadcrumbs?: string} $head
      * @param array<string, mixed>|null $page the page being drawn; null on an error page
      * @param string $current its address, for marking the menu; '' on an error page
      * @return LayoutData
@@ -86,6 +87,8 @@ final class PageLayoutData
             // A link preview of an error page is not worth a row, so this is the caller's.
             'shareImage' => $head['shareImage'] ?? null,
             'hreflang' => Alternates::hreflang($alternates, self::primary($container->get('locales'))),
+            // BreadcrumbList JSON-LD for a page under a parent, '' otherwise (D-129).
+            'breadcrumbs' => $head['breadcrumbs'] ?? '',
         ] + self::chrome($container, $locale, $alternates, $current, self::design($db) + ['first_surface' => $head['first_surface'] ?? '']);
     }
 
@@ -123,6 +126,7 @@ final class PageLayoutData
             'shareImage' => null,
             // An admin address must never announce itself as a translation of anything.
             'hreflang' => [],
+            'breadcrumbs' => '',
         ] + self::chrome($container, $locale, Alternates::for($db, null, $container->get('locales')), '', $trying);
     }
 

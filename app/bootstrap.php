@@ -38,7 +38,9 @@ use App\Modules\Pages\PageBlockController;
 use App\Modules\Pages\PageBuilderController;
 use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageEditorController;
+use App\Modules\Pages\PagePaths;
 use App\Modules\Pages\PagesController;
+use App\Modules\Pages\Slug;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Redirects\RedirectsController;
 use App\Modules\Settings\SettingsController;
@@ -148,6 +150,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     }
     $origin = Url::origin($request->https, (string) ($_SERVER['SERVER_NAME'] ?? 'localhost'), (int) ($_SERVER['SERVER_PORT'] ?? 0));
     Url::configure($request->basePath, $primary, $origin);
+    // A page's address is its slug under its parents' (D-129), worked out on first use.
+    Url::usePaths(PagePaths::resolver(static fn () => $c->get('db')));
     // The compiled design stylesheet; its hashed name changes whenever the design is saved.
     Url::useStylesheet(Url::asset('cache/' . Design::stylesheet($c->get('db'), $cache)));
     $router = new Router($c, array_column($locales, 'code'), $primary);
@@ -286,16 +290,21 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // The six typefaces, for the cards that choose between them (D-065).
     $router->get('/admin/appearance/typefaces', [AppearancePreview::class, 'typefaces'], $requireAdmin);
 
-    // Pages: the home page of a locale has the empty slug. Slugs are one path segment.
+    // Pages: the home page of a locale has the empty slug. A page under a parent is
+    // addressed by the slugs above it too, /usluge/web-dizajn (D-129); the last one finds it.
     // A visitor sending a form (D-046). Unprefixed: the form knows its own language.
     $router->visitorPost('/form/{id:\d+}', [FormSubmitController::class, 'submit']);
     // The sitemap for a host where public/sitemap.xml cannot be written (D-049).
-    // A file from the library, to save (D-126). Two segments, so no page's address — one
-    // segment (O-10) — can ever be it.
+    // A file from the library, to save (D-126). Registered before the pages, whose nested
+    // addresses (D-129) would otherwise be able to claim /download/{id}/{name}; 'download'
+    // is a system word no page may take as its slug.
     $router->get('/download/{id:\d+}/{name:[^/]+}', [\App\Modules\Media\DownloadController::class, 'download']);
     $router->get('/sitemap', [PageController::class, 'sitemap']);
     $router->get('/', [PageController::class, 'show']);
-    $router->get('/{slug:[a-z0-9]+(?:-[a-z0-9]+)*}', [PageController::class, 'show']);
+    // Never under a system word: /admin/anything that no admin route answers stays the
+    // admin's 404, and a POST to it is not turned into "method not allowed" by this route.
+    $system = implode('|', array_map(static fn (string $word): string => preg_quote($word, '~'), Slug::SYSTEM));
+    $router->get('/{slug:(?!(?:' . $system . ')(?:/|$))[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*)*}', [PageController::class, 'show']);
     $router->setNotFound([PageController::class, 'notFound']);
 
     return $router;

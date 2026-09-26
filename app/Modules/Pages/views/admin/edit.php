@@ -56,6 +56,9 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                     <label for="page-slug"><?= e(t('pages.field.slug')) ?></label>
                     <input type="text" id="page-slug" name="slug" value="<?= e($slugValue) ?>" maxlength="100" autocapitalize="off" spellcheck="false" aria-describedby="page-slug-hint">
                     <span class="hint" id="page-slug-hint"><?= e(t('pages.field.slug_hint')) ?></span>
+<?php if ($page['parent_id'] !== null && (string) $page['slug'] !== ''): ?>
+                    <span class="hint"><?= e(t('pages.slug.nested', ['address' => Url::page((string) $page['locale'], (string) $page['slug'])])) ?></span>
+<?php endif; ?>
                     <?= $error('slug') ?>
                 </div>
                 <?php /* The same control the builder has. It is here so the parent can be

@@ -223,6 +223,7 @@ final class Page
             $id = (int) $db->lastInsertId();
             $db->query('UPDATE pages SET content_group_id = id WHERE id = ?', [$id]);
             Redirects::claimed($db, $locale, $slug);
+            PagePaths::changed();
             foreach ($blockTypes as $sort => $type) {
                 $block = [
                     // Never rendered in an editor, so the key only has to exist and differ.
@@ -303,6 +304,7 @@ final class Page
                 ],
             );
             // The old slug of a page visitors could have known keeps leading here (D-129).
+            PagePaths::changed();
             if ($current !== null) {
                 Redirects::slugChanged($db, $id, (string) $current['locale'], (string) $current['slug'], $page['slug'], $current['published_at'] !== null);
             }
@@ -412,6 +414,7 @@ final class Page
     {
         Redirects::pageDeleted($db, $id);
         $db->query('DELETE FROM pages WHERE id = ?', [$id]);
+        PagePaths::changed();
     }
 
     /**

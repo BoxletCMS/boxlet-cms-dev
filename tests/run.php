@@ -65,6 +65,8 @@ $failed = 0;
 $skipped = 0;
 foreach (TestSuite::$tests as [$name, $body]) {
     $_SESSION = [];
+    // A page-path resolver holds the last site's pages (D-129); a test starts with none.
+    App\Support\Url::usePaths(null);
     TestSite::$env = [];
     // The storage directory is one fixed path shared by every test, so state written into
     // it outlives the test that wrote it. Each of these changes what a LATER test sees:

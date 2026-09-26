@@ -98,6 +98,7 @@ final class Translations
             );
             $id = (int) $db->lastInsertId();
             Redirects::claimed($db, $locale, $slug);
+            PagePaths::changed();
 
             /*
              * THE SECTIONS COME TOO (D-095). A translation is a copy, and since the layer-2

@@ -15,6 +15,27 @@ final class Url
     private static string $stylesheet = '';
     private static string $publicPath = '';
 
+    /** @var (\Closure(string, string): string)|null slug to whole path (PLAN.md D-129) */
+    private static ?\Closure $paths = null;
+
+    /**
+     * Where a slug lives under its parents, `/usluge/web-dizajn`: page() asks this for every
+     * slug it is given, so no caller builds a nested address itself (D-129). null — before
+     * the router is built, and between tests — leaves a slug as it is.
+     *
+     * @param (\Closure(string, string): string)|null $resolver
+     */
+    public static function usePaths(?\Closure $resolver): void
+    {
+        self::$paths = $resolver;
+    }
+
+    /** A slug's whole path under its parents, `usluge/web-dizajn`, with no prefix or slash. */
+    public static function pathOf(string $locale, string $slug): string
+    {
+        return self::$paths === null ? $slug : (self::$paths)($locale, $slug);
+    }
+
     /**
      * Where public/ lives on disk, so versioned() can hash the files it links.
      */
@@ -98,6 +119,7 @@ final class Url
      */
     public static function page(string $locale, string $slug = ''): string
     {
+        $slug = self::pathOf($locale, $slug);
         $segments = array_map(
             'rawurlencode',
             array_filter(explode('/', $slug), static fn (string $segment): bool => $segment !== ''),

@@ -189,6 +189,9 @@ foreach ($errors as $key => $message) {
                             <label for="page-slug"><?= e(t('pages.field.slug')) ?></label>
                             <input type="text" id="page-slug" name="slug" value="<?= e($slugValue) ?>" maxlength="100" autocapitalize="off" spellcheck="false" data-slug-field>
                             <span class="hint"><?= e($slugValue === '' ? t('pages.slug.home') : t('pages.slug.auto')) ?></span>
+<?php if ($page['parent_id'] !== null && (string) $page['slug'] !== ''): ?>
+                            <span class="hint"><?= e(t('pages.slug.nested', ['address' => Url::page((string) $page['locale'], (string) $page['slug'])])) ?></span>
+<?php endif; ?>
                             <?= $error('slug') ?>
                         </div>
 

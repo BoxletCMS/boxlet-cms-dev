@@ -311,6 +311,7 @@ return [
     'pages.field.status' => 'Visibility',
     'pages.slug.auto' => 'The address follows the title while the page is a draft, until you change it yourself.',
     'pages.slug.home' => 'Empty: this is the home page of its language.',
+    'pages.slug.nested' => 'Under its parent, its whole address is :address',
     'pages.insert_unknown' => 'That block type is not installed.',
 
     // What the page says about itself in a search result (PLAN.md D-004). Two fields,

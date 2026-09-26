@@ -87,7 +87,7 @@ return [
 
     // A page's settings
     'hint.page.title' => 'The page’s name. Visitors see it as the big heading at the top; it is also the page’s title in search results and browser tabs, unless you set one below.',
-    'hint.page.parent' => 'Places this page under another in the page list, to keep related pages together. It does not change the page’s address.',
+    'hint.page.parent' => 'Places this page under another, in the page list and in its address: under “Services” it is /services/its-address. Links to where it was before keep leading here.',
     'hint.page.locale' => 'The language this page is written in. A page in another language than the first gets that language’s prefix in its address, such as /hr/.',
     'hint.page.template' => 'A set of blocks to start the page with, so it is not empty. You can add, remove and reorder blocks afterwards.',
     'hint.page.status' => 'A draft is visible only to you. Published puts the page on the site for everyone.',

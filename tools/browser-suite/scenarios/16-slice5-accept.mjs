@@ -107,7 +107,7 @@ export default {
       const drawn = await page.evaluate((i, wanted) => {
         const frame = document.querySelector('iframe[data-canvas]');
         const img = frame.contentDocument.querySelector(`[data-bx-index="${i}"] img[src*="${wanted}"]`);
-        return img ? { current: img.currentSrc, largest: img.src, width: img.naturalWidth, height: img.naturalHeight } : null;
+        return img ? { current: img.currentSrc, largest: img.src, width: img.naturalWidth } : null;
       }, index, NAME);
       await report.shot(page, '01-hero-with-4mb-photo', { fullPage: false });
       report.verdict('place it in a hero', drawn !== null,
@@ -118,7 +118,11 @@ export default {
       const fetchOf = (url) => page.evaluate(async (u) => {
         const response = await fetch(u, { cache: 'reload' });
         const blob = await response.blob();
-        return { status: response.status, type: response.headers.get('content-type'), bytes: blob.size, etag: response.headers.get('etag') };
+        // The file's own pixels, decoded: an <img>'s naturalWidth is divided by the density
+        // srcset chose, so a 2400-wide file drawn for a 2x screen reports 1180.
+        const bitmap = await createImageBitmap(blob).catch(() => null);
+        return { status: response.status, type: response.headers.get('content-type'), bytes: blob.size, etag: response.headers.get('etag'),
+          pixels: bitmap ? [bitmap.width, bitmap.height] : null };
       }, url);
       const chosen = await fetchOf(drawn.current);
       const largest = await fetchOf(drawn.largest);
@@ -132,10 +136,14 @@ export default {
       // purpose, not a check loosened to pass: 200 KB for a 1920×1080, and as much again for
       // every 1920×1080 of pixels above that. A cover hero (D-118) fills the window, so at
       // 2x it is served `full`, 2400 across; §8's 200 KB was written for the half-width
-      // hero, which asked for 1920. MediaVariants::retryOver() is the same sum.
-      const budget = Math.max(LIMIT, Math.round(LIMIT * drawn.width * drawn.height / (1920 * 1080)));
-      report.verdict('the served file is within the budget for its size', chosen.bytes <= budget,
-        `${human(chosen.bytes)} for ${drawn.width}×${drawn.height} (budget ${human(budget)}) of ${human(size)}; the largest candidate, ${drawn.largest.split('/m/')[1]}, is ${human(largest.bytes)}`);
+      // hero, which asked for 1920. MediaVariants::retryOver() is the same sum. STRICT ON
+      // PURPOSE: §8's photograph is the wood-plank texture, and after its one retry it is
+      // 415 KB against 368 KB — the excess SPEC allows a texture, recorded as O-37 rather
+      // than hidden by a looser figure here.
+      const [w, h] = chosen.pixels ?? [0, 0];
+      const budget = Math.max(LIMIT, Math.round(LIMIT * w * h / (1920 * 1080)));
+      report.verdict('the served file is within the budget for its size', chosen.pixels !== null && chosen.bytes <= budget,
+        `${human(chosen.bytes)} for ${w}×${h} (budget ${human(budget)}) of ${human(size)}; the largest candidate, ${drawn.largest.split('/m/')[1]}, is ${human(largest.bytes)}`);
 
       // ---- a second request, answered from disk --------------------------------------------
       const second = await fetchOf(drawn.current);

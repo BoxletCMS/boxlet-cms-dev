@@ -100,7 +100,7 @@ repository and loaded with a plain script tag. Each must be permissively license
 dependency-free and a single file.
 
 They live in `public/assets/vendor/`, and each file records its version and source URL in
-its own header. What is vendored, and the rule for adding to it, is in `docs/SPEC.md` §3.
+its own header. A vendored asset is added only when it earns its place, one at a time.
 To update one, download the new pinned release over it and change both.
 
 One of them, the TipTap editor bundle, is not published as a single file, so it is built

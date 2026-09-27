@@ -44,7 +44,9 @@ export default {
     try {
       // ---- set up -----------------------------------------------------------------------------
       await page.goto(`${BASE}/admin/settings#two-step`, { waitUntil: 'networkidle2' });
-      await clickAndWait(page, '#two-step a.button');
+      // The link to the setup, named by where it goes: since D-132 two-step login is a part
+      // of Your login, and #two-step is its heading rather than a panel around it.
+      await clickAndWait(page, '#account a.button[href$="/admin/two-step"]');
       const key = await page.$eval('.two-step-secret', (c) => c.textContent);
       const qr = await page.$('.two-step-qr svg');
       await report.shot(page, '01-setup', { fullPage: false });

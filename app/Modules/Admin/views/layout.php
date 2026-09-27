@@ -91,6 +91,7 @@ foreach ($rail as $entries) {
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/' . $style)) ?>">
 <?php endforeach; ?>
     <script src="<?= e(Url::versioned('assets/admin.js')) ?>" defer></script>
+    <script src="<?= e(Url::versioned('assets/row-menu.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-nav.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-palette.js')) ?>" defer></script>
 <?php foreach ($scripts as $script): ?>

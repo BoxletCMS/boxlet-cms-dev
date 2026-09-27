@@ -187,6 +187,13 @@
   box-shadow: var(--ui-shadow-m);
 }
 
+/* Placed against the window by row-menu.js, so the table's scroll box cannot clip it. */
+.row-menu-list.is-floating {
+  position: fixed;
+  right: auto;
+  z-index: 30;
+}
+
 .row-menu-list form {
   margin: 0;
 }

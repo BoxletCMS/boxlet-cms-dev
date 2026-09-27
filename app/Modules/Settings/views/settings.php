@@ -60,7 +60,7 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                  the part wanted. Plain anchors; settings-nav.js only marks where you are. */ ?>
         <div class="settings-layout">
         <nav class="settings-nav" aria-label="<?= e(t('settings.sections')) ?>" data-settings-nav>
-<?php foreach (['general' => 'settings.general', 'branding' => 'settings.branding', 'languages' => 'languages.title', 'mail' => 'mail.title', 'two-step' => 'twofactor.title', 'statistics' => 'stats.title', 'maintenance' => 'maintenance.title'] as $anchor => $key): ?>
+<?php foreach (['general' => 'settings.general', 'branding' => 'settings.branding', 'maintenance' => 'maintenance.title', 'languages' => 'languages.title', 'mail' => 'mail.title', 'two-step' => 'twofactor.title', 'statistics' => 'stats.title'] as $anchor => $key): ?>
             <a href="#<?= e($anchor) ?>"><?= e(t($key)) ?></a>
 <?php endforeach; ?>
         </nav>
@@ -139,19 +139,13 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
             </div>
         </form>
 
-<?php require dirname(__DIR__, 2) . '/Languages/views/panel.php'; ?>
-
-<?php require dirname(__DIR__, 2) . '/Mailer/views/panel.php'; ?>
-
-<?php require dirname(__DIR__, 2) . '/Auth/views/two-step-panel.php'; ?>
-
-<?php require dirname(__DIR__, 2) . '/Stats/views/panel.php'; ?>
-
         <?php /* MAINTENANCE IN ONE PLACE (D-038): the switch, and the message visitors see
                  while it is on. Two forms, because HTML has none nested and the switch posts
                  to /admin/maintenance, which owns the flag file (D-021); the message is a
                  setting and saves with its own button. The state is said in words first:
-                 "Turn on maintenance mode" alone does not say which way round the site is. */ ?>
+                 "Turn on maintenance mode" alone does not say which way round the site is.
+                 Straight after the site's name and branding, not last (the owner,
+                 2026-09-27): it is the setting reached for most, and in a hurry. */ ?>
         <div class="panel stack" id="maintenance">
             <h2><?= e(t('maintenance.title')) ?></h2>
             <p class="hint"><?= e(t('settings.maintenance_intro')) ?></p>
@@ -181,5 +175,13 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                 </div>
             </form>
         </div>
+
+<?php require dirname(__DIR__, 2) . '/Languages/views/panel.php'; ?>
+
+<?php require dirname(__DIR__, 2) . '/Mailer/views/panel.php'; ?>
+
+<?php require dirname(__DIR__, 2) . '/Auth/views/two-step-panel.php'; ?>
+
+<?php require dirname(__DIR__, 2) . '/Stats/views/panel.php'; ?>
         </div>
         </div>

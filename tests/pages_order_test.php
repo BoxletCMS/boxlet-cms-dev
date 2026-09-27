@@ -156,8 +156,12 @@ testBothDrivers('the page list renders the tree with its order controls', functi
     assertContains('data-page-group="en:' . $ids['About'] . '"', $body, 'a child is grouped under its parent');
     assertContains('id="page-move-' . $ids['Team'] . '"', $body, 'the form the buttons submit');
     // About is alone at the top level and Team is an only child, so both rows are at both
-    // ends of their group: four disabled buttons, and nothing that moves nowhere.
-    assertEquals(4, substr_count($body, 'move-button" disabled'), 'disabled Up and Down on both rows');
+    // ends of their group: four disabled buttons, and nothing that moves nowhere. Counted
+    // by what they are, Up and Down, since → and ← (D-133) share the row and the class.
+    assertEquals(4, preg_match_all('~name="move" value="(?:up|down)"[^>]*disabled~', $body), 'disabled Up and Down on both rows');
+    // Neither has a page above it to go under, and only Team has a level to come out of.
+    assertEquals(2, preg_match_all('~name="to" value="in"[^>]*disabled~', $body), '→ with nothing above');
+    assertEquals(1, preg_match_all('~name="to" value="out"[^>]*disabled~', $body), '← at the top level');
 });
 
 testBothDrivers('a drag posts the new sibling order and it sticks', function (string $driver) {

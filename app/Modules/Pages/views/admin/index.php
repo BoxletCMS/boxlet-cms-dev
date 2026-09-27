@@ -13,8 +13,19 @@ use App\Support\Url;
  * @var array<string, string> $localeLabels code => label
  * @var array<int, int> $stale translations with blocks behind their source: page id => how many
  * @var string $zone the site's time zone, for the Last edited column
+ * @var array{id: int, parent: int|null, position: int}|null $undo where the page just placed was (D-133)
+ * @var int $maxLevels how deep the tree may go (PagePlacing::MAX_LEVELS)
  * @var string $csrf
  */
+// The page above each row among its own siblings: what → places it under (D-133). The list
+// is the tree in order, so it is the last row seen in the same group.
+$above = [];
+$seen = [];
+foreach ($pages as $row) {
+    $key = $row['locale'] . ':' . $row['parent'];
+    $above[$row['id']] = $seen[$key] ?? null;
+    $seen[$key] = $row;
+}
 ?>
         <div class="page-header">
             <h1><?= e(t('pages.title')) ?></h1>
@@ -27,6 +38,19 @@ use App\Support\Url;
         </div>
 <?php else: ?>
         <p class="page-subtitle"><?= e(t('pages.order_hint')) ?></p>
+<?php if ($undo !== null): ?>
+        <?php /* The move just made, undone by the same request naming where the page was. */ ?>
+        <form method="post" action="<?= e(Url::admin('pages', $undo['id'], 'place')) ?>" class="page-undo">
+            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+            <input type="hidden" name="parent" value="<?= e($undo['parent'] === null ? '' : (string) $undo['parent']) ?>">
+            <input type="hidden" name="position" value="<?= e((string) $undo['position']) ?>">
+            <input type="hidden" name="undo" value="1">
+<?php if ($lang !== ''): ?>
+            <input type="hidden" name="lang" value="<?= e($lang) ?>">
+<?php endif; ?>
+            <button type="submit" class="button button-secondary"><?= icon('undo-2') ?> <?= e(t('pages.place.undo')) ?></button>
+        </form>
+<?php endif; ?>
         <?php /* The filters: words in the title or address, and a language. A plain GET
                  form and plain links, so each view has an address of its own. */ ?>
         <div class="list-filters">
@@ -51,12 +75,17 @@ use App\Support\Url;
 <?php if ($pages === []): ?>
         <p class="hint"><?= e(t('pages.none_match')) ?> <a href="<?= e(Url::admin('pages')) ?>"><?= e(t('pages.show_all')) ?></a></p>
 <?php else: ?>
-        <?php /* The drag writes the new sibling order into this form and submits it, so
-                 the same request the buttons make is the one a drag makes. No fetch, and
-                 the router's CSRF check covers both. */ ?>
-        <form method="post" action="<?= e(Url::admin('pages', 'order')) ?>" data-page-order>
+        <?php /* The drag writes where the page landed into this form — under which page,
+                 and where among the pages there — points it at that page's place route and
+                 submits it: the request → and ← and Undo make (D-133). No fetch, and the
+                 router's CSRF check covers it. */ ?>
+        <form method="post" action="" data-page-place>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-            <input type="hidden" name="order" value="">
+<?php if ($lang !== ''): ?>
+            <input type="hidden" name="lang" value="<?= e($lang) ?>">
+<?php endif; ?>
+            <input type="hidden" name="parent" value="">
+            <input type="hidden" name="position" value="">
         </form>
         <div class="table-wrap">
             <table class="table page-tree">
@@ -71,7 +100,7 @@ use App\Support\Url;
                         <th scope="col" class="col-menu"><span class="visually-hidden"><?= e(t('pages.col.actions')) ?></span></th>
                     </tr>
                 </thead>
-                <tbody data-page-rows>
+                <tbody data-page-rows data-max-levels="<?= e((string) $maxLevels) ?>">
 <?php foreach ($pages as $page): ?>
 <?php
     $id = $page['id'];
@@ -83,7 +112,10 @@ use App\Support\Url;
     // another parent's rows, which the server then refused (PLAN.md D-011).
     $group = $page['locale'] . ':' . $page['parent'];
 ?>
-                    <tr data-page-id="<?= $id ?>" data-page-group="<?= e($group) ?>">
+                    <?php /* What the drag reads (pages.js, D-133): the level, the language, the
+                             parent, the title it names as a parent, whether it is a home page,
+                             which takes no subpages, and where to send the page. */ ?>
+                    <tr data-page-id="<?= $id ?>" data-page-group="<?= e($group) ?>" data-depth="<?= e((string) $page['depth']) ?>" data-locale="<?= e($page['locale']) ?>" data-parent="<?= $page['parent'] > 0 ? e((string) $page['parent']) : '' ?>" data-title="<?= e($page['title']) ?>"<?= $page['slug'] === '' ? ' data-home' : '' ?> data-place="<?= e(Url::admin('pages', $id, 'place')) ?>">
                         <td class="page-order">
 <?php if ($query === ''): ?>
                             <span class="drag-handle" data-page-handle aria-hidden="true"><?= icon('grip-vertical') ?></span>
@@ -92,6 +124,18 @@ use App\Support\Url;
                             </button>
                             <button type="submit" form="page-move-<?= $id ?>" name="move" value="down" title="<?= e(t('pages.move_down')) ?>" class="button button-ghost move-button"<?= $page['last'] ? ' disabled' : '' ?>>
                                 <span class="visually-hidden"><?= e(t('pages.move_down')) ?></span><?= icon('arrow-down') ?>
+                            </button>
+<?php
+    // → : under the page above it, where there is one, it is not a home page, and a level
+    //     is left; ← : out one level. The server holds every rule besides (PagePlacing).
+    $into = $above[$id] ?? null;
+    $canIn = $into !== null && $into['slug'] !== '' && $page['depth'] + 1 < $maxLevels;
+?>
+                            <button type="submit" form="page-place-<?= $id ?>" name="to" value="out" title="<?= e(t('pages.place.out')) ?>" class="button button-ghost move-button"<?= $page['depth'] > 0 ? '' : ' disabled' ?>>
+                                <span class="visually-hidden"><?= e(t('pages.place.out')) ?></span><?= icon('arrow-left') ?>
+                            </button>
+                            <button type="submit" form="page-place-<?= $id ?>" name="to" value="in" title="<?= e($into === null ? t('pages.place.in') : t('pages.place.in_under', ['parent' => $into['title']])) ?>" class="button button-ghost move-button"<?= $canIn ? '' : ' disabled' ?>>
+                                <span class="visually-hidden"><?= e(t('pages.place.in')) ?></span><?= icon('arrow-right') ?>
                             </button>
 <?php endif; ?>
                         </td>
@@ -103,6 +147,7 @@ use App\Support\Url;
                                  marching off the column. */ ?>
                         <td class="page-name depth-<?= min($page['depth'], 6) ?>">
                             <a href="<?= e(Url::admin('pages', $id)) ?>"><?= e($page['title']) ?></a>
+                            <span class="page-landing" data-landing data-under="<?= e(t('pages.place.landing_under')) ?>" data-top="<?= e(t('pages.place.landing_top')) ?>"></span>
 <?php if ($page['slug'] === ''): ?>
                             <span class="badge badge-edge"><?= e(t('pages.home_badge')) ?></span>
 <?php endif; ?>
@@ -154,6 +199,12 @@ use App\Support\Url;
         <form method="post" action="<?= e(Url::admin('pages', 'order')) ?>" id="page-move-<?= $page['id'] ?>" class="visually-hidden">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <input type="hidden" name="id" value="<?= $page['id'] ?>">
+        </form>
+        <form method="post" action="<?= e(Url::admin('pages', $page['id'], 'place')) ?>" id="page-place-<?= $page['id'] ?>" class="visually-hidden">
+            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+<?php if ($lang !== ''): ?>
+            <input type="hidden" name="lang" value="<?= e($lang) ?>">
+<?php endif; ?>
         </form>
 <?php endforeach; ?>
 <?php endif; ?>

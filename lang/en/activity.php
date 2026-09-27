@@ -29,6 +29,7 @@ return [
     'activity.page.unpublished' => 'Took “:name” back to draft',
     'activity.page.deleted' => 'Deleted “:name”',
     'activity.page.reordered' => 'Reordered the pages',
+    'activity.page.placed' => 'Moved “:name” in the page tree',
     'activity.page.translated' => 'Translated “:name”',
 
     'activity.media.uploaded' => 'Uploaded :name',

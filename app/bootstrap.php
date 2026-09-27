@@ -197,6 +197,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/pages/{id:\d+}/form', [PageEditorController::class, 'edit'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
     $router->post('/admin/pages/order', [PagesController::class, 'reorder'], $requireAdmin);
+    // Under another page, or out of one (D-133): → and ←, the drag, and Undo.
+    $router->post('/admin/pages/{id:\d+}/place', [PagesController::class, 'place'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/status', [PagesController::class, 'status'], $requireAdmin);
     // A page's version in another language, made as a draft copy (D-043).
     $router->post('/admin/pages/{id:\d+}/translate', [TranslationController::class, 'create'], $requireAdmin);

@@ -38,6 +38,8 @@ const ICONS = [
     'building-2', 'square-play',
     // The Redirects screen in the rail (D-129).
     'signpost',
+    // Under the page above, and out a level, in the page list (D-133).
+    'arrow-right', 'arrow-left',
 ];
 
 if (PHP_SAPI !== 'cli') {

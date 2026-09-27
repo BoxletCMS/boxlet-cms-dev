@@ -56,6 +56,9 @@ final class PagesController
             'localeLabels' => array_column($this->container->get('locales'), 'label', 'code'),
             // Translations with blocks behind their source, by page id (D-043, step 3).
             'stale' => TranslationStatus::counts($this->db(), $this->container->get('blocks')),
+            // Where the page just placed was, for the one Undo the list offers (D-133).
+            'undo' => $this->pullUndo(),
+            'maxLevels' => PagePlacing::MAX_LEVELS,
         ]);
     }
 
@@ -86,6 +89,56 @@ final class PagesController
         $this->container->get('session')->set('flash', t($done ? 'pages.reordered' : 'pages.reorder_failed'));
 
         return Response::redirect(Url::admin('pages'));
+    }
+
+    /**
+     * Placing a page under another, or out of one (D-133): → and ← in the list, the drag,
+     * and Undo, which is the same request naming where the page was. The rules and the
+     * translations that follow are PagePlacing's.
+     *
+     * @param array<string, string> $params
+     */
+    public function place(Request $request, string $locale, array $params): Response
+    {
+        $db = $this->db();
+        $id = (int) $params['id'];
+        $before = PagePlacing::whereIs($db, $id);
+        // Back to the list as it was being looked at: one language, if one was chosen.
+        $lang = $request->input('lang');
+        $back = in_array($lang, array_column($this->container->get('locales'), 'code'), true)
+            ? Url::admin('pages') . '?' . http_build_query(['lang' => $lang])
+            : Url::admin('pages');
+        $parent = $request->input('parent');
+        $position = $request->input('position');
+        $problem = match ($request->input('to')) {
+            'in' => PagePlacing::indent($db, $id),
+            'out' => PagePlacing::outdent($db, $id),
+            default => PagePlacing::place($db, $id, ctype_digit($parent) ? (int) $parent : null, ctype_digit($position) ? (int) $position : null),
+        };
+
+        $session = $this->container->get('session');
+        if ($problem !== null) {
+            $session->set('flash', $problem);
+            $session->set('flash_kind', 'error');
+
+            return Response::redirect($back);
+        }
+
+        $page = Page::find($db, $id) ?? [];
+        $title = (string) ($page['title'] ?? '');
+        Activity::record($db, 'page', 'placed', $id, $title);
+        $under = ($page['parent_id'] ?? null) === null ? null : Page::find($db, (int) $page['parent_id']);
+        $session->set('flash', $under === null
+            ? t('pages.place.done_top', ['title' => $title])
+            : t('pages.place.done_under', ['title' => $title, 'parent' => (string) $under['title']]));
+        // Undo, offered once on the list this lands on; an undo offers none of its own.
+        if ($before !== null && $request->input('undo') !== '1') {
+            $session->set('page_undo', ['id' => $id, 'parent' => $before['parent'], 'position' => $before['position']]);
+        } else {
+            $session->remove('page_undo');
+        }
+
+        return Response::redirect($back);
     }
 
     /**
@@ -212,5 +265,22 @@ final class PagesController
     private function db(): Db
     {
         return $this->container->get('db');
+    }
+
+    /**
+     * The Undo left by the last placing, taken so it is offered once.
+     *
+     * @return array{id: int, parent: int|null, position: int}|null
+     */
+    private function pullUndo(): ?array
+    {
+        $session = $this->container->get('session');
+        $undo = $session->get('page_undo');
+        $session->remove('page_undo');
+        if (!is_array($undo) || !is_int($undo['id'] ?? null) || !is_int($undo['position'] ?? null)) {
+            return null;
+        }
+
+        return ['id' => $undo['id'], 'parent' => is_int($undo['parent'] ?? null) ? $undo['parent'] : null, 'position' => $undo['position']];
     }
 }

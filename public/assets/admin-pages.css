@@ -12,7 +12,7 @@
   table-layout: fixed;
 }
 
-.page-tree .col-order { inline-size: 6.5rem; }
+.page-tree .col-order { inline-size: 12.5rem; }
 .page-tree .col-address { inline-size: 11rem; }
 .page-tree .col-lang { inline-size: 3.5rem; }
 .page-tree .col-status { inline-size: 7rem; }
@@ -41,8 +41,18 @@
   .page-tree .col-date,
   .page-tree .date,
   .page-tree .col-address,
-  .page-tree .address {
+  .page-tree .address,
+  .page-tree .col-status,
+  .page-tree td:nth-child(5) {
     display: none;
+  }
+
+  /* Four arrows and a handle since D-133: tighter, so the title — the one thing a row
+     cannot lose — keeps its room. The status is changed in the page's own settings here. */
+  .page-tree .col-order { inline-size: 8.75rem; }
+
+  .page-tree .move-button {
+    padding-inline: var(--ui-1);
   }
 }
 
@@ -192,6 +202,30 @@
   outline: 2px dashed var(--ui-accent);
 }
 
+/* Where a dragged page will land (D-133): its row takes the level it will have, and says
+   under which page. Shown only while it is dragged. */
+.page-landing {
+  display: none;
+  margin-inline-start: var(--ui-2);
+  color: var(--ui-accent-dark);
+  font-size: var(--ui-text-sm);
+}
+
+.is-placing .page-landing {
+  display: inline;
+}
+
+/* The copy SortableJS moves with the pointer: a <tr> outside its table, cells folded. The
+   row standing in its place says everything, so this one is not drawn. */
+.page-drag-follower {
+  visibility: hidden;
+}
+
+.page-tree tr.is-placing {
+  opacity: 1;
+  background: var(--ui-accent-soft);
+}
+
 /* Section style, folded away until wanted */
 
 .block-style {
@@ -267,4 +301,15 @@
   .block-body {
     padding-inline: var(--ui-3);
   }
+}
+
+/* Undo for the move just made (D-133), above the list it changed. */
+.page-undo {
+  margin-block-end: var(--ui-4);
+}
+
+.page-undo .button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-2);
 }

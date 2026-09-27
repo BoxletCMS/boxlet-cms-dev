@@ -40,6 +40,8 @@ const ICONS = [
     'signpost',
     // Under the page above, and out a level, in the page list (D-133).
     'arrow-right', 'arrow-left',
+    // What kind of file a download is, in the Media library (MediaFileType::icon()).
+    'file-type', 'file-spreadsheet', 'presentation', 'file-archive',
 ];
 
 if (PHP_SAPI !== 'cli') {

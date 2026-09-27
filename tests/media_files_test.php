@@ -147,3 +147,31 @@ testBothDrivers('a file field keeps only a file and a picture field only a pictu
     assertEquals([$page => 'Forms'], $library->usedBy($file), 'the page that offers it');
     assertEquals(false, $library->delete($file)['deleted'], 'a file still offered was deleted');
 });
+
+// Each kind of file drawn with its own icon in the library, and its extension under it
+// (the owner, 2026-09-27): a table, slides, an archive, a text.
+test('a document\'s icon says what kind of thing it is', function () {
+    $icons = [];
+    foreach (['pdf', 'txt', 'docx', 'odt', 'xlsx', 'ods', 'csv', 'pptx', 'odp', 'zip'] as $extension) {
+        $icons[$extension] = MediaFileType::icon($extension);
+    }
+    assertEquals([
+        'pdf' => 'file-text', 'txt' => 'file-text', 'docx' => 'file-type', 'odt' => 'file-type',
+        'xlsx' => 'file-spreadsheet', 'ods' => 'file-spreadsheet', 'csv' => 'file-spreadsheet',
+        'pptx' => 'presentation', 'odp' => 'presentation', 'zip' => 'file-archive',
+    ], $icons, 'the icons');
+
+    // Every one of them is in the admin's sprite, or it would draw nothing.
+    $sprite = (string) file_get_contents(dirname(__DIR__) . '/public/assets/vendor/icons.svg');
+    foreach (array_unique($icons) as $icon) {
+        assertContains('id="i-' . $icon . '"', $sprite, 'in the sprite: ' . $icon);
+    }
+});
+
+testBothDrivers('the library draws a file with its kind\'s icon and its extension', function (string $driver) {
+    mediaAdminSite($driver);
+    adminUpload('/admin/media', [['name' => 'Price list.pdf', 'tmp_name' => pdfFixture(tmpPath('icon.pdf'))]]);
+    $list = mediaAdminGet('/admin/media?kind=files')->body;
+    assertContains('icons.svg?v=', $list, 'an icon at all');
+    assertTrue((bool) preg_match('~class="media-row-file"[^>]*><svg[^>]*><use href="[^"]*#i-file-text"></use></svg><span class="media-row-file-ext">PDF</span>~', $list), 'the PDF\'s icon and extension');
+});

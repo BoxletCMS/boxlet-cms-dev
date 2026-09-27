@@ -55,7 +55,7 @@ use App\Support\Url;
 <?php endif; ?>
 
             <div class="media-actions">
-                <a class="button button-secondary" href="<?= e($file['download']) ?>"><?= icon('file-text') ?> <?= e(t('media.file_try')) ?></a>
+                <a class="button button-secondary" href="<?= e($file['download']) ?>"><?= icon(\App\Modules\Media\MediaFileType::icon($file['ext'])) ?> <?= e(t('media.file_try')) ?></a>
                 <form class="media-delete" method="post" action="<?= e(Url::admin('media', $file['id'], 'delete')) ?>">
                     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                     <button type="submit" class="button button-ghost button-danger"

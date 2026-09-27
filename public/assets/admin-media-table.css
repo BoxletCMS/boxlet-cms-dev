@@ -33,13 +33,30 @@
    file's icon on it in the ink every control here is legible in. */
 .media-row-file {
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 0.125rem;
   inline-size: var(--media-tile-w);
   block-size: var(--media-tile-h);
   color: var(--ui-ink-muted);
   background: var(--ui-panel);
   border-radius: var(--ui-radius-s);
   box-shadow: inset 0 0 0 1px var(--ui-line-strong);
+}
+
+/* The kind of file, large enough to tell a table from slides at a glance. */
+.media-row-file .icon {
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+}
+
+/* The extension under the icon, PDF or XLSX: the program a visitor opens it with. */
+.media-row-file-ext {
+  font-family: var(--ui-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
 }
 
 .media-row-name {

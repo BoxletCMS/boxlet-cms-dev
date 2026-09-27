@@ -32,7 +32,7 @@ use App\Support\Url;
                     <tr class="media-row" data-media-id="<?= e((string) $row['id']) ?>">
                         <td class="media-row-thumb">
 <?php if ($row['kind'] === 'file'): ?>
-                            <span class="media-row-file" aria-hidden="true"><?= icon('file-text') ?></span>
+                            <span class="media-row-file" aria-hidden="true"><?= icon(\App\Modules\Media\MediaFileType::icon($row['ext'])) ?><span class="media-row-file-ext"><?= e(strtoupper($row['ext'])) ?></span></span>
 <?php elseif ($row['thumb'] !== null): ?>
                             <img class="media-thumb" src="<?= e($row['thumb']) ?>" alt="" width="72" height="54" loading="lazy">
 <?php else: ?>

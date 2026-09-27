@@ -103,6 +103,23 @@ final class MediaFileType
         return in_array($sniffed, self::DOCUMENTS[$extension], true) ? $extension : null;
     }
 
+    /**
+     * The admin's icon for a document of $extension (the owner, 2026-09-27): what kind of
+     * thing it is — a text, a table, slides, an archive — from the icons the admin already
+     * has (Lucide). Not the makers' logos, which are theirs; the extension printed beside the
+     * icon says which program.
+     */
+    public static function icon(string $extension): string
+    {
+        return match ($extension) {
+            'docx', 'odt' => 'file-type',
+            'xlsx', 'ods', 'csv' => 'file-spreadsheet',
+            'pptx', 'odp' => 'presentation',
+            'zip' => 'file-archive',
+            default => 'file-text',
+        };
+    }
+
     /** What a stored document is served as: its format's own type, not whatever finfo said. */
     public static function documentMime(string $extension): string
     {

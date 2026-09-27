@@ -3,15 +3,56 @@
 use App\Support\Url;
 
 /**
- * Two-step login on the Settings screen (PLAN.md D-050): whether it is on, and the ways to
- * change that. Its forms are its own, outside the settings form.
+ * Your login on the Settings screen (PLAN.md D-132): the admin's email and password, and
+ * two-step login (D-050) under them. Every form is its own, outside the settings form, and
+ * the email and the password each ask for the current password.
  *
  * @var array{on: bool, codesLeft: int} $twoStep
+ * @var string $accountEmail
  * @var string $csrf
  */
 ?>
-        <div class="panel stack" id="two-step">
-            <h2><?= e(t('twofactor.title')) ?></h2>
+        <div class="panel stack account" id="account">
+            <h2><?= e(t('account.title')) ?></h2>
+            <p class="hint"><?= e(t('account.intro')) ?></p>
+
+            <form method="post" action="<?= e(Url::admin('account', 'email')) ?>" class="stack account-form">
+                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                <h3><?= e(t('account.email')) ?></h3>
+                <div class="field">
+                    <label for="account-email"><?= e(t('account.email_label')) ?></label>
+                    <input type="email" id="account-email" name="email" value="<?= e($accountEmail) ?>" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="account-email-current"><?= e(t('account.current')) ?></label>
+                    <input type="password" id="account-email-current" name="current_password" autocomplete="current-password" required>
+                </div>
+                <div><button type="submit" class="button button-secondary"><?= e(t('account.email_save')) ?></button></div>
+            </form>
+
+            <form method="post" action="<?= e(Url::admin('account', 'password')) ?>" class="stack account-form">
+                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                <h3><?= e(t('account.password')) ?></h3>
+                <?php /* The address beside it, hidden, so a password manager knows which
+                         account the new password belongs to. */ ?>
+                <input type="email" name="username" value="<?= e($accountEmail) ?>" autocomplete="username" hidden>
+                <div class="field">
+                    <label for="account-password-current"><?= e(t('account.current')) ?></label>
+                    <input type="password" id="account-password-current" name="current_password" autocomplete="current-password" required>
+                </div>
+                <div class="field">
+                    <label for="account-password-new"><?= e(t('account.new')) ?></label>
+                    <input type="password" id="account-password-new" name="new_password" minlength="<?= e((string) \App\Modules\Auth\Password::MIN) ?>" autocomplete="new-password" required aria-describedby="account-password-hint">
+                    <span class="hint" id="account-password-hint"><?= e(t('account.new_hint', ['min' => (string) \App\Modules\Auth\Password::MIN])) ?></span>
+                </div>
+                <div class="field">
+                    <label for="account-password-confirm"><?= e(t('account.confirm')) ?></label>
+                    <input type="password" id="account-password-confirm" name="new_password_confirm" minlength="<?= e((string) \App\Modules\Auth\Password::MIN) ?>" autocomplete="new-password" required>
+                </div>
+                <div><button type="submit" class="button button-secondary"><?= e(t('account.password_save')) ?></button></div>
+            </form>
+
+            <h3 id="two-step"><?= e(t('twofactor.title')) ?></h3>
             <p class="hint"><?= e(t('twofactor.intro')) ?></p>
 <?php if (!$twoStep['on']): ?>
             <p><?= e(t('twofactor.off_now')) ?></p>

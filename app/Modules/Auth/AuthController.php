@@ -31,8 +31,16 @@ final class AuthController
         if ($this->session()->get('admin_id') !== null) {
             return Response::redirect(Url::admin());
         }
+        // A new password from a file put there over FTP (D-132), read on the way in; else
+        // what a reset from an emailed link left to say, once.
+        $notice = PasswordReset::fromFile($this->container->get('db'), $this->storage());
+        if ($notice === null) {
+            $said = $this->session()->get('login_notice');
+            $this->session()->remove('login_notice');
+            $notice = is_string($said) ? $said : null;
+        }
 
-        return $this->form('', null, 200);
+        return $this->form('', null, 200, $notice);
     }
 
     /**
@@ -57,6 +65,9 @@ final class AuthController
         // The FTP way back in (SPEC §6): storage/disable-2fa switches two-step login off
         // before anything else, so the owner who put it there can log in with the password.
         $reset = (new TwoFactor($db, $key))->resetFromFile($this->storage());
+        // And storage/reset-password, before the password is checked, so the owner who put a
+        // new one there can log in with it straight away (D-132).
+        $fromFile = PasswordReset::fromFile($db, $this->storage());
         $throttle = new LoginThrottle($db);
         $now = time();
         if ($throttle->isLocked($ipHash, $emailHash, $now)) {
@@ -74,7 +85,7 @@ final class AuthController
         $throttle->record($ipHash, $emailHash, $valid, $now);
 
         if ($admin === null || !$passwordMatches) {
-            return $this->form($email, t('auth.failed'), 422, $this->resetNotice($reset));
+            return $this->form($email, t('auth.failed'), 422, $fromFile ?? $this->resetNotice($reset));
         }
         if (password_needs_rehash($hash, PASSWORD_DEFAULT)) {
             $db->query('UPDATE admin SET password_hash = ? WHERE id = ?', [
@@ -93,8 +104,8 @@ final class AuthController
             return Response::redirect(Url::admin('login', 'code'));
         }
         $session->set('admin_id', (int) $admin['id']);
-        if ($reset['done']) {
-            $session->set('flash', $this->resetNotice($reset) ?? '');
+        if ($reset['done'] || $fromFile !== null) {
+            $session->set('flash', trim(($this->resetNotice($reset) ?? '') . ' ' . ($fromFile ?? '')));
         }
 
         return Response::redirect(Url::admin());

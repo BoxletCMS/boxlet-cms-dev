@@ -134,7 +134,7 @@ foreach ($rail as $entries) {
 <?php endforeach; ?>
             </nav>
 <?php if ($adminEmail !== ''): ?>
-            <a class="rail-user" href="<?= e(Url::admin('settings') . '#two-step') ?>" title="<?= e(t('admin.your_login')) ?>">
+            <a class="rail-user" href="<?= e(Url::admin('settings') . '#account') ?>" title="<?= e(t('admin.your_login')) ?>">
                 <span class="rail-avatar" aria-hidden="true"><?= e(strtoupper(mb_substr($adminEmail, 0, 1))) ?></span>
                 <span class="rail-who">
                     <span class="rail-email"><?= e($adminEmail) ?></span>

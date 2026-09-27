@@ -173,6 +173,8 @@ final class SettingsController
             'languages' => Locales::all($this->db()),
             'addable' => Locales::addable($this->db()),
             'twoStep' => $this->twoStep(),
+            // Your login (D-132): the address the admin logs in with.
+            'accountEmail' => (string) ($this->db()->one('SELECT email FROM admin WHERE id = ?', [(int) $this->container->get('session')->get('admin_id')])['email'] ?? ''),
             'lastSaved' => $this->lastSaved(),
             'trustedProxies' => Settings::text($this->db(), 'trusted_proxies'),
             'stats' => $stats = Tracker::settings($this->db()),

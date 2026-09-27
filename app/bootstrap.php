@@ -12,7 +12,9 @@ use App\Modules\Admin\ThemeController;
 use App\Modules\Admin\DashboardController;
 use App\Modules\Admin\RequireAdmin;
 use App\Modules\Admin\SearchController;
+use App\Modules\Auth\AccountController;
 use App\Modules\Auth\AuthController;
+use App\Modules\Auth\ForgotController;
 use App\Modules\Auth\TwoFactorController;
 use App\Modules\Appearance\AppearanceController;
 use App\Modules\Appearance\AppearancePreview;
@@ -160,6 +162,11 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // the page route, whose variable pattern would otherwise shadow them.
     $requireAdmin = [[RequireAdmin::class, 'handle']];
     $router->get('/admin/login', [AuthController::class, 'showLogin']);
+    // A forgotten password (D-132): a link by email, good for an hour and once.
+    $router->get('/admin/forgot', [ForgotController::class, 'show']);
+    $router->post('/admin/forgot', [ForgotController::class, 'send']);
+    $router->get('/admin/reset/{token:[0-9a-f]{64}}', [ForgotController::class, 'showReset']);
+    $router->post('/admin/reset/{token:[0-9a-f]{64}}', [ForgotController::class, 'reset']);
     $router->post('/admin/login', [AuthController::class, 'login']);
     // The second step of logging in, when two-step login is on (D-050).
     $router->get('/admin/login/code', [AuthController::class, 'showCode']);
@@ -254,6 +261,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/settings/mail', [MailController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/mail/test', [MailController::class, 'test'], $requireAdmin);
     // Two-step login (D-050): set up, confirm, new recovery codes, off.
+    // Your login (D-132): the admin's own email and password, each behind the current one.
+    $router->post('/admin/account/email', [AccountController::class, 'email'], $requireAdmin);
+    $router->post('/admin/account/password', [AccountController::class, 'password'], $requireAdmin);
     $router->get('/admin/two-step', [TwoFactorController::class, 'setup'], $requireAdmin);
     $router->post('/admin/two-step', [TwoFactorController::class, 'confirm'], $requireAdmin);
     $router->post('/admin/two-step/codes', [TwoFactorController::class, 'renew'], $requireAdmin);

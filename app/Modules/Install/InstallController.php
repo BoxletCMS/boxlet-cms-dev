@@ -6,6 +6,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Core\View;
+use App\Modules\Auth\Password;
 use App\Support\Url;
 use Closure;
 use DateTimeZone;
@@ -120,11 +121,9 @@ final class InstallController
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw new RuntimeException(t('install.admin.bad_email'));
         }
-        if (mb_strlen($password) < 12) {
-            throw new RuntimeException(t('install.admin.short_password', ['min' => 12]));
-        }
-        if (!hash_equals($password, $request->input('password_confirm'))) {
-            throw new RuntimeException(t('install.admin.mismatch'));
+        $problem = Password::problem($password, $request->input('password_confirm'));
+        if ($problem !== null) {
+            throw new RuntimeException($problem);
         }
         $this->save([
             'admin' => ['email' => $email, 'password_hash' => password_hash($password, PASSWORD_DEFAULT)],

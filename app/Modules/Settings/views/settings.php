@@ -60,7 +60,7 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                  the part wanted. Plain anchors; settings-nav.js only marks where you are. */ ?>
         <div class="settings-layout">
         <nav class="settings-nav" aria-label="<?= e(t('settings.sections')) ?>" data-settings-nav>
-<?php foreach (['general' => 'settings.general', 'branding' => 'settings.branding', 'maintenance' => 'maintenance.title', 'languages' => 'languages.title', 'mail' => 'mail.title', 'two-step' => 'twofactor.title', 'statistics' => 'stats.title'] as $anchor => $key): ?>
+<?php foreach (['general' => 'settings.general', 'branding' => 'settings.branding', 'maintenance' => 'maintenance.title', 'languages' => 'languages.title', 'mail' => 'mail.title', 'account' => 'account.title', 'statistics' => 'stats.title'] as $anchor => $key): ?>
             <a href="#<?= e($anchor) ?>"><?= e(t($key)) ?></a>
 <?php endforeach; ?>
         </nav>

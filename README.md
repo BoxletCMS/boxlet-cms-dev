@@ -42,6 +42,18 @@ server cannot answer while it is busy with the installer. After installing, add
 To reinstall, delete `storage/install.lock` and `.env`, and start from an empty
 database.
 
+## Locked out
+
+Both ways back in work with FTP or your host's file manager alone, no shell needed.
+
+- **A forgotten password.** "Forgot your password?" on the login page emails a link that
+  works once, for an hour, when the site can send mail (Settings → Email). Without mail,
+  put a file named `storage/reset-password` on the server holding the new password as its
+  only line, at least 12 characters. The next visit to the login page sets it and deletes
+  the file. If Boxlet cannot delete the file it does not use it.
+- **A lost phone, with two-step login on.** Put an empty file named `storage/disable-2fa`
+  on the server. The next login switches two-step login off and deletes the file.
+
 ## Pages
 
 Log in at `/admin` and open **Pages**. A new page can start from a template, which

@@ -119,3 +119,16 @@
     grid-row: auto;
   }
 }
+
+/* Your login (PLAN.md D-132): the email, the password and two-step login, one after another
+   in one panel, each opened by a rule so the three read as three. The fields are as wide
+   as an address needs, not as wide as the panel. */
+.account-form .field {
+  max-inline-size: 30rem;
+}
+
+.admin .account h3 {
+  margin: var(--ui-2) 0 0;
+  padding-block-start: var(--ui-5);
+  border-block-start: var(--ui-border) solid var(--ui-line);
+}

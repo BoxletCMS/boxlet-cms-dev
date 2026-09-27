@@ -251,6 +251,13 @@ fieldset {
   margin-bottom: var(--ui-6);
 }
 
+/* What follows a paragraph or a form on the card stands apart from it: a hint under a
+   button read as the button's own caption, and an introduction as the first field's label
+   (the forgotten-password screen, D-132; the two-step code screen had the same). */
+.card > :is(p, form) + * {
+  margin-top: var(--ui-4);
+}
+
 /* The mark above the login and installer card, so the first screen says whose tool it is. */
 .card::before {
   content: "";

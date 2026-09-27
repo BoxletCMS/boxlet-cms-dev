@@ -8,7 +8,8 @@ use App\Support\Url;
  * @var string $title
  * @var string $email
  * @var string|null $error
- * @var string|null $notice what the FTP reset of two-step login did, when it ran (D-050)
+ * @var string|null $notice what a file put there over FTP did, when one ran (D-050, D-132),
+ *                          or that a new password was set from an emailed link
  * @var string $csrf
  */
 ?>
@@ -31,3 +32,4 @@ use App\Support\Url;
             </label>
             <button type="submit" class="button"><?= e(t('auth.submit')) ?></button>
         </form>
+        <p class="hint"><a href="<?= e(Url::admin('forgot')) ?>"><?= e(t('account.forgot_link')) ?></a></p>

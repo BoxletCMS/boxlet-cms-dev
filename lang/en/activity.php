@@ -39,6 +39,10 @@ return [
     'activity.media.deleted' => 'Deleted :name',
     'activity.media.remade' => 'Started making every picture\'s sizes again (:name pictures)',
 
+    'activity.account.email' => 'Changed the login email to :name',
+    'activity.account.password' => 'Changed the login password',
+    'activity.account.password_reset' => 'Set a new password from an emailed link',
+    'activity.account.password_file' => 'Set a new password from a file put there by FTP',
     'activity.menu.created' => 'Created the menu “:name”',
     'activity.menu.renamed' => 'Renamed a menu to “:name”',
     'activity.menu.edited' => 'Changed the items of “:name”',

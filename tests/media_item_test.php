@@ -130,6 +130,32 @@ testBothDrivers('a picture\'s page offers the focal point, and moving it makes t
     assertEquals([100, 0], [(int) $held['focal_x'], (int) $held['focal_y']], 'a point off the picture');
 });
 
+/*
+ * A RULE CHANGED ON PURPOSE (the owner, 2026-09-27). Replacing kept the old name, as "what
+ * the owner called this picture"; nothing lets the owner name one, so a new picture was
+ * titled with an old file's name. The name now follows the new file, and the old name's
+ * files go.
+ */
+testBothDrivers('a replaced picture takes the new file\'s name, and the old name\'s files go', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    adminUpload('/admin/media', [['name' => 'Old Feature.jpg', 'tmp_name' => imageFixture(tmpPath('old-feature.jpg'), 400, 300)]]);
+    $id = (int) ($db->one('SELECT id FROM media')['id'] ?? 0);
+    $public = tmpPath('admin-media-public');
+    assertTrue((glob($public . '/m/*/' . $id . '-old-feature.*') ?: []) !== [], 'the first upload wrote no files to compare against');
+
+    // A JPEG called .jpg: imageFixture() writes JPEG bytes, and a name saying otherwise is
+    // refused by the type check before anything changes, which is not what this is about.
+    assertRedirectedTo('/admin/media/' . $id, adminUpload('/admin/media/' . $id . '/replace', [
+        ['name' => 'Design Screen.jpg', 'tmp_name' => imageFixture(tmpPath('design-screen.jpg'), 500, 250)],
+    ], [], 'file'));
+
+    $row = $db->one('SELECT filename, original_name FROM media WHERE id = ?', [$id]) ?? fail('the row went');
+    assertEquals(['filename' => 'design-screen', 'original_name' => 'Design Screen.jpg'], ['filename' => $row['filename'], 'original_name' => $row['original_name']], 'the names');
+    assertContains('<h1>design-screen</h1>', mediaAdminGet('/admin/media/' . $id)->body, 'the picture\'s page is titled with the new name');
+    assertEquals([], glob($public . '/m/*/' . $id . '-old-feature.*') ?: [], 'files under the old name were left behind');
+    assertTrue((glob($public . '/m/*/' . $id . '-design-screen.*') ?: []) !== [], 'no files under the new name');
+});
+
 testBothDrivers('replacing a picture keeps its id, so pages using it need no editing', function (string $driver) {
     $db = mediaAdminSite($driver);
     adminUpload('/admin/media', [['name' => 'before.jpg', 'tmp_name' => imageFixture(tmpPath('before.jpg'), 400, 300)]]);
@@ -146,8 +172,6 @@ testBothDrivers('replacing a picture keeps its id, so pages using it need no edi
 
     $row = $db->one('SELECT * FROM media WHERE id = ?', [$id]) ?? fail('the row went');
     assertEquals(500, (int) $row['width'], 'the new bytes were not adopted');
-    // The library name is what the owner called this picture, not a property of the bytes.
-    assertEquals('before', $row['filename'], 'the library name changed under the owner');
     assertEquals(1, count($db->all('SELECT id FROM media')), 'replacing made a second picture');
 
     $content = json_decode((string) ($db->one(

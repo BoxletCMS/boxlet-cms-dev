@@ -11,6 +11,9 @@ use App\Support\Url;
  * @var string $kind pictures, files or both: '', 'pictures' or 'files' (D-126)
  * @var string $accept what the file chooser offers, every extension the library takes
  * @var int $bytes what the pictures found weigh together
+ * @var int $page which page of the list this is, from 1
+ * @var int $pages how many pages the list has
+ * @var int $total how many rows the filter leaves, on every page together
  * @var string $search
  * @var int $remakeLeft pictures still owed a remake (D-048)
  * @var array{file: int, request: int, fileLabel: string, requestLabel: string} $limits
@@ -63,6 +66,19 @@ use App\Support\Url;
         <p class="hint"><?= e(t('media.show.none')) ?> <a href="<?= e(Url::admin('media')) ?>"><?= e(t('media.show.every')) ?></a></p>
 <?php else: ?>
 <?php require __DIR__ . '/table.php'; ?>
+<?php if ($pages > 1):
+    $at = static fn (int $n): string => Url::withQuery(Url::admin('media'), array_filter(['q' => $search, 'show' => $show, 'kind' => $kind, 'page' => $n > 1 ? (string) $n : '']));
+    ?>
+        <nav class="media-pager" aria-label="<?= e(t('media.pager')) ?>">
+<?php if ($page > 1): ?>
+            <a class="button button-secondary" href="<?= e($at($page - 1)) ?>" rel="prev"><?= e(t('media.newer')) ?></a>
+<?php endif; ?>
+            <span class="media-pager-where"><?= e(t('media.page_of', ['page' => (string) $page, 'pages' => (string) $pages, 'total' => (string) $total])) ?></span>
+<?php if ($page < $pages): ?>
+            <a class="button button-secondary" href="<?= e($at($page + 1)) ?>" rel="next"><?= e(t('media.older')) ?></a>
+<?php endif; ?>
+        </nav>
+<?php endif; ?>
 <?php endif; ?>
 
         <?php /* The size limits travel as data attributes rather than inline script: the

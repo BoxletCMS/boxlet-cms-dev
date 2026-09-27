@@ -36,9 +36,12 @@ final class MediaLibrary
      * The search is on the generated filename rather than the original: the original is
      * whatever the camera called it, and "DSC_0042" is not what anyone types.
      *
+     * $limit null is every row: the library's own list pages what it shows (the owner,
+     * 2026-09-27), and the picker keeps its newest 200 with a search for the rest.
+     *
      * @return list<array<string, mixed>>
      */
-    public function all(string $search = '', int $limit = 200, ?string $kind = null): array
+    public function all(string $search = '', ?int $limit = 200, ?string $kind = null): array
     {
         // Pictures, files (D-126), or both. Bound, never spliced: it is a value from a query
         // string by the time it gets here, however the caller narrowed it.
@@ -56,7 +59,7 @@ final class MediaLibrary
         }
 
         return $this->rows(
-            'SELECT * FROM media' . ($where === [] ? '' : ' WHERE ' . implode(' AND ', $where)) . ' ORDER BY id DESC LIMIT ' . $limit,
+            'SELECT * FROM media' . ($where === [] ? '' : ' WHERE ' . implode(' AND ', $where)) . ' ORDER BY id DESC' . ($limit === null ? '' : ' LIMIT ' . $limit),
             $params,
         );
     }

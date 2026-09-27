@@ -199,11 +199,16 @@ final class MediaUpload
     }
 
     /**
-     * Puts different bytes behind an existing picture, keeping its id and its library name.
+     * Puts different bytes behind an existing picture, keeping its id.
      *
      * The id is the whole point: every page showing this picture shows the new one, with
-     * no page edited and nothing to go and find. The library name is kept too — it is
-     * what the owner called this picture, not a property of the bytes.
+     * no page edited and nothing to go and find.
+     *
+     * THE NAME FOLLOWS THE NEW FILE (the owner, 2026-09-27). It used to be kept as "what the
+     * owner called this picture" — but nothing lets the owner name a picture; the name was
+     * generated from the first file, so after a replacement the library titled a new
+     * picture with an old file's name. It is generated from the new file exactly as an
+     * upload's is. The caller's forgetVariants() removes the old files by the old name.
      *
      * EVERYTHING THAT CAN REFUSE DOES SO BEFORE ANYTHING IS WRITTEN OR REMOVED, so a
      * rejected replacement leaves the picture exactly as it was.
@@ -250,9 +255,10 @@ final class MediaUpload
         }
 
         $this->db->query(
-            'UPDATE media SET original_name = ?, path = ?, mime = ?, size = ?, width = ?, height = ?,
+            'UPDATE media SET filename = ?, original_name = ?, path = ?, mime = ?, size = ?, width = ?, height = ?,
                     hash = ?, variants_json = NULL, status = ? WHERE id = ?',
             [
+                self::filenameFor($originalName),
                 substr($originalName, 0, 255),
                 $relative,
                 $info['mime'],

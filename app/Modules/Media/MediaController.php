@@ -33,6 +33,9 @@ use Throwable;
  */
 final class MediaController
 {
+    /** How many rows the library's list shows at a time. */
+    public const PER_PAGE = 50;
+
     /** Kept back for the redirect itself, after the last encode. */
     private const RESERVE_SECONDS = 3.0;
 
@@ -53,17 +56,11 @@ final class MediaController
         $kind = in_array($request->query['kind'] ?? '', ['pictures', 'files'], true) ? (string) $request->query['kind'] : '';
         $only = $picking || $kind === 'pictures' ? 'picture' : ($kind === 'files' ? 'file' : null);
 
+        // Every row for the library, which pages what it shows below; the newest 200 for
+        // the picker, which is searched rather than paged.
         $pictures = [];
-        foreach ($this->library()->all($search, 200, $only) as $row) {
+        foreach ($this->library()->all($search, $picking ? 200 : null, $only) as $row) {
             $pictures[] = self::card($row);
-        }
-
-        // Stamped here rather than inside card(), which is handed one row and has no
-        // database: asking per card would be one query per picture in a listing of two
-        // hundred. Before the picker branch below, so both views carry it (D-025).
-        $suggested = MediaAlt::suggestedIds($this->container->get('db'), array_column($pictures, 'id'));
-        foreach ($pictures as $index => $picture) {
-            $pictures[$index]['suggested'] = isset($suggested[$picture['id']]);
         }
 
         // The picker asks for the same listing with no screen around it: one query, one
@@ -71,6 +68,14 @@ final class MediaController
         // rather than JSON, because the server answers with markup everywhere in this
         // admin and a second representation would be a second thing to keep correct.
         if ($picking) {
+            // Stamped here rather than inside card(), which is handed one row and has no
+            // database: asking per card would be one query per picture. Only the picker's
+            // cards show it (D-025); the library's table stopped at D-038.
+            $suggested = MediaAlt::suggestedIds($this->container->get('db'), array_column($pictures, 'id'));
+            foreach ($pictures as $index => $picture) {
+                $pictures[$index]['suggested'] = isset($suggested[$picture['id']]);
+            }
+
             return Response::admin((new View(__DIR__ . '/views'))->render('admin/cards', $locale, [
                 'pictures' => $pictures,
                 'search' => $search,
@@ -106,6 +111,15 @@ final class MediaController
             $rows[] = $row;
         }
 
+        // FIFTY A PAGE (the owner, 2026-09-27). The list stopped at the newest 200 without a
+        // word, so a picture past that was reachable only by searching for it. A page past
+        // the last shows the last, and the filters and the search travel with the page.
+        $total = count($rows);
+        $pages = max(1, (int) ceil($total / self::PER_PAGE));
+        $asked = $request->query['page'] ?? '1';
+        $page = min($pages, max(1, is_string($asked) && ctype_digit($asked) ? (int) $asked : 1));
+        $rows = array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
+
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/index', [
             'title' => t('media.title'),
             'nav' => 'media',
@@ -114,6 +128,9 @@ final class MediaController
             'wide' => true,
             'pictures' => $pictures,
             'rows' => $rows,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
             'show' => $show,
             'kind' => $kind,
             'bytes' => $bytes,

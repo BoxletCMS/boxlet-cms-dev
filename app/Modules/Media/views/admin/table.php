@@ -34,7 +34,7 @@ use App\Support\Url;
 <?php if ($row['kind'] === 'file'): ?>
                             <span class="media-row-file" aria-hidden="true"><?= icon('file-text') ?></span>
 <?php elseif ($row['thumb'] !== null): ?>
-                            <img class="media-thumb" src="<?= e($row['thumb']) ?>" alt="" width="38" height="28" loading="lazy">
+                            <img class="media-thumb" src="<?= e($row['thumb']) ?>" alt="" width="72" height="54" loading="lazy">
 <?php else: ?>
                             <span class="media-row-none" aria-hidden="true"></span>
 <?php endif; ?>

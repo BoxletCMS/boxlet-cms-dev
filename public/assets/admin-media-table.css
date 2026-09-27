@@ -4,9 +4,14 @@
 
 .media-table {
   table-layout: fixed;
+  /* A picture has to be recognisable in its row (the owner, 2026-09-27): at 38×28 it was
+     a smudge. 72×54 keeps a row short enough to read the list and large enough to tell
+     one photograph from the next; the thumb preset is 200 across, sharp at 2x. */
+  --media-tile-w: 4.5rem;
+  --media-tile-h: 3.375rem;
 }
 
-.media-table .col-thumb { inline-size: 3.25rem; }
+.media-table .col-thumb { inline-size: 5.5rem; }
 .media-table .col-dimensions { inline-size: 7.5rem; }
 .media-table .col-size { inline-size: 5rem; }
 .media-table .col-used { inline-size: 7rem; }
@@ -16,8 +21,8 @@
 .media-row-thumb img,
 .media-row-none {
   display: block;
-  inline-size: 2.375rem;
-  block-size: 1.75rem;
+  inline-size: var(--media-tile-w);
+  block-size: var(--media-tile-h);
   object-fit: cover;
   background: var(--ui-panel);
   border-radius: var(--ui-radius-s);
@@ -29,8 +34,8 @@
 .media-row-file {
   display: grid;
   place-items: center;
-  inline-size: 2.375rem;
-  block-size: 1.75rem;
+  inline-size: var(--media-tile-w);
+  block-size: var(--media-tile-h);
   color: var(--ui-ink-muted);
   background: var(--ui-panel);
   border-radius: var(--ui-radius-s);
@@ -108,10 +113,37 @@
   outline-offset: -0.5rem;
 }
 
+/* Fifty rows a page, and the way to the others (the owner, 2026-09-27). */
+.media-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-3);
+  margin-block-start: var(--ui-5);
+}
+
+.media-pager-where {
+  color: var(--ui-ink-muted);
+  font-family: var(--ui-mono);
+  font-size: var(--ui-text-xs);
+}
+
 @media (max-width: 47.5rem) {
+  /* On a phone a row keeps what it is and what it is missing: the picture, its name,
+     its description and its menu. The size goes with the dimensions and the use, and the
+     tile shrinks, or the name — the one thing a row cannot lose — is squeezed to nothing. */
+  .media-table {
+    --media-tile-w: 3.5rem;
+    --media-tile-h: 2.625rem;
+  }
+
+  .media-table .col-thumb { inline-size: 4.25rem; }
+
   .media-table .col-dimensions,
+  .media-table .col-size,
   .media-table .col-used,
   .media-table td:nth-child(3),
+  .media-table td:nth-child(4),
   .media-table td:nth-child(5) {
     display: none;
   }

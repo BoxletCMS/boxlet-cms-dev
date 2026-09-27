@@ -1,5 +1,5 @@
 {
-    "name": "zaja/boxlet",
+    "name": "boxletcms/boxlet",
     "description": "A small self-hosted PHP CMS for people who build many small sites.",
     "type": "project",
     "license": "MIT",

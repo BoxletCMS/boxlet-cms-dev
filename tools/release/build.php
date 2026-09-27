@@ -4,7 +4,11 @@
  * Builds the release ZIP: the one form of Boxlet a person without a shell can install
  * (PLAN.md D-056, SPEC §8 Slice 9).
  *
- *   php tools/release/build.php [target directory]
+ *   php tools/release/build.php [target directory] [version]
+ *
+ * With a version (v0.1.0-preview) the package is named boxlet-v0.1.0-preview.zip, which is
+ * what the release workflow in BoxletCMS/Boxlet-CMS asks for; without one it is named by
+ * the day and the commit, for a package tried by hand.
  *
  * WHY THIS EXISTS. The source on GitHub has no vendor/ — it is in .gitignore, because a
  * repository that commits 53 MB of libraries turns a version bump into a diff nobody can
@@ -91,7 +95,13 @@ foreach (KEEP_OUT as $name) {
     removeTree($inside . '/' . $name);
 }
 
-$name = 'boxlet-' . gmdate('Y-m-d') . '-' . $revision . ($dirty ? '-from-a-dirty-tree' : '') . '.zip';
+$version = $argv[2] ?? '';
+if ($version !== '' && preg_match('~^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$~', $version) !== 1) {
+    fail("Not a version: {$version}. Expected something like v0.1.0 or v0.1.0-preview.");
+}
+$name = $version !== ''
+    ? 'boxlet-' . $version . ($dirty ? '-from-a-dirty-tree' : '') . '.zip'
+    : 'boxlet-' . gmdate('Y-m-d') . '-' . $revision . ($dirty ? '-from-a-dirty-tree' : '') . '.zip';
 if (!is_dir($target) && !mkdir($target, 0755, true) && !is_dir($target)) {
     fail("Cannot make {$target}.");
 }

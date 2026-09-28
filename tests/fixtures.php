@@ -130,6 +130,9 @@ function installedSite(array $locales = ['en' => 'English', 'hr' => 'Hrvatski'],
         'STORAGE_PATH' => $storage,
         'CACHE_PATH' => tmpPath('cache'),
         'PUBLIC_PATH' => tmpPath('public-root'),
+        // A backup reads this file and a restore writes its key into it (D-139): never the
+        // checkout's own .env.
+        'ENV_PATH' => tmpPath('site.env'),
         'APP_KEY' => 'test-key-not-a-secret',
     ];
 

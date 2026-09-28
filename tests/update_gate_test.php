@@ -93,8 +93,11 @@ testBothDrivers('while an update is pending every admin screen becomes the updat
         assertEquals('/admin/update', $response->headers['Location'] ?? null, "{$path}: where it goes");
     }
 
-    // The two paths that stay reachable: logging in, and the screen itself.
+    // The paths that stay reachable: logging in, the screen itself, and the backups (D-139),
+    // since taking one first is the advice and restoring an older one leaves migrations
+    // pending until it ends.
     assertEquals(200, dispatchConfigured('/admin/update', pendingUpdate(PENDING_SQL))->status, '/admin/update');
+    assertEquals(200, dispatchConfigured('/admin/backups', pendingUpdate(PENDING_SQL))->status, '/admin/backups');
     unset($_SESSION['admin_id']);
     assertEquals(200, dispatchConfigured('/admin/login', pendingUpdate(PENDING_SQL))->status, '/admin/login');
 });

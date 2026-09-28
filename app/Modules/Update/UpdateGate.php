@@ -43,7 +43,9 @@ final class UpdateGate
 
         // A pending migration outranks everything, admin included.
         if ($container->get('update')->pending() !== []) {
-            if (in_array($path, self::ALLOWED, true)) {
+            // And the backups: taking one before applying an update is the advice, and a
+            // restore of an older backup runs with migrations pending until its end (D-139).
+            if (in_array($path, self::ALLOWED, true) || str_starts_with($path, '/admin/backups')) {
                 return null;
             }
 

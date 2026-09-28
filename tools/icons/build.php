@@ -38,6 +38,8 @@ const ICONS = [
     'building-2', 'square-play',
     // The Redirects screen in the rail (D-129).
     'signpost',
+    // Backups in the rail, and their downloads (D-139).
+    'database-backup', 'download',
     // Under the page above, and out a level, in the page list (D-133).
     'arrow-right', 'arrow-left',
     // What kind of file a download is, in the Media library (MediaFileType::icon()).

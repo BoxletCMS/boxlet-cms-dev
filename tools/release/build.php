@@ -113,6 +113,11 @@ $version = $argv[2] ?? '';
 if ($version !== '' && preg_match('~^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$~', $version) !== 1) {
     fail("Not a version: {$version}. Expected something like v0.1.0 or v0.1.0-preview.");
 }
+// Which Boxlet this is, for the update screen to compare against (D-140). A package tried
+// by hand carries none, and installs as "development", which is never offered an update.
+if ($version !== '') {
+    file_put_contents($inside . '/VERSION', $version . "\n");
+}
 $name = $version !== ''
     ? 'boxlet-' . $version . ($dirty ? '-from-a-dirty-tree' : '') . '.zip'
     : 'boxlet-' . gmdate('Y-m-d') . '-' . $revision . ($dirty ? '-from-a-dirty-tree' : '') . '.zip';

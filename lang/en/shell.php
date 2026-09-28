@@ -46,6 +46,7 @@ return [
     'admin.nav.open' => 'Menu',
     'admin.nav.settings' => 'Settings',
     'admin.nav.redirects' => 'Redirects',
+    'admin.nav.backups' => 'Backups',
     'admin.logout' => 'Log out',
     'admin.view_site' => 'View site',
 

@@ -25,6 +25,8 @@ testBothDrivers('slug format, reserved language codes and system paths', functio
     assertEquals(t('pages.slug.reserved_language', ['slug' => 'de', 'language' => 'Deutsch']), Slug::problem($db, 'en', 'de', null), 'de, not enabled');
     assertEquals(t('pages.slug.reserved_language', ['slug' => 'hr', 'language' => 'Hrvatski']), Slug::problem($db, 'en', 'hr', null), 'hr, enabled');
     assertEquals(t('pages.slug.reserved_system', ['slug' => 'admin']), Slug::problem($db, 'en', 'admin', null), 'admin');
+    // Where Boxlet sits in the web root itself, /public/… is sent on without it (D-138).
+    assertEquals(t('pages.slug.reserved_system', ['slug' => 'public']), Slug::problem($db, 'en', 'public', null), 'public');
     foreach (['About', 'a--b', '-a', 'a/b', 'č', str_repeat('a', 101)] as $bad) {
         assertEquals(t('pages.slug.invalid', ['max' => 100]), Slug::problem($db, 'en', $bad, null), $bad);
     }

@@ -43,6 +43,7 @@ const KEEP_OUT = [
 const MUST_HAVE = [
     'boxlet/public/install.php',
     'boxlet/public/index.php',
+    'boxlet/.htaccess',
     'boxlet/public/.htaccess',
     'boxlet/vendor/autoload.php',
     'boxlet/storage/.htaccess',
@@ -133,11 +134,16 @@ $count = 0;
 foreach ($files as $file) {
     /** @var SplFileInfo $file */
     $entry = substr($file->getPathname(), strlen($stage) + 1);
+    // Modes set here rather than carried from this machine, where files came out rw-rw----
+    // and folders rwxrwxrwx (D-138): unpacked on a cPanel host, the web server, which runs
+    // as another user, could not read a stylesheet, and anyone could write to the folders.
     if ($file->isDir()) {
         $zip->addEmptyDir($entry);
+        $zip->setExternalAttributesName($entry . '/', ZipArchive::OPSYS_UNIX, (0040755 << 16));
         continue;
     }
     $zip->addFile($file->getPathname(), $entry);
+    $zip->setExternalAttributesName($entry, ZipArchive::OPSYS_UNIX, (0100644 << 16));
     $count++;
 }
 $zip->close();

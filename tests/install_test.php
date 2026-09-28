@@ -14,7 +14,7 @@ use Dotenv\Dotenv;
 // The installer, driven step by step without a web server. Each test gets its own
 // storage, .env path and install.php copy under tests/tmp/install.
 
-function installer(bool $rewriteWorks = true): InstallController
+function installer(bool $rewriteWorks = true, bool $privateHidden = true): InstallController
 {
     $dir = tmpPath('install');
     removeTree($dir);
@@ -29,6 +29,7 @@ function installer(bool $rewriteWorks = true): InstallController
         $dir . '/install.php',
         new Session(),
         static fn (): bool => $rewriteWorks,
+        static fn (): bool => $privateHidden,
         $dir . '/cache',
     );
 }
@@ -198,7 +199,7 @@ test('the language list has every ISO 639-1 code with a native name', function (
 });
 
 test('the requirements report max_input_vars and require dom', function () {
-    $checks = Requirements::check(dirname(__DIR__), tmpPath(''), tmpPath('.env'), static fn (): bool => true);
+    $checks = Requirements::check(dirname(__DIR__), tmpPath(''), tmpPath('.env'), static fn (): bool => true, static fn (): bool => true);
     $labels = array_column($checks, 'label');
 
     assertTrue(in_array(t('install.req.extension', ['name' => 'dom']), $labels, true), 'dom is not a required extension');

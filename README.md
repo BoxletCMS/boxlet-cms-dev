@@ -184,8 +184,10 @@ Static analysis: `composer install` (includes dev tools), then `vendor/bin/phpst
 
 ## Deployment
 
-In every case the document root must point at `public/`. `app/`, `config/`,
-`storage/` and `vendor/` must not be reachable from the web.
+The document root points at `public/`, or, on Apache, at the folder above it (cPanel's
+`public_html`, see below). Either way `app/`, `config/`, `storage/`, `vendor/` and `.env`
+must not be reachable from the web, and the installer checks this over HTTP before it
+starts.
 
 **URL rewriting is required, not optional.** Every request that is not a real file
 must reach `public/index.php`. There is no fallback URL mode. The installer checks
@@ -209,8 +211,38 @@ If `mod_rewrite` is missing, the site shows a page explaining how to enable it
 instead of a bare 404.
 
 The `.htaccess` files containing `Require all denied` in `app/`, `config/` and
-`storage/` are a safety net for hosts that cannot move the document root. They are
-not a substitute for it.
+`storage/` are a second line behind that, not a substitute for it.
+
+### Apache, with Boxlet in the document root itself (cPanel)
+
+Where the domain always serves from one folder (the main domain of a cPanel account is
+fixed to `public_html`), upload the contents of the release's `boxlet/` folder into it. The
+`.htaccess` at Boxlet's root then answers every request from `public/`:
+
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^\.well-known/ - [L]
+    ErrorDocument 404 default
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>
+```
+
+- It is a rewrite, not a redirect: addresses stay `/about`, and Boxlet builds its links
+  without `public/`. An address asked for with `/public/` in it is sent to the one without
+  (301), from `public/.htaccess`.
+- `/.well-known/` is left alone, for the host's certificate checks (AutoSSL).
+- Nothing else in the folder can be reached, including files nobody expected there.
+- If the folder had a `.htaccess` before (cPanel writes the PHP version into one), keep its
+  lines above Boxlet's.
+- The installer's check asks for a file put beside `public/` and refuses to go on if it
+  comes back, which is what happens on a server that ignores `.htaccess`.
+
+Checked on a cPanel host with Apache, PHP 8.1 and Imunify360.
 
 ### Nginx
 

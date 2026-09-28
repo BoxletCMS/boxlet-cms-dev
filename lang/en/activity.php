@@ -52,6 +52,8 @@ return [
     'activity.menu.deleted' => 'Deleted the menu “:name”',
     'activity.update.done' => 'Updated Boxlet to :name',
     'activity.update.rolled_back' => 'Rolled Boxlet back to :name',
+    'activity.settings.cache_on' => 'Turned the page cache on',
+    'activity.settings.cache_off' => 'Turned the page cache off',
     'activity.backup.made' => 'Made the backup :name',
     'activity.backup.restored' => 'Restored the backup :name',
     'activity.backup.deleted' => 'Deleted the backup :name',

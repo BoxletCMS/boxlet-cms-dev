@@ -17,6 +17,7 @@ use App\Support\Url;
  * @var list<array{id: int, name: string, thumb: string|null, whole: string|null}> $pictures
  * @var list<string> $timezones
  * @var bool $maintenanceOn
+ * @var array{on: bool, count: int} $pageCache
  * @var string|null $lastSaved when these settings were last saved, from the activity log
  * @var string $title
  * @var string $csrf
@@ -60,7 +61,7 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                  the part wanted. Plain anchors; settings-nav.js only marks where you are. */ ?>
         <div class="settings-layout">
         <nav class="settings-nav" aria-label="<?= e(t('settings.sections')) ?>" data-settings-nav>
-<?php foreach (['general' => 'settings.general', 'branding' => 'settings.branding', 'maintenance' => 'maintenance.title', 'languages' => 'languages.title', 'mail' => 'mail.title', 'account' => 'account.title', 'statistics' => 'stats.title'] as $anchor => $key): ?>
+<?php foreach (['general' => 'settings.general', 'branding' => 'settings.branding', 'maintenance' => 'maintenance.title', 'cache' => 'cache.title', 'languages' => 'languages.title', 'mail' => 'mail.title', 'account' => 'account.title', 'statistics' => 'stats.title'] as $anchor => $key): ?>
             <a href="#<?= e($anchor) ?>"><?= e(t($key)) ?></a>
 <?php endforeach; ?>
         </nav>
@@ -175,6 +176,8 @@ $picker = static function (string $key, int $chosen, bool $whole = false) use ($
                 </div>
             </form>
         </div>
+
+<?php require __DIR__ . '/cache-panel.php'; ?>
 
 <?php require dirname(__DIR__, 2) . '/Languages/views/panel.php'; ?>
 

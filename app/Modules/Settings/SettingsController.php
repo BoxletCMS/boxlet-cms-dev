@@ -19,6 +19,7 @@ use App\Modules\Stats\GeoDownload;
 use App\Modules\Stats\PrivacyText;
 use App\Modules\Stats\Tracker;
 use App\Support\Bytes;
+use App\Support\PageCache;
 use App\Support\Dates;
 use App\Support\Url;
 use DateTimeZone;
@@ -170,6 +171,8 @@ final class SettingsController
             'pictures' => MediaReference::choices($this->db()),
             'timezones' => DateTimeZone::listIdentifiers(),
             'maintenanceOn' => $this->container->get('maintenance')->isOn(),
+            // The page cache (D-053): on unless switched off, and how many pages it holds.
+            'pageCache' => ['on' => Settings::get($this->db(), 'page_cache', '1') !== '0', 'count' => PageCache::count()],
             'languages' => Locales::all($this->db()),
             'addable' => Locales::addable($this->db()),
             'twoStep' => $this->twoStep(),

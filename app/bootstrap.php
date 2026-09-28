@@ -48,6 +48,7 @@ use App\Modules\Pages\PagesController;
 use App\Modules\Pages\Slug;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Redirects\RedirectsController;
+use App\Modules\Settings\CacheController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Stats\StatsController;
 use App\Modules\Stats\StatsDataController;
@@ -59,6 +60,7 @@ use App\Modules\Update\Releases;
 use App\Modules\Update\UpdateController;
 use App\Modules\Update\UpdatesController;
 use App\Modules\Update\Upgrade;
+use App\Support\PageCache;
 use App\Support\Url;
 use App\Support\Version;
 
@@ -86,6 +88,9 @@ $chrome = Blocks::discover($root . '/app/Chrome');
 $request = Request::fromGlobals();
 Url::configure($request->basePath, '');
 Url::usePublicPath($root . '/public');
+// Where visitors' pages are kept (D-053): beside the compiled stylesheet. public/index.php
+// sets the same before it boots, to answer from it; this is for emptying and counting.
+PageCache::use($cache);
 
 $container = new Container();
 $container->set('config', fn () => $config);
@@ -321,6 +326,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
+    $router->post('/admin/settings/cache', [CacheController::class, 'save'], $requireAdmin);
     // Mail (D-045): how the site sends, and a test message to prove it does.
     $router->post('/admin/settings/mail', [MailController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/mail/test', [MailController::class, 'test'], $requireAdmin);

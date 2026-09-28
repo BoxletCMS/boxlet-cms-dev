@@ -1,7 +1,11 @@
 name: CI
 
+# Branches only, not tags. A version tag is put on a commit CI has already passed, and a
+# second run on the same commit raced the release workflow in BoxletCMS/Boxlet-CMS, which
+# refuses a tag while any of its checks is unfinished or red (PLAN.md D-138).
 on:
   push:
+    branches: ['**']
   pull_request:
 
 jobs:

@@ -45,7 +45,9 @@ final class UpdateGate
         if ($container->get('update')->pending() !== []) {
             // And the backups: taking one before applying an update is the advice, and a
             // restore of an older backup runs with migrations pending until its end (D-139).
-            if (in_array($path, self::ALLOWED, true) || str_starts_with($path, '/admin/backups')) {
+            // And an update of Boxlet itself (D-140), whose own migrations are what is pending
+            // between its swap and its next step.
+            if (in_array($path, self::ALLOWED, true) || str_starts_with($path, '/admin/backups') || str_starts_with($path, '/admin/updates')) {
                 return null;
             }
 

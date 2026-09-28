@@ -40,6 +40,8 @@ const ICONS = [
     'signpost',
     // Backups in the rail, and their downloads (D-139).
     'database-backup', 'download',
+    // Updates in the rail (D-140).
+    'cloud-download',
     // Under the page above, and out a level, in the page list (D-133).
     'arrow-right', 'arrow-left',
     // What kind of file a download is, in the Media library (MediaFileType::icon()).

@@ -238,7 +238,8 @@ fixed to `public_html`), upload the contents of the release's `boxlet/` folder i
 - `/.well-known/` is left alone, for the host's certificate checks (AutoSSL).
 - Nothing else in the folder can be reached, including files nobody expected there.
 - If the folder had a `.htaccess` before (cPanel writes the PHP version into one), keep its
-  lines above Boxlet's.
+  lines outside Boxlet's block. Both shipped `.htaccess` files wrap their rules in
+  `# BEGIN Boxlet` … `# END Boxlet`, and an update replaces only that block.
 - The installer's check asks for a file put beside `public/` and refuses to go on if it
   comes back, which is what happens on a server that ignores `.htaccess`.
 

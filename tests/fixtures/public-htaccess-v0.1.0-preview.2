@@ -1,7 +1,3 @@
-# BEGIN Boxlet
-# Everything down to END Boxlet is replaced when Boxlet is updated (PLAN.md D-140).
-# Lines of your own go above BEGIN or below END, and are kept.
-
 # Apache only. Nginx ignores this file; see README "Deployment" for try_files.
 # URL rewriting is required: there is no fallback URL mode.
 
@@ -34,4 +30,3 @@ DirectoryIndex index.php
 <IfModule !mod_rewrite.c>
     ErrorDocument 404 /index.php
 </IfModule>
-# END Boxlet

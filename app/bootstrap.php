@@ -55,8 +55,12 @@ use App\Modules\Stats\StatsSettingsController;
 use App\Modules\Update\Maintenance;
 use App\Modules\Update\MaintenanceController;
 use App\Modules\Update\Update;
+use App\Modules\Update\Releases;
 use App\Modules\Update\UpdateController;
+use App\Modules\Update\UpdatesController;
+use App\Modules\Update\Upgrade;
 use App\Support\Url;
+use App\Support\Version;
 
 /**
  * Builds the container for the current request and registers routes. Expects
@@ -140,6 +144,17 @@ $container->set('restore', fn (Container $c) => new Restore(
     $cache,
     (string) ($app['public_path'] ?? ''),
 ));
+// Updating to a new version (D-140): which version this is, where releases come from, and
+// the update itself, which puts the new code where the running code is.
+$container->set('version', fn () => Version::current($root));
+$container->set('releases', fn () => new Releases());
+$container->set('upgrade', fn (Container $c) => new Upgrade(
+    $c->get('db'),
+    $root,
+    $storage,
+    $cache,
+    (string) ($app['public_path'] ?? ''),
+));
 // Making every picture's sizes again, step by step (D-048).
 $container->set('media_remake', fn (Container $c) => new MediaRemake(
     $c->get('db'),
@@ -206,6 +221,13 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // lets through while one is pending (D-019).
     $router->get('/admin/update', [UpdateController::class, 'show'], $requireAdmin);
     $router->post('/admin/update', [UpdateController::class, 'run'], $requireAdmin);
+    // A new version of Boxlet (D-140): from GitHub when asked, or from a ZIP, after a backup.
+    $router->get('/admin/updates', [UpdatesController::class, 'index'], $requireAdmin);
+    $router->post('/admin/updates/check', [UpdatesController::class, 'check'], $requireAdmin);
+    $router->post('/admin/updates/github', [UpdatesController::class, 'github'], $requireAdmin);
+    $router->post('/admin/updates/upload', [UpdatesController::class, 'upload'], $requireAdmin);
+    $router->post('/admin/updates/step', [UpdatesController::class, 'step'], $requireAdmin);
+    $router->post('/admin/updates/roll-back', [UpdatesController::class, 'rollBack'], $requireAdmin);
     // Maintenance mode (D-021). The GET is where the bar's link goes; it only brings the
     // owner back to the dashboard, because switching off is a POST with a token.
     $router->get('/admin/maintenance', [MaintenanceController::class, 'show'], $requireAdmin);

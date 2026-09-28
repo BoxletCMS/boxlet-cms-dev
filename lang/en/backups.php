@@ -29,7 +29,7 @@ return [
     'backups.delete' => 'Delete',
     'backups.delete_confirm' => 'Delete this backup? It cannot be brought back.',
     'backups.total' => 'All backups together take :size.',
-    'backups.keep_elsewhere' => 'Backups are kept on this server, in storage/backups. Download one now and then and keep it somewhere else: a backup on the same server is lost with the server.',
+    'backups.keep_elsewhere' => 'Backups are kept on this server, in storage/backups. Download one now and then and keep it somewhere else: a backup on the same server is lost with the server. To bring one back, even onto a fresh install, put the downloaded file in storage/backups and it appears here.',
     'backups.made' => 'The backup is made.',
     'backups.deleted' => 'The backup is deleted.',
     'backups.restored' => 'The site is restored from the backup.',

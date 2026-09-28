@@ -41,6 +41,7 @@ final class Backups
      */
     public function all(): array
     {
+        $this->adopt();
         $found = [];
         foreach (glob($this->directory . '/*.zip') ?: [] as $path) {
             $name = basename($path, '.zip');
@@ -66,6 +67,28 @@ final class Backups
         usort($found, static fn (array $a, array $b): int => strcmp($b['name'], $a['name']));
 
         return $found;
+    }
+
+    /**
+     * A backup put here by hand, as it was downloaded, under its own name again.
+     *
+     * The case this is for: the server is lost, Boxlet is installed afresh, and the backup
+     * kept elsewhere is put in storage/backups over FTP. It arrives as the download named it,
+     * boxlet-backup-2026-09-28-203251-manual.zip, perhaps with a browser's " (1)" added, and
+     * was not listed at all until this. Found on the owner's question, by doing exactly that.
+     * A file whose name holds no backup name is left alone and not listed.
+     */
+    private function adopt(): void
+    {
+        foreach (glob($this->directory . '/*.zip') ?: [] as $path) {
+            $file = basename($path, '.zip');
+            if (self::validName($file) || preg_match('~\d{4}-\d{2}-\d{2}-\d{6}-(?:manual|update|restore)~', $file, $name) !== 1) {
+                continue;
+            }
+            if (!is_file($this->directory . '/' . $name[0] . '.zip')) {
+                rename($path, $this->directory . '/' . $name[0] . '.zip');
+            }
+        }
     }
 
     /**

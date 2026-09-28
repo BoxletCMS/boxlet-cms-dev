@@ -91,3 +91,20 @@ test('the backups screen is the admin\'s only', function () {
     assertRedirectedTo('/admin/login', dispatch('/admin/backups'));
     assertRedirectedTo('/admin/login', dispatch('/admin/backups/2026-01-01-000000-manual/download'));
 });
+
+test('a backup put in the folder by hand, as it was downloaded, is listed under its own name', function () {
+    adminSite('sqlite');
+    $folder = (string) TestSite::$env['STORAGE_PATH'] . '/backups';
+    removeTree($folder);
+    mkdir($folder, 0770, true);
+    // The case: the server was lost, Boxlet is installed afresh, and the download is put back.
+    $made = new App\Support\ZipWriter($folder . '/boxlet-backup-2026-09-28-203251-manual (1).zip');
+    $made->addString('manifest.json', (string) json_encode(['boxlet' => 1, 'kind' => 'manual', 'version' => 'v0.1.0', 'finished' => '2026-09-28 20:32:51', 'migrations' => [], 'rows' => []]));
+    $made->finish();
+    file_put_contents($folder . '/holiday-photos.zip', 'not a backup');
+
+    assertEquals(['2026-09-28-203251-manual'], listedBackups(), 'listed');
+    assertTrue(is_file($folder . '/2026-09-28-203251-manual.zip'), 'under its own name');
+    assertTrue(is_file($folder . '/holiday-photos.zip'), 'a file that is not a backup was touched');
+    removeTree($folder);
+});

@@ -27,6 +27,9 @@
  *   CLAUDE.md, PLAN.md, .gitignore, .env.test.example   the project's papers, not the product's
  *   .env                                            not tracked at all; the installer writes it
  *
+ * THE README in the package is tools/release/README.md, the one written for someone using
+ * Boxlet; the checkout's own README.md is for someone working on it (D-137).
+ *
  * It packs the LAST COMMIT, not the working tree, so a release is a thing that can be
  * pointed at afterwards. An uncommitted change is announced, not silently included.
  */
@@ -83,6 +86,16 @@ if (!mkdir($inside, 0755, true) && !is_dir($inside)) {
 // Every tracked file as the last commit has it: no .git, no editor leftovers, nothing the
 // working tree happens to be carrying.
 run("git -C {$root} archive HEAD | tar -x -C " . escapeshellarg($inside));
+
+// The README a user reads is not the one a developer reads (PLAN.md D-137): the checkout's
+// README.md is about working on Boxlet, tools/release/README.md about using it. The second
+// takes the first's place in the package, and so in BoxletCMS/Boxlet-CMS, which a release
+// fills from the package. Its pictures stay in tools/release/readme/, out of the package,
+// and are linked from the development repository. Taken from the unpacked commit, not the
+// working tree, like everything else in the package.
+if (!rename($inside . '/tools/release/README.md', $inside . '/README.md')) {
+    fail('Cannot put tools/release/README.md in the package.');
+}
 
 // Composer needs its two files; they are taken out again once it has run.
 foreach (['composer.json', 'composer.lock'] as $file) {

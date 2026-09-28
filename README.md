@@ -2,6 +2,10 @@
 
 A small self-hosted PHP CMS for people who build many small sites.
 
+This is the development repository: the source, the tests and the tools. To use Boxlet,
+take a release from [BoxletCMS/Boxlet-CMS](https://github.com/BoxletCMS/Boxlet-CMS), whose
+README says what Boxlet does.
+
 ## Requirements
 
 - PHP 8.1 or newer

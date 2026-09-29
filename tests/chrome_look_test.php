@@ -529,3 +529,26 @@ testBothDrivers('the footer\'s text keeps a link and loses a heading, and a plai
     assertContains('<p>Line one<br>' . "\n" . 'Line two &amp; co</p>', ChromeWords::asHtml("Line one\nLine two & co"), 'and the editor is handed a paragraph');
     assertContains(e('<p>Line one<br>' . "\n" . 'Line two &amp; co</p>'), dispatch('/admin/appearance')->body, 'which is what the screen holds');
 });
+
+testBothDrivers('the footer\'s menus stand one under another when the owner asks, and as before until then', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    lookSite($db);
+    Composition::remember($db, 'brutalist');
+    $footer = static fn (): string => preg_match('~<div class="site-footer [^"]*"~', dispatch('/about')->body, $m) === 1 ? $m[0] : '';
+
+    assertContains('links-auto', $footer(), 'no character asks for a list (D-143)');
+    ChromeLook::save($db, ['footer_links' => 'list']);
+    assertContains('links-list', $footer(), 'the owner\'s choice');
+    ChromeLook::save($db, ['footer_links' => 'sideways']);
+    assertContains('links-auto', $footer(), 'a value outside the set');
+});
+
+test('the footer\'s stylesheet rules can match what the footer draws', function () {
+    // Two faults found together (D-143), each a rule that looked right and did nothing:
+    // a unitless 0 in a calc with a length, which the browser throws out whole, and a
+    // compound selector for two classes that sit on two different elements.
+    $sections = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections.css');
+    assertTrue(preg_match('~\.block-footer\s*\{[^}]*--section-rhythm:\s*0rem;~', $sections) === 1, 'the chrome\'s rhythm is a length');
+    $chrome = (string) file_get_contents(dirname(__DIR__) . '/public/assets/chrome.css');
+    assertTrue(preg_match('~\.layout-[a-z_]+\.footer-cols-~', $chrome) !== 1, 'a layout class and a footer-cols class written as one element');
+});

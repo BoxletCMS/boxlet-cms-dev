@@ -134,7 +134,8 @@ return [
     'hint.look.nav_style' => 'How the menu’s words are set: as they are; in small capitals with a little space between the letters; the current page on a pill; a bar under the current page and under the pointer; or every entry a bordered chip. Submenus follow the same style.',
     'hint.look.nav_ink' => 'Whether the menu’s words take the accent colour or the ordinary text colour.',
     'hint.look.header_button' => 'The button at the right of the header: filled with the accent, outlined, or a plain link.',
-    'hint.look.footer_columns' => 'How a LONG menu inside a footer column is listed: as one list, or split into two or three lists side by side. Not the footer’s columns — those are the arrangement above.',
+    'hint.look.footer_links' => 'How each column’s menu is laid out: as the arrangement has it — in a row, or a list when the footer is in columns — or always one link under another, like the columns of links at the foot of many sites.',
+    'hint.look.footer_columns' => 'How a LONG menu inside a footer column is listed when the footer is in columns: as one list, or split into two or three lists side by side. Not the footer’s columns — those are the arrangement above.',
     'hint.look.logo_size' => 'How tall the logo is drawn. Its shape never changes.',
 
     // Media

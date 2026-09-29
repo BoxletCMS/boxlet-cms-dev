@@ -173,6 +173,8 @@ final class SettingsController
             'maintenanceOn' => $this->container->get('maintenance')->isOn(),
             // The page cache (D-053): on unless switched off, and how many pages it holds.
             'pageCache' => ['on' => Settings::get($this->db(), 'page_cache', '1') !== '0', 'count' => PageCache::count()],
+            // The SVG logos (D-142), shown under the pickers they stand in for.
+            'logoSvg' => LogoSvg::all($this->db()),
             'languages' => Locales::all($this->db()),
             'addable' => Locales::addable($this->db()),
             'twoStep' => $this->twoStep(),

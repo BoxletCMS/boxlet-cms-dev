@@ -290,6 +290,18 @@ mean a file that should not run cannot run, whichever one you forget.
 Uploads also need `client_max_body_size` raised — see **Upload size** above, where the PHP
 settings that go with it are covered.
 
+**An SVG logo opened on its own runs nothing.** A logo can be an SVG (Settings → Branding).
+It is cleaned on upload and drawn as an `<img>`, where a browser runs nothing; for the file
+opened straight by its address, `public/.htaccess` sends a sandboxing policy on Apache. On
+nginx, add the same:
+
+```nginx
+location ~ ^/m/logo/[^/]+\.svg$ {
+    add_header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; sandbox" always;
+    add_header X-Content-Type-Options nosniff always;
+}
+```
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

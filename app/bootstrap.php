@@ -49,6 +49,7 @@ use App\Modules\Pages\Slug;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Redirects\RedirectsController;
 use App\Modules\Settings\CacheController;
+use App\Modules\Settings\LogoController;
 use App\Modules\Settings\SettingsController;
 use App\Modules\Stats\StatsController;
 use App\Modules\Stats\StatsDataController;
@@ -327,6 +328,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
     $router->post('/admin/settings/cache', [CacheController::class, 'save'], $requireAdmin);
+    // An SVG logo, cleaned on upload (D-142).
+    $router->post('/admin/settings/logo-svg', [LogoController::class, 'save'], $requireAdmin);
     // Mail (D-045): how the site sends, and a test message to prove it does.
     $router->post('/admin/settings/mail', [MailController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/mail/test', [MailController::class, 'test'], $requireAdmin);

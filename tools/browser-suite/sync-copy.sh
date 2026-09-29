@@ -5,7 +5,10 @@
 # copy's revision does not match the checkout's HEAD, and a guard nobody can satisfy gets
 # switched off — so the sync that makes it true lives here, next to it.
 #
-# Only code moves: app/, lang/, public/assets, migrations/ and public/index.php. Not storage, not the
+# Only code moves: app/, config/, lang/, public/assets, migrations/ and public/index.php.
+# config/ was missing until 2026-09-29: it holds no site's settings (those are in .env), and a
+# copy with an old config/app.php had no public_path, which sent an SVG logo to /m/logo on the
+# root of the disk. Not storage, not the
 # database, not public/m or public/cache — those belong to the copy (D-013), and --delete is
 # never used for the same reason (08-update puts a migration of its own into the copy's
 # migrations/, which a --delete would remove under it). migrations/ was missing until the
@@ -30,7 +33,7 @@ if [ "$(cd "$target" && pwd)" = "$checkout" ]; then
   exit 1
 fi
 
-for part in app lang public/assets migrations; do
+for part in app config lang public/assets migrations; do
   rsync -a "$checkout/$part/" "$target/$part/"
 done
 # The front controller too, since statistics (D-051) put code after send(): without it the

@@ -5,6 +5,8 @@ return [
     'svg.or' => 'Or an SVG',
     'svg.hint' => 'Sharp at any size. Export it with its text turned into outlines: shown as a picture, an SVG cannot use the site\'s fonts and draws text in another. It is cleaned on upload: anything that is not drawing, such as scripts or links to other sites, is taken out. An SVG here is used instead of the picture above.',
     'svg.upload' => 'Upload SVG',
+    'svg.replace' => 'Replace SVG',
+    'svg.send' => 'Upload',
     'svg.current' => 'This SVG is the logo now.',
     'svg.remove' => 'Remove SVG',
     'svg.stored' => 'The SVG logo is saved.',

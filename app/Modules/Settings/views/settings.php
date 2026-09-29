@@ -62,9 +62,15 @@ $vector = static function (string $slot) use ($logoSvg): string {
             . '<button type="submit" form="' . e($form) . '" name="action" value="remove" class="button button-ghost button-danger">'
             . e(t('svg.remove')) . '</button>';
     }
-    $html .= '<span class="logo-svg-upload"><input type="file" name="svg" accept=".svg,image/svg+xml" form="' . e($form) . '" aria-label="'
-        . e(t('svg.or')) . '"><button type="submit" form="' . e($form) . '" name="action" value="upload" class="button button-secondary">'
-        . e(t('svg.upload')) . '</button></span>';
+    /* The browser's own file control speaks the browser's language and cannot be styled, so
+       it is hidden and a label in the admin's words opens it, as the media library does
+       (D-038). Choosing a file sends it (logo-svg.js); without a script, Upload does. */
+    $input = 'logo-svg-file-' . $slot;
+    $html .= '<span class="logo-svg-upload">'
+        . '<input type="file" id="' . e($input) . '" name="svg" accept=".svg,image/svg+xml" form="' . e($form) . '" class="visually-hidden" data-logo-svg>'
+        . '<label for="' . e($input) . '" class="button button-secondary">' . icon('cloud-upload') . ' ' . e(t($current === null ? 'svg.upload' : 'svg.replace')) . '</label>'
+        . '<button type="submit" form="' . e($form) . '" name="action" value="upload" class="button no-js-only">' . e(t('svg.send')) . '</button>'
+        . '</span>';
 
     return $html . '<span class="hint">' . e(t('svg.hint')) . '</span></div>';
 };

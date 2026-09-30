@@ -118,6 +118,15 @@ test('the canvas may be framed by the admin and by nobody else', function () {
     assertEquals('SAMEORIGIN', $canvas->headers['X-Frame-Options'] ?? null, 'X-Frame-Options');
 });
 
+// The one frame of another site's the canvas may hold is an OpenStreetMap map, the only embed
+// drawn before a press (D-147, D-148). A video is a link there, and nothing else is framed.
+test('the canvas frames OpenStreetMap and nothing else of another site\'s', function () {
+    $csp = dispatch('/admin/pages/' . builderPage() . '/canvas')->headers['Content-Security-Policy'] ?? '';
+
+    assertContains('frame-src https://www.openstreetmap.org;', $csp, 'the map');
+    assertTrue(!str_contains($csp, 'youtube') && !str_contains($csp, 'google') && !str_contains($csp, 'vimeo'), 'another provider may be framed');
+});
+
 test('the visual editor and the canvas require an admin session, and refuse a missing page', function () {
     $id = builderPage();
     $_SESSION = [];

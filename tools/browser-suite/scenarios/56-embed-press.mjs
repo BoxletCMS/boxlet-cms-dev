@@ -101,8 +101,46 @@ export default {
       return;
     }
     const canvas = page.frames().find((f) => f.url().includes('/canvas'));
-    await canvas.click(`[data-bx-key="${key}"]`);
+    /*
+     * PRESSED WITH THE MOUSE, WHERE THE OWNER PRESSES (D-148). The owner, 2026-09-30: the
+     * block "se ne može ni editirati ni obrisati, na click u editoru ne desi se ništa". A frame
+     * of another site's swallows the press, and until D-147 the video was one. Pressed twice:
+     * on the link it is now, and on a frame put in its place in this browser only — the map
+     * that is still drawn as one — and each press must select the block.
+     */
+    const canvasBox = await (await page.$('iframe[data-canvas]')).boundingBox();
+    const pressBlock = async () => {
+      const at = await canvas.evaluate((k) => {
+        const el = document.querySelector(`[data-bx-key="${k}"] .embed-frame`);
+        el.scrollIntoView({ block: 'center' });
+        const r = el.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }, key);
+      await wait(500);
+      const now = await canvas.evaluate((k) => {
+        const r = document.querySelector(`[data-bx-key="${k}"] .embed-frame`).getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }, key);
+      await page.mouse.click(canvasBox.x + (now.x || at.x), canvasBox.y + (now.y || at.y));
+      await wait(SETTLE);
+      return canvas.evaluate(() => (document.querySelector('.bx-selected') || { getAttribute: () => null }).getAttribute('data-bx-key'));
+    };
+    const onLink = await pressBlock();
+    const frameHtml = await canvas.evaluate((k) => {
+      const holder = document.querySelector(`[data-bx-key="${k}"] .embed-frame`);
+      const kept = holder.innerHTML;
+      const frame = document.createElement('iframe');
+      frame.src = 'https://www.openstreetmap.org/export/embed.html?bbox=15.97,45.81,15.98,45.82&layer=mapnik';
+      holder.innerHTML = '';
+      holder.appendChild(frame);
+      document.querySelector('.bx-selected') && document.querySelector('.bx-selected').classList.remove('bx-selected');
+      return kept;
+    }, key);
     await wait(SETTLE);
+    const onFrame = await pressBlock();
+    await canvas.evaluate((k, html) => { document.querySelector(`[data-bx-key="${k}"] .embed-frame`).innerHTML = html; }, key, frameHtml);
+    report.verdict('pressing the block in the canvas selects it, on the link and on a frame alike',
+      onLink === key && onFrame === key, `on the link: ${onLink}; on a frame: ${onFrame}; wanted ${key}`);
     const field = `[data-block-key="${key}"] select[data-poster-url]`;
     const was = await page.$eval(field, (el) => el.value);
     const known = await page.evaluate(async (base) => {

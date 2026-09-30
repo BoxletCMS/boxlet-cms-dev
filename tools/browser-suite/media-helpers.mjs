@@ -147,13 +147,17 @@ export async function openPicker(page, selector) {
   await page.$eval(selector, (el) => {
     el.parentNode.querySelector('.media-picker-current').click();
   });
-  await page.waitForSelector('.media-picker-panel:not([hidden]) [data-pick]', { timeout: 15000 });
+  await page.waitForSelector('dialog[data-browser][open] [data-pick]', { timeout: 15000 });
+  // And settled: every opening after the first asks for the listing again, and $$eval
+  // finds its cards in one round trip and presses them in another — a card replaced in
+  // between is pressed detached, and nothing is chosen (measured 2026-09-30).
+  await page.waitForSelector('dialog[data-browser][open] [data-browser-results]:not([aria-busy])', { timeout: 15000 });
 }
 
 /** Chooses the nth offered picture and returns the id it wrote into the select. */
 export async function pick(page, selector, nth) {
   await openPicker(page, selector);
-  const id = await page.$$eval('.media-picker-panel:not([hidden]) [data-pick]',
+  const id = await page.$$eval('dialog[data-browser][open] [data-pick]',
     (els, index) => {
       const card = els[index];
       card.click();

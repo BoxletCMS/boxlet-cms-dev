@@ -30,6 +30,7 @@ use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Media\MediaController;
 use App\Modules\Media\MediaCropController;
+use App\Modules\Media\MediaPickController;
 use App\Modules\Media\MediaEncoder;
 use App\Modules\Media\MediaItemController;
 use App\Modules\Media\MediaLibrary;
@@ -266,6 +267,11 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // disk by the web server; no route here ever answers for one.
     $router->get('/admin/media', [MediaController::class, 'index'], $requireAdmin);
     $router->post('/admin/media', [MediaController::class, 'store'], $requireAdmin);
+    // The media browser a picture field opens (D-145): a page of cards, and an upload from
+    // inside the editor, cropped on the way in if asked.
+    $router->get('/admin/media/pick', [MediaPickController::class, 'index'], $requireAdmin);
+    $router->post('/admin/media/pick', [MediaPickController::class, 'store'], $requireAdmin);
+    $router->post('/admin/media/pick/{id:\d+}/finish', [MediaPickController::class, 'finish'], $requireAdmin);
     // Making every picture's sizes again, a step per request (D-048).
     $router->post('/admin/media/remake', [MediaRemakeController::class, 'start'], $requireAdmin);
     $router->post('/admin/media/remake/step', [MediaRemakeController::class, 'step'], $requireAdmin);

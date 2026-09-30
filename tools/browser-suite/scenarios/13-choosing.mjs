@@ -101,8 +101,8 @@ export default {
     await page.$eval(CONTENT_FIELD, (el) => {
       el.parentNode.querySelector('.media-picker-current').click();
     });
-    await page.waitForSelector('.media-picker-panel:not([hidden]) .media-picker-none', { timeout: 15000 });
-    await page.click('.media-picker-panel:not([hidden]) .media-picker-none');
+    await page.waitForSelector('dialog[data-browser][open] [data-browser-none]', { timeout: 15000 });
+    await page.click('dialog[data-browser][open] [data-browser-none]');
     const cleared = await posted(page, CONTENT_FIELD);
     await save(page);
     await page.goto(formUrl, { waitUntil: 'networkidle2' });

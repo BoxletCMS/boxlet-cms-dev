@@ -43,7 +43,7 @@ testBothDrivers('a document uploaded to the library is stored as a file, whole a
     // The library lists it, filtered either way, and the picture picker never offers it.
     assertContains('price-list-2026', mediaAdminGet('/admin/media?kind=files')->body, 'the files view');
     assertTrue(!str_contains(mediaAdminGet('/admin/media?kind=pictures')->body, 'price-list-2026'), 'the pictures view shows a file');
-    assertTrue(!str_contains(mediaAdminGet('/admin/media?picker=1')->body, 'price-list-2026'), 'the picture picker offers a file');
+    assertTrue(!str_contains(mediaAdminGet('/admin/media/pick')->body, 'price-list-2026'), 'the picture picker offers a file');
     assertEquals([], MediaReference::choices($db), 'a picture field can choose a file');
 
     // Its own short page, and none of a picture's actions.

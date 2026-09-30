@@ -199,7 +199,7 @@ testBothDrivers('the picker asks the library for the same cards, with no screen 
     adminUpload('/admin/media', [['name' => 'picker.jpg', 'tmp_name' => imageFixture(tmpPath('picker.jpg'), 320, 240)]]);
     $id = (int) ($db->one('SELECT id FROM media')['id'] ?? 0);
 
-    $fragment = mediaAdminGet('/admin/media?picker=1');
+    $fragment = mediaAdminGet('/admin/media/pick');
     assertEquals(200, $fragment->status, 'status');
 
     // A fragment, not a screen: nothing for the picker to strip out.
@@ -213,9 +213,9 @@ testBothDrivers('the picker asks the library for the same cards, with no screen 
     assertContains('media-thumb', $fragment->body, 'the thumbnail');
 
     // Search is the library's, not a second implementation of it.
-    assertContains('data-pick="' . $id . '"', mediaAdminGet('/admin/media?picker=1&q=picker')->body, 'search by name');
+    assertContains('data-pick="' . $id . '"', mediaAdminGet('/admin/media/pick?q=picker')->body, 'search by name');
     assertTrue(
-        !str_contains(mediaAdminGet('/admin/media?picker=1&q=nothingmatches')->body, 'data-pick='),
+        !str_contains(mediaAdminGet('/admin/media/pick?q=nothingmatches')->body, 'data-pick='),
         'a search matching nothing still offers pictures',
     );
 });

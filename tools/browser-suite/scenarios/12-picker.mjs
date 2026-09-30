@@ -120,7 +120,7 @@ export default {
     // hides. Pressing "no picture" is what the owner does and what the code responds to.
     // Nothing is saved: the form is left untouched, as this scenario's header promises.
     await openPicker(page, CONTENT_FIELD);
-    await page.click('.media-picker-panel:not([hidden]) .media-picker-none');
+    await page.click('dialog[data-browser][open] [data-browser-none]');
     const emptyClosed = await restingState('02a-closed-empty');
     report.verdict('with no picture the control says so and offers the verb',
       emptyClosed.empty && emptyClosed.thumb && !emptyClosed.image && emptyClosed.verb !== '',
@@ -134,7 +134,7 @@ export default {
     // it. The editor's collapsed panels are already open above, so their fields count here
     // too — on the builder the guard otherwise passes mostly by skipping.
     await controlsOnPanels(page, report, 'picker, open');
-    const panelEmpty = await page.$$eval('.media-picker-panel:not([hidden]) [data-pick]', (els) => els.length);
+    const panelEmpty = await page.$$eval('dialog[data-browser][open] [data-pick]', (els) => els.length);
     report.verdict('the open panel offers the library\'s pictures', panelEmpty > 0,
       `${panelEmpty} picture(s) offered`);
     await page.keyboard.press('Escape');

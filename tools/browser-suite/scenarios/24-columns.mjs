@@ -131,7 +131,7 @@ export default {
     // A photograph by name, never merely the first card: that is the site's logo.
     const field = `${group} select[name$="[items][0][image]"]`;
     await openPicker(page, field);
-    const card = await page.$$eval('.media-picker-panel:not([hidden]) [data-pick]', (cards) => {
+    const card = await page.$$eval('dialog[data-browser][open] [data-pick]', (cards) => {
       const photo = cards.find((c) => /workshop|hands|desk|studio/.test(c.textContent)) || cards[0];
       photo.click();
       return photo.getAttribute('data-pick');

@@ -521,15 +521,15 @@ test('opacity is never what makes a control quiet', function () {
     // dragged, or is waiting for a fetch. None is a control at rest, which is the case the
     // rule is about — .bx-insert sat at 0.35 and measured 1.69:1 until D-012 (PLAN.md).
     //
-    // .media-picker-results joins for exactly the reason .library-card already had: it
-    // fades only while media-picker.js is fetching the listing, between setting aria-busy
-    // and clearing it. The attribute tells assistive technology; the fade tells everyone
+    // .media-browser-results joins for exactly the reason .library-card already had: it
+    // fades only while media-browser.js is fetching the listing, between setting aria-busy
+    // and clearing it (the same state as .media-picker-results before D-145 renamed it). The attribute tells assistive technology; the fade tells everyone
     // else that the wait is the program working rather than an empty panel.
     $transient = [
         '.bx-canvas .bx-dragging',
         '.is-dragging',
         '.library-card[aria-busy="true"]',
-        '.media-picker-results[aria-busy="true"]',
+        '.media-browser-results[aria-busy="true"]',
     ];
 
     foreach (adminStylesheets() as $file) {

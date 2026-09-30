@@ -344,8 +344,10 @@ export const heading = (page) => page.$eval('h1', (el) => el.textContent.trim())
  * construction rather than by a skip that could rot: the canvas renders the SITE, where
  * the background belongs to the design.
  */
-export async function controlsOnPanels(page, report, where) {
-  const seen = await page.evaluate(() => {
+export async function controlsOnPanels(page, report, where, scope = null) {
+  // `scope` narrows the controls judged to one element — a dialog over a screen whose own
+  // fields are another scenario's business — while the ground is still the page's.
+  const seen = await page.evaluate((within) => {
     const paints = (colour) => typeof colour === 'string' && colour !== 'transparent'
       && !/^rgba\([^)]*,\s*0\s*\)$/.test(colour);
 
@@ -359,7 +361,8 @@ export async function controlsOnPanels(page, report, where) {
 
     const bare = [];
     let unrendered = 0;
-    for (const control of document.querySelectorAll('input, select, textarea')) {
+    const root = within ? document.querySelector(within) : document;
+    for (const control of (root ? root.querySelectorAll('input, select, textarea') : [])) {
       // A hidden input has no box, and the CSRF token is one on every single form.
       if (control.type === 'hidden') { continue; }
       // Nothing is painted behind something with no box; counted, not silently dropped.
@@ -386,7 +389,7 @@ export async function controlsOnPanels(page, report, where) {
       }
     }
     return { ground, bare, unrendered };
-  });
+  }, scope);
 
   report.verdict(`${where}: every control sits on something that paints`, seen.bare.length === 0,
     seen.bare.length === 0

@@ -306,11 +306,11 @@ export default {
       await wait(SETTLE);
       await page.click(`[data-block-key="${withPicture}"] .media-picker-current`);
       await wait(SETTLE);
-      const opened = await page.evaluate(() => !!document.querySelector('.media-picker-panel:not([hidden])'));
+      const opened = await page.evaluate(() => !!document.querySelector('dialog[data-browser][open]'));
       await page.keyboard.press('Escape');
       await wait(SETTLE);
       const after = await page.evaluate((k) => ({
-        panelOpen: !!document.querySelector('.media-picker-panel:not([hidden])'),
+        panelOpen: !!document.querySelector('dialog[data-browser][open]'),
         groupShown: !document.querySelector(`[data-block-key="${k}"]`).hidden,
       }), withPicture);
       report.verdict('Escape closes the picture picker and nothing else: the block stays selected',

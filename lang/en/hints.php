@@ -65,6 +65,7 @@ return [
     'hint.block.logos.items.name' => 'Who it is. Shown in type when there is no picture, and read out when there is.',
     'hint.block.logos.items.link' => 'Where the mark leads, if anywhere.',
     'hint.block.embed.url' => 'Paste the address from the browser’s bar: a video from YouTube or Vimeo, a map from OpenStreetMap or Google Maps. Nothing else can be shown, which is what keeps other people’s code off your site.',
+    'hint.block.embed.poster' => 'What visitors see until they press Play. A video’s own picture is fetched for you when you paste its address; choose another if you like. Nothing from YouTube, Vimeo or Google loads until a visitor presses, so the page stays free of their cookies.',
     'hint.block.embed.caption' => 'A line under the frame. It is also what a screen reader announces the frame as.',
     'hint.block.embed.ratio' => 'How tall the frame is for its width. A video is wide; a map usually wants more height.',
     'hint.block.columns.intro' => 'An optional sentence or two under the heading, before the columns.',

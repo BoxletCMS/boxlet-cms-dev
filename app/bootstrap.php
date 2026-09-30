@@ -31,6 +31,7 @@ use App\Modules\Mailer\MailSettings;
 use App\Modules\Media\MediaController;
 use App\Modules\Media\MediaCropController;
 use App\Modules\Media\MediaPickController;
+use App\Modules\Media\EmbedPoster;
 use App\Modules\Media\MediaEncoder;
 use App\Modules\Media\MediaItemController;
 use App\Modules\Media\MediaLibrary;
@@ -125,6 +126,8 @@ $container->set('mail_transport', fn (Container $c) => MailSettings::transport($
 $container->set('media_encoder', fn () => new MediaEncoder());
 $container->set('media_writer', fn (Container $c) => new MediaWriter($c->get('media_encoder')));
 $container->set('media_upload', fn (Container $c) => new MediaUpload($c->get('db'), $storage, $c->get('media_encoder')));
+// A video's cover picture, fetched once from YouTube or Vimeo by the server (D-147).
+$container->set('embed_poster', fn () => new EmbedPoster());
 // Backups and restoring one (D-139): the site's own folders, and the key that seals its
 // secrets, which a backup records a print of. Read as ['key'] and so on rather than by
 // dotted keys, for the route guard's reason above.
@@ -272,6 +275,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/media/pick', [MediaPickController::class, 'index'], $requireAdmin);
     $router->post('/admin/media/pick', [MediaPickController::class, 'store'], $requireAdmin);
     $router->post('/admin/media/pick/{id:\d+}/finish', [MediaPickController::class, 'finish'], $requireAdmin);
+    // An Embed block's cover, taken from the video it shows (D-147).
+    $router->post('/admin/media/pick/poster', [MediaPickController::class, 'poster'], $requireAdmin);
     // Making every picture's sizes again, a step per request (D-048).
     $router->post('/admin/media/remake', [MediaRemakeController::class, 'start'], $requireAdmin);
     $router->post('/admin/media/remake/step', [MediaRemakeController::class, 'step'], $requireAdmin);

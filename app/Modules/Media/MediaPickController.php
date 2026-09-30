@@ -20,6 +20,8 @@ use Throwable;
  * browser shows precisely what the library shows, and what it needs to choose a picture —
  * its id, its name, its thumbnail — is already on the card it chooses by.
  *
+ * And an Embed block's cover, taken from the video by the server (poster(), D-147).
+ *
  * CROPPING ON UPLOAD SENDS A RECTANGLE, NEVER AN IMAGE, as the library's crop does (D-026).
  * The browser draws the box over the file it is about to send; the server cuts the file it
  * received with MediaCrop and stores only the cut (the owner's choice: the uncropped file is
@@ -108,9 +110,48 @@ final class MediaPickController
             }
         }
 
+        return $this->kept($result, $name, $started, $locale);
+    }
+
+    /**
+     * An Embed block's cover: the video's own still, fetched once by the server from the
+     * address the owner pasted, and put into the library like any upload (D-147). The
+     * visitor never asks YouTube or Vimeo for it; the site serves its own copy.
+     *
+     * @param array<string, string> $params
+     */
+    public function poster(Request $request, string $locale, array $params): Response
+    {
+        $started = microtime(true);
+        $temporary = null;
+        try {
+            $found = $this->container->get('embed_poster')->fetch((string) $request->input('url'));
+            $temporary = tempnam((string) $this->container->get('config')->get('app.storage_path'), 'poster');
+            if ($temporary === false || file_put_contents($temporary, $found['bytes']) === false) {
+                throw new RuntimeException(t('media.storage_unwritable'));
+            }
+            $result = $this->container->get('media_upload')->store($temporary, $found['name']);
+        } catch (Throwable $e) {
+            return self::refused($e->getMessage());
+        } finally {
+            if (is_string($temporary) && is_file($temporary)) {
+                @unlink($temporary);
+            }
+        }
+
+        return $this->kept($result, $found['name'], $started, $locale);
+    }
+
+    /**
+     * What an upload became, answered as its card: its sizes made as far as the clock
+     * allows, and the upload recorded. A picture already in the library is simply that
+     * picture — choosing it is what uploading it here was for.
+     *
+     * @param array{id: int, duplicate: bool} $result
+     */
+    private function kept(array $result, string $name, float $started, string $locale): Response
+    {
         $id = (int) $result['id'];
-        // A picture already in the library is simply that picture: choosing it is what
-        // uploading it here was for.
         if (!$result['duplicate']) {
             $this->container->get('media_variants')->generate($id, MediaController::budget($started));
             Activity::record($this->container->get('db'), 'media', 'uploaded', $id, (string) ($this->library()->find($id)['filename'] ?? $name));

@@ -178,3 +178,95 @@ test('a block field opens the crop with the shape its block draws the picture in
     assertTrue(!str_contains(MediaReference::pickerAttributes(), 'data-picker-crop'), 'a picture that is not a block\'s');
     assertTrue(!str_contains(MediaReference::pickerAttributes('block.image_text.image'), 'data-picker-crop'), 'a block with no fixed shape');
 });
+
+// AN EMBED BLOCK'S COVER, TAKEN FROM THE VIDEO BY THE SERVER (PLAN.md D-147). The network is
+// a closure here: each test says what YouTube and Vimeo answer, and nothing leaves this machine.
+
+/**
+ * A JPEG of the given size, as bytes.
+ */
+function posterBytes(int $width, int $height): string
+{
+    return (string) file_get_contents(imageFixture(tmpPath('poster-' . $width . 'x' . $height . '.jpg'), $width, $height));
+}
+
+/**
+ * The browser's cover request, answered by a network of the test's own.
+ *
+ * @param array<string, string> $answers URL => body; anything else is unreachable
+ */
+function posterRequest(string $url, array $answers): App\Core\Response
+{
+    $asked = static fn (string $address): ?string => $answers[$address] ?? null;
+
+    return dispatch('/admin/media/pick/poster', null, 'POST', ['_csrf' => (new App\Core\Session())->csrfToken(), 'url' => $url], '203.0.113.10',
+        static function (App\Core\Container $container) use ($asked): void {
+            mediaAdminContainer()($container);
+            $container->set('embed_poster', static fn () => new App\Modules\Media\EmbedPoster($asked));
+        });
+}
+
+testBothDrivers('a YouTube video\'s own still becomes its cover, named after the video', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    $response = posterRequest('https://youtu.be/aqz-KE-bpKQ', [
+        // Slashes in a title are not a path: measured, "…/San Sebastian/Agosto 2018" was
+        // stored as "agosto-2018".
+        'https://www.youtube.com/oembed?format=json&url=' . rawurlencode('https://www.youtube.com/watch?v=aqz-KE-bpKQ') => '{"title":"Spain, live/San Sebastian"}',
+        'https://i.ytimg.com/vi/aqz-KE-bpKQ/maxresdefault.jpg' => posterBytes(1280, 720),
+    ]);
+    assertEquals(200, $response->status, 'status: ' . strip_tags($response->body));
+
+    $row = $db->one('SELECT * FROM media') ?? fail('nothing was stored');
+    assertEquals('spain-live-san-sebastian', (string) $row['filename'], 'named after the video');
+    assertEquals([1280, 720], [(int) $row['width'], (int) $row['height']], 'the largest still');
+    assertContains('data-pick="' . $row['id'] . '"', $response->body, 'the card that chooses it');
+});
+
+testBothDrivers('a video with no large still falls back to the smaller one, never to YouTube\'s grey placeholder', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    // YouTube answers a missing maxresdefault with a 120-pixel grey picture, not an error.
+    posterRequest('https://www.youtube.com/watch?v=aqz-KE-bpKQ', [
+        'https://i.ytimg.com/vi/aqz-KE-bpKQ/maxresdefault.jpg' => posterBytes(120, 90),
+        'https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg' => posterBytes(480, 360),
+    ]);
+    $row = $db->one('SELECT width, filename FROM media') ?? fail('nothing was stored');
+    assertEquals(480, (int) $row['width'], 'the still that is one');
+    assertEquals('youtube-aqz-ke-bpkq', (string) $row['filename'], 'named by its id when the title is unknown');
+});
+
+testBothDrivers('a Vimeo still is taken only from Vimeo\'s own picture host', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    $oembed = 'https://vimeo.com/api/oembed.json?width=1280&url=' . rawurlencode('https://vimeo.com/148751763');
+
+    $elsewhere = posterRequest('https://vimeo.com/148751763', [
+        $oembed => '{"title":"Kayak","thumbnail_url":"https://evil.example/x.jpg"}',
+        'https://evil.example/x.jpg' => posterBytes(640, 360),
+    ]);
+    assertEquals(422, $elsewhere->status, 'a still named on another host was fetched');
+
+    $own = posterRequest('https://vimeo.com/148751763', [
+        $oembed => '{"title":"Kayak","thumbnail_url":"https://i.vimeocdn.com/video/1-d_1280"}',
+        'https://i.vimeocdn.com/video/1-d_1280' => posterBytes(1280, 720),
+    ]);
+    assertEquals(200, $own->status, 'status: ' . strip_tags($own->body));
+    assertEquals('kayak', (string) ($db->one('SELECT filename FROM media')['filename'] ?? ''), 'the Vimeo still');
+});
+
+testBothDrivers('an address that is not a video, or a video that cannot be reached, is refused in words', function (string $driver) {
+    $db = mediaAdminSite($driver);
+
+    $map = posterRequest('https://www.google.com/maps/@45.8131,15.9775,16z', []);
+    assertEquals(422, $map->status, 'a map');
+    assertContains('not a YouTube or Vimeo video', $map->body, 'the reason');
+
+    $gone = posterRequest('https://youtu.be/aqz-KE-bpKQ', []);
+    assertEquals(422, $gone->status, 'an unreachable video');
+    assertContains('could not be fetched', $gone->body, 'the reason');
+    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM media')['n'] ?? -1), 'pictures stored');
+});
+
+test('an Embed block\'s cover field can take its picture from the video', function () {
+    installedSite();
+    assertContains('data-poster-url="/admin/media/pick/poster"', MediaReference::pickerAttributes('block.embed.poster'), 'the embed cover');
+    assertTrue(!str_contains(MediaReference::pickerAttributes('block.picture.image'), 'data-poster-url'), 'another picture field');
+});

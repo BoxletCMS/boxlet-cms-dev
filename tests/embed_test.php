@@ -148,8 +148,10 @@ test('an absurdly long paste is refused before anything is parsed out of it', fu
 test('the embed block sandboxes its frame, and draws none at all for an address it does not know', function (): void {
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
 
-    $good = $blocks->render('embed', ['url' => 'https://vimeo.com/148751763', 'ratio' => 'wide'], [], 'full', [], false, 'none', [], 'en');
-    assertContains('src="https://player.vimeo.com/video/148751763"', $good, 'the built src');
+    // OpenStreetMap, the one provider still framed at once: since D-147 a video and a Google
+    // map wait for a press, and that case is tested below with the same list.
+    $good = $blocks->render('embed', ['url' => 'https://www.openstreetmap.org/#map=16/45.8131/15.9775', 'ratio' => 'wide'], [], 'full', [], false, 'none', [], 'en');
+    assertContains('src="https://www.openstreetmap.org/export/embed.html?bbox=15.972007,45.810353,15.982993,45.815847&amp;layer=mapnik"', $good, 'the built src');
     assertContains('sandbox="allow-scripts allow-same-origin allow-presentation"', $good, 'sandbox');
     // The origin, never the page's path: YouTube refuses a frame that sends no Referer at
     // all (Error 153), which no-referrer did until D-146.
@@ -159,7 +161,7 @@ test('the embed block sandboxes its frame, and draws none at all for an address 
     assertTrue(!str_contains($good, 'allow-popups'), 'the sandbox allows popups');
     assertTrue(!str_contains($good, 'allow-top-navigation'), 'the sandbox allows top navigation');
     // A frame with no accessible name is announced as "frame" and nothing else.
-    assertContains('title="Video"', $good, 'the frame names itself');
+    assertContains('title="Map"', $good, 'the frame names itself');
 
     $bad = $blocks->render('embed', ['url' => 'https://evil.example/player', 'ratio' => 'wide'], [], 'full', [], false, 'none', [], 'en');
     assertTrue(!str_contains($bad, '<iframe'), 'an unrecognised address was framed anyway');
@@ -176,7 +178,7 @@ test('the embed block sandboxes its frame, and draws none at all for an address 
 test('a caption names the frame, escaped', function (): void {
     $html = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->render(
         'embed',
-        ['url' => 'https://vimeo.com/148751763', 'caption' => 'Our "big" day', 'ratio' => 'wide'],
+        ['url' => 'https://www.openstreetmap.org/#map=16/45.8131/15.9775', 'caption' => 'Our "big" day', 'ratio' => 'wide'],
         [],
         'full',
         [],
@@ -187,4 +189,68 @@ test('a caption names the frame, escaped', function (): void {
     );
     assertContains('title="Our &quot;big&quot; day"', $html, 'the caption names the frame');
     assertTrue(!str_contains($html, 'title="Our "big" day"'), 'the caption was written unescaped');
+});
+
+/*
+ * NOTHING OF THE PROVIDER'S BEFORE A PRESS (PLAN.md D-147).
+ *
+ * Measured 2026-09-30: a youtube-nocookie frame wrote two localStorage keys and an IndexedDB
+ * database into the visitor's browser, and made seven requests to Google, the moment the page
+ * opened. So a video or a Google map is a LINK until it is pressed: no iframe, no address of
+ * the provider's that a browser would fetch — only the link's own href, which it does not.
+ */
+test('a video and a Google map wait for a press, and an OpenStreetMap map does not', function (): void {
+    $cases = [
+        'https://www.youtube.com/watch?v=aqz-KE-bpKQ' => ['youtube', 'https://www.youtube.com/watch?v=aqz-KE-bpKQ', true],
+        'https://vimeo.com/148751763' => ['vimeo', 'https://vimeo.com/148751763', true],
+        'https://www.google.com/maps/@45.8131,15.9775,16z' => ['googlemaps', 'https://maps.google.com/maps?q=45.8131,15.9775&z=16', true],
+        'https://www.openstreetmap.org/#map=16/45.8131/15.9775' => ['openstreetmap', 'https://www.openstreetmap.org/#map=16/45.8131/15.9775', false],
+    ];
+    foreach ($cases as $paste => [$provider, $open, $deferred]) {
+        $found = Embed::parse($paste) ?? fail("nothing recognised {$paste}");
+        assertEquals($provider, $found['provider'], "provider of {$paste}");
+        assertEquals($open, $found['open'], "the address that opens {$paste} on its own site");
+        assertEquals($deferred, $found['deferred'], "whether {$paste} waits");
+    }
+
+    $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    $video = $blocks->render('embed', ['url' => 'https://www.youtube.com/watch?v=aqz-KE-bpKQ', 'caption' => 'Our "big" day', 'ratio' => 'wide'], [], 'full', [], false, 'none', [], 'en');
+    assertTrue(!str_contains($video, '<iframe'), 'a video is framed before it is pressed');
+    // The only place the player's address appears is the data the press reads; a browser
+    // fetches neither a data attribute nor a link's href on its own.
+    assertEquals(1, substr_count($video, 'youtube-nocookie.com'), 'the player address outside the press');
+    assertContains('data-embed-src="https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1"', $video, 'what the press frames, playing');
+    assertContains('href="https://www.youtube.com/watch?v=aqz-KE-bpKQ"', $video, 'without a script, the press opens the video on YouTube');
+    assertContains('data-embed-sandbox="allow-scripts allow-same-origin allow-presentation"', $video, 'the sandbox the frame will get');
+    assertTrue(!str_contains($video, 'allow-popups') && !str_contains($video, 'allow-top-navigation'), 'the deferred sandbox widened');
+    assertContains('data-embed-title="Our &quot;big&quot; day"', $video, 'the frame\'s name, escaped');
+    assertContains('Play video', $video, 'the press says what it does');
+    assertContains('YouTube · loads only when pressed', $video, 'and where it comes from');
+    // No cover chosen: the placeholder frame, never an <img> of the provider's.
+    assertContains('is-bare', $video, 'the bare frame');
+    assertTrue(!str_contains($video, 'ytimg'), 'a thumbnail from YouTube is drawn');
+
+    $map = $blocks->render('embed', ['url' => 'https://www.google.com/maps/@45.8131,15.9775,16z', 'ratio' => 'square'], [], 'full', [], false, 'none', [], 'hr');
+    assertTrue(!str_contains($map, '<iframe'), 'a Google map is framed before it is pressed');
+    assertContains('Prikaži kartu', $map, 'a map says Show map, in the page\'s language');
+});
+
+test('a video\'s cover is the site\'s own picture', function (): void {
+    $picture = [
+        'id' => 7, 'filename' => 'spain', 'width' => 1280, 'height' => 720, 'focalX' => 50, 'focalY' => 50,
+        'variants' => ['wide' => ['width' => 1200, 'height' => 630, 'formats' => ['jpg']]], 'alt' => 'Spain', 'version' => '1',
+    ];
+    $html = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->render(
+        'embed',
+        ['url' => 'https://vimeo.com/148751763', 'poster' => 7, 'ratio' => 'wide'],
+        [],
+        'full',
+        [7 => $picture],
+        false,
+        'none',
+        [],
+        'en',
+    );
+    assertContains('/m/wide/7-spain', $html, 'the cover, from the site\'s own variants');
+    assertTrue(!str_contains($html, 'is-bare'), 'a cover was drawn as the bare frame');
 });

@@ -129,6 +129,14 @@ final class MediaReference
             $crop = $crop === null ? '' : ' data-picker-crop="' . e($crop) . '"';
         }
 
+        // An Embed block's cover can be taken from the video itself (D-147).
+        if ($fieldKey === 'block.embed.poster') {
+            $crop .= ' data-poster-url="' . e(\App\Support\Url::admin('media', 'pick', 'poster')) . '"'
+                . ' data-text-poster-fetch="' . e(t('embed.poster_fetch')) . '"'
+                . ' data-text-poster-fetching="' . e(t('embed.poster_fetching')) . '"'
+                . ' data-text-poster-fetched="' . e(t('embed.poster_fetched')) . '"';
+        }
+
         return ' data-picker-url="' . e(\App\Support\Url::admin('media', 'pick')) . '"'
             . ' data-text-none="' . e(t('pages.field.media_none')) . '"'
             . ' data-text-failed="' . e(t('media.pick_failed')) . '"'

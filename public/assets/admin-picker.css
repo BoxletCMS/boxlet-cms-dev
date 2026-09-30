@@ -159,6 +159,10 @@
   font-weight: 550;
 }
 
+.media-picker-poster {
+  margin-block-start: var(--ui-2);
+}
+
 .media-picker-failed {
   margin: var(--ui-1) 0 0;
   color: var(--ui-danger);

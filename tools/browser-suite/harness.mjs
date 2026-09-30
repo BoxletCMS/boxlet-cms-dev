@@ -98,8 +98,15 @@ export async function submitVia(page, selector, timeout = 25000) {
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'networkidle2', timeout }),
     page.$eval(selector, (el) => {
-      const form = el.closest('form');
-      const button = form.querySelector('button[type="submit"], button[name="action"]');
+      // The field's own form, and a button that belongs to it. Not merely the first one
+      // inside it: since D-142 the settings form holds the SVG logo's buttons, which stand
+      // there but post a form of their own (form="…"), and 17-settings pressed one, sent an
+      // empty upload, and read the unsaved name as a save that failed.
+      const form = el.form || el.closest('form');
+      const button = Array.prototype.find.call(
+        form.querySelectorAll('button[type="submit"], button[name="action"]'),
+        (b) => b.form === form,
+      );
       button.click();
     }),
   ]);

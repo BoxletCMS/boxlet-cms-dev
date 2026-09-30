@@ -76,16 +76,20 @@ export default {
 
     await report.shot(page, '01-settings');
 
-    // ---- saving the name changes the admin bar ---------------------------------------------
+    // ---- saving the name keeps it ----------------------------------------------------------
+    // Read back from the field after a fresh load. It was read off the rail until 2026-09-30,
+    // when the rail stopped showing the site's name and says "Control panel" instead (the
+    // owner's choice, D-144): a name of several words did not fit it.
     const was = await field(page, 'input[name="site_name"]');
     const marker = `Zz Settings ${Date.now().toString(36).slice(-5)}`;
     await retype(page, 'input[name="site_name"]', marker);
     await submitVia(page, 'input[name="site_name"]', 40000);
 
     const said = await alerts(page);
-    const brand = await page.$eval('.rail-name', (el) => el.textContent.trim()).catch(() => '(none)');
-    report.verdict('saving the site name changes the admin bar', brand === marker,
-      `the bar says ${JSON.stringify(brand)}`
+    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    const kept = await field(page, 'input[name="site_name"]');
+    report.verdict('saving the site name keeps it', kept === marker,
+      `the field says ${JSON.stringify(kept)} after a fresh load`
       + (said.length ? `; the save was REFUSED: ${JSON.stringify(said)}` : ''));
     await report.shot(page, '02-saved');
 
@@ -98,9 +102,10 @@ export default {
     // passed while the name was left as the old one with the marker stuck on the end:
     // a restore check that cannot see a mangled value is worse than none, because it
     // reports the copy as clean.
-    const restored = await page.$eval('.rail-name', (el) => el.textContent.trim()).catch(() => '');
+    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    const restored = await field(page, 'input[name="site_name"]');
     report.verdict('the scenario puts the site name back', restored === (was ?? ''),
-      `the bar says ${JSON.stringify(restored)}, it was ${JSON.stringify(was)}`);
+      `the field says ${JSON.stringify(restored)}, it was ${JSON.stringify(was)}`);
 
     // ---- the maintenance switch, which moved here from the dashboard ------------------------
     //

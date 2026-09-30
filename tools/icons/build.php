@@ -42,6 +42,8 @@ const ICONS = [
     'database-backup', 'download',
     // Updates in the rail (D-140).
     'cloud-download',
+    // The rail's mark beside "Control panel" (D-144).
+    'box',
     // Under the page above, and out a level, in the page list (D-133).
     'arrow-right', 'arrow-left',
     // What kind of file a download is, in the Media library (MediaFileType::icon()).

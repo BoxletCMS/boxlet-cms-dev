@@ -12,6 +12,12 @@
  * page, its cookies or its storage. allow-popups is left out, so nothing in there can open
  * a window over the site.
  *
+ * THE SITE'S ORIGIN GOES WITH THE REQUEST, NEVER THE PAGE'S PATH (PLAN.md D-146). This was
+ * no-referrer, and YouTube answers a frame that names no site with "Error 153, video player
+ * configuration error": it has required a Referer from embeds since 2025. So the frame sends
+ * the origin alone — https://example.com/ — which says which site the player is on and
+ * nothing about which page a visitor is reading.
+ *
  * AN UNRECOGNISED ADDRESS SAYS SO IN THE EDITOR. The note is always in the markup and
  * canvas.css shows it; on the page it draws nothing, because a visitor is not the person who
  * can fix it. Same device the Columns block uses for an empty column.
@@ -34,7 +40,7 @@ $embed = \App\Support\Embed::parse((string) $content['url']);
         <iframe src="<?= e($embed['src']) ?>"
                 title="<?= e($content['caption'] !== '' ? $content['caption'] : site_t('site.embed.' . $embed['provider'], $locale)) ?>"
                 loading="<?= $eager ? 'eager' : 'lazy' ?>"
-                referrerpolicy="no-referrer"
+                referrerpolicy="strict-origin-when-cross-origin"
                 sandbox="allow-scripts allow-same-origin allow-presentation"
                 allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen></iframe>

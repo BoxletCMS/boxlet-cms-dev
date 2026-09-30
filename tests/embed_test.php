@@ -151,7 +151,9 @@ test('the embed block sandboxes its frame, and draws none at all for an address 
     $good = $blocks->render('embed', ['url' => 'https://vimeo.com/148751763', 'ratio' => 'wide'], [], 'full', [], false, 'none', [], 'en');
     assertContains('src="https://player.vimeo.com/video/148751763"', $good, 'the built src');
     assertContains('sandbox="allow-scripts allow-same-origin allow-presentation"', $good, 'sandbox');
-    assertContains('referrerpolicy="no-referrer"', $good, 'referrer policy');
+    // The origin, never the page's path: YouTube refuses a frame that sends no Referer at
+    // all (Error 153), which no-referrer did until D-146.
+    assertContains('referrerpolicy="strict-origin-when-cross-origin"', $good, 'referrer policy');
     // allow-popups would let the frame open a window over the site; allow-top-navigation
     // would let it replace the page. Neither is in the list, and neither may creep in.
     assertTrue(!str_contains($good, 'allow-popups'), 'the sandbox allows popups');

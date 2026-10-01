@@ -50,13 +50,15 @@ $icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'lay
                 <div class="appearance-inspector" data-inspector data-hints-root="appearance">
 <?php require __DIR__ . '/parts/panels.php'; ?>
                     <?php /* HINTS ON DEMAND (D-078): off until asked for, remembered in this
-                             browser. Without a script the hints show and this is not there. Both
-                             words live in the markup, because they are translated and the script
-                             is not. */ ?>
-                    <button type="button" class="hints-toggle" data-hints-toggle hidden
-                            aria-pressed="false"
+                             browser. Without a script the hints show and this is not there.
+                             AN ICON IN THE INSPECTOR'S TOP ROW, not a row of its own over the
+                             content (D-161): it stands in the corner the first row of every
+                             view leaves free. Both words live in the markup, because they are
+                             translated and the script is not; they go in its label and title. */ ?>
+                    <button type="button" class="icon-button hints-icon" data-hints-toggle hidden
+                            aria-pressed="false" title="<?= e(t('hints.show')) ?>"
                             data-show="<?= e(t('hints.show')) ?>"
-                            data-hide="<?= e(t('hints.hide')) ?>"><?= e(t('hints.show')) ?></button>
+                            data-hide="<?= e(t('hints.hide')) ?>"><?= icon('circle-help') ?><span class="visually-hidden" data-hints-label><?= e(t('hints.show')) ?></span></button>
 <?php require __DIR__ . '/inspector/home.php'; ?>
 <?php foreach (array_keys(Overrides::SECTIONS) as $section): ?>
 <?php $count = Overrides::count($changed, $section); ?>
@@ -65,11 +67,14 @@ $icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'lay
                             <?php /* Back to the home: a link, so it is one without a script too
                                      — up the page to where the list is. */ ?>
                             <a class="section-back" href="#appearance-home" data-back><?= icon('arrow-left') ?> <?= e(t('inspector.back')) ?></a>
-                            <h2 class="section-title" id="section-<?= e($section) ?>-title"><?= icon($icons[$section]) ?> <?= e(t('inspector.section.' . $section)) ?></h2>
-                            <?php /* Shown only while the section holds a change (the class above,
-                                     kept live by appearance-overrides.js): a reset with nothing to
-                                     reset teaches people not to trust buttons. */ ?>
-                            <button type="submit" form="design-form" name="action" value="reset:section:<?= e($section) ?>" class="button button-quiet section-reset"><?= icon('history') ?> <?= e(t('inspector.reset.section')) ?></button>
+                            <?php /* The title and its reset on ONE line (D-161), the reset small
+                                     and at the end: shown only while the section holds a change
+                                     (the class above, kept live by appearance-overrides.js), and
+                                     taking no room of its own when it is not. */ ?>
+                            <div class="section-title-row">
+                                <h2 class="section-title" id="section-<?= e($section) ?>-title"><?= icon($icons[$section]) ?> <?= e(t('inspector.section.' . $section)) ?></h2>
+                                <button type="submit" form="design-form" name="action" value="reset:section:<?= e($section) ?>" class="button button-quiet section-reset"><?= icon('history') ?> <?= e(t('inspector.reset.section')) ?></button>
+                            </div>
                         </div>
 <?php include __DIR__ . '/sections/' . $section . '.php'; ?>
                     </section>

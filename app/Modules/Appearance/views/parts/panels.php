@@ -23,6 +23,7 @@ use App\Support\Url;
  * @var array{set: array<string, mixed>, warnings: list<string>}|null $import
  * @var array{character: string, count: int}|null $load
  * @var bool $confirm
+ * @var int $replaces how many of the owner's published changes that publish replaces (D-161)
  * @var string $character
  * @var Closure(array<string, string>, string, string, string): string $card
  */
@@ -60,6 +61,9 @@ use App\Support\Url;
                              with what each answer does written beside it. */ ?>
                     <div class="appearance-confirm publish-confirm" role="alert">
                         <p class="confirm-question"><?= e(t('design.apply.title', ['character' => Characters::label($character)])) ?></p>
+<?php if ($replaces > 0): ?>
+                        <p class="hint hint-always"><?= e(t($replaces === 1 ? 'inspector.load.lost_one' : 'inspector.load.lost_many', ['count' => $replaces])) ?></p>
+<?php endif; ?>
                         <div class="confirm-options">
                             <span>
                                 <button type="submit" form="design-form" name="action" value="save_design" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
@@ -68,6 +72,13 @@ use App\Support\Url;
                             <span>
                                 <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
                                 <span class="hint hint-always"><?= e(t('design.apply.with_composition_hint')) ?></span>
+                            </span>
+                            <?php /* A WAY OUT (D-161): the screen as the site is published, which is
+                                     the state before the character was loaded. A link, so it
+                                     posts nothing. */ ?>
+                            <span>
+                                <a class="button button-quiet" href="<?= e(Url::admin('appearance')) ?>" data-apply-cancel><?= e(t('inspector.apply.cancel')) ?></a>
+                                <span class="hint hint-always"><?= e(t('inspector.apply.cancel_hint')) ?></span>
                             </span>
                         </div>
                     </div>

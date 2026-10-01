@@ -58,7 +58,7 @@ return [
     'chrome.look.header_behaviour' => 'Header behaviour',
     'chrome.look.header_behaviour.static' => 'Stays put',
     'chrome.look.header_behaviour.sticky' => 'Sticky',
-    'chrome.look.header_behaviour.over' => 'Over the top',
+    'chrome.look.header_behaviour.over' => 'Over the hero',
     // The footer's columns (D-115).
     'chrome.footer_column' => 'Column :n',
     'chrome.footer_column_title' => 'Title',

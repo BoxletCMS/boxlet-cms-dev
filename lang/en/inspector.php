@@ -76,6 +76,10 @@ return [
     'inspector.load.replace' => 'Load :character',
     'inspector.load.keep' => 'Keep my changes',
 
+    // Publish's question after a character is loaded (D-068), with a way out of it (D-161).
+    'inspector.apply.cancel' => 'Cancel',
+    'inspector.apply.cancel_hint' => 'Back to the design as it is published. Nothing changes on the site.',
+
     'inspector.palette_note' => 'Worked out from the main colour. Pick a swatch to set your own — the dot shows it is yours.',
     'inspector.palette_all' => 'Show the other :count roles',
 

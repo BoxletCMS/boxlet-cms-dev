@@ -98,14 +98,19 @@ $slider = static function (string $key, float $min, float $max, float $step, arr
     return Controls::row($label, Controls::slider($key, $id, $decisions[$key] ?? '', $min, $max, $step, $marks, ['data-slider-for' => $id . '-value']), $options);
 };
 
+require __DIR__ . '/pictograms.php';
+/** @var Closure(string, string): string $pictogram */
+
 /**
- * ONE CHROME CHOICE AS A ROW OF BUTTONS (D-032, D-065), WITH NO "FOLLOW" BUTTON (D-159).
+ * ONE CHROME CHOICE AS A ROW OF BUTTONS (D-032, D-065), WITH NO "FOLLOW" BUTTON (D-159) —
+ * or, for how the header and the footer are arranged, as tiles with a drawing of each
+ * answer, three to a row, as the mockup has them (D-161).
  *
  * '' is still stored for "as the character has it", and it is SHOWN as the character's own
  * answer, pressed: that is what the header is. Changing the character re-dresses every part
  * left that way. The dot says which the owner chose, and the reset gives one back.
  */
-$lookGroup = static function (string $choice) use ($look, $characterLook, $rowOptions): string {
+$lookGroup = static function (string $choice) use ($look, $characterLook, $rowOptions, $pictogram): string {
     $field = ChromeLook::field($choice);
     $label = t('chrome.look.' . $choice);
     $labels = [];
@@ -114,6 +119,15 @@ $lookGroup = static function (string $choice) use ($look, $characterLook, $rowOp
     }
     $current = ($look[$choice] ?? '') !== '' ? $look[$choice] : ($characterLook[$choice] ?? '');
     $options = $rowOptions($choice, $label, ['labelId' => $field . '-label', 'hint' => field_hint('hint.look.' . $choice), 'error' => '']);
+
+    if ($pictogram($choice, $current) !== '') {
+        $tiles = [];
+        foreach ($labels as $option => $name) {
+            $tiles[$option] = ['label' => $name, 'picture' => $pictogram($choice, (string) $option)];
+        }
+
+        return Controls::row($label, Controls::tiles($field, $tiles, $current, $field . '-label', $field . '-'), $options);
+    }
 
     return Controls::row($label, segmented_group($field, $labels, $current, $field . '-label', $field . '-'), $options);
 };

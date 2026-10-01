@@ -130,6 +130,31 @@ final class Controls
     }
 
     /**
+     * ONE OF A FEW, AS PICTURES (D-161): a closed set where each answer is easier seen than
+     * named — how a header is arranged, what a footer holds — three to a row, each a small
+     * drawing over its name. Radio inputs, as segmented_group()'s are: they submit with no
+     * script, arrow keys move between them, and the posted name and values are the same, so
+     * swapping one for the other changes nothing a save reads.
+     *
+     * @param array<array-key, array{label: string, picture: string}> $options value => its name,
+     *        and its drawing as markup (an SVG built from attributes, never a style)
+     * @param string $form the form the radios belong to, when it is not the one they stand in
+     */
+    public static function tiles(string $name, array $options, string $current, string $labelledBy, string $idPrefix, string $form = ''): string
+    {
+        $html = '<div class="tile-choice" role="radiogroup" aria-labelledby="' . e($labelledBy) . '">';
+        foreach ($options as $value => $option) {
+            $value = (string) $value;
+            $html .= '<label class="tile-option"><input type="radio" id="' . e($idPrefix . $value) . '" name="' . e($name) . '" value="' . e($value) . '"'
+                . ($form !== '' ? ' form="' . e($form) . '"' : '') . ($value === $current ? ' checked' : '') . '>'
+                . '<span class="tile-picture" aria-hidden="true">' . $option['picture'] . '</span>'
+                . '<span class="tile-label">' . e($option['label']) . '</span></label>';
+        }
+
+        return $html . '</div>';
+    }
+
+    /**
      * A group of controls that folds: a <details>, so it opens and closes with no script.
      *
      * The count beside the title is how many of its controls are changed. It is printed even

@@ -123,7 +123,7 @@ return [
 
     // The Header and footer screen: hint.look.{choice}
     'hint.look.header_arrangement' => 'Where the name, the menu and the button stand: name left and menu right; menu inline beside the name; everything centred; the name in the middle of its menu; or a masthead, the name in its own row with the menu under it.',
-    'hint.look.header_behaviour' => 'What the bar does as visitors scroll: stays put at the top of the page, sticks to the top of the window, or lies over the top of each page’s first section and takes its colours.',
+    'hint.look.header_behaviour' => 'What the bar does as visitors scroll: stays put at the top of the page, sticks to the top of the window, or lies over each page’s first section — the hero — and takes its colours.',
     'hint.look.footer_layout' => 'How many of the footer’s columns are drawn, and how: one column; one, centred; two side by side; one with its menu above its words; or three side by side. Each column has its own title, words and menu.',
     'hint.look.footer_edge' => 'The footer’s top edge: nothing, a thin line, a slant, or a curve — the same edges a section can carry.',
     'hint.look.small_print_row' => 'The last row of the footer, the languages and the small print: one under the other, side by side with the space between, or centred.',

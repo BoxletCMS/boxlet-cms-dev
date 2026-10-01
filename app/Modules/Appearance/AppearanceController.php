@@ -100,7 +100,11 @@ final class AppearanceController
          * is asked at the moment it applies.
          */
         if ($action === 'save' && $character !== '' && Composition::hasBlocks($db)) {
-            return $this->screen->render($state, [], null, 200, $character, ['confirm' => true]);
+            return $this->screen->render($state, [], null, 200, $character, [
+                'confirm' => true,
+                // And what of the owner's own it replaces on the site (D-161).
+                'replaces' => Overrides::replaced(Design::load($db), $state['decisions'], Composition::active($db)),
+            ]);
         }
         $composing = $action === 'save_composition';
         // A menu is chosen by name, and a name no menu carries any more is cleared rather

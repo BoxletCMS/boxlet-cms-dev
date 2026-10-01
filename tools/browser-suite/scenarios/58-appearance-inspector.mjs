@@ -47,10 +47,46 @@ export default {
     const styled = await page.evaluate(async () => ((await (await fetch(window.location.pathname, { credentials: 'same-origin' })).text()).match(/\sstyle="/g) || []).length);
     report.verdict('the screen\'s markup carries no style attribute', styled === 0, `${styled} found`);
 
+    // ---- the hints as an icon in the top row (D-161) ---------------------------------------
+    const hints = await page.evaluate(() => {
+      const icon = document.querySelector('.hints-icon');
+      const first = document.querySelector('[data-view="home"] .control-group-head');
+      const a = icon.getBoundingClientRect();
+      const b = first.getBoundingClientRect();
+      // Clear of what the row already holds at its end: the count and the fold's − sign.
+      const toggle = first.querySelector('.control-group-toggle').getBoundingClientRect();
+      return { shown: !icon.hidden, sameRow: a.top < b.bottom && a.bottom > b.top, clear: toggle.right <= a.left, title: icon.title };
+    });
+    report.verdict('the hints are an icon in the inspector\'s first row, not a row of their own',
+      hints.shown && hints.sameRow && hints.clear && hints.title.length > 0, JSON.stringify(hints));
+
     // ---- a section, and Back --------------------------------------------------------------
     await openSection(page, 'header');
     await wait(300);
     await shot(report, page, '02-header');
+    const head = await page.evaluate(() => {
+      const view = document.querySelector('[data-view="header"]');
+      const title = view.querySelector('.section-title').getBoundingClientRect();
+      const reset = view.querySelector('.section-reset');
+      const box = reset.getBoundingClientRect();
+      const tiles = view.querySelectorAll('[data-control="header_arrangement"] .tile-option');
+      return {
+        resetShown: getComputedStyle(reset).display !== 'none',
+        oneRow: getComputedStyle(reset).display === 'none' || (box.top < title.bottom && box.bottom > title.top),
+        atTheEnd: getComputedStyle(reset).display === 'none' || Math.round(box.right) >= Math.round(view.getBoundingClientRect().right) - 2,
+        tiles: tiles.length,
+        perRow: tiles.length >= 4 && new Set([...tiles].slice(0, 3).map((t) => Math.round(t.getBoundingClientRect().top))).size === 1
+          && Math.round(tiles[3].getBoundingClientRect().top) > Math.round(tiles[0].getBoundingClientRect().top),
+        pictures: view.querySelectorAll('[data-control="header_arrangement"] .tile-option svg').length,
+        over: [...view.querySelectorAll('input[name="look_header_behaviour"]')].map((i) => i.closest('label').textContent.trim()),
+      };
+    });
+    report.verdict('the section\'s reset stands on its title\'s row, at the end',
+      head.oneRow && head.atTheEnd, JSON.stringify(head));
+    report.verdict('the header\'s arrangement is tiles with a drawing each, three to a row',
+      head.tiles === 5 && head.pictures === 5 && head.perRow, JSON.stringify(head));
+    report.verdict('the header lies "Over the hero", not "over the top"',
+      head.over.includes('Over the hero') && !head.over.some((w) => /over the top/i.test(w)), JSON.stringify(head.over));
     const header = await page.evaluate(() => ({
       url: window.location.hash,
       home: !document.querySelector('[data-view="home"]').hidden,
@@ -153,11 +189,18 @@ export default {
         inInspector: !!panel.closest('.appearance-inspector'),
         pictureAtTop: Math.round(stage.top) <= Math.round(document.querySelector('.appearance-bar').getBoundingClientRect().bottom) + 1,
         answers: panel.querySelectorAll('button[value="save_design"], button[value="save_composition"]').length,
+        cancel: (panel.querySelector('a[data-apply-cancel]') || {}).getAttribute?.('href') ?? null,
+        replaces: /of your changes/.test(panel.textContent),
+        warns: getComputedStyle(panel).backgroundColor !== getComputedStyle(document.querySelector('.appearance-inspector')).backgroundColor,
       } : null;
     });
     await shot(report, page, '06-apply-question');
     report.verdict('Publish after a character asks at the top of the inspector, and the picture stays where it is',
-      asked !== null && asked.inInspector && asked.pictureAtTop && asked.answers === 2, JSON.stringify(asked));
+      asked !== null && asked.inInspector && asked.pictureAtTop && asked.answers === 2 && asked.warns, JSON.stringify(asked));
+    // The development site holds the owner's own changes over its character, so the question
+    // has a loss to name (D-161) — measured at seventeen over Bold when it said nothing.
+    report.verdict('it says how many of the site\'s own changes it replaces, and offers Cancel',
+      asked !== null && asked.replaces && asked.cancel !== null && /\/admin\/appearance$/.test(asked.cancel), JSON.stringify(asked));
     // Not answered: leaving the screen publishes nothing.
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
   },

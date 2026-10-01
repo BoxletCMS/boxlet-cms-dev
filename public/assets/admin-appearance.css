@@ -214,6 +214,15 @@
   border-radius: var(--ui-radius-m);
 }
 
+/* ONLY PUBLISH'S QUESTION WARNS (D-161): it is the one whose answer can overwrite the site's
+   section styles. The import's and the load's ask what to do with a design, and stand on the
+   neutral ground the cards do. */
+.import-confirm,
+.load-confirm {
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+}
+
 .confirm-question {
   margin: 0;
   font-weight: 650;

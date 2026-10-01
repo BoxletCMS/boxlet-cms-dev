@@ -241,6 +241,24 @@ final class Overrides
         ));
     }
 
+    /**
+     * How many of the owner's PUBLISHED changes a publish replaces (D-161): the decisions and
+     * colours by hand the site holds over the character it was composed with, that what is
+     * about to be published sets differently. Publish's question after a character is loaded
+     * says so — the load's own question counted the screen, which can already have been
+     * answered, or never asked when the screen held nothing of the owner's.
+     *
+     * @param array<string, string> $published the site's decisions
+     * @param array<string, string> $trying the decisions about to be published
+     */
+    public static function replaced(array $published, array $trying, string $character): int
+    {
+        return count(array_filter(
+            self::changed($published, [], $character),
+            static fn (string $key): bool => self::kind($key) !== 'look' && !self::same($trying[$key] ?? '', $published[$key] ?? ''),
+        ));
+    }
+
     /** The section a key is in, or null. */
     public static function sectionOf(string $key): ?string
     {

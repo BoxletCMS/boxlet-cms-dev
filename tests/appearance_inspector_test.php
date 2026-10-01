@@ -240,3 +240,51 @@ test('settle() and lost() read the character the screen is measured against', fu
     // In the order of the sections: the palette is in Colours, before Space & shape.
     assertEquals(['color_link', 'spacing'], Overrides::changed($decisions, [], 'minimal'), 'which');
 });
+
+// D-161: Publish's question after a character is loaded says how much of the owner's own the
+// site loses, and has a way out. Measured on the screen in the owner's screenshot: seventeen
+// changes over Bold, and the question said nothing about them.
+testBothDrivers('Publish after a character says how many of the site\'s own changes it replaces, and offers Cancel', function (string $driver) {
+    $db = adminSite($driver);
+    createPage($db, 'en', '', 'Home', true, [['type' => 'hero', 'content' => ['heading' => 'Welcome']]]);
+    // The site as published: Minimal, with roomy spacing and pill corners of the owner's own.
+    $published = Tokens::validate(['spacing' => 'roomy', 'radius' => 'pill'] + Presets::get('minimal'))['decisions'];
+    App\Modules\Design\Design::save($db, $published, tmpPath('cache'));
+
+    $asked = adminPost('/admin/appearance', appearanceFields(['character' => 'bold', 'action' => 'save'] + Presets::get('bold')));
+    assertEquals(200, $asked->status, 'status');
+    assertContains(e(t('design.apply.title', ['character' => 'Bold'])), $asked->body, 'the question');
+    // Bold has normal spacing and subtle corners: both of the owner's go.
+    assertContains(e(t('inspector.load.lost_many', ['count' => 2])), $asked->body, 'how many go');
+    assertContains('<a class="button button-quiet" href="/admin/appearance" data-apply-cancel>' . e(t('inspector.apply.cancel')) . '</a>', $asked->body, 'the way out');
+    assertEquals($published, App\Modules\Design\Design::load($db), 'asking published something');
+
+    // A character that keeps one of them replaces one.
+    assertEquals(1, Overrides::replaced($published, ['spacing' => 'roomy'] + Presets::get('bold'), 'minimal'), 'one kept');
+    // And a site with nothing of the owner's is not told it loses anything.
+    App\Modules\Design\Design::save($db, Tokens::validate(Presets::get('minimal'))['decisions'], tmpPath('cache'));
+    $quiet = adminPost('/admin/appearance', appearanceFields(['character' => 'bold', 'action' => 'save'] + Presets::get('bold')));
+    assertContains('data-apply-cancel', $quiet->body, 'still asked');
+    assertTrue(!str_contains($quiet->body, 'of your changes'), 'a loss that is none');
+});
+
+testBothDrivers('the header and footer arrangements are tiles with a drawing each', function (string $driver) {
+    adminSite($driver);
+    $body = dispatch('/admin/appearance')->body;
+    foreach (['header_arrangement', 'footer_layout'] as $choice) {
+        $start = (int) strpos($body, '<div class="tile-choice" role="radiogroup" aria-labelledby="look_' . $choice . '-label">');
+        assertTrue($start > 0, 'the ' . $choice . ' tiles');
+        $group = substr($body, $start, (int) strpos($body, '</div>', $start) - $start);
+        assertEquals(count(ChromeLook::OPTIONS[$choice]), substr_count($group, '<label class="tile-option">'), 'a tile for every answer');
+        assertEquals(count(ChromeLook::OPTIONS[$choice]), substr_count($group, '<svg viewBox="0 0 48 24"'), 'a drawing on each');
+    }
+    // Minimal's own arrangement, pressed.
+    assertContains('name="look_header_arrangement" value="centred" checked', $body, 'the character\'s answer');
+});
+
+test('the hints are an icon whose words are its label, not a row of their own', function () {
+    adminSite('sqlite');
+    $body = dispatch('/admin/appearance')->body;
+    assertContains('class="icon-button hints-icon" data-hints-toggle hidden', $body, 'the icon');
+    assertContains('data-hints-label>' . e(t('hints.show')) . '</span>', $body, 'its words');
+});

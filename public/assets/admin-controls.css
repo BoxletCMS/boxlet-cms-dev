@@ -177,3 +177,76 @@
   gap: var(--ui-4);
   padding-block-end: var(--ui-4);
 }
+
+/* ---- one of a few, as pictures (D-161) ----------------------------------------------------- */
+
+.tile-choice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ui-2);
+}
+
+.tile-option {
+  position: relative;
+  display: grid;
+  gap: var(--ui-1);
+  min-inline-size: 0;
+  padding: var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  cursor: pointer;
+}
+
+.tile-option:hover {
+  border-color: var(--ui-accent);
+  color: var(--ui-ink);
+}
+
+/* The radio is the mechanism, clipped and never faded, as a segment's is (admin-choices.css). */
+.tile-option input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  clip-path: inset(50%);
+}
+
+.tile-option:has(input:checked) {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 1px var(--ui-accent);
+  color: var(--ui-ink);
+  font-weight: 650;
+}
+
+.tile-option:has(input:focus-visible) {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+
+.tile-picture svg {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+
+/* The drawing in the admin's own colours: a strip, the mark that stands for the logo, the
+   lines that stand for words and links. */
+.tile-picture .pict-ground {
+  fill: var(--ui-panel-sunken);
+}
+
+.tile-picture .pict-logo {
+  fill: var(--ui-accent);
+}
+
+.tile-picture .pict-line {
+  fill: var(--ui-ink-faint);
+}
+
+.tile-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

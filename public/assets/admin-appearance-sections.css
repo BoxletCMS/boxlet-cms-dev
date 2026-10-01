@@ -33,8 +33,7 @@
 
 .section-head {
   display: grid;
-  justify-items: start;
-  gap: var(--ui-1) var(--ui-2);
+  gap: var(--ui-1);
   padding-block-end: var(--ui-2);
   border-block-end: var(--ui-border) solid var(--ui-line);
 }
@@ -43,13 +42,24 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ui-1);
+  justify-self: start;
   font-size: var(--ui-text-sm);
   font-weight: 600;
   text-decoration: none;
 }
 
+/* The title and its reset share a line (D-161): the title takes the room, the reset sits at
+   the end, small, and takes none while the section holds no change. */
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  min-inline-size: 0;
+}
+
 .section-title {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: var(--ui-2);
   min-inline-size: 0;
@@ -62,9 +72,14 @@
   color: var(--ui-accent);
 }
 
-/* Offered only while the section holds a change, as a reset beside one control is. */
+/* Offered only while the section holds a change, as a reset beside one control is. A ghost
+   button of the bar's quiet kind, at the size of a readout. */
 .section-reset {
   display: none;
+  flex: 0 0 auto;
+  min-block-size: 0;
+  padding: var(--ui-1) var(--ui-2);
+  font-size: var(--ui-text-xs);
   white-space: nowrap;
 }
 
@@ -72,6 +87,31 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ui-1);
+}
+
+/* HINTS AS AN ICON IN THE CORNER (D-161), not a row of their own: placed in the top right of
+   the inspector, where the first row of every view leaves room — the back link of a section
+   is short, and the home's first group keeps its count and toggle clear of it. It scrolls
+   with the content, which is the row it belongs to. */
+.appearance-inspector > .hints-icon {
+  position: absolute;
+  inset-block-start: var(--ui-3);
+  inset-inline-end: var(--ui-3);
+  z-index: 1;
+}
+
+.appearance-inspector > .hints-icon[hidden] {
+  display: none;
+}
+
+.hints-icon[aria-pressed="true"] {
+  border-color: var(--ui-accent);
+  color: var(--ui-ink);
+}
+
+.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-home > .control-group:first-of-type > .control-group-head,
+.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-panels > :first-child {
+  padding-inline-end: 2.25rem;
 }
 
 /* The questions and notices over the controls (parts/panels.php). */
@@ -93,8 +133,4 @@
 .control-group-body .when-boxed {
   display: grid;
   gap: var(--ui-4);
-}
-
-.appearance-inspector > .hints-toggle {
-  margin-block-end: var(--ui-2);
 }

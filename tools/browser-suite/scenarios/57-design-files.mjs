@@ -90,6 +90,9 @@ export default {
         return panel ? {
           // In the inspector, not a band across the screen pushing the picture down (D-157).
           inInspector: !!panel.closest('.appearance-inspector'),
+          // The neutral ground the cards stand on, not the warning's (D-161).
+          ground: getComputedStyle(panel).backgroundColor,
+          cardGround: getComputedStyle(document.querySelector('.character-tile')).backgroundColor,
           pictureAtTop: Math.round(stage.top) <= Math.round(document.querySelector('.appearance-bar').getBoundingClientRect().bottom) + 1,
           text: panel.innerText.replace(/\s+/g, ' ').slice(0, 300),
           swatches: panel.querySelectorAll('[data-swatch]').length,
@@ -98,7 +101,7 @@ export default {
         } : null;
       });
       report.verdict('the import asks, with the design shown, what was left out, and the three answers',
-        question !== null && question.inInspector && question.pictureAtTop
+        question !== null && question.inInspector && question.pictureAtTop && question.ground === question.cardGround
           && /Import “Scenario Harbour”\?/.test(question.text) && question.swatches === 3
           && question.add && question.load && /carousel/.test(question.text),
         JSON.stringify(question));

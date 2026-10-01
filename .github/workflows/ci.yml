@@ -104,6 +104,8 @@ jobs:
             grep -E '^  TIME ' /tmp/tests.txt || { echo 'No timings: the run did not finish. Its last lines:'; tail -8 /tmp/tests.txt; } || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          # The same as one annotation: the public API exposes those, and not the summary.
+          { grep -E '^  TIME ' /tmp/tests.txt || tail -8 /tmp/tests.txt || true; } | sed 's/%/%25/g' | paste -sd '\n' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::notice title=Time per test file::/'
 
       # Reading a job's log needs admin rights on the repository; the job summary does not.
       # Without this a red run says only "Run tests failed", which is exactly why twelve
@@ -197,6 +199,8 @@ jobs:
             grep -E '^  TIME ' /tmp/tests.txt || { echo 'No timings: the run did not finish. Its last lines:'; tail -8 /tmp/tests.txt; } || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          # The same as one annotation: the public API exposes those, and not the summary.
+          { grep -E '^  TIME ' /tmp/tests.txt || tail -8 /tmp/tests.txt || true; } | sed 's/%/%25/g' | paste -sd '\n' | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::notice title=Time per test file::/'
 
       - name: Name the failing tests where they can be read
         if: failure()

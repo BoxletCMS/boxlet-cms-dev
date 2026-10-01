@@ -97,7 +97,7 @@ PageCache::use($cache);
 
 $container = new Container();
 // Every character, wherever it comes from (D-152): read once a request, when first asked.
-\App\Modules\Design\Characters::use((string) $config->get('app.custom_designs_path'), fn (): Blocks => $blocks);
+\App\Modules\Design\Characters::use((string) $config->get('app.custom_designs_path'), fn (): Blocks => $blocks, fn (): Db => $container->get('db'));
 $container->set('config', fn () => $config);
 $container->set('request', fn () => $request);
 $container->set('blocks', fn () => $blocks);

@@ -3,12 +3,13 @@
 namespace App\Modules\Design;
 
 use App\Core\Blocks;
+use App\Core\Db;
 use Closure;
 
 /**
  * Every character a site can choose, wherever it comes from (PLAN.md D-152): the five
  * Boxlet ships in designs/core/, sets an owner dropped into designs/custom/ over FTP
- * (D-155), and — from migration 0032 — sets imported in the admin.
+ * (D-155), and sets imported in the admin, kept in design_characters (migration 0032).
  *
  * WHAT A CHARACTER IS lives in its file now, not in PHP: the decisions it makes, the
  * header and footer it gives, the composition it gives a page. This is the one reader of
@@ -21,8 +22,12 @@ use Closure;
  * error, a warning or a changed value (characters_test.php). Everything else is read
  * through DesignSet::parse(), and a file it refuses is left out — never the site.
  *
- * Precedence when two share an id: core, then custom, then imported. A custom file that
- * cannot be used is noted in skipped(), which the Appearance screen shows as a notice.
+ * Precedence when two share an id: core, then custom, then imported. A custom file or an
+ * imported set that cannot be used is noted in skipped(), which the Appearance screen shows
+ * as a notice. An import never takes an id that is in use: addImported() gives it `-2`,
+ * `-3`… so a second `soft` cannot replace the first, or the one Boxlet ships.
+ *
+ * @phpstan-import-type ParsedSet from DesignSet
  */
 final class Characters
 {
@@ -56,17 +61,21 @@ final class Characters
     private static array $skipped = [];
     private static string $custom = '';
     private static ?Closure $registry = null;
+    private static ?Closure $db = null;
 
     /**
-     * Where custom files are and how to reach the block registry, set once by the bootstrap.
-     * Without it — a script, a test that never booted — only the five core characters exist.
+     * Where custom files are, and how to reach the block registry and the database, set once
+     * by the bootstrap. Without it — a script, a test that never booted — only the five core
+     * characters exist.
      *
      * @param Closure(): Blocks $registry
+     * @param (Closure(): Db)|null $db
      */
-    public static function use(string $customDirectory, Closure $registry): void
+    public static function use(string $customDirectory, Closure $registry, ?Closure $db = null): void
     {
         self::$custom = $customDirectory;
         self::$registry = $registry;
+        self::$db = $db;
         self::reset();
     }
 
@@ -187,8 +196,8 @@ final class Characters
     }
 
     /**
-     * The custom files left out, and why: not JSON, refused by validation, no composition,
-     * or an id another character already has.
+     * The custom files and imported sets left out, and why: not JSON, refused by validation,
+     * no composition, or an id another character already has.
      *
      * @return list<array{file: string, reason: string}>
      */
@@ -223,49 +232,65 @@ final class Characters
 
         // Core first and on its own: reading a custom file validates it, validating asks for
         // the default character, and the default character must already be here to answer.
-        self::$all = [];
-        foreach (self::CORE as $id) {
-            $set = json_decode((string) @file_get_contents(dirname(__DIR__, 3) . '/designs/core/' . $id . '.json'), true);
-            if (is_array($set)) {
-                self::$all[$id] = ['source' => 'core', 'set' => $set];
+        self::$all = CharacterSources::core();
+        if (self::$registry !== null) {
+            $registry = (self::$registry)();
+            $sources = [
+                'custom' => CharacterSources::files(self::$custom),
+                'imported' => self::$db !== null ? CharacterSources::rows((self::$db)()) : [],
+            ];
+            foreach ($sources as $source => $items) {
+                self::$all += CharacterSources::read($items, $source, $registry, self::$all, self::$skipped);
             }
         }
-
-        $custom = self::custom();
-        uasort($custom, static fn (array $a, array $b): int => strcasecmp((string) ($a['set']['name']['en'] ?? reset($a['set']['name'])), (string) ($b['set']['name']['en'] ?? reset($b['set']['name']))));
-        self::$all += $custom;
 
         return self::$all;
     }
 
     /**
-     * designs/custom/*.json, each through DesignSet::parse(). Read, never written (D-155).
+     * Keeps a set, as parsed, as an imported character, under an id no character has yet:
+     * its own, or its own with `-2`, `-3`… The name is left as it is. Returns the id it was
+     * kept under.
      *
-     * @return array<string, array{source: string, set: array<string, mixed>}>
+     * @param ParsedSet $set
      */
-    private static function custom(): array
+    public static function addImported(Db $db, array $set, string $source = 'import'): string
     {
-        if (self::$custom === '' || self::$registry === null || !is_dir(self::$custom)) {
-            return [];
+        $taken = array_flip(self::names());
+        foreach ($db->all('SELECT slug FROM design_characters') as $row) {
+            $taken[(string) $row['slug']] = true;
         }
-        $found = [];
-        $files = glob(self::$custom . '/*.json') ?: [];
-        sort($files);
-        foreach ($files as $file) {
-            $name = basename($file);
-            $read = DesignSet::parse((string) @file_get_contents($file), (self::$registry)());
-            $set = $read['set'];
-            if ($set === null) {
-                self::$skipped[] = ['file' => $name, 'reason' => implode(' ', $read['errors'])];
-            } elseif ($set['composition'] === null) {
-                self::$skipped[] = ['file' => $name, 'reason' => t('characters.not_a_character')];
-            } elseif (isset(self::$all[$set['id']]) || isset($found[$set['id']])) {
-                self::$skipped[] = ['file' => $name, 'reason' => t('characters.id_taken', ['id' => $set['id']])];
-            } else {
-                $found[$set['id']] = ['source' => 'custom', 'set' => $set];
-            }
+        $slug = $set['id'];
+        for ($n = 2; isset($taken[$slug]); $n++) {
+            // Shortened to make room, so the id still fits character_name VARCHAR(32).
+            $suffix = '-' . $n;
+            $slug = rtrim(substr($set['id'], 0, 32 - strlen($suffix)), '-') . $suffix;
         }
 
-        return $found;
+        $now = gmdate('Y-m-d H:i:s');
+        $db->query(
+            'INSERT INTO design_characters (slug, set_json, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+            [$slug, DesignSet::export($slug, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author']), $source, $now, $now],
+        );
+        self::reset();
+
+        return $slug;
     }
+
+    /**
+     * Removes an imported character. Only an imported one: a core character is Boxlet's and a
+     * custom one is a file the owner put there (D-155). A site composed with it falls back to
+     * the default character, as Composition::active() does for any id that is gone.
+     */
+    public static function deleteImported(Db $db, string $slug): bool
+    {
+        if (self::source($slug) !== 'imported') {
+            return false;
+        }
+        $db->query('DELETE FROM design_characters WHERE slug = ?', [$slug]);
+        self::reset();
+
+        return true;
+    }
+
 }

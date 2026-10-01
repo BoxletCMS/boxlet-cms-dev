@@ -215,3 +215,98 @@ test('a cold registry answers whichever reader asks first, with or without custo
     });
     assertTrue(microtime(true) - $started < 5.0, 'the registry took ' . round(microtime(true) - $started, 1) . 's');
 });
+
+/**
+ * The registry reading imported characters from $db, and custom files from $files, for the
+ * length of $body.
+ *
+ * @param array<string, string> $files
+ */
+function withImports(App\Core\Db $db, Closure $body, array $files = []): void
+{
+    $dir = tmpPath('custom-designs');
+    removeTree($dir);
+    mkdir($dir, 0700, true);
+    foreach ($files as $name => $contents) {
+        file_put_contents($dir . '/' . $name, $contents);
+    }
+    Characters::use($dir, static fn () => blockRegistry(), static fn () => $db);
+    try {
+        $body();
+    } finally {
+        Characters::use('', static fn () => blockRegistry());
+        removeTree($dir);
+    }
+}
+
+/**
+ * A set as DesignSet::parse() hands it to addImported().
+ *
+ * @param array<string, mixed> $changes
+ * @return array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>}|null}
+ */
+function parsedSet(string $id, array $changes = []): array
+{
+    return DesignSet::parse(customFile($id, $changes), blockRegistry())['set'] ?? fail("{$id} was not read");
+}
+
+// README test 4: an import never takes an id in use.
+testBothDrivers('importing soft keeps it as soft-2, and Boxlet\'s soft is untouched', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    $before = Presets::get('soft');
+    withImports($db, function () use ($db, $before) {
+        assertEquals('soft-2', Characters::addImported($db, parsedSet('soft')), 'the second soft');
+        assertEquals('soft-3', Characters::addImported($db, parsedSet('soft')), 'the third');
+
+        assertEquals('core', Characters::source('soft'), 'core soft');
+        assertEquals($before, Presets::get('soft'), 'core soft\'s decisions');
+        assertEquals('imported', Characters::source('soft-2'), 'the import');
+        assertEquals('Soft', Characters::label('soft-2'), 'its name, untouched');
+        assertEquals('#1d3557', Presets::get('soft-2')['seed'], 'its decisions');
+        assertEquals(array_merge(Characters::CORE, ['soft-2', 'soft-3']), Presets::names(), 'after the five');
+        assertEquals(2, (int) ($db->one('SELECT COUNT(*) AS n FROM design_characters')['n'] ?? 0), 'rows');
+    });
+});
+
+testBothDrivers('an id at its full length makes room for its number', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    $long = str_repeat('a', 30) . '-b';
+    withImports($db, function () use ($db, $long) {
+        assertEquals($long, Characters::addImported($db, parsedSet($long)), 'the first');
+        $second = Characters::addImported($db, parsedSet($long));
+        assertEquals(str_repeat('a', 30) . '-2', $second, 'the second, shortened');
+        assertTrue(strlen($second) <= 32, 'longer than character_name holds');
+    });
+});
+
+testBothDrivers('only an imported character can be deleted', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    withImports($db, function () use ($db) {
+        $slug = Characters::addImported($db, parsedSet('harbour'));
+        assertTrue(!Characters::deleteImported($db, 'soft'), 'a core character was deleted');
+        assertTrue(Characters::exists('soft'), 'core soft after an attempt');
+        assertTrue(Characters::deleteImported($db, $slug), 'the import was not deleted');
+        assertTrue(!Characters::exists($slug), 'the import is still there');
+        assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM design_characters')['n'] ?? 0), 'rows');
+    }, ['studio.json' => customFile('studio')]);
+    withImports($db, function () use ($db) {
+        assertTrue(!Characters::deleteImported($db, 'studio'), 'a custom file\'s character was deleted');
+    }, ['studio.json' => customFile('studio')]);
+});
+
+testBothDrivers('an import a custom file has since taken the id of, or that no longer passes, is skipped and named', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    withImports($db, function () use ($db) {
+        Characters::addImported($db, parsedSet('harbour'));
+        Characters::addImported($db, parsedSet('studio'));
+    });
+    // As a later Boxlet with stricter rules would read a row it once admitted.
+    $db->query('UPDATE design_characters SET set_json = ? WHERE slug = ?', ['{"format": "boxlet-design-set", "version": 1}', 'studio']);
+    withImports($db, function () {
+        $skipped = array_column(Characters::skipped(), 'reason', 'file');
+        assertContains('harbour', $skipped['harbour'] ?? '', 'an import whose id a file now has');
+        assertContains('id:', $skipped['studio'] ?? '', 'a row that no longer passes');
+        assertEquals('custom', Characters::source('harbour'), 'the file wins');
+        assertTrue(!Characters::exists('studio'), 'a refused row was used');
+    }, ['harbour.json' => customFile('harbour')]);
+});

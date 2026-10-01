@@ -25,6 +25,9 @@ use App\Modules\Settings\ChromeLook;
  * does not have, a block type this site does not have, a layout a block does not offer —
  * is left out with a warning, because a set may come from a site with more blocks than
  * this one.
+ *
+ * @phpstan-type SetComposition array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>}
+ * @phpstan-type ParsedSet array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: SetComposition|null}
  */
 final class DesignSet
 {
@@ -48,7 +51,7 @@ final class DesignSet
      * stores them; the look with every choice ('' where a design follows its character);
      * and the composition, normalized, or null.
      *
-     * @return array{set: array<string, mixed>|null, errors: list<string>, warnings: list<string>}
+     * @return array{set: ParsedSet|null, errors: list<string>, warnings: list<string>}
      */
     public static function parse(string $json, Blocks $registry): array
     {
@@ -130,7 +133,7 @@ final class DesignSet
 
     /**
      * @param array<mixed> $raw a set of the current version
-     * @return array{set: array<string, mixed>|null, errors: list<string>, warnings: list<string>}
+     * @return array{set: ParsedSet|null, errors: list<string>, warnings: list<string>}
      */
     private static function check(array $raw, Blocks $registry): array
     {

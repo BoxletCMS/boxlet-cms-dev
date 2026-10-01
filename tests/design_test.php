@@ -334,7 +334,7 @@ testBothDrivers('loading a character keeps the header and footer the owner has t
     // What the owner has on the screen: a menu, a footer line, and their own words.
     adminPost('/admin/appearance', appearanceFields([
         'header_menu' => 'Main',
-        'footer_text_en' => 'Made in Zagreb',
+        'footer_text_en' => '<p>Made in Zagreb</p>',
         'header_button_label_en' => 'Write to us',
         'action' => 'save',
     ]));
@@ -344,7 +344,7 @@ testBothDrivers('loading a character keeps the header and footer the owner has t
     // which read back as "every chrome field is empty" and cleared them.
     $loaded = adminPost('/admin/appearance', appearanceFields([
         'header_menu' => 'Main',
-        'footer_text_en' => 'Made in Zagreb',
+        'footer_text_en' => '<p>Made in Zagreb</p>',
         'header_button_label_en' => 'Write to us',
         'action' => 'preset:bold',
     ]));
@@ -355,7 +355,7 @@ testBothDrivers('loading a character keeps the header and footer the owner has t
     assertContains('value="Write to us"', $loaded->body, 'the button label is still on the screen');
     assertContains('<option value="Main" selected>', $loaded->body, 'the menu is still chosen');
     assertEquals('Main', SiteChrome::menuName($db), 'and nothing was written');
-    assertEquals('Made in Zagreb', SiteChrome::footer($db, 'en')['columns'][0]['text'], 'the stored footer line');
+    assertEquals('<p>Made in Zagreb</p>', SiteChrome::footer($db, 'en')['columns'][0]['text'], 'the stored footer line');
 });
 
 test('the merged screen carries both halves, and the old addresses lead to it', function () {
@@ -446,11 +446,10 @@ test('the picture has a toolbar, and it is not there for anyone without a script
 
 // ---- Round 5: the two decisions that were coarser than the question (D-062) ------------
 
-test('the content width is a number, and the four old names still mean what they meant', function () {
-    foreach (['narrow' => '42', 'normal' => '56', 'wide' => '68', 'full' => '80'] as $name => $rem) {
-        $decisions = Tokens::validate(['container' => $name] + Presets::get('minimal'))['decisions'];
-        assertEquals($rem, $decisions['container'], "the old name {$name}");
-    }
+// The four names it had are not read any more (D-162): a name is a word that is not a
+// number, refused like any other.
+test('the content width is a number, and a name is not one', function () {
+    assertTrue(isset(Tokens::validate(['container' => 'normal'] + Presets::get('minimal'))['errors']['container']), 'an old name');
 
     // A number of its own, rounded to the step it is offered in.
     assertEquals('64', Tokens::validate(['container' => '64'] + Presets::get('minimal'))['decisions']['container'], 'a number');
@@ -461,7 +460,7 @@ test('the content width is a number, and the four old names still mean what they
     $wide = Tokens::validate(['container' => '200'] + Presets::get('minimal'));
     assertContains('36', $wide['errors']['container'] ?? '', 'the message names the bounds');
     assertEquals('56', $wide['decisions']['container'], 'and falls back to the default');
-    assertTrue(isset(Tokens::validate(['container' => 'enormous'] + Presets::get('minimal'))['errors']['container']), 'a word that is not one of the four');
+    assertTrue(isset(Tokens::validate(['container' => 'enormous'] + Presets::get('minimal'))['errors']['container']), 'a word');
 });
 
 test('the content width reaches the stylesheet as the number that was chosen', function () {

@@ -47,8 +47,7 @@ return [
     // On the Appearance screen the follow state is a segment and a badge (D-065): the
     // segment names what the character gives, the badge says the choice is still its.
     'chrome.look.follow' => 'As the character has it: :value',
-    // Arrangement and behaviour are two choices since D-112; the old header_layout values
-    // are read as pairs of them (ChromeLook::LEGACY).
+    // Arrangement and behaviour are two choices since D-112.
     'chrome.look.header_arrangement' => 'Header arrangement',
     'chrome.look.header_arrangement.left' => 'Left',
     'chrome.look.header_arrangement.inline' => 'Inline',

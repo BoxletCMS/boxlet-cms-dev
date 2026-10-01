@@ -20,25 +20,6 @@ testBothDrivers('the header draws the Branding logo, uncropped', function (strin
     assertTrue(!str_contains($body, '/m/thumb/' . $logo . '-'), 'the logo was drawn from the square crop');
 });
 
-testBothDrivers('a logo set on the header screen before the merge still shows, until Branding is saved', function (string $driver) {
-    $db = adminSite($driver);
-    $old = storedPicture($db, 'old.png', ['full' => ['width' => 400, 'height' => 100, 'formats' => ['png']]]);
-    $db->query("INSERT INTO settings (`key`, value_json) VALUES ('chrome_logo', ?)", [json_encode($old)]);
-
-    assertEquals($old, SiteChrome::logo($db), 'the older header logo is not read');
-    assertContains('<option value="' . $old . '" data-thumb=', dispatch('/admin/settings')->body, 'Branding does not show the logo the header draws');
-
-    assertRedirectedTo('/admin/settings', adminPost('/admin/settings', [
-        'site_name' => 'Studio', 'timezone' => 'UTC', 'site_logo' => (string) $old,
-    ]));
-    assertEquals($old, Settings::mediaId($db, 'site_logo'), 'the logo moved to Branding');
-    assertEquals(null, Settings::mediaId($db, 'chrome_logo'), 'the older setting is still there to confuse');
-
-    // Cleared in Branding means no logo: the retired one does not come back.
-    adminPost('/admin/settings', ['site_name' => 'Studio', 'timezone' => 'UTC', 'site_logo' => '']);
-    assertEquals(null, SiteChrome::logo($db), 'the retired logo came back');
-});
-
 testBothDrivers('Branding keeps a second logo for dark surfaces, and clearing it takes only that one', function (string $driver) {
     $db = adminSite($driver);
     $logo = storedPicture($db, 'mark.png', ['full' => ['width' => 400, 'height' => 100, 'formats' => ['png']]]);

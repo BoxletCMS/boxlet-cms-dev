@@ -17,8 +17,7 @@ use Closure;
  *
  * CORE IS TRUSTED, NOT VALIDATED, AS IT LOADS. Tokens::validate() falls back to the default
  * character, so validating the characters on the way in would call itself. The five files
- * are held instead by tests: to the snapshot of what they were as PHP constants
- * (design_parity_test.php), and to Tokens::validate() and DesignSet::parse() without an
+ * are held instead by a test: Tokens::validate() and DesignSet::parse() read each without an
  * error, a warning or a changed value (characters_test.php). Everything else is read
  * through DesignSet::parse(), and a file it refuses is left out — never the site.
  *

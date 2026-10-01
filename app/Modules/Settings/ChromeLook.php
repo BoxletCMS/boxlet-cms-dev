@@ -24,12 +24,9 @@ final class ChromeLook
     /**
      * Every choice and its values; the first value is never assumed to be a default.
      *
-     * TWO AXES WHERE THERE WAS ONE (PLAN.md D-112). `header_layout` held left, centred,
-     * transparent and sticky — two arrangements and two behaviours in one list, so a centred
-     * header could never be sticky and a header over the hero could never be centred. The
-     * arrangement is where the name, the menu and the button stand; the behaviour is what the
-     * bar does as the page scrolls. Five by three is fifteen headers where there were four.
-     * The old values are still read: see LEGACY and modernise().
+     * TWO AXES WHERE THERE WAS ONE (PLAN.md D-112). The arrangement is where the name, the
+     * menu and the button stand; the behaviour is what the bar does as the page scrolls.
+     * Five by three is fifteen headers.
      */
     public const OPTIONS = [
         'header_arrangement' => ['left', 'inline', 'centred', 'split', 'masthead'],
@@ -51,7 +48,6 @@ final class ChromeLook
         'footer_surface' => ['plain', 'tinted', 'contrast', 'gradient'],
         'density' => ['compact', 'normal', 'roomy'],
         // What separates the header from the page: nothing, a hairline, or a shadow.
-        // `header_rule` on/off is read as line/none (LEGACY).
         'header_edge' => ['none', 'line', 'shadow'],
         'logo_size' => ['small', 'medium', 'large'],
         // What stands for the site: its logo, its name in the heading face, or both. A site
@@ -78,63 +74,29 @@ final class ChromeLook
     ];
 
     /**
-     * The choices that were stored before D-112 and what each of their values means now.
-     * Read wherever a look is loaded — the settings, a kept design's row — and never written
-     * again, so a site or a library saved under the old names keeps the header it had.
-     */
-    public const LEGACY = [
-        'header_layout' => [
-            'left' => ['header_arrangement' => 'left', 'header_behaviour' => 'static'],
-            'centred' => ['header_arrangement' => 'centred', 'header_behaviour' => 'static'],
-            'transparent' => ['header_arrangement' => 'left', 'header_behaviour' => 'over'],
-            'sticky' => ['header_arrangement' => 'left', 'header_behaviour' => 'sticky'],
-        ],
-        'header_rule' => [
-            'on' => ['header_edge' => 'line'],
-            'off' => ['header_edge' => 'none'],
-        ],
-    ];
-
-    /**
      * What the owner chose, '' for every choice left to the character.
      *
      * @return array<string, string>
      */
     public static function stored(Db $db): array
     {
-        return self::modernise(SiteChrome::look($db, array_merge(array_keys(self::OPTIONS), array_keys(self::LEGACY))));
+        return self::clean(SiteChrome::look($db, array_keys(self::OPTIONS)));
     }
 
     /**
-     * A look as it was stored — by this version or an older one — as the choices of this
-     * version, each from its closed set or '' (PLAN.md D-112).
+     * A look as stored: every choice from its closed set, '' for anything else — "follow the
+     * character". The names stored before D-112 are no longer read (D-162): there is no site
+     * that holds them.
      *
-     * AN OLD NAME COUNTS ONLY WHERE THE NEW ONES ARE SILENT. A site that saved
-     * `header_layout: sticky` before D-112 and nothing since gets left + sticky, exactly the
-     * header it had; the moment it saves either new choice, that choice is the answer and
-     * the old row is a fact about the past. The same for a kept design's row, which is why
-     * this is one function with two readers rather than a mapping copied into each.
-     *
-     * @param array<mixed> $raw choice => stored value, old names included
+     * @param array<mixed> $raw choice => stored value
      * @return array<string, string>
      */
-    public static function modernise(array $raw): array
+    public static function clean(array $raw): array
     {
         $look = [];
         foreach (self::OPTIONS as $name => $options) {
             $value = $raw[$name] ?? '';
             $look[$name] = is_string($value) && in_array($value, $options, true) ? $value : '';
-        }
-        foreach (self::LEGACY as $old => $meanings) {
-            $value = $raw[$old] ?? '';
-            if (!is_string($value) || !isset($meanings[$value])) {
-                continue;
-            }
-            foreach ($meanings[$value] as $name => $meant) {
-                if ($look[$name] === '') {
-                    $look[$name] = $meant;
-                }
-            }
         }
 
         return $look;

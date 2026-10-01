@@ -71,7 +71,6 @@ final class SiteChrome
     public static function header(Db $db, string $locale): array
     {
         $values = Settings::many($db, [
-            self::key('chrome_logo'),
             self::key('chrome_button_label', $locale),
             self::key('chrome_button_url', $locale),
         ], '');
@@ -197,21 +196,10 @@ final class SiteChrome
         }
     }
 
-    /**
-     * THE SITE'S ONE LOGO, set under Settings → Branding (D-038). There used to be two:
-     * site_logo, which nothing drew, and the header's chrome_logo, which the header drew.
-     * The header's is read as a fallback so a site that set it keeps its logo until the
-     * owner saves Branding, which retires it (retireHeaderLogo()).
-     */
+    /** THE SITE'S ONE LOGO, set under Settings → Branding (D-038). */
     public static function logo(Db $db): ?int
     {
-        return Settings::mediaId($db, 'site_logo') ?? Settings::mediaId($db, self::key('chrome_logo'));
-    }
-
-    /** Called when Branding is saved: from then on site_logo alone is the logo. */
-    public static function retireHeaderLogo(Db $db): void
-    {
-        Settings::set($db, self::key('chrome_logo'), null);
+        return Settings::mediaId($db, 'site_logo');
     }
 
     /**
@@ -237,17 +225,9 @@ final class SiteChrome
         Settings::set($db, self::key('chrome_small_print', $locale), self::string($values['small_print'] ?? ''));
     }
 
-    /**
-     * A footer column's key, before the locale (D-115). Column 1's words keep the key the
-     * footer's text has always had, and its menu the one D-113 gave the footer, so nothing
-     * stored before this moved; columns 2 and 3 are new.
-     */
+    /** A footer column's key, before the locale (D-115): one shape for every column. */
     private static function footerKey(int $column, string $part): string
     {
-        if ($column === 1) {
-            return ['title' => 'chrome_footer_title', 'text' => 'chrome_footer_text', 'menu' => 'chrome_footer_menu'][$part];
-        }
-
         return 'chrome_footer_col' . $column . '_' . $part;
     }
 

@@ -21,8 +21,8 @@ use App\Modules\Design\Tokens;
  * @var Closure(string, string, string, bool=): string $group
  */
 $marks = [];
-foreach (['narrow', 'normal', 'wide'] as $name) {
-    $marks[(string) Tokens::CONTAINER_NAMES[$name]] = t('design.container.' . $name);
+foreach (Tokens::CONTAINER_MARKS as $name => $rem) {
+    $marks[(string) $rem] = t('design.container.' . $name);
 }
 
 ob_start();

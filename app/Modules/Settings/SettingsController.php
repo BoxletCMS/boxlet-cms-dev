@@ -92,9 +92,6 @@ final class SettingsController
         foreach ($values as $key => $value) {
             Settings::set($db, $key, $value);
         }
-        // The logo field shows the one the header draws, which may still be the header's
-        // older setting; once saved here, this is the only one (D-038).
-        SiteChrome::retireHeaderLogo($db);
         // llms.txt opens with the site's name (D-151).
         LlmsTxt::publish($db, $this->publicPath());
         Activity::record($db, 'settings', 'saved', null, '');

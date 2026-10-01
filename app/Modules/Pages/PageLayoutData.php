@@ -251,15 +251,13 @@ final class PageLayoutData
         $words = $trying['words'] ?? [];
         $header['button']['label'] = $words['button_label'] ?? $header['button']['label'];
         $header['button']['url'] = $words['button_url'] ?? $header['button']['url'];
-        // Each column's words as HTML whatever version stored them (D-113, D-115): a plain
-        // text from before becomes one paragraph with its breaks, which is what the page
-        // drew for it.
+        // Each column's words, rich text since D-113 (D-115).
         $columns = [];
         foreach (ChromeWords::COLUMN_FIELDS as $n => [$titleField, $textField]) {
             $stored = $footer['columns'][$n - 1] ?? ['title' => '', 'text' => ''];
             $columns[] = [
                 'title' => $words[$titleField] ?? $stored['title'],
-                'text' => ChromeWords::asHtml($words[$textField] ?? $stored['text']),
+                'text' => $words[$textField] ?? $stored['text'],
             ];
         }
         $footer['columns'] = $columns;

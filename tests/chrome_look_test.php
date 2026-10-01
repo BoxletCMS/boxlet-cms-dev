@@ -238,41 +238,6 @@ testBothDrivers('a site without a logo puts its name in the header', function (s
 });
 
 /*
- * THE OLD NAMES ARE STILL READ (D-112). `header_layout` held arrangement and behaviour as
- * one choice, and `header_rule` was on or off; a site that saved either before this and
- * nothing since keeps the header it had — and a kept design's row too, through the same
- * function. The new choices win the moment one is saved.
- */
-testBothDrivers('a header saved under the old names keeps the header it had', function (string $driver) {
-    $db = installedSite(['en' => 'English'], $driver);
-    lookSite($db);
-    Composition::remember($db, 'minimal');
-    Settings::set($db, 'chrome_look_header_layout', 'transparent');
-    Settings::set($db, 'chrome_look_header_rule', 'on');
-
-    $stored = ChromeLook::stored($db);
-    assertEquals('left', $stored['header_arrangement'], 'transparent meant left');
-    assertEquals('over', $stored['header_behaviour'], 'and over the first section');
-    assertEquals('line', $stored['header_edge'], 'the rule that was on');
-    assertTrue(!isset($stored['header_layout']), 'the old name is not a choice any more');
-
-    $body = dispatch('/')->body;
-    assertContains('layout-left', headerTag($body), 'drawn left');
-    assertContains('behaviour-over edge-line', $body, 'over the first section, with its line');
-
-    // A new choice, once saved, is the answer; the old row is a fact about the past.
-    ChromeLook::save($db, ['header_behaviour' => 'sticky']);
-    $stored = ChromeLook::stored($db);
-    assertEquals('sticky', $stored['header_behaviour'], 'the new choice wins');
-    assertEquals('left', $stored['header_arrangement'], 'the half the old value still answers for');
-
-    // A kept design's look goes through the same reading.
-    assertEquals(['header_arrangement' => 'centred', 'header_behaviour' => 'static', 'header_edge' => 'none'],
-        array_intersect_key(ChromeLook::modernise(['header_layout' => 'centred', 'header_rule' => 'off']), ['header_arrangement' => 1, 'header_behaviour' => 1, 'header_edge' => 1]),
-        'a look kept before D-112');
-});
-
-/*
  * EVERY ARRANGEMENT AND BEHAVIOUR REACHES THE PAGE AS A CLASS (D-112), and split draws its
  * menu as two lists around the name — one nav, so the phone's one button folds both.
  */
@@ -455,11 +420,11 @@ testBothDrivers('a footer column shows no menu, the header\'s, or one of its own
     assertEquals('Small print', SiteChrome::footerMenus($db)[1], 'the column followed the rename');
     assertContains('>Privacy<', $footerNavs(dispatch('/')->body)[0] ?? '', 'and still draws it');
 
-    // What D-113 stored for one day — '' for the header's, `none` for none — reads exactly.
-    Settings::set($db, 'chrome_footer_menu', '');
+    // Column 1 with nothing stored shows the header's menu, as a fresh site's does.
+    Settings::set($db, 'chrome_footer_col1_menu', '');
     assertEquals(SiteChrome::FOOTER_MENU_HEADER, SiteChrome::footerMenus($db)[1], "'' is the header's, as it was");
     assertContains('>About<', $footerNavs(dispatch('/')->body)[0] ?? '', 'and draws it');
-    Settings::set($db, 'chrome_footer_menu', 'Small print');
+    Settings::set($db, 'chrome_footer_col1_menu', 'Small print');
 
     // The preview draws the menu being tried, and writes nothing.
     $tried = dispatch('/admin/appearance/preview?footer_menu_1=' . SiteChrome::FOOTER_MENU_NONE)->body;
@@ -508,9 +473,9 @@ testBothDrivers('the footer draws the columns that have content, up to the arran
 
 /*
  * THE FOOTER'S TEXT IS RICH TEXT (D-113), with a short whitelist: a link, bold, italic, a
- * paragraph. What was stored before is plain and draws exactly as it did.
+ * paragraph. (Plain text stored before D-113 is not read any more: D-162.)
  */
-testBothDrivers('the footer\'s text keeps a link and loses a heading, and a plain text from before draws as it did', function (string $driver) {
+testBothDrivers('the footer\'s text keeps a link and loses a heading', function (string $driver) {
     $db = adminSite($driver);
     lookSite($db);
 
@@ -529,15 +494,6 @@ testBothDrivers('the footer\'s text keeps a link and loses a heading, and a plai
     $body = dispatch('/')->body;
     assertContains('<a href="mailto:hello@example.com">us</a>', $body, 'the link reaches the visitor');
 
-    // Plain text from before D-113, with a line break: drawn as it always was, and handed
-    // to the editor as one paragraph with its break.
-    Settings::set($db, 'chrome_footer_text:en', "Line one\nLine two & co");
-    $body = dispatch('/')->body;
-    // <br>, not nl2br's <br />: the block machinery cleans a rich text field on the way to
-    // the template, and the DOM writes a break as <br>. The same break, drawn the same.
-    assertContains("Line one<br>\nLine two &amp; co", $body, 'the break kept, the ampersand escaped');
-    assertContains('<p>Line one<br>' . "\n" . 'Line two &amp; co</p>', ChromeWords::asHtml("Line one\nLine two & co"), 'and the editor is handed a paragraph');
-    assertContains(e('<p>Line one<br>' . "\n" . 'Line two &amp; co</p>'), dispatch('/admin/appearance')->body, 'which is what the screen holds');
 });
 
 testBothDrivers('the footer\'s menus stand one under another when the owner asks, and as before until then', function (string $driver) {

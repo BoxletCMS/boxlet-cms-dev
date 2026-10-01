@@ -69,7 +69,6 @@ final class DesignSetParts
     /**
      * Every header and footer choice. '' follows the character, which a design may do and
      * a character may not: a character IS what the others follow, so it says all of them.
-     * The names stored before D-112 are read through ChromeLook::modernise(), as a site's are.
      *
      * @param list<string> $errors
      * @return array<string, string>
@@ -80,15 +79,13 @@ final class DesignSetParts
         if (!is_array($raw)) {
             $errors[] = self::field('look', t('designset.missing'));
 
-            return ChromeLook::modernise([]);
+            return ChromeLook::clean([]);
         }
         foreach ($raw as $key => $value) {
             $key = (string) $key;
             $options = ChromeLook::OPTIONS[$key] ?? null;
             if ($options === null) {
-                if (!isset(ChromeLook::LEGACY[$key])) {
-                    $errors[] = self::field('look.' . $key, t('designset.unknown_choice'));
-                }
+                $errors[] = self::field('look.' . $key, t('designset.unknown_choice'));
                 continue;
             }
             if (!is_string($value) || ($value !== '' && !in_array($value, $options, true))) {
@@ -96,7 +93,7 @@ final class DesignSetParts
             }
         }
 
-        $look = ChromeLook::modernise($raw);
+        $look = ChromeLook::clean($raw);
         if ($character) {
             foreach ($look as $key => $value) {
                 if ($value === '') {

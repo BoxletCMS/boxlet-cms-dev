@@ -133,8 +133,8 @@ final class DesignLibrary
             'id' => (int) $row['id'],
             'name' => (string) $row['name'],
             'character' => (string) $row['character_name'],
-            // Validated on the way out: a row from an older version is filled in with the
-            // default preset's values rather than rendering as a broken screen.
+            // Validated on the way out, as everything read from storage is: a value that is
+            // not one the screen can show is filled in rather than drawn broken.
             'decisions' => Tokens::validate(is_array($decisions) ? $decisions : [])['decisions'],
             'look' => self::cleanLook(is_array($look) ? $look : []),
         ];
@@ -149,8 +149,6 @@ final class DesignLibrary
      */
     private static function cleanLook(array $look): array
     {
-        // A row kept before D-112 names the header's arrangement and behaviour as one
-        // choice; modernise() reads it as this version's two, exactly as the settings are.
-        return ChromeLook::modernise($look);
+        return ChromeLook::clean($look);
     }
 }

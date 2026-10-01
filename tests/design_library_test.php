@@ -92,13 +92,14 @@ test('a design with no name is refused, and says so beside the field', function 
 testBothDrivers('using a kept design fills the screen with it and publishes nothing', function (string $driver) {
     $db = adminSite($driver);
     $published = Design::load($db)['seed'];
-    $id = DesignLibrary::save($db, 'Autumn', ['seed' => '#7a2e2e'] + Presets::get('editorial'), ['header_layout' => 'sticky'], 'editorial');
+    $id = DesignLibrary::save($db, 'Autumn', ['seed' => '#7a2e2e'] + Presets::get('editorial'), ['header_behaviour' => 'sticky'], 'editorial');
 
     $response = adminPost('/admin/appearance', appearanceFields(['action' => 'library:use:' . $id]));
 
     assertEquals(200, $response->status, 'the screen');
     assertContains('value="#7a2e2e"', $response->body, 'the kept colour is on the screen');
-    assertContains('value="sticky" checked', $response->body, 'and the kept header arrangement');
+    // Kept under this version's name: the D-112 names are not read any more (D-162).
+    assertContains('name="look_header_behaviour" value="sticky" checked', $response->body, 'and the kept header behaviour');
     assertContains('Autumn', $response->body, 'it says which design');
     assertEquals($published, Design::load($db)['seed'], 'the site has not changed');
 });

@@ -554,29 +554,3 @@ testBothDrivers('a revision remembers how the page was arranged, and restoring p
     assertEquals([0, 1], array_map(static fn (array $b): int => $b['column'], Page::blocks($db, $id)), 'the columns they came back to');
 });
 
-test('a revision written before bands existed leaves the arrangement alone', function () {
-    // The shape every revision in every database has today: blocks, and nothing about how
-    // they stood. Guessing "one column each" would flatten a page whose columns were never
-    // what the restore was about, so the absence has to mean "leave it".
-    $db = adminSite('sqlite');
-    $registry = blockRegistry();
-    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'hero', 'content' => ['heading' => 'Hi']]]);
-    $db->query(
-        'INSERT INTO page_revisions (page_id, data_json, created_at) VALUES (?, ?, ?)',
-        [$id, json_encode([
-            'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
-            'blocks' => [['id' => blockIdsInOrder($db, $id)[0], 'type' => 'hero', 'content' => ['heading' => 'Older'], 'style' => [], 'layout' => '']],
-        ], JSON_THROW_ON_ERROR), gmdate('Y-m-d H:i:s')],
-    );
-
-    $newest = App\Modules\Pages\PageRevision::all($db, $id)[0];
-    $revision = App\Modules\Pages\PageRevision::find($db, $registry, $id, $newest['id']) ?? fail('the revision is gone');
-    assertEquals(null, $revision['sections'], 'an old revision claimed to know the arrangement');
-    // It is GIVEN a band on the way in, named the way a band made in this session is —
-    // asserted as the shape rather than as "is it a string", which the return type has
-    // already promised and PHPStan rightly refuses to let a test pretend to doubt.
-    assertTrue(
-        (bool) preg_match('~^[sm][0-9]+$~', $revision['blocks'][0]['section']),
-        'a block from an old revision has no band to go to: ' . $revision['blocks'][0]['section'],
-    );
-});

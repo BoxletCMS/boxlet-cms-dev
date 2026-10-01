@@ -41,7 +41,7 @@ final class DesignVocabulary
                 $key === 'caps' => ['type' => 'choice', 'values' => array_keys(Tokens::CAPS), 'empty' => true],
                 $key === 'scale' => ['type' => 'number', 'min' => Tokens::SCALE_MIN, 'max' => Tokens::SCALE_MAX],
                 isset(Tokens::NUDGES[$key]) => ['type' => 'integer', 'min' => Tokens::NUDGES[$key]['min'], 'max' => Tokens::NUDGES[$key]['max'], 'unit' => 'px'],
-                $key === 'container' => ['type' => 'number', 'min' => Tokens::CONTAINER_MIN, 'max' => Tokens::CONTAINER_MAX, 'step' => Tokens::CONTAINER_STEP, 'unit' => 'rem', 'names' => array_keys(Tokens::CONTAINER_NAMES)],
+                $key === 'container' => ['type' => 'number', 'min' => Tokens::CONTAINER_MIN, 'max' => Tokens::CONTAINER_MAX, 'step' => Tokens::CONTAINER_STEP, 'unit' => 'rem'],
                 $key === 'sheet_width' => ['type' => 'number', 'min' => Tokens::SHEET_WIDTH_MIN, 'max' => Tokens::SHEET_WIDTH_MAX, 'step' => Tokens::SHEET_WIDTH_STEP, 'unit' => 'rem'],
                 $key === 'sheet_gap' => ['type' => 'integer', 'min' => 0, 'max' => Tokens::SHEET_GAP_MAX, 'unit' => 'spacing units'],
                 default => ['type' => 'string'],
@@ -156,18 +156,15 @@ final class DesignVocabulary
     }
 
     /**
-     * A number's range in words: "1.1 – 1.6", "integer px, -30 – 40", "rem, 36 – 88, step 2;
-     * also narrow, normal, wide, full".
+     * A number's range in words: "1.1 – 1.6", "integer px, -30 – 40", "rem, 36 – 88, step 2".
      *
      * @param array<string, mixed> $rule
      */
     private static function range(array $rule): string
     {
-        $text = ($rule['type'] === 'integer' ? 'integer' : 'number')
+        return ($rule['type'] === 'integer' ? 'integer' : 'number')
             . (isset($rule['unit']) ? ' ' . $rule['unit'] : '')
             . ', ' . $rule['min'] . ' – ' . $rule['max']
             . (isset($rule['step']) ? ', step ' . $rule['step'] : '');
-
-        return isset($rule['names']) ? $text . '; also ' . implode(', ', $rule['names']) : $text;
     }
 }

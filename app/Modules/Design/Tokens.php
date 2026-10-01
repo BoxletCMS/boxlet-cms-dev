@@ -55,12 +55,10 @@ final class Tokens
      * It was four names, and four names cannot answer "a little narrower than this". The
      * measure — how many characters fit on a line — is the single decision that most changes
      * whether a page is comfortable to read, and it was the one decision the owner could only
-     * nudge in jumps of fourteen rem.
-     *
-     * The four names are still READ: a site saved before this loads with the width its name
-     * meant, so nothing has to be migrated and nothing re-chosen.
+     * nudge in jumps of fourteen rem. The names it had are not read any more (D-162); they
+     * survive as the marks under the slider, where their widths are.
      */
-    public const CONTAINER_NAMES = ['narrow' => 42.0, 'normal' => 56.0, 'wide' => 68.0, 'full' => 80.0];
+    public const CONTAINER_MARKS = ['narrow' => 42.0, 'normal' => 56.0, 'wide' => 68.0];
     public const CONTAINER_MIN = 36.0;
     public const CONTAINER_MAX = 88.0;
     /** Two rem at a time: finer than that is a difference nobody can see. */
@@ -448,15 +446,11 @@ final class Tokens
     }
 
     /**
-     * A content width as a number of rem: one of the four old names, or a number within the
-     * bounds, rounded to the step. Null for anything else, which is what makes it an error
-     * rather than a silent default.
+     * A content width as a number of rem within the bounds, rounded to the step. Null for
+     * anything else, which is what makes it an error rather than a silent default.
      */
     public static function width(mixed $value): ?float
     {
-        if (is_string($value) && isset(self::CONTAINER_NAMES[$value])) {
-            return self::CONTAINER_NAMES[$value];
-        }
         if (!is_string($value) && !is_int($value) && !is_float($value)) {
             return null;
         }

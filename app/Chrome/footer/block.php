@@ -12,8 +12,7 @@
 // draws what it is handed.
 //
 // Each column's words are RICH TEXT since D-113, with the footer's short whitelist
-// (RichText::INLINE): a line or two with a link in it. Text stored before D-113 is plain and
-// is handed over as one paragraph (ChromeWords::asHtml).
+// (RichText::INLINE): a line or two with a link in it.
 //
 // The layouts are the footer's arrangements (D-113).
 

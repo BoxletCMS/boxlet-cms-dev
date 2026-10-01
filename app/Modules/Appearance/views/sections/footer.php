@@ -31,8 +31,7 @@ use App\Modules\Settings\SiteChrome;
  * or quotations — the footer's whitelist (RichText::INLINE) would throw them away, and the
  * toolbar offers only what can be stored, as the page editor's does (D-017). The textarea is
  * the real field; richtext.js puts the editor above it and the plain toggle shows it again.
- * Without a script it is a textarea of HTML, which still saves. A text stored before D-113
- * is plain and is handed over as one paragraph with its breaks (ChromeWords::asHtml).
+ * Without a script it is a textarea of HTML, which still saves.
  *
  * The link panel's address box is TEXT, not type="url": an email or a phone number is a link
  * as typed (D-039), and a url input holding one made the whole form refuse to submit.
@@ -59,7 +58,7 @@ $richInline = static function (string $name, string $value, string $code, string
         . '<button type="button" class="button button-secondary" data-rt-link="apply">' . e(t('richtext.link')) . '</button>'
         . '<button type="button" class="button button-ghost" data-rt-link="remove">' . e(t('richtext.unlink')) . '</button>'
         . '</div>'
-        . '<textarea id="' . e($name) . '" name="' . e($name) . '" rows="3" data-richtext-source aria-describedby="' . e($hintId) . '">' . e(ChromeWords::asHtml($value)) . '</textarea>'
+        . '<textarea id="' . e($name) . '" name="' . e($name) . '" rows="3" data-richtext-source aria-describedby="' . e($hintId) . '">' . e($value) . '</textarea>'
         . '<div class="richtext-actions">'
         . '<button type="button" class="button button-ghost js-only" data-richtext-toggle data-label-plain="' . e(t('richtext.plain')) . '" data-label-rich="' . e(t('richtext.rich')) . '">' . e(t('richtext.plain')) . '</button>'
         . '</div></div>';

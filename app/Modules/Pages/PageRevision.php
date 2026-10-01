@@ -55,8 +55,7 @@ final class PageRevision
             // AND HOW THEY STOOD (PLAN.md D-098). Without this, restoring a page that had
             // two columns when it was recorded would put its blocks back into whatever
             // arrangement the page has NOW — the content of last Tuesday in this week's
-            // bands, which is neither one page nor the other. A revision written before
-            // this has no sections and says so by their absence.
+            // bands, which is neither one page nor the other.
             'sections' => Page::editableSections($db, $pageId),
         ];
 
@@ -102,7 +101,7 @@ final class PageRevision
      * this one. The shape is checked too — a row written by an older version of this file,
      * or edited by hand, is refused rather than half-applied.
      *
-     * @return array{title: string, slug: string, parent_id: int|null, status: string, seo_json: string, blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null}|null
+     * @return array{title: string, slug: string, parent_id: int|null, status: string, seo_json: string, blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>}|null
      */
     public static function find(Db $db, Blocks $registry, int $pageId, int $revisionId): ?array
     {
@@ -119,36 +118,28 @@ final class PageRevision
         } catch (JsonException) {
             return null;
         }
-        if (!is_array($data) || !is_array($data['blocks'] ?? null)) {
+        // A revision without its bands is one written before D-098, and none is read any
+        // more (D-162): refused, like any row of another shape.
+        if (!is_array($data) || !is_array($data['blocks'] ?? null) || !is_array($data['sections'] ?? null)) {
             return null;
         }
 
-        /*
-         * THE BANDS, when the revision has them.
-         *
-         * A revision recorded before D-098 has none, and null says "leave the arrangement
-         * as it is" all the way down to Sections::save() — which is the only honest answer:
-         * that revision does not know what the bands were, and guessing "one column each"
-         * would flatten a page whose columns were never what the restore was about.
-         */
-        $sections = null;
-        if (is_array($data['sections'] ?? null)) {
-            $sections = [];
-            foreach ($data['sections'] as $section) {
-                if (!is_array($section) || !is_string($section['key'] ?? null)) {
-                    continue;
-                }
-                $sections[] = [
-                    'key' => $section['key'],
-                    // Kept for the same reason a block's is: a band that still exists is
-                    // written to rather than replaced, so its translations and its
-                    // background picture stay attached to it.
-                    'id' => isset($section['id']) && is_int($section['id']) ? $section['id'] : null,
-                    'layout' => SectionLayout::normalize($section['layout'] ?? null),
-                    'stack' => SectionLayout::normalizeStack($section['stack'] ?? null),
-                    'style' => \App\Modules\Design\SectionStyle::normalize($section['style'] ?? null),
-                ];
+        // The bands.
+        $sections = [];
+        foreach ($data['sections'] as $section) {
+            if (!is_array($section) || !is_string($section['key'] ?? null)) {
+                continue;
             }
+            $sections[] = [
+                'key' => $section['key'],
+                // Kept for the same reason a block's is: a band that still exists is
+                // written to rather than replaced, so its translations and its
+                // background picture stay attached to it.
+                'id' => isset($section['id']) && is_int($section['id']) ? $section['id'] : null,
+                'layout' => SectionLayout::normalize($section['layout'] ?? null),
+                'stack' => SectionLayout::normalizeStack($section['stack'] ?? null),
+                'style' => \App\Modules\Design\SectionStyle::normalize($section['style'] ?? null),
+            ];
         }
 
         $blocks = [];
@@ -172,9 +163,8 @@ final class PageRevision
                 'content' => $registry->normalize($block['type'], is_array($block['content'] ?? null) ? $block['content'] : []),
                 'style' => \App\Modules\Design\SectionStyle::normalize($block['style'] ?? null),
                 'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
-                // Which band it stood in and which of its columns. A revision from before
-                // D-098 carries neither, and a block with no band named is given one of its
-                // own on the way in — the shape every page had when that revision was made.
+                // Which band it stood in and which of its columns; a block naming no band is
+                // given one of its own on the way in.
                 'section' => is_string($block['section'] ?? null) ? $block['section'] : SectionForm::key(null, $ordinal),
                 'column' => isset($block['column']) && is_int($block['column']) ? $block['column'] : 0,
             ];

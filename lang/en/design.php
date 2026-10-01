@@ -123,7 +123,6 @@ return [
     'design.container.narrow' => 'Narrow',
     'design.container.normal' => 'Normal',
     'design.container.wide' => 'Wide',
-    'design.container.full' => 'Full',
 
     'design.page' => 'The page',
     // THE OWNER'S MODEL (PLAN.md D-123): what the header's CONTENTS line up with — the text,

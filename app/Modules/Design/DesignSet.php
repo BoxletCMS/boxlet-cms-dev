@@ -66,23 +66,12 @@ final class DesignSet
         if (!is_array($raw) || ($raw['format'] ?? null) !== self::FORMAT) {
             return self::refused(t('designset.not_a_design'));
         }
-        if (!is_int($raw['version'] ?? null) || $raw['version'] < 1 || $raw['version'] > self::VERSION) {
+        // Only the current version is read: there is no older file to keep reading (D-162).
+        if (($raw['version'] ?? null) !== self::VERSION) {
             return self::refused(t('designset.version', ['version' => is_scalar($raw['version'] ?? null) ? (string) $raw['version'] : '?']));
         }
 
-        return self::check(self::upgrade($raw), $registry);
-    }
-
-    /**
-     * A set of an older version, rewritten as the current one. Version 1 is the current
-     * one, so there is nothing to do yet; this is where version 2 will say what changed.
-     *
-     * @param array<mixed> $raw
-     * @return array<mixed>
-     */
-    public static function upgrade(array $raw): array
-    {
-        return $raw;
+        return self::check($raw, $registry);
     }
 
     /**

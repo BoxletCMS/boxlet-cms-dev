@@ -238,7 +238,7 @@ test('a character composes a section from the type its blocks agree on', functio
     // it: no surface from one of them and no divider from the other (D-096).
     $mixed = Composition::section('soft', ['hero', 'form']);
     assertEquals(
-        SectionStyle::normalize(App\Modules\Design\Presets::COMPOSITION['soft']['section']),
+        SectionStyle::normalize(App\Modules\Design\Characters::composition('soft')['section']),
         $mixed,
         'a mixed section is the character speaking about sections',
     );

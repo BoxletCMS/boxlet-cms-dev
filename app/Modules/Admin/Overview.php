@@ -93,7 +93,7 @@ final class Overview
         $changed = $db->one("SELECT occurred_at FROM activity WHERE kind = 'design' ORDER BY occurred_at DESC LIMIT 1");
         $metrics[] = [
             'label' => t('overview.design'),
-            'value' => t('design.preset.' . Composition::active($db)),
+            'value' => \App\Modules\Design\Characters::label(Composition::active($db)),
             'note' => $changed === null ? t('overview.design_note') : self::since((string) $changed['occurred_at'], $zone),
             'href' => Url::admin('design'),
             'word' => true,

@@ -50,6 +50,7 @@ const MUST_HAVE = [
     'boxlet/storage/uploads/.htaccess',
     'boxlet/designs/.htaccess',
     'boxlet/designs/design-set.schema.json',
+    'boxlet/designs/core/minimal.json',
     'boxlet/public/assets/vendor/icons.svg',
     'boxlet/public/assets/vendor/world-map.svg',
     'boxlet/.env.example',

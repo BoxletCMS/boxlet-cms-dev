@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Design\Characters;
 use App\Modules\Design\Palette;
 use App\Modules\Design\Presets;
 use App\Modules\Settings\ChromeLook;
@@ -334,7 +335,7 @@ $card = static function (array $decisions, string $header, string $name, string 
             <?php /* The one destructive choice in the design layer, asked once, with what
                      each answer does written beside it rather than behind it. */ ?>
             <div class="appearance-confirm" role="alert">
-                <p class="confirm-question"><?= e(t('design.apply.title', ['character' => t('design.preset.' . $character)])) ?></p>
+                <p class="confirm-question"><?= e(t('design.apply.title', ['character' => Characters::label($character)])) ?></p>
                 <div class="confirm-options">
                     <span>
                         <button type="submit" form="design-form" name="action" value="save_design" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>
@@ -362,12 +363,12 @@ $card = static function (array $decisions, string $header, string $name, string 
 <?php foreach (Presets::names() as $preset): ?>
                     <?= $card(
                         Presets::get($preset),
-                        ChromeLook::CHARACTER[$preset]['header_arrangement'] ?? '',
-                        t('design.preset.' . $preset),
+                        Characters::look($preset)['header_arrangement'],
+                        Characters::label($preset),
                         $preset === $activeCharacter ? t('design.preset.current') : '',
                         'preset-' . $preset,
                         '<button type="submit" form="design-form" name="action" value="preset:' . e($preset) . '" class="rail-use">'
-                            . '<span class="visually-hidden">' . e(t('design.load_preset')) . ': ' . e(t('design.preset.' . $preset)) . '</span></button>',
+                            . '<span class="visually-hidden">' . e(t('design.load_preset')) . ': ' . e(Characters::label($preset)) . '</span></button>',
                     ) ?>
 <?php endforeach; ?>
 
@@ -377,7 +378,7 @@ $card = static function (array $decisions, string $header, string $name, string 
                     <?= $card(
                         $saved['decisions'],
                         // Its own choice, else its character's, else nothing to say.
-                        ($saved['look']['header_arrangement'] ?? '') !== '' ? $saved['look']['header_arrangement'] : (ChromeLook::CHARACTER[$saved['character']]['header_arrangement'] ?? ''),
+                        ($saved['look']['header_arrangement'] ?? '') !== '' ? $saved['look']['header_arrangement'] : (Characters::exists($saved['character']) ? Characters::look($saved['character'])['header_arrangement'] : ''),
                         $saved['name'],
                         '',
                         'saved-' . $saved['id'],

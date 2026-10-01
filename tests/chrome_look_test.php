@@ -71,9 +71,9 @@ test('a value outside a closed set is stored as "follow the character"', functio
 
 test('every character answers every choice from its closed set', function () {
     foreach (App\Modules\Design\Presets::names() as $character) {
-        assertTrue(isset(ChromeLook::CHARACTER[$character]), "{$character} gives its chrome nothing");
+        assertTrue(App\Modules\Design\Characters::exists($character), "{$character} gives its chrome nothing");
         foreach (ChromeLook::OPTIONS as $choice => $options) {
-            $value = ChromeLook::CHARACTER[$character][$choice] ?? null;
+            $value = App\Modules\Design\Characters::look($character)[$choice] ?? null;
             assertTrue(in_array($value, $options, true), "{$character}: {$choice} is " . var_export($value, true));
         }
     }

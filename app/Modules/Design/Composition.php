@@ -44,10 +44,12 @@ final class Composition
      */
     public static function style(?string $character, string $blockType): array
     {
-        if ($character === null || !isset(Presets::COMPOSITION[$character])) {
+        // An id that is no character composes as nothing in particular, as it always has; not
+        // as the default character, which is what Characters::composition() would give.
+        if ($character === null || !Characters::exists($character)) {
             return SectionStyle::DEFAULTS;
         }
-        $composition = Presets::COMPOSITION[$character];
+        $composition = Characters::composition($character);
         $style = $composition['section'];
         $surface = $composition['surfaces'][$blockType] ?? null;
         if (is_string($surface)) {
@@ -89,7 +91,7 @@ final class Composition
         if (count($distinct) === 1) {
             return self::style($character, $distinct[0]);
         }
-        if ($character === null || !isset(Presets::COMPOSITION[$character])) {
+        if ($character === null || !Characters::exists($character)) {
             return SectionStyle::DEFAULTS;
         }
 
@@ -97,7 +99,7 @@ final class Composition
         // types and no divider from another, because choosing between them is the guess
         // this rule exists to refuse. An empty section composes here too — it has no type
         // to agree on, and the character's own defaults are the only honest answer.
-        return SectionStyle::normalize(Presets::COMPOSITION[$character]['section']);
+        return SectionStyle::normalize(Characters::composition($character)['section']);
     }
 
     /**
@@ -105,7 +107,7 @@ final class Composition
      */
     public static function layout(Blocks $registry, ?string $character, string $blockType): string
     {
-        $layout = $character === null ? null : (Presets::COMPOSITION[$character]['layouts'][$blockType] ?? null);
+        $layout = $character === null || !Characters::exists($character) ? null : (Characters::composition($character)['layouts'][$blockType] ?? null);
 
         return $registry->layout($blockType, $layout);
     }

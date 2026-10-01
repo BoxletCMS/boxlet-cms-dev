@@ -13,14 +13,14 @@ use App\Modules\Design\SectionStyle;
  */
 function shapeOf(string $preset): array
 {
-    $section = Presets::COMPOSITION[$preset]['section'];
+    $section = App\Modules\Design\Characters::composition($preset)['section'];
 
     return [
         'width' => $section['width'],
         'rhythm' => $section['rhythm'],
         'align' => $section['align'],
         'divider' => Presets::dividerAccent($preset),
-        'hero' => Presets::COMPOSITION[$preset]['layouts']['hero'] ?? '',
+        'hero' => App\Modules\Design\Characters::composition($preset)['layouts']['hero'] ?? '',
     ];
 }
 

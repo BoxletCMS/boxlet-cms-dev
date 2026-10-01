@@ -5,7 +5,8 @@
 # copy's revision does not match the checkout's HEAD, and a guard nobody can satisfy gets
 # switched off — so the sync that makes it true lives here, next to it.
 #
-# Only code moves: app/, config/, lang/, public/assets, migrations/ and public/index.php.
+# Only code moves: app/, config/, lang/, public/assets, migrations/, designs/ (not its custom/)
+# and public/index.php.
 # config/ was missing until 2026-09-29: it holds no site's settings (those are in .env), and a
 # copy with an old config/app.php had no public_path, which sent an SVG logo to /m/logo on the
 # root of the disk. Not storage, not the
@@ -36,6 +37,10 @@ fi
 for part in app config lang public/assets migrations; do
   rsync -a "$checkout/$part/" "$target/$part/"
 done
+# The design sets Boxlet ships (PLAN.md D-152): without them the copy has no characters at
+# all. Never designs/custom/, which is the copy's own, as it is any site's (D-155).
+mkdir -p "$target/designs"
+rsync -a --exclude custom/ "$checkout/designs/" "$target/designs/"
 # The front controller too, since statistics (D-051) put code after send(): without it the
 # copy recorded HEAD while running an older index.php. Not install.php, which the copy's
 # own install deletes.
@@ -45,5 +50,5 @@ revision="$(git -C "$checkout" rev-parse HEAD)"
 mkdir -p "$target/storage"
 printf '%s\n' "$revision" > "$target/storage/checkout.rev"
 
-echo "Synced app, lang, public/assets, migrations and public/index.php into $target"
+echo "Synced app, lang, public/assets, migrations, designs and public/index.php into $target"
 echo "Recorded revision ${revision:0:12}"

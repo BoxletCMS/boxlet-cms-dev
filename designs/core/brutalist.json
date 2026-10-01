@@ -1,0 +1,64 @@
+{
+    "format": "boxlet-design-set",
+    "version": 1,
+    "id": "brutalist",
+    "name": {
+        "en": "Brutalist"
+    },
+    "description": {
+        "en": "Monospace capitals, hard offset shadows, thick rules and stark colour."
+    },
+    "author": "Boxlet",
+    "decisions": {
+        "seed": "#1f1fd1",
+        "secondary": "#ffe600",
+        "typography": "mono",
+        "text_size": "normal",
+        "scale": "1.414",
+        "spacing": "compact",
+        "radius": "none",
+        "shadow": "hard",
+        "container": "80",
+        "surface_contrast": "high",
+        "header_width": "window",
+        "boxed": "no",
+        "page_background": "border"
+    },
+    "look": {
+        "header_arrangement": "split",
+        "header_behaviour": "static",
+        "footer_layout": "menu_first",
+        "footer_edge": "slant",
+        "small_print_row": "left",
+        "header_surface": "contrast",
+        "footer_surface": "contrast",
+        "density": "compact",
+        "header_edge": "shadow",
+        "logo_size": "large",
+        "brand": "logo",
+        "nav_style": "caps",
+        "nav_ink": "accent",
+        "header_button": "outline",
+        "footer_columns": "3",
+        "footer_links": "auto"
+    },
+    "composition": {
+        "section": {
+            "surface": "plain",
+            "rhythm": "tight",
+            "width": "full",
+            "align": "left",
+            "divider": "none"
+        },
+        "surfaces": {
+            "hero": "contrast",
+            "text": "tinted"
+        },
+        "dividers": {},
+        "layouts": {
+            "hero": "split",
+            "image_text": "image-left",
+            "text": "columns"
+        }
+    }
+}

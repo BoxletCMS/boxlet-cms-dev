@@ -3,6 +3,7 @@
 namespace App\Modules\Settings;
 
 use App\Core\Db;
+use App\Modules\Design\Characters;
 use App\Modules\Design\Composition;
 
 /**
@@ -95,31 +96,6 @@ final class ChromeLook
     ];
 
     /**
-     * What each character gives its chrome. Kept beside the choices rather than in
-     * Presets, which holds what a character does to the page: the header and footer are
-     * their own screen and their own decision (D-028), and this is the only reader.
-     *
-     * Every choice is demonstrated by at least one character (D-112): a control no
-     * character demonstrates is a control nobody finds (D-062).
-     */
-    public const CHARACTER = [
-        // A masthead: the name in its own row, the menu in small capitals under it, a
-        // hairline under both, air around everything.
-        'editorial' => ['header_arrangement' => 'masthead', 'header_behaviour' => 'static', 'footer_layout' => 'simple', 'footer_edge' => 'line', 'small_print_row' => 'left', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'line', 'logo_size' => 'medium', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'ink', 'header_button' => 'outline', 'footer_columns' => '2', 'footer_links' => 'auto'],
-        // Everything on one axis and as little of it as possible; the footer centred too.
-        'minimal' => ['header_arrangement' => 'centred', 'header_behaviour' => 'static', 'footer_layout' => 'centred', 'footer_edge' => 'none', 'small_print_row' => 'centred', 'header_surface' => 'plain', 'footer_surface' => 'plain', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'small', 'brand' => 'logo', 'nav_style' => 'plain', 'nav_ink' => 'accent', 'header_button' => 'text', 'footer_columns' => '2', 'footer_links' => 'auto'],
-        // The header over the first section, which is where Bold spends its colour; the
-        // current page a pill, the footer a gradient.
-        'bold' => ['header_arrangement' => 'left', 'header_behaviour' => 'over', 'footer_layout' => 'columns', 'footer_edge' => 'none', 'small_print_row' => 'split', 'header_surface' => 'plain', 'footer_surface' => 'gradient', 'density' => 'normal', 'header_edge' => 'none', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'pills', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '3', 'footer_links' => 'auto'],
-        // Always within reach, on a soft tint, the menu beside the name, the name beside
-        // the logo, with room to breathe; a footer in three columns under a curved edge.
-        'soft' => ['header_arrangement' => 'inline', 'header_behaviour' => 'sticky', 'footer_layout' => 'three', 'footer_edge' => 'curve', 'small_print_row' => 'split', 'header_surface' => 'tinted', 'footer_surface' => 'tinted', 'density' => 'roomy', 'header_edge' => 'none', 'logo_size' => 'medium', 'brand' => 'both', 'nav_style' => 'plain', 'nav_ink' => 'ink', 'header_button' => 'filled', 'footer_columns' => '2', 'footer_links' => 'auto'],
-        // A slab of contrast, the name in the middle of its menu, packed tight, a shadow
-        // under it; the footer's menu first, under a slanted edge.
-        'brutalist' => ['header_arrangement' => 'split', 'header_behaviour' => 'static', 'footer_layout' => 'menu_first', 'footer_edge' => 'slant', 'small_print_row' => 'left', 'header_surface' => 'contrast', 'footer_surface' => 'contrast', 'density' => 'compact', 'header_edge' => 'shadow', 'logo_size' => 'large', 'brand' => 'logo', 'nav_style' => 'caps', 'nav_ink' => 'accent', 'header_button' => 'outline', 'footer_columns' => '3', 'footer_links' => 'auto'],
-    ];
-
-    /**
      * What the owner chose, '' for every choice left to the character.
      *
      * @return array<string, string>
@@ -178,7 +154,9 @@ final class ChromeLook
      */
     public static function resolve(Db $db, array $overrides = [], string $character = ''): array
     {
-        $defaults = self::CHARACTER[$character !== '' ? $character : Composition::active($db)] ?? self::CHARACTER['minimal'];
+        // What each character gives its chrome is in its file now (D-152); an id that is no
+        // character gives the default character's, as it always has.
+        $defaults = Characters::look($character !== '' ? $character : Composition::active($db));
         $look = [];
         foreach (self::stored($db) as $name => $stored) {
             $value = $overrides[$name] ?? $stored;

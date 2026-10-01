@@ -1,0 +1,67 @@
+{
+    "format": "boxlet-design-set",
+    "version": 1,
+    "id": "soft",
+    "name": {
+        "en": "Soft"
+    },
+    "description": {
+        "en": "Rounded type, pill shapes, relaxed spacing and soft shadows."
+    },
+    "author": "Boxlet",
+    "decisions": {
+        "seed": "#3b6b4f",
+        "secondary": "#f5ecdc",
+        "typography": "rounded",
+        "text_size": "normal",
+        "scale": "1.25",
+        "spacing": "generous",
+        "radius": "pill",
+        "shadow": "soft",
+        "container": "56",
+        "surface_contrast": "medium",
+        "header_width": "content",
+        "boxed": "yes",
+        "page_background": "surface"
+    },
+    "look": {
+        "header_arrangement": "inline",
+        "header_behaviour": "sticky",
+        "footer_layout": "three",
+        "footer_edge": "curve",
+        "small_print_row": "split",
+        "header_surface": "tinted",
+        "footer_surface": "tinted",
+        "density": "roomy",
+        "header_edge": "none",
+        "logo_size": "medium",
+        "brand": "both",
+        "nav_style": "plain",
+        "nav_ink": "ink",
+        "header_button": "filled",
+        "footer_columns": "2",
+        "footer_links": "auto"
+    },
+    "composition": {
+        "section": {
+            "surface": "plain",
+            "rhythm": "airy",
+            "width": "normal",
+            "align": "left",
+            "divider": "none"
+        },
+        "surfaces": {
+            "hero": "tinted",
+            "text": "tinted"
+        },
+        "dividers": {
+            "hero": "curve",
+            "text": "curve"
+        },
+        "layouts": {
+            "hero": "split",
+            "image_text": "image-right",
+            "text": "single"
+        }
+    }
+}

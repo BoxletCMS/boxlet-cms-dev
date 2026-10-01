@@ -323,7 +323,7 @@ final class Tokens
             ['heading_weight', 'tracking', 'caps', 'spacing', 'radius', 'shadow', 'container',
                 'surface_contrast', 'header_width', 'boxed', 'page_background', 'page_background_colour',
                 'frame', 'sheet_width', 'sheet_gap', 'sheet_radius', 'sheet_shadow', 'header_bleed', 'footer_bleed',
-                // With the sheet's decisions, where Presets::SHEET puts it: the presets test
+                // With the sheet's decisions, where Characters::SHEET puts it: the presets test
                 // asserts a character survives validation in the order it was written.
                 'footer_width',
                 'header_colour', 'footer_colour'],

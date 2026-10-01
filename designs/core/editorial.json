@@ -1,0 +1,63 @@
+{
+    "format": "boxlet-design-set",
+    "version": 1,
+    "id": "editorial",
+    "name": {
+        "en": "Editorial"
+    },
+    "description": {
+        "en": "Serif type on a wide scale, a narrow reading column, generous air, quiet surfaces."
+    },
+    "author": "Boxlet",
+    "decisions": {
+        "seed": "#8a1c2b",
+        "secondary": "#1f1a17",
+        "typography": "editorial",
+        "text_size": "large",
+        "scale": "1.333",
+        "spacing": "roomy",
+        "radius": "subtle",
+        "shadow": "none",
+        "container": "42",
+        "surface_contrast": "low",
+        "header_width": "content",
+        "boxed": "no",
+        "page_background": "surface"
+    },
+    "look": {
+        "header_arrangement": "masthead",
+        "header_behaviour": "static",
+        "footer_layout": "simple",
+        "footer_edge": "line",
+        "small_print_row": "left",
+        "header_surface": "plain",
+        "footer_surface": "tinted",
+        "density": "roomy",
+        "header_edge": "line",
+        "logo_size": "medium",
+        "brand": "logo",
+        "nav_style": "caps",
+        "nav_ink": "ink",
+        "header_button": "outline",
+        "footer_columns": "2",
+        "footer_links": "auto"
+    },
+    "composition": {
+        "section": {
+            "surface": "plain",
+            "rhythm": "airy",
+            "width": "normal",
+            "align": "left",
+            "divider": "none"
+        },
+        "surfaces": {
+            "image_text": "tinted"
+        },
+        "dividers": {},
+        "layouts": {
+            "hero": "left",
+            "image_text": "image-left",
+            "text": "single"
+        }
+    }
+}

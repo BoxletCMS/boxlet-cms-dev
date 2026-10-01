@@ -96,6 +96,8 @@ Url::usePublicPath($root . '/public');
 PageCache::use($cache);
 
 $container = new Container();
+// Every character, wherever it comes from (D-152): read once a request, when first asked.
+\App\Modules\Design\Characters::use((string) $config->get('app.custom_designs_path'), fn (): Blocks => $blocks);
 $container->set('config', fn () => $config);
 $container->set('request', fn () => $request);
 $container->set('blocks', fn () => $blocks);
@@ -141,6 +143,7 @@ $container->set('backup', fn (Container $c) => new Backup(
     (string) ($app['public_path'] ?? '') . '/m',
     (string) ($app['env_path'] ?? ''),
     (string) ($app['key'] ?? ''),
+    (string) ($app['custom_designs_path'] ?? ''),
 ));
 $container->set('restore', fn (Container $c) => new Restore(
     $c->get('db'),
@@ -153,6 +156,7 @@ $container->set('restore', fn (Container $c) => new Restore(
     $storage,
     $cache,
     (string) ($app['public_path'] ?? ''),
+    (string) ($app['custom_designs_path'] ?? ''),
 ));
 // Updating to a new version (D-140): which version this is, where releases come from, and
 // the update itself, which puts the new code where the running code is.

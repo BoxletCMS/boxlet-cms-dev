@@ -8,6 +8,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
+use App\Modules\Design\Characters;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\Palette;
@@ -75,7 +76,7 @@ final class AppearanceController
             return $this->screen(
                 ['decisions' => Presets::get($name)] + $state,
                 [],
-                t('design.preset_loaded', ['preset' => t('design.preset.' . $name)]),
+                t('design.preset_loaded', ['preset' => Characters::label($name)]),
                 200,
                 $name,
             );
@@ -175,14 +176,14 @@ final class AppearanceController
                 $count = Composition::apply($db, $this->container->get('blocks'), $character);
                 $message = t('design.saved_with_composition', [
                     'count' => $count,
-                    'character' => t('design.preset.' . $character),
+                    'character' => Characters::label($character),
                 ]);
             }
         }
         if ($goneMenu || $goneFooterMenu) {
             $message .= ' ' . t('chrome.menu_gone');
         }
-        Activity::record($db, 'design', 'saved', null, $character !== '' ? t('design.preset.' . $character) : '');
+        Activity::record($db, 'design', 'saved', null, $character !== '' ? Characters::label($character) : '');
         $session = $this->container->get('session');
         $session->set('flash', $message);
         $session->set('flash_kind', $goneMenu ? 'warning' : 'success');
@@ -310,7 +311,7 @@ final class AppearanceController
             'locales' => $this->container->get('locales'),
             'shownLocale' => $shown,
             // What "as the character has it" means right now, so each choice can say it.
-            'characterLook' => ChromeLook::CHARACTER[$character !== '' ? $character : Composition::active($db)] ?? ChromeLook::CHARACTER['minimal'],
+            'characterLook' => Characters::look($character !== '' ? $character : Composition::active($db)),
             // What the button may point at, per language: a Croatian header links to
             // Croatian pages (D-034).
             'linkPages' => array_combine($this->locales(), array_map(

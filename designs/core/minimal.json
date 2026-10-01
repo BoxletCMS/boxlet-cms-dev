@@ -1,0 +1,66 @@
+{
+    "format": "boxlet-design-set",
+    "version": 1,
+    "id": "minimal",
+    "name": {
+        "en": "Minimal"
+    },
+    "description": {
+        "en": "One sans-serif, a tight scale, even spacing, flat surfaces."
+    },
+    "author": "Boxlet",
+    "decisions": {
+        "seed": "#3a4250",
+        "secondary": "",
+        "typography": "modern",
+        "text_size": "normal",
+        "scale": "1.2",
+        "spacing": "normal",
+        "radius": "subtle",
+        "shadow": "none",
+        "container": "56",
+        "surface_contrast": "low",
+        "header_width": "content",
+        "boxed": "no",
+        "page_background": "surface"
+    },
+    "look": {
+        "header_arrangement": "centred",
+        "header_behaviour": "static",
+        "footer_layout": "centred",
+        "footer_edge": "none",
+        "small_print_row": "centred",
+        "header_surface": "plain",
+        "footer_surface": "plain",
+        "density": "normal",
+        "header_edge": "none",
+        "logo_size": "small",
+        "brand": "logo",
+        "nav_style": "plain",
+        "nav_ink": "accent",
+        "header_button": "text",
+        "footer_columns": "2",
+        "footer_links": "auto"
+    },
+    "composition": {
+        "section": {
+            "surface": "plain",
+            "rhythm": "airy",
+            "width": "normal",
+            "align": "center",
+            "divider": "none"
+        },
+        "surfaces": {
+            "text": "tinted"
+        },
+        "dividers": {
+            "hero": "line",
+            "text": "line"
+        },
+        "layouts": {
+            "hero": "center",
+            "image_text": "image-left",
+            "text": "single"
+        }
+    }
+}

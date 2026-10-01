@@ -156,3 +156,21 @@ testBothDrivers('when the active character is gone, the site renders with the de
     dispatch('/admin/appearance');
     assertEquals(['character_missing'], designActivity($db), 'noted once');
 });
+
+// The handoff's test 7, in the markup: every way a file goes out or comes in is a plain link
+// or a plain form, so the screen does all of it without a script.
+testBothDrivers('the screen offers export and import as links and forms, with no script needed', function (string $driver) {
+    $db = transferSite($driver);
+    Characters::addImported($db, DesignSet::parse(customFile('harbour'), blockRegistry())['set'] ?? fail('not read'));
+    $body = dispatch('/admin/appearance')->body;
+
+    assertContains('<form id="design-import" method="post" action="/admin/appearance/import" enctype="multipart/form-data"', $body, 'the import form, outside the design form');
+    assertContains('type="file" id="design-file" name="design"', $body, 'the file input');
+    assertContains('form="design-import" class="visually-hidden" data-file-sends', $body, 'the input belongs to the import form');
+    assertContains('<button type="submit" form="design-import" class="button no-js-only">', $body, 'a button that sends it without a script');
+    assertContains('href="/admin/appearance/export/character/soft"', $body, 'a character\'s export is a link');
+    assertContains('<button type="submit" form="design-form" name="action" value="export"', $body, 'the screen\'s export is the form\'s own post');
+    assertContains('value="character:delete:harbour"', $body, 'an imported character\'s delete is the form\'s own post');
+    // And the forms are not nested: #design-import closes before #design-form opens.
+    assertTrue(strpos($body, '</form>', (int) strpos($body, 'id="design-import"')) < (int) strpos($body, 'id="design-form"'), 'the import form inside the design form');
+});

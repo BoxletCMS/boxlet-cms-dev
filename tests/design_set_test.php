@@ -209,3 +209,20 @@ test('a colour given as #rgb is read, and stored and exported as #rrggbb', funct
     assertEquals('#11dd33', $file['decisions']['seed'] ?? null, 'the seed as exported');
     assertEquals('#003366', $file['decisions']['color_link'] ?? null, 'a colour by hand as exported');
 });
+
+// The handoff's test 2: parse(export(x)) == x, for every character Boxlet ships.
+test('every core character survives export and parse unchanged', function () {
+    foreach (App\Modules\Design\Characters::CORE as $id) {
+        $name = ['en' => App\Modules\Design\Characters::label($id)];
+        $description = ['en' => App\Modules\Design\Characters::hint($id)];
+        $decisions = Presets::get($id);
+        $look = App\Modules\Design\Characters::look($id);
+        $composition = App\Modules\Design\Characters::composition($id);
+
+        $read = DesignSet::parse(DesignSet::export($id, $name, $description, $decisions, $look, $composition, 'Boxlet'), blockRegistry());
+        assertEquals([], $read['errors'], "{$id}: errors");
+        assertEquals([], $read['warnings'], "{$id}: warnings");
+        $set = $read['set'] ?? fail("{$id}: nothing read");
+        assertEquals([$id, $name, $description, $decisions, $look, $composition], [$set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition']], "{$id} after the round trip");
+    }
+});

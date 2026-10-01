@@ -398,31 +398,51 @@ export async function controlsOnPanels(page, report, where, scope = null) {
 }
 
 /**
- * Opens one of the Appearance screen's five tabs (PLAN.md D-059) and waits for its panel.
+ * Opens one of the Appearance inspector's views (PLAN.md D-157) — `home`, or a section:
+ * colours, typography, space, layout, header, footer — and waits for it to be shown.
  *
- * WITHOUT THIS A SCENARIO JUDGES A SCREEN IT CANNOT SEE. Four panels in five are hidden, so
- * a control in a closed tab has no box: page.type refuses it, and controlsOnPanels counts it
- * as unrendered rather than judging it. Anything that reads or fills a tab opens it first,
- * and a guard that means to cover the whole screen runs once per tab.
+ * WITHOUT THIS A SCENARIO JUDGES A SCREEN IT CANNOT SEE. With the script running one view is
+ * shown at a time, so a control in another has no box: page.type refuses it, and
+ * controlsOnPanels counts it as unrendered rather than judging it. Anything that reads or
+ * fills a section opens it first, and a guard meant to cover the screen runs once per view.
  *
- * Returns false when there are no tabs — a screen without JavaScript shows every panel, and
- * the caller can carry on.
+ * Through the home's own link, as the owner goes, or its back link for the home. Returns
+ * false when the screen has no views — without a script every section is on the page.
  */
-export async function openTab(page, name) {
-  const tab = await page.$(`[data-tab="${name}"]`);
-  if (tab === null) {
+export async function openSection(page, name) {
+  const ready = await page.$('[data-inspector].views-ready');
+  if (ready === null) {
     return false;
   }
-  await tab.click();
+  await page.evaluate((which) => {
+    const link = which === 'home'
+      ? document.querySelector('[data-view]:not([hidden]) a[data-back]')
+      : document.querySelector(`a[data-open-section="${which}"]`);
+    if (link) link.click();
+  }, name);
   await page.waitForFunction(
     (which) => {
-      const panel = document.querySelector(`[data-panel="${which}"]`);
-      return panel !== null && !panel.hidden;
+      const view = document.querySelector(`[data-view="${which}"]`);
+      return view !== null && !view.hidden;
     },
     { timeout: 10000 },
     name,
   );
   return true;
+}
+
+/**
+ * Opens whichever view holds the element a selector names, so a scenario can reach a control
+ * without knowing which section it was put in — the widths moved section in D-157, and a
+ * scenario that hard-coded the old place would have measured a hidden control.
+ */
+export async function openSectionOf(page, selector) {
+  const name = await page.evaluate((wanted) => {
+    const element = document.querySelector(wanted);
+    const view = element && element.closest('[data-view]');
+    return view ? view.getAttribute('data-view') : null;
+  }, selector);
+  return name === null ? false : openSection(page, name);
 }
 
 /**
@@ -447,6 +467,11 @@ export async function openTab(page, name) {
 export async function applyCharacter(page, base, preset, action = 'save') {
   await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
   await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);
+  // LOADING OVER THE OWNER'S CHANGES ASKS FIRST (D-158): what is being applied here is the
+  // character whole, so the answer is the one that loads it.
+  if (await page.$(`button[name="action"][value="load:${preset}"]`) !== null) {
+    await clickAndWait(page, `button[name="action"][value="load:${preset}"]`);
+  }
   /*
    * PUBLISH, THEN ANSWER WHAT IT ASKS (D-068). One button in the bar; when the site already
    * has blocks it comes back asking whether to rewrite their section styles, and the answer
@@ -454,7 +479,7 @@ export async function applyCharacter(page, base, preset, action = 'save') {
    * is nothing to ask and the first press publishes.
    */
   await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
-  const asked = await page.$('.appearance-confirm');
+  const asked = await page.$('.publish-confirm');
   if (asked !== null) {
     const answer = action === 'save' ? 'save_design' : action;
     await clickAndWait(page, `button[form="design-form"][name="action"][value="${answer}"]`);
@@ -501,10 +526,10 @@ export async function ensureHeaderMenu(page, base) {
 
   await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
   // The menu lives in the Header tab (D-111), and page.select refuses a control with no box.
-  await openTab(page, 'header');
+  await openSection(page, 'header');
   await page.select('#header_menu', name);
   await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
-  await openTab(page, 'header');
+  await openSection(page, 'header');
   return page.$eval('#header_menu', (select) => select.value).catch(() => '');
 }

@@ -153,7 +153,10 @@ test('the choice between design and composition is asked at Publish, never taken
     // With blocks, the same press asks, and the bar itself never carries the destructive
     // button — a choice that matters on one publish in twenty does not live in the bar.
     createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
-    $loaded = adminPost('/admin/appearance', ['action' => 'preset:soft']);
+    // Loaded by the answer to the question a load asks over the owner's changes (D-158):
+    // the screen posted here is Minimal over a site now composed with Soft, which is seven
+    // changes over Soft. The question itself is appearance_inspector_test's.
+    $loaded = adminPost('/admin/appearance', appearanceFields(['action' => 'load:soft']));
     assertContains('name="character" value="soft"', $loaded->body, 'the loaded character');
     assertTrue(!str_contains($loaded->body, 'value="save_composition"'), 'the bar offered a reset before anyone asked for one');
 

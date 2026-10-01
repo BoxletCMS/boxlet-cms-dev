@@ -252,29 +252,31 @@ test('the check endpoint carries every pair, not only the failures', function ()
     }
 });
 
-test('the screen shows the gauge, and never folds away a pair that fails', function () {
+/*
+ * THE CHECK IN ONE LINE, WITH EVERY PAIR BEHIND IT (D-160). This was "six open, the rest
+ * folded, and a failing pair never folded"; the rule changed deliberately when the gauge
+ * became a verdict: all twelve rows are in one list behind a <details>, closed while
+ * everything passes and OPEN when anything fails — so a failure is still never out of sight,
+ * which is the half of the old rule that mattered.
+ */
+test('the screen shows the contrast check, and never folds away a pair that fails', function () {
     adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
-    // Six open, five folded, while everything passes.
-    preg_match('~<ul class="gauge-list" data-gauge-open>(.*?)</ul>~s', $body, $open);
-    assertEquals(6, substr_count($open[1] ?? '', 'class="gauge-row'), 'rows standing open');
+    assertEquals(12, substr_count($body, 'class="gauge-row'), 'every pair is listed');
     assertContains('data-pair="text_on_background"', $body, 'the first pair');
     assertContains('4.5', $body, 'what the rule asks for');
+    assertContains('<details class="gauge-more">', $body, 'the list, closed while all pass');
+    assertContains('<span class="contrast-tally" data-contrast-tally>12/12</span>', $body, 'the verdict');
+    assertContains('data-contrast-fails hidden', $body, 'no failure said');
 
-    // A grey seed fails three pairs, and one of them — text on the start of the gradient —
-    // is the eleventh of twelve, which is inside the part that folds away. Measured, not
-    // assumed: a failure the screen hides is the one thing this must never do.
+    // A grey seed fails three pairs, one of them the eleventh of twelve. The list opens.
     $failing = adminPost('/admin/appearance', designFields(['seed' => '#7f7f7f'] + Presets::get('minimal')) + ['action' => 'save']);
-    preg_match('~<ul class="gauge-list" data-gauge-open>(.*?)</ul>~s', $failing->body, $openAgain);
-    $folded = '';
-    if (preg_match('~<ul class="gauge-list" data-gauge-folded>(.*?)</ul>~s', $failing->body, $hidden) === 1) {
-        $folded = $hidden[1];
-    }
-    assertTrue(!str_contains($folded, 'gauge-fails'), 'a failing pair was folded out of sight');
-    assertEquals(8, substr_count($openAgain[1] ?? '', 'class="gauge-row'), 'six, plus the two lifted out of the fold');
-    assertEquals(3, substr_count($openAgain[1] ?? '', 'gauge-fails'), 'all three failures stand open');
-    assertEquals(4, substr_count($folded, 'class="gauge-row'), 'the rest stay folded');
+    assertContains('<details class="gauge-more" open>', $failing->body, 'the list, open on a failure');
+    assertEquals(3, substr_count($failing->body, 'gauge-row gauge-fails'), 'all three failures listed');
+    assertContains(e(t('inspector.contrast.fail_many', ['count' => 3])), $failing->body, 'how many, in a line');
+    // The seed fails them, and no colour by hand: nothing for "Fix automatically" to do.
+    assertContains('data-contrast-fix hidden', $failing->body, 'a button that could fix nothing');
 });
 
 test('the decisions are shown as numbers a person reads, never as CSS', function () {
@@ -360,11 +362,11 @@ test('the merged screen carries both halves, and the old addresses lead to it', 
     $db = adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
-    // Six since D-111: the header and the footer have a tab each.
-    foreach (['colour', 'type', 'shape', 'page', 'header', 'footer'] as $tab) {
-        assertContains('data-panel="' . $tab . '"', $body, 'the ' . $tab . ' tab');
+    // Sections since D-157, which replaced the six tabs of D-111.
+    foreach (array_keys(App\Modules\Appearance\Overrides::SECTIONS) as $section) {
+        assertContains('data-view="' . $section . '"', $body, 'the ' . $section . ' section');
     }
-    assertTrue(!str_contains($body, 'data-panel="chrome"'), 'the tab that held both halves is gone');
+    assertTrue(!str_contains($body, 'data-panel='), 'a tab of the old screen');
     assertContains('name="seed"', $body, 'the design half');
     assertContains('name="header_menu"', $body, 'the chrome half');
     assertContains('name="footer_text_en"', $body, 'the words');
@@ -608,17 +610,18 @@ test('the palette is one list, and a colour the owner has taken can go back to i
     // The old shape: a read-only list of the derived colours, and a folded panel beside it.
     assertTrue(!str_contains($shut, 'class="by-hand"'), 'the folded panel is gone');
     assertTrue(!str_contains($shut, 'class="swatches"'), 'and so is the list that repeated it');
-    // Counted inside the palette's own list: since D-111 the three colours of one's own
+    // Counted inside the palette's own group: since D-111 the three colours of one's own
     // are drawn as rows of the same shape, under their own groups, and they are not roles
-    // the palette works out.
-    $paletteList = (string) substr($shut, (int) strpos($shut, 'aria-labelledby="design-palette-label"'));
-    $paletteList = (string) substr($paletteList, 0, (int) strpos($paletteList, '</ul>'));
+    // the palette works out. Since D-157 the roles nobody sets by hand stand behind "show
+    // the other roles" in the same group — still a row each.
+    $paletteList = (string) substr($shut, (int) strpos($shut, 'id="group-colours-palette"'));
+    $paletteList = (string) substr($paletteList, 0, (int) strpos($paletteList, 'id="group-colours-contrast"'));
     assertEquals(
         count(Palette::colors(Presets::get(Presets::DEFAULT)['seed'], '', 'low')),
-        substr_count($paletteList, '<li class="role">'),
+        substr_count($paletteList, '<li class="role'),
         'every role the palette works out is a row',
     );
-    assertEquals(3, substr_count($shut, '<li class="role">') - substr_count($paletteList, '<li class="role">'), 'and the three colours of one\'s own are rows of the same shape');
+    assertEquals(3, substr_count($shut, '<li class="role') - substr_count($paletteList, '<li class="role'), 'and the three colours of one\'s own are rows of the same shape');
     /*
      * EVERY WAY BACK IS ALWAYS DRAWN, and whether one SHOWS is a CSS question: the switches
      * flip under the owner's hand as colours are picked (D-065), so a button the server
@@ -1016,18 +1019,26 @@ test('the Appearance screen shows no translation key as itself', function () {
  * and moving three design decisions between tabs is exactly the kind of edit that drops a
  * field on the floor or draws it twice, so this reads every panel and counts.
  */
-test('every decision and chrome choice is on exactly one tab', function () {
+test('every decision and chrome choice is in exactly one section', function () {
     $db = adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
+    // Sections since D-157. Quick start's mirrors are left out: they belong to a form that
+    // is never sent (#appearance-quick), and are a script's copy of a field, not a field.
     $onTab = [];
-    foreach (['colour', 'type', 'shape', 'page', 'header', 'footer'] as $tab) {
-        $start = strpos($body, 'data-panel="' . $tab . '"');
-        assertTrue($start !== false, 'the ' . $tab . ' tab');
-        $end = strpos($body, 'data-panel="', $start + 1);
+    foreach (array_keys(App\Modules\Appearance\Overrides::SECTIONS) as $tab) {
+        $start = strpos($body, 'data-view="' . $tab . '"');
+        assertTrue($start !== false, 'the ' . $tab . ' section');
+        $end = strpos($body, 'data-view="', $start + 1);
         $panel = substr($body, (int) $start, $end === false ? null : $end - (int) $start);
-        preg_match_all('~ name="([a-z_0-9]+)"~', $panel, $found);
-        foreach (array_unique($found[1]) as $name) {
+        preg_match_all('~<(?:input|select|textarea)\b[^>]*>~', $panel, $tags);
+        $names = [];
+        foreach ($tags[0] as $tag) {
+            if (!str_contains($tag, 'form="appearance-quick"') && preg_match('~ name="([a-z_0-9]+)"~', $tag, $named) === 1) {
+                $names[] = $named[1];
+            }
+        }
+        foreach (array_unique($names) as $name) {
             $onTab[$name][] = $tab;
         }
     }
@@ -1052,12 +1063,13 @@ test('every decision and chrome choice is on exactly one tab', function () {
             $twice[] = $name . ' on ' . implode(' and ', $onTab[$name]);
         }
     }
-    assertEquals([], $missing, 'fields the form reads and no tab carries');
-    assertEquals([], $twice, 'fields drawn on two tabs');
-    // And the three that moved are where a person setting up the chrome looks for them.
-    assertEquals(['header'], $onTab['header_width'] ?? [], 'the header\'s width');
-    assertEquals(['header'], $onTab['header_bleed'] ?? [], 'where the header breaks out');
-    assertEquals(['footer'], $onTab['footer_bleed'] ?? [], 'where the footer breaks out');
+    assertEquals([], $missing, 'fields the form reads and no section carries');
+    assertEquals([], $twice, 'fields drawn in two sections');
+    // And every width is in Layout & widths (D-157), which is where they moved from the
+    // Header and Footer tabs of D-111.
+    foreach (['container', 'boxed', 'sheet_width', 'header_width', 'header_bleed', 'footer_width', 'footer_bleed'] as $width) {
+        assertEquals(['layout'], $onTab[$width] ?? [], $width);
+    }
 });
 
 /*

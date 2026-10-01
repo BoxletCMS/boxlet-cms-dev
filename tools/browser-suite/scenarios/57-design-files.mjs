@@ -1,9 +1,10 @@
 /*
  * A DESIGN AS A FILE ON THE APPEARANCE SCREEN (PLAN.md D-152, step 5).
  *
- * Out and in, as the owner does it: the Export button in the bar and on the cards, a file
- * chosen in the rail and imported, the question that follows, Add as character, the card it
- * becomes with its Custom label, and its delete button.
+ * Out and in, as the owner does it: the Export button in the bar and in each character's ⋯
+ * menu, a file chosen under Your designs and imported, the question that follows at the top of
+ * the inspector, Add as character, the tile it becomes with its Custom label, and its delete
+ * (PLAN.md D-157 moved all of it out of the rail).
  *
  * ON THE DEVELOPMENT SITE. The one character it adds is deleted again through its own card,
  * and, should a step fail before that, by the same post at the end. Nothing is published.
@@ -65,13 +66,13 @@ export default {
         export: !!document.querySelector('button[form="design-form"][value="export"]'),
         input: !!document.querySelector('#design-file[form="design-import"]'),
         // The control at rest is the label in the admin's words; the browser's input is hidden.
-        button: !!document.querySelector('label[for="design-file"].button'),
-        cardExports: document.querySelectorAll('a[href*="/admin/appearance/export/character/"]').length,
+        button: !!document.querySelector('.design-import label[for="design-file"].button'),
+        cardExports: document.querySelectorAll('.character-tile .tile-menu a[href*="/admin/appearance/export/character/"]').length,
       }));
-      const rail = await page.$('.rail-import');
-      if (rail) await rail.scrollIntoView();
-      await shot(report, page, '01-rail');
-      report.verdict('Export in the bar, Import in the rail in the admin\'s words, an export on every character',
+      const designs = await page.$('.design-import');
+      if (designs) await designs.scrollIntoView();
+      await shot(report, page, '01-designs');
+      report.verdict('Export in the bar, Import under Your designs in the admin\'s words, an export in every character\'s menu',
         atRest.export && atRest.input && atRest.button && atRest.cardExports >= 5, JSON.stringify(atRest));
 
       // ---- in: the file, the question ---------------------------------------------------------
@@ -85,7 +86,11 @@ export default {
       await shot(report, page, '02-question');
       const question = await page.evaluate(() => {
         const panel = document.querySelector('.import-confirm');
+        const stage = document.querySelector('.appearance-stage-column').getBoundingClientRect();
         return panel ? {
+          // In the inspector, not a band across the screen pushing the picture down (D-157).
+          inInspector: !!panel.closest('.appearance-inspector'),
+          pictureAtTop: Math.round(stage.top) <= Math.round(document.querySelector('.appearance-bar').getBoundingClientRect().bottom) + 1,
           text: panel.innerText.replace(/\s+/g, ' ').slice(0, 300),
           swatches: panel.querySelectorAll('[data-swatch]').length,
           add: !!panel.querySelector('button[form="design-import-add"]'),
@@ -93,7 +98,8 @@ export default {
         } : null;
       });
       report.verdict('the import asks, with the design shown, what was left out, and the three answers',
-        question !== null && /Import “Scenario Harbour”\?/.test(question.text) && question.swatches === 3
+        question !== null && question.inInspector && question.pictureAtTop
+          && /Import “Scenario Harbour”\?/.test(question.text) && question.swatches === 3
           && question.add && question.load && /carousel/.test(question.text),
         JSON.stringify(question));
 
@@ -106,24 +112,31 @@ export default {
       await page.waitForSelector(card, { timeout: 10000 }).catch(() => {});
       const added = await page.evaluate((selector, slug) => {
         const use = document.querySelector(selector);
-        const box = use && use.closest('.rail-card');
+        const box = use && use.closest('.character-tile');
+        const name = box && box.querySelector('.tile-name');
         return {
           notice: (document.querySelector('.notice, [role="status"]') || {}).textContent || '',
           card: !!box,
-          custom: box ? !!box.querySelector('.rail-custom') : false,
-          remove: !!document.querySelector(`button[value="character:delete:${slug}"]`),
-          // Measured once at 304px in a rail of 195, and a scrollbar: a card never widens it.
-          rail: (() => { const r = document.querySelector('.appearance-rail'); return { client: r.clientWidth, scroll: r.scrollWidth }; })(),
+          custom: box ? !!box.querySelector('.tile-custom') : false,
+          remove: !!document.querySelector(`.tile-menu button[value="character:delete:${slug}"]`),
+          // A long name is cut inside its tile and whole in its title; the inspector never
+          // scrolls sideways for it (measured once at 304px in a rail of 195).
+          titled: !!name && name.getAttribute('title') === 'Scenario Harbour',
+          inspector: (() => { const r = document.querySelector('.appearance-inspector'); return { client: r.clientWidth, scroll: r.scrollWidth }; })(),
         };
       }, card, SLUG);
       const box = await page.$(card);
-      if (box) await box.evaluate((el) => el.closest('.rail-card').scrollIntoView({ block: 'center' }));
+      if (box) {
+        await box.evaluate((el) => el.closest('.character-tile').scrollIntoView({ block: 'center' }));
+        // Its ⋯ menu open, so the shot shows Export and Delete.
+        await box.evaluate((el) => { el.closest('.character-tile').querySelector('.tile-menu').open = true; });
+      }
       await wait(300);
       await shot(report, page, '03-added');
-      report.verdict('Add as character puts it on the rail, marked Custom, with a delete button',
-        added.card && added.custom && added.remove, JSON.stringify(added));
-      report.verdict('its card fits the rail: nothing scrolls sideways',
-        added.rail.scroll <= added.rail.client, JSON.stringify(added.rail));
+      report.verdict('Add as character makes it a tile, marked Custom, with Delete in its menu',
+        added.card && added.custom && added.remove && added.titled, JSON.stringify(added));
+      report.verdict('its tile fits the inspector: nothing scrolls sideways',
+        added.inspector.scroll <= added.inspector.client, JSON.stringify(added.inspector));
 
       // ---- out: the file it is ------------------------------------------------------------------
       const out = await page.evaluate(async (base, slug) => {

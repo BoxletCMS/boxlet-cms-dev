@@ -124,7 +124,7 @@ test('a design that is not there any more is not an error page', function () {
 
 test('the library is in the rail, with a way to keep what is on the screen', function () {
     $db = adminSite('sqlite');
-    assertContains(t('appearance.library.empty_rail'), dispatch('/admin/appearance')->body, 'an empty library says so');
+    assertContains(e(t('appearance.library.empty')), dispatch('/admin/appearance')->body, 'an empty library says so');
 
     DesignLibrary::save($db, 'Autumn', Presets::get('soft'), [], 'soft');
     $body = dispatch('/admin/appearance')->body;

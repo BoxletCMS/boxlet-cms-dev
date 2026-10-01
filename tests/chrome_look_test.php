@@ -113,17 +113,27 @@ testBothDrivers('the mobile menu is a script that adds buttons, never a page tha
 testBothDrivers('the Appearance screen saves the look', function (string $driver) {
     $db = adminSite($driver);
 
+    /*
+     * THE RULE CHANGED DELIBERATELY with D-159: an answer equal to the character's is stored
+     * as '' — "as the character has it" — because the screen no longer has a "follow"
+     * button and posts the character's answer for every choice nobody touched. So the
+     * owner's choices here differ from Minimal's (centred, small), and Minimal's own answer
+     * is asserted to be stored as following it. The case this test was written for — a
+     * choice is saved, and the screen shows it — is unchanged.
+     */
     assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', appearanceFields([
-        'look_header_arrangement' => 'centred',
+        'look_header_arrangement' => 'split',
         'look_density' => '',
-        'look_logo_size' => 'small',
+        'look_logo_size' => 'large',
+        'look_brand' => 'logo',
     ])));
     $stored = ChromeLook::stored($db);
-    assertEquals('centred', $stored['header_arrangement'], 'the arrangement');
+    assertEquals('split', $stored['header_arrangement'], 'the arrangement');
     assertEquals('', $stored['density'], 'a choice left to the character');
-    assertEquals('small', $stored['logo_size'], 'the logo size');
+    assertEquals('large', $stored['logo_size'], 'the logo size');
+    assertEquals('', $stored['brand'], 'Minimal\'s own answer, stored as following it');
 
-    assertContains('value="centred" checked', dispatch('/admin/appearance')->body, 'the screen shows it');
+    assertContains('name="look_header_arrangement" value="split" checked', dispatch('/admin/appearance')->body, 'the screen shows it');
 });
 
 testBothDrivers('the site can say what made it, and says nothing unless asked', function (string $driver) {

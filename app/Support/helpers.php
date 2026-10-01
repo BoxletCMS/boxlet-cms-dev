@@ -114,14 +114,17 @@ function field_hint(string $key, string $id = ''): string
  * @param array<array-key, string> $labels value => what it is called
  * @param string $labelledBy the id of the element naming this group, for aria-labelledby
  * @param string $idPrefix each radio's id is this plus its value, so a <label for> can find it
+ * @param string $form the form the radios belong to, when it is not the one they stand in:
+ *        the Appearance screen's Quick start repeats a few questions for a script to mirror,
+ *        and two groups of one name in one form are one group (D-157)
  */
-function segmented_group(string $name, array $labels, string $current, string $labelledBy, string $idPrefix): string
+function segmented_group(string $name, array $labels, string $current, string $labelledBy, string $idPrefix, string $form = ''): string
 {
     $html = '<div class="segmented-choice" role="radiogroup" aria-labelledby="' . e($labelledBy) . '">';
     foreach ($labels as $value => $label) {
         $value = (string) $value;
         $html .= '<label class="segment"><input type="radio" id="' . e($idPrefix . ($value === '' ? 'none' : $value)) . '"'
-            . ' name="' . e($name) . '" value="' . e($value) . '"' . ($value === $current ? ' checked' : '') . '>'
+            . ' name="' . e($name) . '" value="' . e($value) . '"' . ($form !== '' ? ' form="' . e($form) . '"' : '') . ($value === $current ? ' checked' : '') . '>'
             . '<span>' . e($label) . '</span></label>';
     }
 

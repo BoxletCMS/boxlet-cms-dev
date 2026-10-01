@@ -20,9 +20,12 @@
  */
 import { readFileSync } from 'node:fs';
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN, CHECKOUT } from '../config.mjs';
-import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openTab, retype } from '../harness.mjs';
+import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openSection, retype } from '../harness.mjs';
 
 const STYLE_GUIDE = 4;
+
+/** The inspector's views (D-157): the home, and its six sections. */
+const SECTIONS = ['home', 'colours', 'typography', 'space', 'layout', 'header', 'footer'];
 
 /** Every front-end section's class attribute, which is where layers 2 and 3 land. */
 const sectionClasses = (page) => page.$$eval('section', (els) => els.map((e) => e.className.trim()));
@@ -46,19 +49,23 @@ export default {
     const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',
         (els) => els.map((e) => e.value.slice('preset:'.length))));
+    // Every character the registry holds, as a tile in Quick start (D-157): the five
+    // Boxlet ships, and whatever an owner added, which a fresh copy has none of.
     report.verdict('the Appearance screen offers five characters', presets.length === 5, presets.join(', '));
 
-    // THE SCREEN IS THE WINDOW (D-064): three columns that scroll on their own, under a bar
-    // that does not. A page taller than the window here means the layout has come apart.
+    // THE SCREEN IS THE WINDOW (D-064): two columns that scroll on their own, under a bar
+    // that does not — the picture and the inspector, since the characters became tiles in
+    // the inspector (D-157). A page taller than the window here means the layout has come apart.
     const shell = await page.evaluate(() => ({
       page: document.documentElement.scrollHeight,
       window: window.innerHeight,
-      columns: [...document.querySelectorAll('.appearance-rail, .appearance-stage-column, .appearance-inspector')].length,
+      columns: [...document.querySelectorAll('.appearance-stage-column, .appearance-inspector')].length,
+      rail: document.querySelectorAll('.appearance-rail').length,
       railFolded: document.querySelector('.admin-frame.rail-compact') !== null,
     }));
     report.verdict('the screen fills the window and does not scroll as a page',
-      shell.page <= shell.window + 1 && shell.columns === 3 && shell.railFolded,
-      `page ${shell.page}px in a window of ${shell.window}px, ${shell.columns} columns, admin rail folded: ${shell.railFolded}`);
+      shell.page <= shell.window + 1 && shell.columns === 2 && shell.rail === 0 && shell.railFolded,
+      `page ${shell.page}px in a window of ${shell.window}px, ${shell.columns} columns, ${shell.rail} character rail, admin rail folded: ${shell.railFolded}`);
 
     /*
      * AND IN A SHORT WINDOW, which is where it broke. Two things made the document taller
@@ -74,7 +81,7 @@ export default {
     const short = await page.evaluate(() => ({
       page: document.documentElement.scrollHeight,
       window: window.innerHeight,
-      sideways: ['.appearance-rail', '.appearance-inspector'].map((where) => {
+      sideways: ['.appearance-inspector'].map((where) => {
         const column = document.querySelector(where);
         return column.scrollWidth - column.clientWidth;
       }),
@@ -133,8 +140,10 @@ export default {
     report.verdict('the picture keeps the width it opened on',
       new Set(sweep.map((s) => s.frame)).size === 1,
       sweep.map((s) => `${s.at}:${s.frame}`).join(' '));
-    report.verdict('the columns go three, then two, then one — never three to one',
-      [...new Set(sweep.map((s) => s.columns))].join(',') === '3,2,1',
+    // Two, then one, since D-157: the picture and the inspector side by side while the
+    // picture keeps its floor, then the inspector under it.
+    report.verdict('the columns go two, then one',
+      [...new Set(sweep.map((s) => s.columns))].join(',') === '2,1',
       sweep.map((s) => `${s.at}:${s.columns}`).join(' '));
     const spilling = sweep.filter((s) => s.sideways > 0 || s.page > s.window + 1);
     report.verdict('no width spills sideways or past the bottom of the window',
@@ -157,24 +166,29 @@ export default {
     report.verdict('this screen does not offer to open the admin rail', toggle === true,
       `rail toggle hidden: ${toggle}`);
 
-    // And what takes the characters' place once they stop being a column.
+    /*
+     * THE CHARACTERS ARE TILES IN THE INSPECTOR (D-157), three to a row, at every width the
+     * inspector is a column — no panel to open, no button for it. Measured at 1150, where the
+     * old screen folded them away, and checked for spilling sideways, which a long name did
+     * to the old rail.
+     */
     await page.setViewport({ ...tall, width: 1150 });
     await new Promise((resolve) => { setTimeout(resolve, 250); });
-    await page.click('[data-rail-panel]');
-    await new Promise((resolve) => { setTimeout(resolve, 200); });
-    const panel = await page.evaluate(() => {
-      const rail = document.getElementById('appearance-rail');
+    const tiles = await page.evaluate(() => {
+      const all = [...document.querySelectorAll('.character-tile')];
+      const inspector = document.querySelector('.appearance-inspector');
       return {
-        open: document.querySelector('[data-rail-panel]').getAttribute('aria-expanded'),
-        shown: getComputedStyle(rail).display !== 'none',
-        cards: rail.querySelectorAll('.rail-card').length,
-        // One rail, not a copy: two sets of these buttons would be two sets of submits.
-        rails: document.querySelectorAll('.appearance-rail').length,
+        count: all.length,
+        shown: all.filter((t) => t.getClientRects().length > 0).length,
+        perRow: new Set(all.slice(0, 3).map((t) => Math.round(t.getBoundingClientRect().top))).size === 1
+          && Math.round(all[3].getBoundingClientRect().top) > Math.round(all[0].getBoundingClientRect().top),
+        sideways: inspector.scrollWidth - inspector.clientWidth,
+        panelButton: document.querySelectorAll('[data-rail-panel]').length,
       };
     });
-    report.verdict('the characters open as a panel when they are no longer a column',
-      panel.open === 'true' && panel.shown && panel.cards === 5 && panel.rails === 1,
-      JSON.stringify(panel));
+    report.verdict('the characters are tiles in the inspector, three to a row, with no panel to open',
+      tiles.count === 5 && tiles.shown === 5 && tiles.perRow && tiles.sideways <= 0 && tiles.panelButton === 0,
+      JSON.stringify(tiles));
     await page.setViewport(tall);
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
 
@@ -182,15 +196,15 @@ export default {
     // site's own colours — the guard reads computed backgrounds, and this screen is the one
     // place where a character could plausibly leak into the tool (SPEC §5.4 says it must not).
     //
-    // ONCE PER TAB. Four panels in five are hidden, and a hidden control is one this guard
-    // counts as unrendered rather than judging: called once, it would have covered a fifth
-    // of the screen and said nothing about the rest (D-059).
-    for (const tab of ['colour', 'type', 'shape', 'page', 'header', 'footer']) {
-      if (await openTab(page, tab)) {
-        await controlsOnPanels(page, report, `appearance: ${tab}`);
+    // ONCE PER VIEW. Six views in seven are hidden, and a hidden control is one this guard
+    // counts as unrendered rather than judging: called once, it would have covered the home
+    // and said nothing about the sections (D-157).
+    for (const view of SECTIONS) {
+      if (await openSection(page, view)) {
+        await controlsOnPanels(page, report, `appearance: ${view}`);
       }
     }
-    await openTab(page, 'colour');
+    await openSection(page, 'home');
 
     /*
      * ---- the preview draws the real header and footer (PLAN.md D-057) -------------------
@@ -226,7 +240,8 @@ export default {
       const boxes = actions.map((b) => b.getBoundingClientRect());
       return {
         rows: document.querySelectorAll('.gauge-row').length,
-        open: document.querySelectorAll('[data-gauge-open] .gauge-row').length,
+        // The verdict in a line, the list folded behind it (D-160).
+        verdict: (document.querySelector('[data-contrast-ok]') || {}).textContent?.replace(/\s+/g, ' ').trim() ?? '',
         ratios: [...document.querySelectorAll('[data-pair-ratio]')].slice(0, 3).map((e) => e.textContent),
         updateButton: document.querySelector('[data-preview-button]') !== null,
         actions: actions.length,
@@ -234,8 +249,9 @@ export default {
         columnHeight: document.body.scrollHeight,
       };
     });
-    report.verdict('every contrast pair is measured on the screen', loop.rows === 12 && loop.open === 6,
-      `${loop.rows} rows, ${loop.open} open, first ratios ${loop.ratios.join(', ')}`);
+    report.verdict('every contrast pair is measured on the screen, under one line that says so',
+      loop.rows === 12 && /12\/12$/.test(loop.verdict),
+      `${loop.rows} rows; "${loop.verdict}"; first ratios ${loop.ratios.join(', ')}`);
     report.verdict('the "Update preview" button is gone where JavaScript runs', !loop.updateButton,
       loop.updateButton ? 'it is still there' : 'the preview follows every change instead');
     report.verdict('every Save is in reach with the controls scrolled', loop.saveInView,
@@ -243,23 +259,26 @@ export default {
     await page.evaluate(() => window.scrollTo(0, 0));
 
     /*
-     * THE TABS ARE ONE ROW (docs/ispravci.md §C5). Five of them share about 280px, which
-     * fits in English and does not in Croatian: the strip wrapped into two ragged rows, and
-     * a strip that wraps unevenly reads as two strips.
+     * THE HOME LISTS THE SECTIONS (D-157): six links, each with a line saying what is in it
+     * now, built from the values — and pressing one opens that section in the home's place,
+     * with Back returning to the home rather than leaving the screen.
      */
-    const strip = await page.evaluate(() => {
-      const tabs = [...document.querySelectorAll('.tab')];
-      return {
-        count: tabs.length,
-        rows: new Set(tabs.map((t) => Math.round(t.getBoundingClientRect().top))).size,
-        widths: [...new Set(tabs.map((t) => Math.round(t.getBoundingClientRect().width)))],
-        titled: tabs.every((t) => (t.getAttribute('title') || '') === t.textContent.trim()),
-      };
-    });
-    // Two even rows of three since D-111 — six names in one row cut three of them short.
-    report.verdict('the six tabs are two even rows of equal columns, each with its whole name',
-      strip.count === 6 && strip.rows === 2 && strip.widths.length === 1 && strip.titled,
-      JSON.stringify(strip));
+    const list = await page.evaluate(() => [...document.querySelectorAll('.section-link')].map((a) => ({
+      href: a.getAttribute('href'),
+      summary: (a.querySelector('.section-link-summary') || {}).textContent?.trim() ?? '',
+    })));
+    report.verdict('the home lists six sections, each saying what is in it',
+      list.length === 6 && list.every((l) => /^#section-[a-z]+$/.test(l.href) && l.summary.length > 0),
+      JSON.stringify(list));
+    await openSection(page, 'typography');
+    await page.goBack();
+    await new Promise((resolve) => { setTimeout(resolve, 300); });
+    const backed = await page.evaluate(() => ({
+      url: window.location.pathname + window.location.hash,
+      home: !document.querySelector('[data-view="home"]').hidden,
+    }));
+    report.verdict('Back from a section is the home, not another page',
+      backed.home && backed.url.endsWith('/admin/appearance'), JSON.stringify(backed));
 
     /*
      * A READOUT STAYS INSIDE ITS COLUMN (D-110). "Stays at the top when scrolling" ran past
@@ -276,29 +295,28 @@ export default {
         untitled: shown.filter((r) => r.textContent.trim() !== '' && (r.getAttribute('title') || '') !== r.textContent.trim()).map((r) => r.textContent.trim()),
       };
     });
-    await openTab(page, 'header');
+    await openSection(page, 'layout');
     const chromeReadouts = await readouts();
-    report.verdict('every readout on the header tab stays inside the column and carries its whole phrase',
+    report.verdict('every readout in Layout & widths stays inside the column and carries its whole phrase',
       chromeReadouts.shown > 0 && chromeReadouts.outside.length === 0 && chromeReadouts.untitled.length === 0,
       JSON.stringify(chromeReadouts));
 
     /*
-     * A GROUP'S NAME IS ONE LINE (D-111). The forms stylesheet drew every .field-row as a
-     * grid with a third of the row for the label, so "FOOTER MENU COLUMNS" took three lines
-     * beside its readout whatever the flex rules said. Measured on every tab, because the
-     * fault was the same on all six and the labels differ.
+     * A CONTROL'S NAME IS ONE LINE (D-111): "FOOTER MENU COLUMNS" once took three lines
+     * beside its readout. Measured in every view, because the labels differ — and the
+     * longest of them, "Header content aligns with", is new in D-157.
      */
     const folded = [];
-    for (const tab of ['colour', 'type', 'shape', 'page', 'header', 'footer']) {
-      await openTab(page, tab);
-      folded.push(...await page.evaluate((which) => [...document.querySelectorAll(`[data-panel="${which}"] .field-row`)]
-        .map((row) => row.querySelector('.field-label, label'))
-        .filter((label) => label && Math.round(label.getBoundingClientRect().height / parseFloat(getComputedStyle(label).lineHeight)) > 1)
-        .map((label) => label.textContent.trim()), tab));
+    for (const view of SECTIONS) {
+      await openSection(page, view);
+      folded.push(...await page.evaluate((which) => [...document.querySelectorAll(`[data-view="${which}"] .control-label`)]
+        .filter((label) => label.getClientRects().length > 0
+          && Math.round(label.getBoundingClientRect().height / parseFloat(getComputedStyle(label).lineHeight)) > 1)
+        .map((label) => label.textContent.trim()), view));
     }
-    report.verdict('every group\'s name on every tab is one line', folded.length === 0,
+    report.verdict('every control\'s name in every view is one line', folded.length === 0,
       folded.length === 0 ? 'no label wraps' : `wrapped: ${folded.join(', ')}`);
-    await openTab(page, 'colour');
+    await openSection(page, 'home');
 
     /*
      * THE SPECIMEN IS THE SIZES, DRAWN (docs/ispravci.md §C2).
@@ -308,7 +326,7 @@ export default {
      * is asserted is the RELATION: every line is the server's own size shrunk by the SAME
      * factor, no two steps land on the same size, and moving the scale moves the picture.
      */
-    await openTab(page, 'type');
+    await openSection(page, 'typography');
     await new Promise((resolve) => { setTimeout(resolve, 400); });
     const specimen = () => page.evaluate(() => ({
       face: document.querySelector('.specimen').getAttribute('data-typeface'),
@@ -371,7 +389,7 @@ export default {
       el.dispatchEvent(new Event('input', { bubbles: true }));
     }, scaleWas);
     await new Promise((resolve) => { setTimeout(resolve, 800); });
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
 
     /*
      * ONE LIST OF ROLES (docs/ispravci.md §C1). It used to be two — fifteen colours that
@@ -380,11 +398,11 @@ export default {
      * closed. What this asserts is that there is ONE list, that every role is in it, and
      * that what can be done to a role is visible on its own row.
      */
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
     const palette = await page.evaluate(() => {
       // The palette's own rows: since D-111 the three colours of one's own are rows of the
       // same shape under their own groups, and they are not roles the palette works out.
-      const rows = [...document.querySelectorAll('.roles[aria-labelledby="design-palette-label"] .role')];
+      const rows = [...document.querySelectorAll('#group-colours-palette .role')];
       const reset = document.querySelector('.palette-reset');
       return {
         rows: rows.length,
@@ -495,20 +513,19 @@ export default {
       await new Promise((resolve) => { setTimeout(resolve, 1200); });
     };
 
-    await openTab(page, 'shape');
+    await openSection(page, 'space');
     await mark();
-    await press('label.segment:has(input[name="radius"][value="pill"])');
+    await press('label.segment:has(input[name="radius"][value="pill"]:not([form]))');
     const survivedTokens = await marked();
-    // Where the header breaks out is on the Header tab since D-111, and shown only on a
+    // Where the header breaks out is in Layout & widths since D-157, and shown only on a
     // boxed page since D-122 — so the page is boxed first, if it is not, and the mark set
     // again after that change, which is markup of its own.
-    await openTab(page, 'page');
+    await openSection(page, 'layout');
     const wasBoxed = await page.evaluate(() => (document.querySelector('input[name="boxed"]:checked') || {}).value);
     if (wasBoxed !== 'yes') {
       await press('label.segment:has(input[name="boxed"][value="yes"])');
     }
     await mark();
-    await openTab(page, 'header');
     await press('label.segment:has(input[name="header_bleed"][value="full"])');
     const survivedMarkup = await marked();
     report.verdict('a change that is only tokens does not reload the page in the frame',
@@ -517,10 +534,9 @@ export default {
       + ` after a header bleed it ${survivedMarkup ? 'SURVIVED' : 'was reloaded'}`);
     await page.click('label.segment:has(input[name="header_bleed"][value="sheet"])');
     if (wasBoxed !== 'yes') {
-      await openTab(page, 'page');
       await page.click(`label.segment:has(input[name="boxed"][value="${wasBoxed}"])`);
     }
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
 
     /*
      * ---- the toolbar over the picture (PLAN.md D-060) ----------------------------------
@@ -625,7 +641,7 @@ export default {
     // Something unpublished to compare AGAINST: without it both sides are the same picture
     // and the check says nothing. Put back afterwards, so what this leaves on the screen is
     // what it found — the checks below read the state the bar is in.
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
     const seedWas = await page.$eval('#design-seed', (el) => el.value);
     await page.$eval('#design-seed', (el) => {
       el.value = '#2d6a4f';
@@ -658,7 +674,7 @@ export default {
      * The width is a slider now, and what it says in rem has to be what the page is actually
      * laid out to — the one place a number on a control can quietly mean nothing.
      */
-    await openTab(page, 'shape');
+    await openSection(page, 'layout');
     const widthNow = await page.$eval('#design-container', (el) => el.value);
     await page.$eval('#design-container', (el) => {
       el.value = '44';
@@ -704,11 +720,11 @@ export default {
       const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
       return inside ? getComputedStyle(inside.documentElement).getPropertyValue('--space-m').trim() : '';
     });
-    await openTab(page, 'shape');
+    await openSection(page, 'space');
     // A segment, deliberately: the width is a slider (D-062) and a slider is the one control
     // this screen still waits 250ms for. A closed set is a row of radios now (D-065), and
     // pressing one is a change like any other.
-    await page.click('label.segment:has(input[name="spacing"][value="generous"])');
+    await page.click('label.segment:has(input[name="spacing"][value="generous"]:not([form]))');
     await page.waitForFunction((was) => {
       const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
       return inside && getComputedStyle(inside.documentElement).getPropertyValue('--space-m').trim() !== was;
@@ -836,7 +852,7 @@ export default {
      */
     // Back to the screen: the checks above left the browser on the site itself.
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
     // No panel to open any more: the seven roles that can be the owner's are rows in the one
     // palette list, in the open (D-074).
     const inkBefore = await page.$eval('#design-color_text', (el) => el.value);
@@ -901,7 +917,7 @@ export default {
      * of the screen. The rule it asserts — a colour can be given back — is unchanged.
      */
     await clickAndWait(page, '.palette-reset');
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
     report.verdict('the palette takes its colours back when asked',
       await page.$$eval('[data-by-hand-switch]', (boxes) => boxes.every((b) => !b.checked)),
       'every role is the palette\'s again');
@@ -916,14 +932,16 @@ export default {
     const KEPT = 'Suite kept design';
     await applyCharacter(page, BASE, 'bold', 'save');
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
     await retype(page, '#design-seed', '#123456').catch(() => {});
     const keptSeed = await page.$eval('#design-seed', (el) => el.value);
+    // Your designs is at the foot of the home (D-157).
+    await openSection(page, 'home');
     await retype(page, '#library_name', KEPT);
     await clickAndWait(page, 'button[form="design-form"][value="library:save"]', 40000);
 
     const afterKeeping = await page.evaluate((name) => ({
-      listed: [...document.querySelectorAll('.appearance-rail .rail-card-name')].map((h) => h.textContent.trim()),
+      listed: [...document.querySelectorAll('.design-row-name')].map((h) => h.textContent.trim()),
       said: (document.querySelector('.notice') || {}).textContent?.trim() ?? '',
       stillOnScreen: document.querySelector('#design-seed').value,
     }), KEPT);
@@ -935,20 +953,21 @@ export default {
     // Now throw the screen away with a character, and bring the kept design back.
     await applyCharacter(page, BASE, 'brutalist', 'save');
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-    const useButton = await page.$$eval('.appearance-rail .rail-card', (cards, name) => {
-      const card = cards.find((c) => c.querySelector('.rail-card-name').textContent.trim() === name);
+    const useButton = await page.$$eval('.design-row', (cards, name) => {
+      const card = cards.find((c) => c.querySelector('.design-row-name').textContent.trim() === name);
       return card ? card.querySelector('[value^="library:use:"]').value : '';
     }, KEPT);
     await clickAndWait(page, `button[form="design-form"][value="${useButton}"]`, 40000);
-    await openTab(page, 'colour');
+    await openSection(page, 'colours');
     const broughtBack = await page.$eval('#design-seed', (el) => el.value);
     report.verdict('a kept design comes back exactly as it was kept', broughtBack === keptSeed,
       `kept ${keptSeed}, came back ${broughtBack}`);
 
-    // And deleting it takes only itself.
+    // And deleting it takes only itself — from its row, at the foot of the home.
+    await openSection(page, 'home');
     const deleteButton = useButton.replace('library:use:', 'library:delete:');
     await clickAndWait(page, `button[form="design-form"][value="${deleteButton}"]`, 40000);
-    const left = await page.$$eval('.appearance-rail .rail-card-name', (hs) => hs.map((h) => h.textContent.trim()));
+    const left = await page.$$eval('.design-row-name', (hs) => hs.map((h) => h.textContent.trim()));
     report.verdict('the scenario takes its kept design away again', !left.includes(KEPT),
       `left in the library: ${JSON.stringify(left)}`);
 
@@ -969,39 +988,45 @@ export default {
       const el = els[at];
       return el ? (el.name.match(/^blocks\[([^\]]+)\]/) || [])[1] : null;
     }, target);
+    /*
+     * O-29 IS STILL OPEN: the plain editor's section style is radios under sections[...]
+     * now, so this finds nothing. It is reported and SKIPPED rather than ending the scenario,
+     * which it did on every run since 2026-09-24 — and with it every check below, all of
+     * them about the Appearance screen and none about the editor (found again for D-157).
+     */
     if (!key) {
-      report.fail('the scenario itself', `the form has no section ${target} to restyle`);
-      return;
+      report.fail('the scenario itself', `the form has no section ${target} to restyle (O-29)`);
+    } else {
+      await page.select(`select[name="blocks[${key}][style][surface]"]`, 'contrast');
+      await page.select(`select[name="blocks[${key}][style][rhythm]"]`, 'airy');
+      await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
+
+      await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
+      const after = await sectionClasses(page);
+      await report.shot(page, 'section-style-changed');
+
+      const changed = before.map((cls, i) => cls !== after[i] ? i : null).filter((i) => i !== null);
+      report.verdict('changing one section\'s surface and rhythm changes only that section',
+        changed.length === 1 && changed[0] === target,
+        `sections that changed: ${JSON.stringify(changed)}; section ${target} is now "${after[target]}"`);
+
+      // ---- design only, then reset sections ------------------------------------------------
+      const handTuned = after[target];
+      await applyCharacter(page, BASE, presets[0], 'save');
+      await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
+      const afterDesignOnly = await sectionClasses(page);
+      report.verdict('"design only" leaves section styles alone',
+        afterDesignOnly[target] === handTuned,
+        `section ${target}: "${handTuned}" -> "${afterDesignOnly[target]}"`);
+
+      await applyCharacter(page, BASE, presets[0], 'save_composition');
+      await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
+      const afterReset = await sectionClasses(page);
+      await report.shot(page, 'after-reset-sections');
+      report.verdict('"save and reset section styles" rewrites them',
+        afterReset[target] !== handTuned,
+        `section ${target}: "${handTuned}" -> "${afterReset[target]}"`);
     }
-    await page.select(`select[name="blocks[${key}][style][surface]"]`, 'contrast');
-    await page.select(`select[name="blocks[${key}][style][rhythm]"]`, 'airy');
-    await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
-
-    await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
-    const after = await sectionClasses(page);
-    await report.shot(page, 'section-style-changed');
-
-    const changed = before.map((cls, i) => cls !== after[i] ? i : null).filter((i) => i !== null);
-    report.verdict('changing one section\'s surface and rhythm changes only that section',
-      changed.length === 1 && changed[0] === target,
-      `sections that changed: ${JSON.stringify(changed)}; section ${target} is now "${after[target]}"`);
-
-    // ---- design only, then reset sections ------------------------------------------------
-    const handTuned = after[target];
-    await applyCharacter(page, BASE, presets[0], 'save');
-    await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
-    const afterDesignOnly = await sectionClasses(page);
-    report.verdict('"design only" leaves section styles alone',
-      afterDesignOnly[target] === handTuned,
-      `section ${target}: "${handTuned}" -> "${afterDesignOnly[target]}"`);
-
-    await applyCharacter(page, BASE, presets[0], 'save_composition');
-    await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
-    const afterReset = await sectionClasses(page);
-    await report.shot(page, 'after-reset-sections');
-    report.verdict('"save and reset section styles" rewrites them',
-      afterReset[target] !== handTuned,
-      `section ${target}: "${handTuned}" -> "${afterReset[target]}"`);
 
     // ---- the four things the owner saw (D-078) -------------------------------------------
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
@@ -1009,7 +1034,7 @@ export default {
       const stage = document.querySelector('.preview-stage');
       const select = document.querySelector('.zoom select');
       const name = document.querySelector('#library_name');
-      const rail = name && name.closest('.appearance-rail');
+      const rail = name && name.closest('.appearance-inspector');
       const toggle = document.querySelector('[data-hints-toggle]');
       return {
         // The frame is scaled but laid out at full size, so the stage used to report a
@@ -1031,8 +1056,10 @@ export default {
         hints: {
           shown: toggle ? !toggle.hidden : false,
           state: document.querySelector('[data-inspector]').getAttribute('data-hints'),
-          visible: [...document.querySelectorAll('.appearance-inspector .hint')].filter((h) => h.getClientRects().length > 0).length,
-          total: document.querySelectorAll('.appearance-inspector .hint').length,
+          // Not the ones that belong to a question or a verdict (`.hint-always`, D-157): those
+          // are not teaching, and stay.
+          visible: [...document.querySelectorAll('.appearance-inspector .hint:not(.hint-always)')].filter((h) => h.getClientRects().length > 0).length,
+          total: document.querySelectorAll('.appearance-inspector .hint:not(.hint-always)').length,
         },
       };
     });
@@ -1063,10 +1090,10 @@ export default {
     await page.click('[data-hints-toggle]');
     const asked = await page.evaluate(() => ({
       state: document.querySelector('[data-inspector]').getAttribute('data-hints'),
-      visible: [...document.querySelectorAll('.appearance-inspector .hint')].filter((h) => h.getClientRects().length > 0).length,
+      visible: [...document.querySelectorAll('.appearance-inspector .hint:not(.hint-always)')].filter((h) => h.getClientRects().length > 0).length,
     }));
-    // Only the OPEN tab's hints are rendered — the other four panels are closed — so what
-    // this asserts is that asking brought some back, against none while it was off.
+    // Only the OPEN view's hints are rendered — the others are hidden — so what this
+    // asserts is that asking brought some back, against none while it was off.
     report.verdict('asking for the hints brings them back',
       asked.state === 'on' && asked.visible > 0 && seen.hints.visible === 0,
       `${seen.hints.visible} shown while off -> ${asked.visible} when asked, of ${seen.hints.total} in the column`);
@@ -1074,21 +1101,29 @@ export default {
 
     // ---- or a colour of your own (D-076) -------------------------------------------------
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-    await openTab(page, 'page');
+    await openSection(page, 'layout');
+    // The page's own colour is offered around a boxed page only (D-122).
+    if (await page.$eval('input[name="boxed"][value="yes"]', (el) => !el.checked)) {
+      await page.click('label.segment:has(input[name="boxed"][value="yes"])');
+    }
     const ownAtRest = await page.evaluate(() => {
       const field = document.querySelector('.own-colour');
       const input = field && field.querySelector('input[type="color"]');
       const free = field && field.querySelector('.own-colour-free');
       return {
         there: field !== null,
-        // No control is ever invisible at rest (CLAUDE.md): the picker is a real square.
+        // No control is ever invisible at rest (CLAUDE.md): the picker is a real square, the
+        // size of the palette's own swatches since D-111 made it a row of the same shape.
+        // This said 40px, written for the lone square before D-111, and was never reached
+        // again while O-29 ended the scenario above it.
         picker: input === null ? null : Math.round(input.getBoundingClientRect().width),
+        square: input !== null && Math.round(input.getBoundingClientRect().width) === Math.round(input.getBoundingClientRect().height),
         // And the one that undoes it is NOT there until there is something to undo.
         freeShown: free !== null && getComputedStyle(free).display !== 'none',
       };
     });
     report.verdict('the page offers a colour of its own, and nothing to undo yet',
-      ownAtRest.there && ownAtRest.picker >= 40 && !ownAtRest.freeShown,
+      ownAtRest.there && ownAtRest.picker >= 24 && ownAtRest.square && !ownAtRest.freeShown,
       JSON.stringify(ownAtRest));
     await report.shot(page, 'own-colour-page');
 
@@ -1107,7 +1142,7 @@ export default {
       afterPicking.on && afterPicking.freeShown, JSON.stringify(afterPicking));
 
     // The header's own colour, published, and what the page then really draws.
-    await openTab(page, 'header');
+    await openSection(page, 'header');
     await page.$eval('input[name="header_colour"]', (el) => {
       el.value = '#1b3a2f';
       el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1146,7 +1181,7 @@ export default {
 
     // Give it back, and the site returns to the palette's shade with nothing left behind.
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-    await openTab(page, 'header');
+    await openSection(page, 'header');
     await clickAndWait(page, 'button[form="design-form"][name="action"][value="colour:free:header_colour"]');
     await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]');
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });

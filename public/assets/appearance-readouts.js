@@ -170,12 +170,73 @@
     }
   }
 
+  /*
+   * THE LAYOUT DIAGRAM, MOVED (D-157). The rectangles are the server's, worked out by the one
+   * class that draws them (LayoutDiagram); this writes their numbers into the SVG's own
+   * attributes and does no geometry of its own.
+   */
+  function drawDiagram(diagram) {
+    Object.keys(diagram || {}).forEach(function (part) {
+      var rect = document.querySelector('[data-diagram="' + part.replace(/"/g, '') + '"]');
+      if (!rect) {
+        return;
+      }
+      ['x', 'y', 'width', 'height'].forEach(function (name) {
+        rect.setAttribute(name, String(diagram[part][name]));
+      });
+    });
+  }
+
+  /*
+   * THE CONTRAST CHECK IN ONE LINE (D-160): all readable, or how many are not, whether
+   * "Fix automatically" can reach them — a pair a colour by hand is blamed for — and whether
+   * some fail because of the main colour itself, which no button can fix.
+   */
+  var failsAtLoad = document.querySelector('[data-contrast-fails]');
+  var gaugeOpenedForFailure = !!failsAtLoad && !failsAtLoad.hidden;
+
+  function showContrast(pairs) {
+    var box = document.querySelector('[data-contrast]');
+    if (!box || pairs.length === 0) {
+      return;
+    }
+    var failing = pairs.filter(function (pair) {
+      return !pair.passes;
+    });
+    var byHand = failing.filter(function (pair) {
+      return /^color_|_colour$/.test(pair.decision);
+    });
+    var ok = box.querySelector('[data-contrast-ok]');
+    var fails = box.querySelector('[data-contrast-fails]');
+    var count = box.querySelector('[data-contrast-count]');
+    var tally = box.querySelector('[data-contrast-tally]');
+    var fix = box.querySelector('[data-contrast-fix]');
+    var seed = box.querySelector('[data-contrast-seed]');
+    var list = box.querySelector('.gauge-more');
+    if (ok) ok.hidden = failing.length > 0;
+    if (fails) fails.hidden = failing.length === 0;
+    if (tally) tally.textContent = (pairs.length - failing.length) + '/' + pairs.length;
+    if (count) {
+      count.textContent = (count.getAttribute(failing.length === 1 ? 'data-one' : 'data-many') || '').replace(':count', String(failing.length));
+    }
+    if (fix) fix.hidden = byHand.length === 0;
+    if (seed) seed.hidden = failing.length === byHand.length;
+    // The list opens by itself when something starts failing, once: after that it is the
+    // owner's to close, and a list that keeps reopening under them is a list that fights back.
+    if (list && failing.length > 0 && !gaugeOpenedForFailure) {
+      list.open = true;
+    }
+    gaugeOpenedForFailure = failing.length > 0;
+  }
+
   document.addEventListener('appearance:answer', function (event) {
     var answer = event.detail || {};
     showErrors(answer.errors || {});
     showColors(answer.colors || {});
     showPairs(answer.pairs || []);
+    showContrast(answer.pairs || []);
     showReadouts(answer.readouts);
+    drawDiagram(answer.diagram);
     drawSpecimen();
   });
 

@@ -4,27 +4,22 @@ use App\Modules\Settings\ChromeWords;
 use App\Modules\Settings\SiteChrome;
 
 /**
- * The footer tab of the Appearance screen (PLAN.md D-111, D-113, D-115). Included by
- * appearance.php, whose variables and helpers it reads — see header.php for why the two
- * are apart.
+ * Footer (PLAN.md D-111, D-113, D-115, D-157): how it is arranged, which menu each column
+ * shows, what it stands on — and, until they move to Navigation, its words. How far it
+ * reaches is in Layout & widths, with every other width.
  *
  * THE FOOTER IS COLUMNS OF CONTENT (D-115): up to three, each a title, words and a menu. The
  * arrangement says how many are drawn; the menus are the same in every language and stand
  * with the look; the titles and words are per language and stand with the words.
  *
- * Where the footer breaks out of the sheet is a DESIGN decision (Tokens, D-067) and stays
- * stored as one; it is shown here because this is where a person setting up the footer looks
- * for it.
+ * Included by appearance.php inside its section, with the closures of parts/controls.php
+ * and parts/words.php in scope.
  *
- * @var array<string, string> $decisions
- * @var array<string, string> $errors
- * @var callable(string): string $error
- * @var callable(string, array<array-key, string>, string=, string=): string $segmented
- * @var callable(string, list<string>): array<string, string> $labels
- * @var callable(string): string $lookGroup one chrome choice as a row of buttons
- * @var callable(string): string $ownColour the header's or footer's colour of its own
- * @var callable(string, string, string): string $wordsPanel one language's words, folded or not
- * @var callable(string, string): string $word a stored word
+ * @var Closure(string): string $lookGroup one chrome choice as a row of buttons
+ * @var Closure(string): string $ownColour
+ * @var Closure(string, string, string): string $wordsPanel
+ * @var Closure(string, string): string $word
+ * @var Closure(string, string, string, bool=): string $group
  * @var array<int, array<string, mixed>> $locales
  * @var array<int, string> $footerMenus each column's menu: `header`, `none`, or a name (D-115)
  * @var list<string> $menus every menu name on offer
@@ -71,36 +66,36 @@ $richInline = static function (string $name, string $value, string $code, string
 
     return $html;
 };
+ob_start();
 ?>
-            <fieldset class="fieldset">
-                <?= $lookGroup('footer_layout') ?>
-                <?php /* Each column's menu (D-115): none, the header's, or a menu of its own,
-                         by name, so each language's menu of that name is the column's. The
-                         same in every language, so it stands with the look. */ ?>
+                    <?= $lookGroup('footer_layout') ?>
+                    <?php /* How many columns the MENU runs in: a question only the Columns
+                             arrangement asks, so only there is it offered (admin-appearance.css). */ ?>
+                    <?= $lookGroup('footer_columns') ?>
+                    <?= $lookGroup('footer_links') ?>
+                    <?= $lookGroup('small_print_row') ?>
+<?php $arrangement = (string) ob_get_clean(); ob_start(); ?>
+                    <?php /* Each column's menu (D-115): none, the header's, or a menu of its own,
+                             by name, so each language's menu of that name is the column's. */ ?>
 <?php foreach (range(1, SiteChrome::FOOTER_COLUMNS) as $n): ?>
 <?php $chosen = $footerMenus[$n] ?? ''; ?>
-                <div class="field">
-                    <label for="footer_menu_<?= e((string) $n) ?>"><?= e(t('chrome.footer_column_menu', ['n' => (string) $n])) ?></label>
-                    <select id="footer_menu_<?= e((string) $n) ?>" name="footer_menu_<?= e((string) $n) ?>" aria-describedby="footer_menu_<?= e((string) $n) ?>-hint">
-                        <option value="<?= e(SiteChrome::FOOTER_MENU_NONE) ?>"<?= $chosen === SiteChrome::FOOTER_MENU_NONE || $chosen === '' ? ' selected' : '' ?>><?= e(t('chrome.menu_none')) ?></option>
-                        <option value="<?= e(SiteChrome::FOOTER_MENU_HEADER) ?>"<?= $chosen === SiteChrome::FOOTER_MENU_HEADER ? ' selected' : '' ?>><?= e(t('chrome.footer_menu_same')) ?></option>
+                    <div class="field">
+                        <label for="footer_menu_<?= e((string) $n) ?>"><?= e(t('chrome.footer_column_menu', ['n' => (string) $n])) ?></label>
+                        <select id="footer_menu_<?= e((string) $n) ?>" name="footer_menu_<?= e((string) $n) ?>" aria-describedby="footer_menu_<?= e((string) $n) ?>-hint">
+                            <option value="<?= e(SiteChrome::FOOTER_MENU_NONE) ?>"<?= $chosen === SiteChrome::FOOTER_MENU_NONE || $chosen === '' ? ' selected' : '' ?>><?= e(t('chrome.menu_none')) ?></option>
+                            <option value="<?= e(SiteChrome::FOOTER_MENU_HEADER) ?>"<?= $chosen === SiteChrome::FOOTER_MENU_HEADER ? ' selected' : '' ?>><?= e(t('chrome.footer_menu_same')) ?></option>
 <?php foreach ($menus as $name): ?>
-                        <option value="<?= e($name) ?>"<?= $chosen === $name ? ' selected' : '' ?>><?= e($name) ?></option>
+                            <option value="<?= e($name) ?>"<?= $chosen === $name ? ' selected' : '' ?>><?= e($name) ?></option>
 <?php endforeach; ?>
-                    </select>
-                    <span class="hint" id="footer_menu_<?= e((string) $n) ?>-hint"><?= e($n === 1 ? t('chrome.footer_menu_hint') : t('chrome.footer_column_menu_hint')) ?></span>
-                </div>
+                        </select>
+                        <span class="hint" id="footer_menu_<?= e((string) $n) ?>-hint"><?= e($n === 1 ? t('chrome.footer_menu_hint') : t('chrome.footer_column_menu_hint')) ?></span>
+                    </div>
 <?php endforeach; ?>
-                <?= $lookGroup('footer_links') ?>
-                <?= $lookGroup('footer_columns') ?>
-                <?= $lookGroup('small_print_row') ?>
-                <?= $lookGroup('footer_surface') ?>
-                <?= $ownColour('footer_colour') ?>
-                <?= $lookGroup('footer_edge') ?>
-                <div class="when-boxed" data-when-boxed><?= $segmented('footer_bleed', $labels('footer_bleed', App\Modules\Design\Tokens::BLEED)) ?></div>
-                <?= $segmented('footer_width', $labels('footer_width', App\Modules\Design\Tokens::FOOTER_WIDTH)) ?>
-            </fieldset>
-
+<?php $menusGroup = (string) ob_get_clean(); ob_start(); ?>
+                    <?= $lookGroup('footer_surface') ?>
+                    <?= $ownColour('footer_colour') ?>
+                    <?= $lookGroup('footer_edge') ?>
+<?php $background = (string) ob_get_clean(); ob_start(); ?>
 <?php foreach ($locales as $locale): ?>
 <?php
     $code = (string) $locale['code'];
@@ -108,30 +103,35 @@ $richInline = static function (string $name, string $value, string $code, string
     ob_start();
 ?>
 <?php foreach (ChromeWords::COLUMN_FIELDS as $n => [$titleName, $textName]): ?>
-                <?php /* One column's words (D-115): a title and a line or two under it. The
-                         arrangement says whether the column is drawn; what is typed for a
-                         column that is not drawn is kept. */ ?>
-                <div class="stack footer-column-words">
-                    <p class="field-label"><?= e(t('chrome.footer_column', ['n' => (string) $n])) ?></p>
-                    <div class="field">
-                        <label for="<?= e($field($titleName)) ?>"><?= e(t('chrome.footer_column_title')) ?></label>
-                        <input type="text" id="<?= e($field($titleName)) ?>" name="<?= e($field($titleName)) ?>"
-                               maxlength="80" value="<?= e($word($code, $titleName)) ?>">
+                    <?php /* One column's words (D-115): a title and a line or two under it. The
+                             arrangement says whether the column is drawn; what is typed for a
+                             column that is not drawn is kept. */ ?>
+                    <div class="stack footer-column-words">
+                        <p class="field-label"><?= e(t('chrome.footer_column', ['n' => (string) $n])) ?></p>
+                        <div class="field">
+                            <label for="<?= e($field($titleName)) ?>"><?= e(t('chrome.footer_column_title')) ?></label>
+                            <input type="text" id="<?= e($field($titleName)) ?>" name="<?= e($field($titleName)) ?>"
+                                   maxlength="80" value="<?= e($word($code, $titleName)) ?>">
+                        </div>
+                        <div class="field">
+                            <label for="<?= e($field($textName)) ?>"><?= e(t('chrome.text')) ?></label>
+                            <?= $richInline($field($textName), $word($code, $textName), $code, $field($textName) . '-hint') ?>
+                            <span class="hint" id="<?= e($field($textName)) ?>-hint"><?= e(t('chrome.text_hint')) ?></span>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label for="<?= e($field($textName)) ?>"><?= e(t('chrome.text')) ?></label>
-                        <?= $richInline($field($textName), $word($code, $textName), $code, $field($textName) . '-hint') ?>
-                        <span class="hint" id="<?= e($field($textName)) ?>-hint"><?= e(t('chrome.text_hint')) ?></span>
-                    </div>
-                </div>
 <?php endforeach; ?>
 
-                <div class="field">
-                    <label for="<?= e($field('small_print')) ?>"><?= e(t('chrome.small_print')) ?></label>
-                    <input type="text" id="<?= e($field('small_print')) ?>" name="<?= e($field('small_print')) ?>"
-                           maxlength="255" value="<?= e($word($code, 'small_print')) ?>"
-                           aria-describedby="<?= e($field('small_print')) ?>-hint">
-                    <span class="hint" id="<?= e($field('small_print')) ?>-hint"><?= e(t('chrome.small_print_hint')) ?></span>
-                </div>
+                    <div class="field">
+                        <label for="<?= e($field('small_print')) ?>"><?= e(t('chrome.small_print')) ?></label>
+                        <input type="text" id="<?= e($field('small_print')) ?>" name="<?= e($field('small_print')) ?>"
+                               maxlength="255" value="<?= e($word($code, 'small_print')) ?>"
+                               aria-describedby="<?= e($field('small_print')) ?>-hint">
+                        <span class="hint" id="<?= e($field('small_print')) ?>-hint"><?= e(t('chrome.small_print_hint')) ?></span>
+                    </div>
 <?= $wordsPanel($code, t('chrome.words.footer'), (string) ob_get_clean()) ?>
 <?php endforeach; ?>
+<?php $wordsGroup = (string) ob_get_clean(); ?>
+                <?= $group('footer', 'arrangement', $arrangement) ?>
+                <?= $group('footer', 'menus', $menusGroup) ?>
+                <?= $group('footer', 'background', $background) ?>
+                <?= $group('footer', 'words', $wordsGroup) ?>

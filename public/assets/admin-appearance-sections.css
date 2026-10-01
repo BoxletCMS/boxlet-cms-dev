@@ -1,0 +1,100 @@
+/* THE INSPECTOR'S VIEWS on the Appearance screen (PLAN.md D-157): the home and the six
+ * sections, one column without a script and one at a time with appearance-sections.js; a
+ * section's head with its way back and its reset; and the questions over them. Split from
+ * admin-appearance-inspector.css past 300 lines: that file is how a decision is made, this
+ * one is where it stands. Admin tokens only (--ui-*). */
+
+/* ---- the home and the sections (PLAN.md D-157) ----------------------------------------- */
+
+/* WITHOUT A SCRIPT the home and the six sections are one column, each section starting under
+   a rule of its own; appearance-sections.js shows one at a time by the `hidden` attribute,
+   which this display would otherwise overrule. */
+.inspector-view {
+  display: grid;
+  align-content: start;
+  min-inline-size: 0;
+}
+
+.inspector-view[hidden] {
+  display: none;
+}
+
+.inspector-section {
+  margin-block-start: var(--ui-5);
+  padding-block-start: var(--ui-3);
+  border-block-start: 2px solid var(--ui-line-strong);
+}
+
+.views-ready .inspector-section {
+  margin-block-start: 0;
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.section-head {
+  display: grid;
+  justify-items: start;
+  gap: var(--ui-1) var(--ui-2);
+  padding-block-end: var(--ui-2);
+  border-block-end: var(--ui-border) solid var(--ui-line);
+}
+
+.section-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-1);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-2);
+  min-inline-size: 0;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.section-title .icon {
+  color: var(--ui-accent);
+}
+
+/* Offered only while the section holds a change, as a reset beside one control is. */
+.section-reset {
+  display: none;
+  white-space: nowrap;
+}
+
+.inspector-section.has-changes .section-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-1);
+}
+
+/* The questions and notices over the controls (parts/panels.php). */
+.inspector-panels {
+  display: grid;
+  gap: var(--ui-2);
+  margin-block-end: var(--ui-2);
+}
+
+.inspector-panels:empty {
+  display: none;
+}
+
+.inspector-panels .appearance-notice {
+  border-radius: var(--ui-radius-m);
+}
+
+/* The boxed page's own controls are rows like any other, with the room a group gives them. */
+.control-group-body .when-boxed {
+  display: grid;
+  gap: var(--ui-4);
+}
+
+.appearance-inspector > .hints-toggle {
+  margin-block-end: var(--ui-2);
+}

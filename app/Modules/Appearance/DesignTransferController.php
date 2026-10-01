@@ -262,9 +262,9 @@ final class DesignTransferController
         return preg_match(DesignSet::ID_PATTERN, $slug) === 1 ? $slug : 'my-design';
     }
 
-    private function appearance(): AppearanceController
+    private function appearance(): AppearanceScreen
     {
-        return new AppearanceController($this->container);
+        return new AppearanceScreen($this->container);
     }
 
     private function db(): Db

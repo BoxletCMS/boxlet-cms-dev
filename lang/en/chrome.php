@@ -46,8 +46,6 @@ return [
     'chrome.look_intro' => 'Each choice follows the character until you pick something else. Colours come from the palette, so every combination stays readable.',
     // On the Appearance screen the follow state is a segment and a badge (D-065): the
     // segment names what the character gives, the badge says the choice is still its.
-    'chrome.look.follow_short' => 'Follow: :value',
-    'chrome.look.following' => 'following',
     'chrome.look.follow' => 'As the character has it: :value',
     // Arrangement and behaviour are two choices since D-112; the old header_layout values
     // are read as pairs of them (ChromeLook::LEGACY).

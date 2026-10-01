@@ -50,7 +50,6 @@ return [
     // worked out are the same palette, so they are named the same way — by their role, in
     // design.color.* below — and only what can be DONE to them differs.
     'design.palette' => 'Palette',
-    'design.palette_hint' => 'Worked out from the two colours above. Seven of them you can set yourself; the rest are chosen against whatever they sit on, and Publish refuses a pair that cannot be read.',
     // Beside a colour of the owner's own that is still the palette's shade (D-111).
     'design.by_hand.palette' => 'palette',
     'design.by_hand.computed' => 'computed',
@@ -104,7 +103,6 @@ return [
     'design.spacing' => 'Spacing',
     // The seven steps of the spacing scale drawn as a ramp under the Shape controls. The key
     // was on screen as itself from D-065 until D-110, because nothing looked for a bare key.
-    'design.space_ramp' => 'Spacing scale',
     'design.spacing.compact' => 'Compact',
     'design.spacing.normal' => 'Normal',
     'design.spacing.roomy' => 'Roomy',
@@ -128,23 +126,22 @@ return [
     'design.container.full' => 'Full',
 
     'design.page' => 'The page',
-    'design.page_hint' => 'How the whole page sits: whether it is a sheet with a margin around it, and what that margin looks like.',
     // THE OWNER'S MODEL (PLAN.md D-123): what the header's CONTENTS line up with — the text,
-    // the box, or the window — under the key that always held it (`header_width`), while the
-    // bar's own width is `header_bleed` below.
-    'design.header_width' => 'Header content',
+    // the sheet, or the window — under the key that always held it (`header_width`), while the
+    // bar's own reach is `header_bleed` below. Worded as the two questions they are since
+    // they stand side by side in Layout & widths (D-157).
+    'design.header_width' => 'Header content aligns with',
     'design.header_width.content' => 'Text',
-    'design.header_width.full' => 'Boxed',
-    'design.header_width.window' => 'Full',
-    'design.footer_width' => 'Footer content',
+    'design.header_width.full' => 'Sheet',
+    'design.header_width.window' => 'Window',
+    'design.footer_width' => 'Footer content aligns with',
     'design.footer_width.content' => 'Text',
-    'design.footer_width.full' => 'Boxed',
-    'design.footer_width.window' => 'Full',
+    'design.footer_width.full' => 'Sheet',
+    'design.footer_width.window' => 'Window',
     'design.boxed' => 'Boxed page',
     'design.boxed.no' => 'No',
     'design.boxed.yes' => 'Yes',
     'design.page_background' => 'Around the page',
-    'design.page_background_hint' => 'The colour around the boxed page. Drawn from the palette, so it is checked like every other colour.',
     'design.sheet_width' => 'Sheet width',
     'design.sheet_gap' => 'Room above and below',
     'design.frame' => 'Side margin',
@@ -160,15 +157,15 @@ return [
     'design.sheet_shadow.none' => 'No',
     'design.sheet_shadow.shadow' => 'Shadow',
     'design.sheet_shadow.hairline' => 'Hairline',
-    'design.header_bleed' => 'Header width',
-    'design.footer_bleed' => 'Footer width',
+    'design.header_bleed' => 'Header bar spans',
+    'design.footer_bleed' => 'Footer bar spans',
     // One label per decision AND value, which is the convention section_test enforces:
     // "design.header_bleed.sheet", not a shared "design.bleed.sheet" that no rule would
     // ever look for.
-    'design.header_bleed.sheet' => 'Boxed',
-    'design.header_bleed.full' => 'Full',
-    'design.footer_bleed.sheet' => 'Boxed',
-    'design.footer_bleed.full' => 'Full',
+    'design.header_bleed.sheet' => 'Sheet',
+    'design.header_bleed.full' => 'Window',
+    'design.footer_bleed.sheet' => 'Sheet',
+    'design.footer_bleed.full' => 'Window',
 
     'design.page_background.surface' => 'Tinted',
     'design.page_background.border' => 'Border',
@@ -177,12 +174,10 @@ return [
     'design.header_colour' => 'Or a colour of your own',
     'design.footer_colour' => 'Or a colour of your own',
 
-    'design.contrast.title' => 'Readable contrast',
     'design.contrast.intro' => 'Every pair of colours text can land on, measured. WCAG AA asks for 4.5:1, and Save refuses a pair below it.',
     'design.contrast.sample' => 'Aa',
     'design.contrast.pass' => 'passes',
     'design.contrast.fail' => 'too low',
-    'design.contrast.more' => 'The other :count pairs',
     'design.contrast.all_pass' => 'Every pair passes.',
 
     'design.error.color' => 'Enter a colour as #rrggbb.',
@@ -206,7 +201,6 @@ return [
     'design.caps.follow' => 'Follow',
     'design.caps.no' => 'No',
     'design.caps.yes' => 'Yes',
-    'design.follows_pairing' => 'from the typeface',
     'design.error.contrast' => ':pair is :ratio:1; WCAG AA needs at least :required:1.',
     'design.pair.text_on_background' => 'Text on the background',
     'design.pair.muted_on_background' => 'Muted text on the background',

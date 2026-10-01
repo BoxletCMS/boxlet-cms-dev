@@ -15,7 +15,7 @@
  * screenshot would otherwise carry this one's words.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait, controlsOnPanels, retype, openTab } from '../harness.mjs';
+import { login, clickAndWait, controlsOnPanels, retype, openSection } from '../harness.mjs';
 
 const MARKER = 'Zz chrome';
 
@@ -52,25 +52,25 @@ export default {
     // two, and the header and footer are now the fifth tab of this one.
     await clickAndWait(page, '.rail-nav a[href$="/admin/appearance"]');
 
-    // ---- the two tabs that used to be a screen of their own (D-059, D-111) ------------
-    if (!await openTab(page, 'header')) {
-      report.fail('chrome: the header tab', 'the Appearance screen has no tabs');
+    // ---- the two sections that used to be a screen of their own (D-059, D-111, D-157) ----
+    if (!await openSection(page, 'header')) {
+      report.fail('chrome: the header section', 'the Appearance screen has no sections');
       return;
     }
     const shape = await page.evaluate(() => ({
-      // One group for the choices, then the words: a fieldset with one language, a
-      // <details> per language with several.
-      panels: document.querySelectorAll('[data-panel="header"] fieldset, [data-panel="header"] details.words').length,
-      headings: Array.from(document.querySelectorAll('[data-panel="header"] legend, [data-panel="header"] details.words > summary')).map((h) => h.textContent.trim()),
-      footerPanels: document.querySelectorAll('[data-panel="footer"] fieldset, [data-panel="footer"] details.words').length,
-      logoNote: !!document.querySelector('[data-panel="header"] a[href$="/admin/settings"]'),
-      menuSelect: !!document.querySelector('[data-panel="header"] [name="header_menu"]'),
-      footerText: !!document.querySelector('[data-panel="footer"] [name="footer_text_en"]'),
+      // Groups for the choices, then the words: one group, with a <details> per language
+      // when there are several.
+      panels: document.querySelectorAll('[data-view="header"] .control-group').length,
+      headings: Array.from(document.querySelectorAll('[data-view="header"] .control-group-title, [data-view="header"] details.words > summary')).map((h) => h.textContent.trim()),
+      footerPanels: document.querySelectorAll('[data-view="footer"] .control-group').length,
+      logoNote: !!document.querySelector('[data-view="header"] a[href$="/admin/settings"]'),
+      menuSelect: !!document.querySelector('[data-view="header"] [name="header_menu"]'),
+      footerText: !!document.querySelector('[data-view="footer"] [name="footer_text_en"]'),
       bareKeys: (document.body.textContent.match(/chrome\.[a-z_]+/g) || []).slice(0, 3),
     }));
 
-    // One group for the choices, plus one per enabled locale for the words — on each tab.
-    report.verdict('each tab groups its choices and then its words per language',
+    // Groups for the choices, then one for the words — in each section.
+    report.verdict('each section groups its choices and then its words',
       shape.panels >= 2 && shape.headings.length >= 1 && shape.footerPanels >= 2 && shape.footerText,
       `header: ${shape.panels} panels ${JSON.stringify(shape.headings)}; footer: ${shape.footerPanels} panels, footer text ${shape.footerText}`);
     // The logo moved to Settings → Branding (D-038); this screen says where it went.
@@ -83,10 +83,10 @@ export default {
     report.verdict('no untranslated key is showing', shape.bareKeys.length === 0,
       shape.bareKeys.length === 0 ? 'every string came from a language file' : JSON.stringify(shape.bareKeys));
 
-    await controlsOnPanels(page, report, 'header tab');
+    await controlsOnPanels(page, report, 'header section');
     await report.shot(page, '01-chrome-screen');
-    await openTab(page, 'footer');
-    await controlsOnPanels(page, report, 'footer tab');
+    await openSection(page, 'footer');
+    await controlsOnPanels(page, report, 'footer section');
 
     const before = await readChrome(page);
 
@@ -96,8 +96,8 @@ export default {
       // field on a tab that is not open has no box to type into. The footer's text is rich
       // text since D-113: typed into the editor, with the whole of it selected first, the
       // way a person replaces a line — and with a link in it, which is what rich text is for.
-      await openTab(page, 'footer');
-      const footerEditor = '[data-panel="footer"] .ProseMirror';
+      await openSection(page, 'footer');
+      const footerEditor = '[data-view="footer"] .ProseMirror';
       await page.waitForSelector(footerEditor, { timeout: 10000 });
       await page.click(footerEditor);
       await page.keyboard.down('Control');
@@ -111,17 +111,17 @@ export default {
         await page.keyboard.press('ArrowLeft');
         await page.keyboard.up('Shift');
       }
-      await page.click('[data-panel="footer"] [data-rt="link"]');
-      await page.type('[data-panel="footer"] .rt-link-input', 'hello@example.com', { delay: 10 });
-      await page.click('[data-panel="footer"] [data-rt-link="apply"]');
-      await openTab(page, 'header');
+      await page.click('[data-view="footer"] [data-rt="link"]');
+      await page.type('[data-view="footer"] .rt-link-input', 'hello@example.com', { delay: 10 });
+      await page.click('[data-view="footer"] [data-rt-link="apply"]');
+      await openSection(page, 'header');
       await retype(page, '[name="header_button_label_en"]', `${MARKER} button`);
       // An address of its own, so the page chooser first goes back to "another address".
       await page.select('[name="header_button_page_en"]', '');
       await retype(page, '[name="header_button_url_en"]', '/contact');
       await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
-      await openTab(page, 'header');
+      await openSection(page, 'header');
       const after = await readChrome(page);
       report.verdict('what was typed is saved and comes back',
         after.text.includes(`${MARKER} footer`) && after.text.includes('mailto:hello@example.com') && after.label === `${MARKER} button`,
@@ -172,15 +172,15 @@ export default {
     } finally {
       // Put every word back, whatever happened above.
       await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-      await openTab(page, 'footer');
+      await openSection(page, 'footer');
       // Put the stored HTML back through the plain view of the editor, which is the
       // textarea underneath; its value reaches the field that carries the name.
-      await page.click('[data-panel="footer"] [data-richtext-toggle]');
-      await page.$eval('[data-panel="footer"] textarea[data-richtext-source]', (el, value) => {
+      await page.click('[data-view="footer"] [data-richtext-toggle]');
+      await page.$eval('[data-view="footer"] textarea[data-richtext-source]', (el, value) => {
         el.value = value;
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }, before.text);
-      await openTab(page, 'header');
+      await openSection(page, 'header');
       // A page the button pointed at is put back as that page, not as its address. The
       // label goes last: choosing a page may offer its title in place of the text.
       await page.select('[name="header_button_page_en"]', before.page);
@@ -190,7 +190,7 @@ export default {
       await retype(page, '[name="header_button_label_en"]', before.label);
       await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
-      await openTab(page, 'header');
+      await openSection(page, 'header');
       const restored = await readChrome(page);
       report.verdict('the scenario puts the chrome back',
         restored.text === before.text && restored.label === before.label,

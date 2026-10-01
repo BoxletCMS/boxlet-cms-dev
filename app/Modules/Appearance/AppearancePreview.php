@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Modules\Design\Characters;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\Derived;
@@ -17,6 +18,7 @@ use App\Modules\Design\Tokens;
 use App\Modules\Design\Typography;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageLayoutData;
+use App\Modules\Settings\ChromeLook;
 use App\Support\Url;
 
 /**
@@ -176,13 +178,21 @@ final class AppearancePreview
         $decisions = $result['decisions'];
         $byHand = Tokens::byHand($decisions);
         $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
+        $pairs = Palette::pairs($colors, $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions));
+        $character = is_string($request->query['character'] ?? null) && Presets::exists($request->query['character'])
+            ? $request->query['character']
+            : Composition::active($this->db());
+        $look = SectionSummaries::answered(ChromeLook::fromRequest($request->query), Characters::look($character));
         $body = json_encode([
             'errors' => (object) $result['errors'],
             'colors' => $colors,
-            'pairs' => Palette::pairs($colors, $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions)),
+            'pairs' => $pairs,
             // What every control comes to, so a readout follows the control it belongs to
-            // instead of holding the number the page was rendered with (D-066).
-            'readouts' => AppearanceForm::readouts($decisions),
+            // instead of holding the number the page was rendered with (D-066) — and the
+            // line under each section's name on the home, by the same rule (D-157).
+            'readouts' => AppearanceForm::readouts($decisions) + SectionSummaries::of($decisions, $look, $pairs),
+            // The layout diagram's rectangles, worked out where the screen draws them.
+            'diagram' => LayoutDiagram::geometry($decisions),
         ], JSON_THROW_ON_ERROR);
 
         return new Response($body, 200, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);

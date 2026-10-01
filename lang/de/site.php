@@ -26,6 +26,5 @@ return [
     'site.embed.googlemaps' => 'Karte',
     'site.embed.play' => 'Video abspielen',
     'site.embed.show_map' => 'Karte anzeigen',
-    'site.embed.on_press' => 'lädt erst beim Klick',
     'site.embed.unknown' => 'Boxlet kann ein Video von YouTube oder Vimeo und eine Karte von OpenStreetMap oder Google Maps zeigen. Diese Adresse ist keine davon.',
 ];

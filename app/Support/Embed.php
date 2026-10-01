@@ -24,17 +24,6 @@ namespace App\Support;
  */
 final class Embed
 {
-    /**
-     * Each provider's own name, as a visitor reads it beside Play (D-147). A proper noun in
-     * every language, so it is written here once rather than in seven language files.
-     */
-    public const PROVIDERS = [
-        'youtube' => 'YouTube',
-        'vimeo' => 'Vimeo',
-        'openstreetmap' => 'OpenStreetMap',
-        'googlemaps' => 'Google Maps',
-    ];
-
     /** How wide a map's box is at each zoom level, in degrees of longitude. */
     private const MAP_SPAN = 360.0;
 

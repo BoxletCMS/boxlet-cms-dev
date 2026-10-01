@@ -32,9 +32,8 @@
 
 /* THE PRESS (D-147). Until a visitor presses, a video or a Google map is this link: the
    site's own cover picture filling the frame, and in the middle a button in the section's
-   button colours, which the design layer already holds to contrast on every surface, with
-   a plate under it saying where the thing comes from. Both are solid, so they read over a
-   picture of any brightness without a veil. Without a cover the frame is the placeholder
+   button colours, which the design layer already holds to contrast on every surface. It is
+   solid, so it reads over a picture of any brightness without a veil. Without a cover the frame is the placeholder
    every other block uses. */
 .embed-play {
   position: relative;
@@ -92,17 +91,36 @@
   clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
-.embed-play-source {
-  padding: var(--space-xs) var(--space-s);
-  background: var(--section-card);
-  border-radius: var(--radius-s);
-  color: var(--section-text);
-  font-size: var(--text-sm);
+/* A YOUTUBE VIDEO'S PLAY IS YOUTUBE'S OWN BUTTON (D-149, the owner's choice): red, with a
+   white triangle, as in YouTube's player. An IMAGE, not a colour of the site's: it is
+   YouTube's mark, the way a logo is a picture, and the rule that a front-end stylesheet
+   never holds a colour of its own stands. Its words are kept for a screen reader only:
+   white on YouTube's red is 4.0:1, below what the site holds text to, and as an icon it
+   needs 3:1, which it has. */
+.embed-play-youtube {
+  inline-size: 4.25rem;
+  aspect-ratio: 68 / 48;
+  background-image: url("embed-youtube.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  transition: transform 120ms ease;
+}
+
+.provider-youtube .embed-play-text {
+  position: absolute;
+  inline-size: 1em;
+  block-size: 1em;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Hover and focus raise the button; it is legible at rest either way. */
 .embed-play:hover .embed-play-text,
-.embed-play:focus-visible .embed-play-text {
+.embed-play:focus-visible .embed-play-text,
+.embed-play:hover .embed-play-youtube,
+.embed-play:focus-visible .embed-play-youtube {
   transform: scale(1.06);
 }
 
@@ -113,7 +131,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .embed-play-text {
+  .embed-play-text,
+  .embed-play-youtube {
     transition: none;
   }
 }

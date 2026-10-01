@@ -225,7 +225,10 @@ test('a video and a Google map wait for a press, and an OpenStreetMap map does n
     assertTrue(!str_contains($video, 'allow-popups') && !str_contains($video, 'allow-top-navigation'), 'the deferred sandbox widened');
     assertContains('data-embed-title="Our &quot;big&quot; day"', $video, 'the frame\'s name, escaped');
     assertContains('Play video', $video, 'the press says what it does');
-    assertContains('YouTube · loads only when pressed', $video, 'and where it comes from');
+    // YouTube's own red button, an image; the words stay, for a screen reader (D-149). The
+    // plate saying where the video comes from was taken off at the owner's request.
+    assertContains('class="embed-play-youtube"', $video, 'YouTube\'s own button');
+    assertTrue(!str_contains($video, 'loads only when pressed'), 'the plate under the button is back');
     // No cover chosen: the placeholder frame, never an <img> of the provider's.
     assertContains('is-bare', $video, 'the bare frame');
     assertTrue(!str_contains($video, 'ytimg'), 'a thumbnail from YouTube is drawn');
@@ -253,4 +256,17 @@ test('a video\'s cover is the site\'s own picture', function (): void {
     );
     assertContains('/m/wide/7-spain', $html, 'the cover, from the site\'s own variants');
     assertTrue(!str_contains($html, 'is-bare'), 'a cover was drawn as the bare frame');
+});
+
+test('only a YouTube video wears YouTube\'s button; a Vimeo video and a map keep the site\'s', function (): void {
+    $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    foreach (['https://vimeo.com/148751763', 'https://www.google.com/maps/@45.8131,15.9775,16z'] as $url) {
+        $html = $blocks->render('embed', ['url' => $url, 'ratio' => 'wide'], [], 'full', [], false, 'none', [], 'en');
+        assertTrue(!str_contains($html, 'embed-play-youtube'), "{$url} wears YouTube's button");
+    }
+    // The red is in the image, never in a stylesheet: blocks_test.php refuses a literal colour
+    // in blocks-embed.css, and this is where the colour went instead.
+    $svg = (string) file_get_contents(dirname(__DIR__) . '/public/assets/embed-youtube.svg');
+    assertContains('fill="#f00"', $svg, 'YouTube\'s red');
+    assertTrue(!preg_match('~<script|on[a-z]+=|href=~i', $svg), 'the button image can run or link anything');
 });

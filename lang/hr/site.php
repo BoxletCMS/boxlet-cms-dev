@@ -26,6 +26,5 @@ return [
     'site.embed.googlemaps' => 'Karta',
     'site.embed.play' => 'Pokreni video',
     'site.embed.show_map' => 'Prikaži kartu',
-    'site.embed.on_press' => 'učitava se tek na klik',
     'site.embed.unknown' => 'Boxlet može prikazati videozapis s YouTubea ili Vimea i kartu s OpenStreetMapa ili Google Mapsa. Ta adresa nije nijedna od njih.',
 ];

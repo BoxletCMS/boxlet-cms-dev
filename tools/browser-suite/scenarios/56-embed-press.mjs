@@ -59,14 +59,22 @@ export default {
     const before = await visitor.evaluate(() => ({
       frames: document.querySelectorAll('.embed iframe').length,
       label: (document.querySelector('.embed-play') || {}).textContent.replace(/\s+/g, ' ').trim(),
+      // YouTube's own button, drawn: an image with a size, not an empty span (D-149).
+      button: (() => {
+        const b = document.querySelector('.embed-play-youtube');
+        if (!b) return null;
+        const r = b.getBoundingClientRect();
+        return { width: Math.round(r.width), height: Math.round(r.height), image: getComputedStyle(b).backgroundImage.includes('embed-youtube.svg') };
+      })(),
       script: !!document.querySelector('script[src*="site-embed.js"]'),
     }));
     await shot(report, visitor, '01-before-press');
     report.verdict('before a press, nothing of YouTube is framed or asked for',
       before.frames === 0 && elsewhere.size === 0,
       `${before.frames} frame(s); other hosts asked: ${[...elsewhere].join(', ') || 'none'}`);
-    report.verdict('the press says what it does and where it comes from',
-      /Play video/.test(before.label) && /YouTube/.test(before.label) && before.script, JSON.stringify(before));
+    report.verdict('the press is YouTube\'s red button, and still says Play video to a screen reader',
+      /Play video/.test(before.label) && before.button !== null && before.button.image && before.button.width > 40
+        && before.script, JSON.stringify(before));
 
     await press.click();
     await visitor.waitForSelector('.embed iframe', { timeout: 10000 }).catch(() => {});
@@ -163,8 +171,11 @@ export default {
       .evaluate((k) => !!document.querySelector(`[data-bx-key="${k}"] .embed-play picture`), key).catch(() => false);
     await shot(report, page, '03-cover-taken');
     const isNew = after.value !== '' && !known.includes(after.value);
+    // A block that already has this cover — the owner took it on 2026-09-30 — gets the same
+    // picture back: the library stores the same bytes once. So the field must hold a picture,
+    // a changed one only when it held none.
     report.verdict('the cover is taken from the video, named after it, and drawn on the canvas',
-      after.value !== '' && after.value !== was && drawn,
+      after.value !== '' && (was !== '' || after.value !== was) && drawn && /cover now/.test(after.status),
       `field ${was || '(empty)'} → ${after.value} "${after.name}"; canvas draws it=${drawn}; "${after.status.trim()}"`);
 
     // ---- cleanup: never saved; the new picture goes, by its id ----------------------------

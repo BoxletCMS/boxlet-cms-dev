@@ -13,7 +13,9 @@
  * seven requests to Google, the moment the page opened (measured 2026-09-30) — storage the
  * law treats as a cookie, on a site that promises none. So these providers are drawn as a
  * link: the cover picture, which is the site's own (a still fetched once by the admin, never
- * by the visitor), with Play and where it comes from. site-embed.js turns a press into the
+ * by the visitor), with Play. A YouTube video's Play is YouTube's own red button, an image
+ * (embed-youtube.svg) rather than a colour of the site's (the owner, D-149); its words stay
+ * for a screen reader. site-embed.js turns a press into the
  * frame, playing; without it, the link opens the video or the map on its own site. An
  * OpenStreetMap map stores nothing and is framed at once, as before.
  *
@@ -60,8 +62,10 @@ $allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-pictur
             <?= $tag ?>
 <?php endif; ?>
             <span class="embed-play-label">
+<?php if ($embed['provider'] === 'youtube'): ?>
+                <span class="embed-play-youtube" aria-hidden="true"></span>
+<?php endif; ?>
                 <span class="embed-play-text"><?= e(site_t($video ? 'site.embed.play' : 'site.embed.show_map', $locale)) ?></span>
-                <span class="embed-play-source"><?= e(\App\Support\Embed::PROVIDERS[$embed['provider']]) ?> · <?= e(site_t('site.embed.on_press', $locale)) ?></span>
             </span>
         </a>
     </div>

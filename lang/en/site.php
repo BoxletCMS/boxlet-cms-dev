@@ -30,6 +30,5 @@ return [
     // cannot fix the address, and the owner is looking at it the moment they paste one.
     'site.embed.play' => 'Play video',
     'site.embed.show_map' => 'Show map',
-    'site.embed.on_press' => 'loads only when pressed',
     'site.embed.unknown' => 'Boxlet can show a video from YouTube or Vimeo, and a map from OpenStreetMap or Google Maps. That address is not one of them.',
 ];

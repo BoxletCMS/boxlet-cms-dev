@@ -36,3 +36,5 @@ id_ed25519*
 # belongs in PLAN.md or docs/SPEC.md in our own words.
 /docs/editor_new/
 /docs/design_handoff_admin_v2/
+# Design sets an owner drops in over FTP (PLAN.md D-155): theirs, never the release's.
+/designs/custom/

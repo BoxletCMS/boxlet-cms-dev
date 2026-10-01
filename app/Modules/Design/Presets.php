@@ -179,6 +179,19 @@ final class Presets
             + ['header_colour' => '', 'footer_colour' => ''];
     }
 
+    /**
+     * The decisions no character makes, as get() merges them: no colour by hand, nothing
+     * nudged, no colour of its own, the standard sheet. What a design set that leaves a key
+     * out means by it, and what DesignSet::export() leaves out of a file (D-152).
+     *
+     * @return array<string, string>
+     */
+    public static function neutral(): array
+    {
+        return self::NO_COLOURS_BY_HAND + self::NOTHING_NUDGED
+            + ['page_background_colour' => ''] + self::SHEET + ['header_colour' => '', 'footer_colour' => ''];
+    }
+
     public static function exists(string $name): bool
     {
         return isset(self::ALL[$name]);

@@ -48,6 +48,8 @@ const MUST_HAVE = [
     'boxlet/vendor/autoload.php',
     'boxlet/storage/.htaccess',
     'boxlet/storage/uploads/.htaccess',
+    'boxlet/designs/.htaccess',
+    'boxlet/designs/design-set.schema.json',
     'boxlet/public/assets/vendor/icons.svg',
     'boxlet/public/assets/vendor/world-map.svg',
     'boxlet/.env.example',

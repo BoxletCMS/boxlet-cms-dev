@@ -1,0 +1,627 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "boxlet-design-set-v1",
+    "title": "Boxlet design set (v1)",
+    "description": "A portable Boxlet design: decisions, header and footer look, and optionally a composition, which makes it a character. Generated from the code that validates it; Boxlet's own validator decides. Keys left out of decisions take the neutral defaults. A key Boxlet does not know is left out with a warning.",
+    "type": "object",
+    "required": [
+        "format",
+        "version",
+        "id",
+        "name",
+        "decisions"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "format": {
+            "const": "boxlet-design-set"
+        },
+        "version": {
+            "const": 1
+        },
+        "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+        },
+        "name": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {
+                "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+            },
+            "additionalProperties": {
+                "type": "string",
+                "maxLength": 80
+            }
+        },
+        "description": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {
+                "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+            },
+            "additionalProperties": {
+                "type": "string",
+                "maxLength": 300
+            }
+        },
+        "author": {
+            "type": "string",
+            "maxLength": 80
+        },
+        "tags": {
+            "type": "array",
+            "maxItems": 12,
+            "items": {
+                "type": "string",
+                "maxLength": 32
+            }
+        },
+        "decisions": {
+            "type": "object",
+            "required": [
+                "seed"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "seed": {
+                    "type": "string",
+                    "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+                },
+                "secondary": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "color_background": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "color_card": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "color_surface": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "color_border": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "color_text": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "color_muted": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "color_link": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "typography": {
+                    "enum": [
+                        "editorial",
+                        "classic",
+                        "modern",
+                        "grotesk",
+                        "rounded",
+                        "mono"
+                    ]
+                },
+                "text_size": {
+                    "enum": [
+                        "small",
+                        "normal",
+                        "large",
+                        "larger"
+                    ]
+                },
+                "scale": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number, 1.1 – 1.6"
+                },
+                "nudge_h1": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "integer px, -30 – 40"
+                },
+                "nudge_h2": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "integer px, -12 – 20"
+                },
+                "nudge_sm": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "integer px, -3 – 5"
+                },
+                "heading_weight": {
+                    "enum": [
+                        "",
+                        "400",
+                        "500",
+                        "600",
+                        "700",
+                        "800"
+                    ]
+                },
+                "tracking": {
+                    "enum": [
+                        "",
+                        "tight",
+                        "normal",
+                        "wide"
+                    ]
+                },
+                "caps": {
+                    "enum": [
+                        "",
+                        "no",
+                        "yes"
+                    ]
+                },
+                "spacing": {
+                    "enum": [
+                        "compact",
+                        "normal",
+                        "roomy",
+                        "generous"
+                    ]
+                },
+                "radius": {
+                    "enum": [
+                        "none",
+                        "subtle",
+                        "round",
+                        "pill"
+                    ]
+                },
+                "shadow": {
+                    "enum": [
+                        "none",
+                        "soft",
+                        "hard",
+                        "layered"
+                    ]
+                },
+                "container": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number rem, 36 – 88, step 2; also narrow, normal, wide, full"
+                },
+                "surface_contrast": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ]
+                },
+                "header_width": {
+                    "enum": [
+                        "content",
+                        "full",
+                        "window"
+                    ]
+                },
+                "boxed": {
+                    "enum": [
+                        "no",
+                        "yes"
+                    ]
+                },
+                "page_background": {
+                    "enum": [
+                        "surface",
+                        "border",
+                        "contrast"
+                    ]
+                },
+                "page_background_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "frame": {
+                    "enum": [
+                        "thin",
+                        "narrow",
+                        "normal",
+                        "wide"
+                    ]
+                },
+                "sheet_width": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number rem, 40 – 120, step 2"
+                },
+                "sheet_gap": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "integer spacing units, 0 – 8"
+                },
+                "sheet_radius": {
+                    "enum": [
+                        "square",
+                        "soft",
+                        "round"
+                    ]
+                },
+                "sheet_shadow": {
+                    "enum": [
+                        "none",
+                        "shadow",
+                        "hairline"
+                    ]
+                },
+                "header_bleed": {
+                    "enum": [
+                        "sheet",
+                        "full"
+                    ]
+                },
+                "footer_bleed": {
+                    "enum": [
+                        "sheet",
+                        "full"
+                    ]
+                },
+                "footer_width": {
+                    "enum": [
+                        "content",
+                        "full",
+                        "window"
+                    ]
+                },
+                "header_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "footer_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                }
+            }
+        },
+        "look": {
+            "type": "object",
+            "description": "'' follows the character. A character sets every choice.",
+            "additionalProperties": false,
+            "properties": {
+                "header_arrangement": {
+                    "enum": [
+                        "",
+                        "left",
+                        "inline",
+                        "centred",
+                        "split",
+                        "masthead"
+                    ]
+                },
+                "header_behaviour": {
+                    "enum": [
+                        "",
+                        "static",
+                        "sticky",
+                        "over"
+                    ]
+                },
+                "footer_layout": {
+                    "enum": [
+                        "",
+                        "simple",
+                        "centred",
+                        "columns",
+                        "menu_first",
+                        "three"
+                    ]
+                },
+                "footer_edge": {
+                    "enum": [
+                        "",
+                        "none",
+                        "line",
+                        "slant",
+                        "curve"
+                    ]
+                },
+                "small_print_row": {
+                    "enum": [
+                        "",
+                        "left",
+                        "split",
+                        "centred"
+                    ]
+                },
+                "header_surface": {
+                    "enum": [
+                        "",
+                        "plain",
+                        "tinted",
+                        "contrast",
+                        "gradient"
+                    ]
+                },
+                "footer_surface": {
+                    "enum": [
+                        "",
+                        "plain",
+                        "tinted",
+                        "contrast",
+                        "gradient"
+                    ]
+                },
+                "density": {
+                    "enum": [
+                        "",
+                        "compact",
+                        "normal",
+                        "roomy"
+                    ]
+                },
+                "header_edge": {
+                    "enum": [
+                        "",
+                        "none",
+                        "line",
+                        "shadow"
+                    ]
+                },
+                "logo_size": {
+                    "enum": [
+                        "",
+                        "small",
+                        "medium",
+                        "large"
+                    ]
+                },
+                "brand": {
+                    "enum": [
+                        "",
+                        "logo",
+                        "name",
+                        "both"
+                    ]
+                },
+                "nav_style": {
+                    "enum": [
+                        "",
+                        "plain",
+                        "caps",
+                        "pills",
+                        "bar",
+                        "chips"
+                    ]
+                },
+                "nav_ink": {
+                    "enum": [
+                        "",
+                        "accent",
+                        "ink"
+                    ]
+                },
+                "header_button": {
+                    "enum": [
+                        "",
+                        "filled",
+                        "outline",
+                        "text"
+                    ]
+                },
+                "footer_columns": {
+                    "enum": [
+                        "",
+                        "2",
+                        "3",
+                        "4"
+                    ]
+                },
+                "footer_links": {
+                    "enum": [
+                        "",
+                        "auto",
+                        "list"
+                    ]
+                }
+            }
+        },
+        "composition": {
+            "type": "object",
+            "description": "Present: the set can be a character. Block types this site does not have, and layouts a block does not offer, are left out with a warning.",
+            "required": [
+                "section"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "section": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "surface": {
+                            "enum": [
+                                "plain",
+                                "tinted",
+                                "contrast",
+                                "gradient"
+                            ]
+                        },
+                        "rhythm": {
+                            "enum": [
+                                "tight",
+                                "normal",
+                                "airy"
+                            ]
+                        },
+                        "width": {
+                            "enum": [
+                                "narrow",
+                                "normal",
+                                "wide",
+                                "full"
+                            ]
+                        },
+                        "align": {
+                            "enum": [
+                                "left",
+                                "center"
+                            ]
+                        },
+                        "divider": {
+                            "enum": [
+                                "none",
+                                "line",
+                                "slant",
+                                "curve"
+                            ]
+                        }
+                    }
+                },
+                "surfaces": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "enum": [
+                            "plain",
+                            "tinted",
+                            "contrast",
+                            "gradient"
+                        ]
+                    }
+                },
+                "dividers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "enum": [
+                            "none",
+                            "line",
+                            "slant",
+                            "curve"
+                        ]
+                    }
+                },
+                "layouts": {
+                    "type": "object",
+                    "properties": {
+                        "accordion": {
+                            "enum": [
+                                "list",
+                                "cards"
+                            ]
+                        },
+                        "columns": {
+                            "enum": [
+                                "two",
+                                "three",
+                                "four"
+                            ]
+                        },
+                        "cta": {
+                            "enum": [
+                                "banner",
+                                "beside"
+                            ]
+                        },
+                        "divider": {
+                            "enum": [
+                                "space",
+                                "line"
+                            ]
+                        },
+                        "downloads": {
+                            "enum": [
+                                "list",
+                                "cards"
+                            ]
+                        },
+                        "embed": {
+                            "enum": [
+                                "full",
+                                "inset"
+                            ]
+                        },
+                        "form": {
+                            "enum": [
+                                "stacked",
+                                "beside"
+                            ]
+                        },
+                        "gallery": {
+                            "enum": [
+                                "two",
+                                "three",
+                                "four"
+                            ]
+                        },
+                        "hero": {
+                            "enum": [
+                                "left",
+                                "center",
+                                "split",
+                                "cover-center",
+                                "cover-left",
+                                "cover-right",
+                                "cover-low"
+                            ]
+                        },
+                        "image_text": {
+                            "enum": [
+                                "image-left",
+                                "image-right"
+                            ]
+                        },
+                        "logos": {
+                            "enum": [
+                                "row",
+                                "grid"
+                            ]
+                        },
+                        "picture": {
+                            "enum": [
+                                "full",
+                                "inset"
+                            ]
+                        },
+                        "quote": {
+                            "enum": [
+                                "plain",
+                                "card"
+                            ]
+                        },
+                        "stats": {
+                            "enum": [
+                                "three",
+                                "four"
+                            ]
+                        },
+                        "text": {
+                            "enum": [
+                                "single",
+                                "columns"
+                            ]
+                        }
+                    },
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

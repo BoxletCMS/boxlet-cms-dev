@@ -196,3 +196,22 @@ test('a backup carries designs/custom/, and a restore puts its files back withou
     assertEquals('added after the backup', textOf($dir . '/designs-custom/later.json'), 'an owner\'s file was taken away');
     removeTree($dir);
 });
+
+// CI review, hypothesis 1: reading a custom file validates it, validating asks for the default
+// character, and the default character is in the registry being read. Whichever reader asks
+// first, with nothing cached, it answers, and quickly.
+test('a cold registry answers whichever reader asks first, with or without custom files', function () {
+    $started = microtime(true);
+    Characters::reset();
+    assertEquals([], Tokens::validate(Presets::get(Presets::DEFAULT))['errors'], 'validation first, no custom files');
+
+    withCustomDesigns(['harbour.json' => customFile('harbour')], function () {
+        // use() emptied the cache: validation is the first thing to ask, and asking reads the
+        // custom file, which is validated in turn.
+        assertEquals([], Tokens::validate(Presets::get(Presets::DEFAULT))['errors'], 'validation first, a custom file');
+        assertTrue(Characters::exists('harbour'), 'the custom file');
+        Characters::reset();
+        assertEquals('#1d3557', Presets::get('harbour')['seed'], 'the custom character asked for first');
+    });
+    assertTrue(microtime(true) - $started < 5.0, 'the registry took ' . round(microtime(true) - $started, 1) . 's');
+});

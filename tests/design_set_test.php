@@ -195,3 +195,17 @@ test('the schema is served to the admin, at an address without an extension', fu
     $_SESSION = [];
     assertRedirectedTo('/admin/login', dispatch('/admin/appearance/schema'));
 });
+
+// The owner's review of step 2: a short hex is taken, and kept only in its long form.
+test('a colour given as #rgb is read, and stored and exported as #rrggbb', function () {
+    $raw = sampleSet();
+    $raw['decisions']['seed'] = '#1D3';
+    $raw['decisions']['color_link'] = '#036';
+    $set = parseSet($raw)['set'] ?? fail('nothing was read');
+    assertEquals('#11dd33', $set['decisions']['seed'], 'the seed as stored');
+    assertEquals('#003366', $set['decisions']['color_link'], 'a colour by hand as stored');
+
+    $file = json_decode(DesignSet::export($set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition']), true);
+    assertEquals('#11dd33', $file['decisions']['seed'] ?? null, 'the seed as exported');
+    assertEquals('#003366', $file['decisions']['color_link'] ?? null, 'a colour by hand as exported');
+});

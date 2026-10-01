@@ -54,6 +54,8 @@ return [
     'activity.update.rolled_back' => 'Rolled Boxlet back to :name',
     'activity.settings.cache_on' => 'Turned the page cache on',
     'activity.settings.cache_off' => 'Turned the page cache off',
+    'activity.settings.llms_on' => 'Switched llms.txt on',
+    'activity.settings.llms_off' => 'Switched llms.txt off',
     'activity.settings.logo_svg' => 'Uploaded an SVG logo',
     'activity.settings.logo_svg_removed' => 'Removed the SVG logo',
     'activity.backup.made' => 'Made the backup :name',

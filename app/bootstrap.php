@@ -339,6 +339,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
     $router->post('/admin/settings/cache', [CacheController::class, 'save'], $requireAdmin);
+    $router->post('/admin/settings/llms', [\App\Modules\Settings\LlmsController::class, 'save'], $requireAdmin);
     // An SVG logo, cleaned on upload (D-142).
     $router->post('/admin/settings/logo-svg', [LogoController::class, 'save'], $requireAdmin);
     // Mail (D-045): how the site sends, and a test message to prove it does.

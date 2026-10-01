@@ -17,7 +17,8 @@ use App\Support\Url;
  * search engine instead.
  *
  * robots.txt is written beside it to point at it — but only a robots.txt this site wrote
- * itself, marked on its first line. One the owner put there is never touched.
+ * itself, marked on its first line. One the owner put there is never touched. llms.txt is
+ * written beside it too (LlmsTxt, D-151), by the same rule.
  */
 final class Sitemap
 {
@@ -67,6 +68,8 @@ final class Sitemap
         if ($current === '' || str_starts_with($current, self::MARK)) {
             self::write($robots, self::MARK . "\nUser-agent: *\nDisallow: /admin\n\nSitemap: " . Url::withOrigin(Url::asset('sitemap.xml')) . "\n");
         }
+        // llms.txt lists the same pages, so it is written whenever this is (D-151).
+        LlmsTxt::publish($db, $publicPath);
 
         return true;
     }

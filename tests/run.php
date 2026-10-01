@@ -63,7 +63,16 @@ $annotate = static function (string $name, string $detail): void {
 };
 $failed = 0;
 $skipped = 0;
+/*
+ * SECONDS PER TEST FILE, printed at the end (PLAN.md D-152). A CI leg once took 41 minutes
+ * where the others took 7, and nothing said where: the log needs admin rights, and the
+ * annotations name only failures. The slowest files go to the end of the output, which CI
+ * copies into the job's public summary.
+ */
+$seconds = [];
 foreach (TestSuite::$tests as [$name, $body]) {
+    $group = strstr($name, ':', true) ?: $name;
+    $startedAt = microtime(true);
     $_SESSION = [];
     // A page-path resolver holds the last site's pages (D-129); a test starts with none.
     App\Support\Url::usePaths(null);
@@ -103,10 +112,19 @@ foreach (TestSuite::$tests as [$name, $body]) {
         echo "  FAIL  {$name}\n";
         echo '        ' . failureMessage($e) . "\n";
         $annotate($name, failureMessage($e));
+    } finally {
+        $seconds[$group] = ($seconds[$group] ?? 0.0) + (microtime(true) - $startedAt);
     }
 }
 
 cleanupTestState();
+
+arsort($seconds);
+echo "\nSlowest test files:\n";
+foreach (array_slice($seconds, 0, 12, true) as $group => $spent) {
+    printf("  TIME  %6.1fs  %s\n", $spent, $group);
+}
+printf("  TIME  %6.1fs  all %d files\n", array_sum($seconds), count($seconds));
 
 $total = count(TestSuite::$tests);
 $passed = $total - $failed - $skipped;

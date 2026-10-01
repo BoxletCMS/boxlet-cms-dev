@@ -11,6 +11,8 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    # A job that hangs fails in half an hour instead of holding a runner for six (D-152).
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -84,10 +86,24 @@ jobs:
         if: matrix.php == '8.4'
         run: vendor/bin/phpstan analyse --no-progress
 
+      # Its own limit, under the job's, so the step after it still runs and says where it stopped.
       - name: Run tests
+        timeout-minutes: 25
         run: |
           set -o pipefail
           php tests/run.php 2>&1 | tee /tmp/tests.txt
+
+      # Where the time went, in the job's summary, which anyone can read; and when the tests
+      # ran out of time, the last lines they printed, which name the test that was running.
+      - name: Say where the time went
+        if: always()
+        run: |
+          {
+            echo "### Time per test file"
+            echo '```'
+            grep -E '^  TIME ' /tmp/tests.txt || { echo 'No timings: the run did not finish. Its last lines:'; tail -8 /tmp/tests.txt; } || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Reading a job's log needs admin rights on the repository; the job summary does not.
       # Without this a red run says only "Run tests failed", which is exactly why twelve
@@ -113,6 +129,7 @@ jobs:
   # failure.
   no-images:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     name: PHP 8.4, no image extensions
 
     services:
@@ -162,10 +179,24 @@ jobs:
           php -m
           php -r 'if (extension_loaded("gd") || class_exists("Imagick")) { fwrite(STDERR, "gd or imagick is present; this job tests nothing\n"); exit(1); } echo "no image support, as intended\n";'
 
+      # Its own limit, under the job's, so the step after it still runs and says where it stopped.
       - name: Run tests
+        timeout-minutes: 25
         run: |
           set -o pipefail
           php tests/run.php 2>&1 | tee /tmp/tests.txt
+
+      # Where the time went, in the job's summary, which anyone can read; and when the tests
+      # ran out of time, the last lines they printed, which name the test that was running.
+      - name: Say where the time went
+        if: always()
+        run: |
+          {
+            echo "### Time per test file"
+            echo '```'
+            grep -E '^  TIME ' /tmp/tests.txt || { echo 'No timings: the run did not finish. Its last lines:'; tail -8 /tmp/tests.txt; } || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Name the failing tests where they can be read
         if: failure()

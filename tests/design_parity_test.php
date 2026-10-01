@@ -15,7 +15,8 @@ use App\Modules\Settings\ChromeLook;
  * same header and footer, the same words, the same compiled stylesheet, byte for byte.
  *
  * tests/fixtures/design_parity.json was written ONCE, from this function, on the code before
- * the move (bb0f408) — never from the code after it. It is not regenerated to make this
+ * the move (bb0f408) — never from the code after it — on PHP 8.4, with the stylesheet also
+ * taken on 8.3 from the same code (see below). It is not regenerated to make this
  * pass: a difference here is the move changing a site, and the fix is in the move.
  *
  * WHAT A CHARACTER IS, MEASURED THROUGH WHAT READS IT. The raw composition and look, and the
@@ -96,8 +97,19 @@ test('the five characters are what they were before they moved out of PHP (D-152
 
     assertEquals($snapshot['names'], $now['names'], 'the characters, in their order');
     assertEquals($snapshot['default'], $now['default'], 'the default character');
+    // PHP 8.4 rounds differently (it dropped round()'s pre-rounding), so one size in Bold is
+    // 5.467rem there and 5.468rem before it — measured, and the same on 8.1, 8.2 and 8.3. The
+    // stylesheet is held to what the code before the move wrote ON THIS PHP: both were taken
+    // from bb0f408's code, the second on 8.3 when CI's 8.1–8.3 legs found it.
+    $before84 = PHP_VERSION_ID < 80400;
     foreach ($snapshot['characters'] as $id => $was) {
         foreach ($was as $what => $value) {
+            if (str_ends_with($what, '_before_8_4')) {
+                continue;
+            }
+            if ($before84 && isset($was[$what . '_before_8_4'])) {
+                $value = $was[$what . '_before_8_4'];
+            }
             assertEquals($value, $now['characters'][$id][$what] ?? null, "{$id}: {$what}");
         }
     }

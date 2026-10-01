@@ -5,6 +5,7 @@ namespace App\Modules\Design;
 use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Settings;
+use App\Modules\Admin\Activity;
 
 /**
  * Layer 0 reaching layers 2 and 3: the composition a character gives a site.
@@ -27,6 +28,30 @@ final class Composition
         $name = Settings::get($db, self::SETTING);
 
         return is_string($name) && Presets::exists($name) ? $name : Presets::DEFAULT;
+    }
+
+    /**
+     * The character this site was composed with, when it is gone — a custom file deleted, an
+     * import removed — or null while it exists (PLAN.md D-156).
+     *
+     * ONLY THE ADMIN ASKS. A visitor's page falls back to the default character through
+     * active(), silently, and writes nothing: no request of a visitor's writes to the database
+     * for this. The Appearance screen and the Overview ask here, and the first time a missing
+     * character is seen it goes into the activity log, once, remembered in a setting of its
+     * own so the log does not repeat it on every visit.
+     */
+    public static function missing(Db $db): ?string
+    {
+        $name = Settings::get($db, self::SETTING);
+        if (!is_string($name) || $name === '' || Characters::exists($name)) {
+            return null;
+        }
+        if (Settings::get($db, self::SETTING . '_missing') !== $name) {
+            Activity::record($db, 'design', 'character_missing', null, $name);
+            Settings::set($db, self::SETTING . '_missing', $name);
+        }
+
+        return $name;
     }
 
     public static function remember(Db $db, string $character): void

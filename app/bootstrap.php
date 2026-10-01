@@ -388,6 +388,11 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/appearance/check', [AppearancePreview::class, 'check'], $requireAdmin);
     // The design set format's schema (D-152): JSON, at an address without an extension.
     $router->get('/admin/appearance/schema', [\App\Modules\Appearance\DesignTransferController::class, 'schema'], $requireAdmin);
+    // A design as a file, out and in (D-152); every address without an extension.
+    $router->get('/admin/appearance/export/character/{id:[a-z0-9][a-z0-9-]{0,31}}', [\App\Modules\Appearance\DesignTransferController::class, 'exportCharacter'], $requireAdmin);
+    $router->get('/admin/appearance/export/library/{id:\d+}', [\App\Modules\Appearance\DesignTransferController::class, 'exportLibrary'], $requireAdmin);
+    $router->post('/admin/appearance/import', [\App\Modules\Appearance\DesignTransferController::class, 'import'], $requireAdmin);
+    $router->post('/admin/appearance/import/add', [\App\Modules\Appearance\DesignTransferController::class, 'add'], $requireAdmin);
     // The six typefaces, for the cards that choose between them (D-065).
     $router->get('/admin/appearance/typefaces', [AppearancePreview::class, 'typefaces'], $requireAdmin);
 

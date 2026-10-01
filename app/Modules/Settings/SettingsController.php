@@ -167,7 +167,7 @@ final class SettingsController
             'nav' => 'settings',
             // The picker's own stylesheets and script, the same set the page editor loads.
             'styles' => ['admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css', 'admin-two-step.css', 'admin-settings.css'],
-            'scripts' => ['vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'mail-settings.js', 'settings-nav.js', 'auto-continue.js', 'logo-svg.js'],
+            'scripts' => ['vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'mail-settings.js', 'settings-nav.js', 'auto-continue.js', 'file-sends.js'],
             'values' => $values,
             'errors' => $errors,
             'notice' => $notice,

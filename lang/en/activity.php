@@ -73,6 +73,10 @@ return [
     'activity.design.header_saved' => 'Saved the header and footer',
     'activity.design.kept' => 'Kept the design “:name”',
     'activity.design.deleted' => 'Deleted the kept design “:name”',
+    'activity.design.exported' => 'Exported the design “:name” as a file',
+    'activity.design.imported' => 'Imported the design “:name”',
+    'activity.design.character_deleted' => 'Deleted the character “:name”',
+    'activity.design.character_missing' => 'The character “:name” went missing; the site composes with the default',
 
     'activity.settings.saved' => 'Saved the site settings',
     'activity.settings.mail_saved' => 'Saved how the site sends mail',

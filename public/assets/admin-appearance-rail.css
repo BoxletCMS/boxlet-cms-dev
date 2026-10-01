@@ -34,6 +34,10 @@
 .rail-card {
   position: relative;
   display: grid;
+  /* One column that may be narrower than its content: a long name is cut with an ellipsis
+     (.rail-card-name), never allowed to widen the card past the rail. Measured: a character
+     named "Scenario Harbour" made a card of 304px in a rail of 195, and a scrollbar. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--ui-1);
   padding: var(--ui-2);
   background: var(--ui-panel);
@@ -75,7 +79,7 @@
 }
 
 .rail-live {
-  margin-inline-start: auto;
+  display: inline-block;
   padding: 0 var(--ui-1);
   background: var(--ui-accent-soft);
   border-radius: var(--ui-radius-s);
@@ -140,3 +144,44 @@
   min-inline-size: 0;
 }
 
+
+/* A character an owner added (D-152): said in a word, like the one in use, but in the quiet
+   ink rather than the accent, since it is a fact about where it came from, not about the
+   site. At the start of the second line. */
+.rail-custom {
+  display: inline-block;
+  padding: 0 var(--ui-1);
+  border: var(--ui-border) solid var(--ui-control-line);
+  border-radius: var(--ui-radius-s);
+  color: var(--ui-ink-muted);
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* A design brought in as a file: a labelled file input and its button, under the library. */
+.rail-import {
+  display: grid;
+  gap: var(--ui-2);
+  margin-block-start: var(--ui-4);
+  padding-block-start: var(--ui-3);
+  border-block-start: var(--ui-border) solid var(--ui-line);
+  font-size: var(--ui-text-sm);
+}
+
+.rail-import input[type="file"] {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+/* What the panel and the notices list: a file left out and why, a reason a file was refused,
+   a key left out on the way in. */
+.import-list {
+  margin: var(--ui-1) 0 0;
+  padding-inline-start: var(--ui-4);
+}
+
+.import-confirm .rail-card {
+  max-inline-size: 22rem;
+}

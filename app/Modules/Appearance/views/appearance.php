@@ -43,6 +43,10 @@ use App\Support\Url;
  * @var string $pageName which page the picture is of
  * @var list<array{id: int, title: string, depth: int}> $previewPages the published pages the picture can be of (D-111)
  * @var string $previewUrl
+ * @var array{set: array<string, mixed>, warnings: list<string>}|null $import a design file waiting for an answer (D-152)
+ * @var list<string> $importErrors why a design file was refused
+ * @var list<array{file: string, reason: string}> $skipped the custom design files left out
+ * @var string|null $missingCharacter the character the site was composed with, when it is gone (D-156)
  * @var string $title
  * @var string $csrf
  */
@@ -235,48 +239,7 @@ $wordsPanel = static function (string $code, string $legend, string $inside) use
 /** The six tabs, in the order the questions arrive (D-059, D-111). */
 $tabs = ['colour', 'type', 'shape', 'page', 'header', 'footer'];
 
-/**
- * A character or a saved design in one line, BUILT FROM ITS OWN DECISIONS: "modern · 56rem ·
- * normal · full bleed". Not a sentence somebody wrote about it — a sentence that cannot go
- * out of date.
- *
- * @param array<string, string> $decisions
- */
-$summary = static fn (array $decisions, string $header): string => implode(' · ', array_filter([
-    t('design.typography.' . $decisions['typography']),
-    $decisions['container'] . 'rem',
-    t('design.spacing.' . $decisions['spacing']),
-    t($decisions['boxed'] === 'yes' ? 'appearance.boxed' : 'appearance.full_bleed'),
-    // And what header it gives (D-111): a card that said nothing about the chrome was a
-    // card about half the design.
-    $header === '' ? '' : t('chrome.look.header_arrangement.' . $header),
-]));
-
-/**
- * One card in the left rail: three swatches, a name, what it is, and what it does.
- *
- * @param array<string, string> $decisions
- * @param string $header the header arrangement the card's design gives, '' when unknown
- */
-$card = static function (array $decisions, string $header, string $name, string $badge, string $key, string $inside) use ($swatch, $summary): string {
-    $palette = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
-
-    return '<div class="rail-card' . ($badge !== '' ? ' rail-card-current' : '') . '">'
-        . '<div class="rail-card-top">'
-        . '<span class="rail-chips" aria-hidden="true">'
-        . $swatch($palette['accent'], $key . '-accent')
-        . $swatch($palette['contrast'], $key . '-contrast')
-        . $swatch($palette['surface'], $key . '-surface')
-        . '</span>'
-        . '<span class="rail-card-name">' . e($name) . '</span>'
-        // The badge is the WORD, not a glyph: "in use" is a fact about the site, and a dot
-        // that means it is a dot somebody has to be taught.
-        . ($badge !== '' ? '<span class="rail-live">' . e($badge) . '</span>' : '')
-        . $inside
-        . '</div>'
-        . '<p class="rail-card-shape">' . e($summary($decisions, $header)) . '</p>'
-        . '</div>';
-};
+require __DIR__ . '/cards.php';
 ?>
         <div class="appearance" data-appearance>
             <?php /* THE BAR. Everything that acts on the whole screen: what it is on the
@@ -324,6 +287,8 @@ $card = static function (array $decisions, string $header, string $name, string 
                 <div class="preview-actions">
                     <button type="submit" form="design-preview-form" class="button button-quiet" data-preview-button><?= e(t('design.update_preview')) ?></button>
                     <a class="button button-quiet" href="<?= e(Url::admin('appearance')) ?>" data-revert hidden><?= e(t('appearance.revert')) ?></a>
+                    <?php /* The screen's design as a file (D-152): what is on it, published or not. */ ?>
+                    <button type="submit" form="design-form" name="action" value="export" class="button button-quiet"><?= icon('download') ?> <?= e(t('appearance.export')) ?></button>
                     <button type="submit" form="design-form" name="action" value="save" class="button"><?= e(t('appearance.publish')) ?></button>
                 </div>
             </div>
@@ -349,6 +314,8 @@ $card = static function (array $decisions, string $header, string $name, string 
             </div>
 <?php endif; ?>
 
+<?php require __DIR__ . '/import.php'; ?>
+
             <?php /* ONE FORM AROUND ALL THREE COLUMNS. The character cards, the library and
                      every control post the same screen — that is what stopped a character
                      load from clearing the header (D-059) — so the form IS the layout. */ ?>
@@ -358,56 +325,7 @@ $card = static function (array $decisions, string $header, string $name, string 
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="character" value="<?= e($character) ?>">
 
-                <div class="appearance-rail" id="appearance-rail">
-                    <h2 class="rail-heading"><?= e(t('appearance.characters')) ?> <span><?= e(t('appearance.characters_hint')) ?></span></h2>
-<?php foreach (Presets::names() as $preset): ?>
-                    <?= $card(
-                        Presets::get($preset),
-                        Characters::look($preset)['header_arrangement'],
-                        Characters::label($preset),
-                        $preset === $activeCharacter ? t('design.preset.current') : '',
-                        'preset-' . $preset,
-                        '<button type="submit" form="design-form" name="action" value="preset:' . e($preset) . '" class="rail-use">'
-                            . '<span class="visually-hidden">' . e(t('design.load_preset')) . ': ' . e(Characters::label($preset)) . '</span></button>',
-                    ) ?>
-<?php endforeach; ?>
-
-                    <h2 class="rail-heading"><?= e(t('appearance.library')) ?>
-                        <span><?= e($library === [] ? t('appearance.library.empty_rail') : t('appearance.library_count', ['count' => count($library)])) ?></span></h2>
-<?php foreach ($library as $saved): ?>
-                    <?= $card(
-                        $saved['decisions'],
-                        // Its own choice, else its character's, else nothing to say.
-                        ($saved['look']['header_arrangement'] ?? '') !== '' ? $saved['look']['header_arrangement'] : (Characters::exists($saved['character']) ? Characters::look($saved['character'])['header_arrangement'] : ''),
-                        $saved['name'],
-                        '',
-                        'saved-' . $saved['id'],
-                        '<span class="rail-card-tools">'
-                            . '<button type="submit" form="design-form" name="action" value="library:save:' . $saved['id'] . '" class="icon-button" title="' . e(t('appearance.library.overwrite', ['name' => $saved['name']])) . '">'
-                            . icon('replace') . '<span class="visually-hidden">' . e(t('appearance.library.overwrite', ['name' => $saved['name']])) . '</span></button>'
-                            . '<button type="submit" form="design-form" name="action" value="library:delete:' . $saved['id'] . '" class="icon-button" title="' . e(t('appearance.library.delete_one', ['name' => $saved['name']])) . '">'
-                            . icon('trash-2') . '<span class="visually-hidden">' . e(t('appearance.library.delete_one', ['name' => $saved['name']])) . '</span></button>'
-                            . '</span>'
-                            . '<button type="submit" form="design-form" name="action" value="library:use:' . $saved['id'] . '" class="rail-use">'
-                            . '<span class="visually-hidden">' . e(t('appearance.library.use')) . ': ' . e($saved['name']) . '</span></button>',
-                    ) ?>
-<?php endforeach; ?>
-
-                    <div class="rail-keep">
-                        <?php /* A .field, so it is the admin's own input rather than the
-                                 browser's (D-078). It carried only a width, so what was
-                                 drawn was a 2px inset border on rgb(59, 59, 59) with a
-                                 content-box width of 100% — which is how it came to touch
-                                 the edge of the column. */ ?>
-                        <div class="field">
-                            <label class="visually-hidden" for="library_name"><?= e(t('appearance.library.name')) ?></label>
-                            <input type="text" id="library_name" name="library_name" maxlength="80" value="" autocomplete="off"
-                                   placeholder="<?= e(t('appearance.library.name')) ?>">
-                            <?= $error('library_name') ?>
-                        </div>
-                        <button type="submit" form="design-form" name="action" value="library:save" class="button button-secondary"><?= e(t('appearance.library.save')) ?></button>
-                    </div>
-                </div>
+<?php require __DIR__ . '/rail.php'; ?>
 
                 <div class="appearance-stage-column">
                     <?php /* The strip says WHAT is in the frame and at what size: a preview

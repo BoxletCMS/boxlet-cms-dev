@@ -46,15 +46,37 @@ final class AppearanceController
      */
     public function show(Request $request, string $locale, array $params): Response
     {
+        return $this->screen($this->published(), [], null);
+    }
+
+    /**
+     * What the site is published with: the state the screen opens on.
+     *
+     * @return array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>}
+     */
+    private function published(): array
+    {
         $db = $this->db();
 
-        return $this->screen([
+        return [
             'decisions' => Design::load($db),
             'look' => ChromeLook::stored($db),
             'menu' => SiteChrome::menuName($db),
             'footer_menus' => SiteChrome::footerMenus($db),
             'words' => ChromeWords::stored($db, $this->locales()),
-        ], [], null);
+        ];
+    }
+
+    /**
+     * The screen as show() draws it, with what became of a design file brought in: the set
+     * and its warnings, waiting for an answer, or the reasons it was refused (D-152).
+     *
+     * @param array{set: array<string, mixed>, warnings: list<string>}|null $import
+     * @param list<string> $importErrors
+     */
+    public function withImport(?array $import, array $importErrors): Response
+    {
+        return $this->screen($this->published(), [], null, $importErrors === [] ? 200 : 422, '', false, ['import' => $import, 'importErrors' => $importErrors]);
     }
 
     /**
@@ -67,6 +89,22 @@ final class AppearanceController
     {
         $action = $request->input('action');
         $state = AppearanceForm::read($request, $this->locales());
+
+        // A design as a file (D-152): export what is on the screen, load an import into it,
+        // delete an imported character. Its own controller; this one only hands it the screen.
+        $transfer = (new DesignTransferController($this->container))->fromScreen(
+            $action,
+            $state,
+            Presets::exists($request->input('character')) ? $request->input('character') : '',
+            /**
+             * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
+             * @param array<string, string> $errors
+             */
+            fn (array $state, array $errors, ?string $notice, int $status, string $character): Response => $this->screen($state, $errors, $notice, $status, $character),
+        );
+        if ($transfer !== null) {
+            return $transfer;
+        }
 
         // Loading a character replaces the DESIGN and keeps everything else the owner has
         // typed: their words are not a preference of the character's.
@@ -259,8 +297,9 @@ final class AppearanceController
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
      * @param bool $confirm whether Publish is asking how to apply that character
+     * @param array<string, mixed> $extra more for the view: an import waiting for an answer
      */
-    private function screen(array $state, array $errors, ?string $notice, int $status = 200, string $character = '', bool $confirm = false): Response
+    private function screen(array $state, array $errors, ?string $notice, int $status = 200, string $character = '', bool $confirm = false, array $extra = []): Response
     {
         $db = $this->db();
         $decisions = $state['decisions'];
@@ -285,7 +324,8 @@ final class AppearanceController
                 'admin-appearance-widths.css',
             ],
             // TipTap and the field script that binds it, the same pair the page editor loads.
-            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js'],
+            // A design file is sent when it is chosen (file-sends.js, D-152).
+            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'file-sends.js'],
             // The screen IS the window, as the page editor's canvas is: the admin's rail
             // folds to its icons beside it (D-064).
             'bare' => true,
@@ -323,6 +363,12 @@ final class AppearanceController
             'pageName' => self::previewedPage($db, $shown),
             'previewPages' => self::previewPages($db, $shown),
             'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shown, $character)),
+            // Design files (D-152): one brought in and waiting, why one was refused, the custom
+            // files left out, and a character the site was composed with that is gone (D-156).
+            'import' => $extra['import'] ?? null,
+            'importErrors' => $extra['importErrors'] ?? [],
+            'skipped' => Characters::skipped(),
+            'missingCharacter' => Composition::missing($db),
         ], $status);
     }
 

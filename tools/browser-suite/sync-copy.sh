@@ -46,6 +46,11 @@ rsync -a --exclude custom/ "$checkout/designs/" "$target/designs/"
 # own install deletes.
 rsync -a "$checkout/public/index.php" "$target/public/index.php"
 
+# And its database brought up to the code (CLAUDE.md: a pending migration is applied at once).
+# Without this a sync that carried a new migration left every admin screen of the copy on
+# "Database update needed", and 03-design read that as a screen with no characters (D-152).
+php "$target/migrations/migrate.php"
+
 revision="$(git -C "$checkout" rev-parse HEAD)"
 mkdir -p "$target/storage"
 printf '%s\n' "$revision" > "$target/storage/checkout.rev"

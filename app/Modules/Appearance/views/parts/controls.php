@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Appearance\Overrides;
+use App\Modules\Design\Vocabulary\Decisions;
 use App\Modules\Settings\ChromeLook;
 use App\Support\Controls;
 
@@ -85,9 +86,11 @@ $segmented = static function (string $key, array $labels) use ($decisions, $read
  *
  * @param array<array-key, string> $marks value => name, under the slider
  */
-$slider = static function (string $key, float $min, float $max, float $step, array $marks = []) use ($decisions, $readouts, $rowOptions): string {
+$slider = static function (string $key, float $min, float $max, float $step, array $marks = [], string $labelKey = '') use ($decisions, $look, $readouts, $rowOptions): string {
     $id = 'design-' . $key;
-    $label = t('design.' . $key);
+    $isLook = in_array($key, ChromeLook::keys(), true);
+    $name = $isLook ? ChromeLook::field($key) : $key;
+    $label = t($labelKey !== '' ? $labelKey : 'design.' . $key);
     $options = $rowOptions($key, $label, [
         'for' => $id,
         'readout' => $readouts[$key] ?? '',
@@ -95,9 +98,8 @@ $slider = static function (string $key, float $min, float $max, float $step, arr
         'readoutFor' => $id,
     ]);
 
-    return Controls::row($label, Controls::slider($key, $id, $decisions[$key] ?? '', $min, $max, $step, $marks, ['data-slider-for' => $id . '-value']), $options);
+    return Controls::row($label, Controls::slider($name, $id, ($isLook ? $look : $decisions)[$key] ?? '', $min, $max, $step, $marks, ['data-slider-for' => $id . '-value']), $options);
 };
-
 require __DIR__ . '/pictograms.php';
 /** @var Closure(string, string): string $pictogram */
 
@@ -110,11 +112,21 @@ require __DIR__ . '/pictograms.php';
  * answer, pressed: that is what the header is. Changing the character re-dresses every part
  * left that way. The dot says which the owner chose, and the reset gives one back.
  */
-$lookGroup = static function (string $choice) use ($look, $characterLook, $rowOptions, $pictogram): string {
+$lookGroup = static function (string $choice) use ($look, $characterLook, $rowOptions, $pictogram, &$slider): string {
+    // A number of the header's (its height, the logo's size, how see-through) is a slider.
+    $definition = Decisions::ALL[$choice];
+    if ($definition['type'] === 'number') {
+        $marks = [];
+        foreach ($definition['marks'] ?? [] as $mark => $value) {
+            $marks[(string) $value] = t('chrome.look.' . $choice . '.' . $mark);
+        }
+
+        return $slider($choice, (float) $definition['min'], (float) $definition['max'], (float) $definition['step'], $marks, 'chrome.look.' . $choice);
+    }
     $field = ChromeLook::field($choice);
     $label = t('chrome.look.' . $choice);
     $labels = [];
-    foreach (ChromeLook::OPTIONS[$choice] as $option) {
+    foreach (Decisions::ALL[$choice]['values'] ?? [] as $option) {
         $labels[$option] = t('chrome.look.' . $choice . '.' . $option);
     }
     $current = ($look[$choice] ?? '') !== '' ? $look[$choice] : ($characterLook[$choice] ?? '');
@@ -211,4 +223,30 @@ $typefaceCards = static function (string $form = '') use ($decisions): string {
     }
 
     return $html . '</div>';
+};
+
+/**
+ * ANY GLOBAL DECISION AS ITS CONTROL (D-164), from the one table that defines it: a number
+ * is a slider with its named steps as marks under it, a closed set a row of segments (a look
+ * choice through $lookGroup, which draws arrangements as tiles). Colours have rows of their own.
+ */
+$control = static function (string $key) use (&$slider, &$segmented, &$lookGroup): string {
+    if (in_array($key, ChromeLook::keys(), true)) {
+        return $lookGroup($key);
+    }
+    $definition = Decisions::ALL[$key];
+    if ($definition['type'] === 'number') {
+        $marks = [];
+        foreach ($definition['marks'] ?? [] as $mark => $value) {
+            $marks[(string) $value] = t('design.' . $key . '.' . $mark);
+        }
+
+        return $slider($key, (float) $definition['min'], (float) $definition['max'], (float) $definition['step'], $marks);
+    }
+    $labels = [];
+    foreach ($definition['values'] ?? [] as $value) {
+        $labels[$value] = t('design.' . $key . '.' . $value);
+    }
+
+    return $segmented($key, $labels);
 };

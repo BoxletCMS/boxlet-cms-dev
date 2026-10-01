@@ -75,7 +75,8 @@ final class DesignLibrary
         $name = self::cleanName($name);
         $now = gmdate('Y-m-d H:i:s');
         $existing = $db->one('SELECT id FROM design_library WHERE name = ?', [$name]);
-        $decisionsJson = json_encode(Tokens::validate($decisions)['decisions'], JSON_THROW_ON_ERROR);
+        // The owner's values only (D-164): the decisions half, '' for what follows.
+        $decisionsJson = json_encode(self::decisionsOnly(Tokens::validate($decisions)['decisions']), JSON_THROW_ON_ERROR);
         $lookJson = json_encode(self::cleanLook($look), JSON_THROW_ON_ERROR);
         $character = Presets::exists($character) ? $character : '';
 
@@ -135,7 +136,7 @@ final class DesignLibrary
             'character' => (string) $row['character_name'],
             // Validated on the way out, as everything read from storage is: a value that is
             // not one the screen can show is filled in rather than drawn broken.
-            'decisions' => Tokens::validate(is_array($decisions) ? $decisions : [])['decisions'],
+            'decisions' => self::decisionsOnly(Tokens::validate(is_array($decisions) ? $decisions : [])['decisions']),
             'look' => self::cleanLook(is_array($look) ? $look : []),
         ];
     }
@@ -150,5 +151,17 @@ final class DesignLibrary
     private static function cleanLook(array $look): array
     {
         return ChromeLook::clean($look);
+    }
+
+    /**
+     * The decisions half of a design: everything but the header and footer, which a kept
+     * design holds in its look (D-164).
+     *
+     * @param array<string, string> $values
+     * @return array<string, string>
+     */
+    private static function decisionsOnly(array $values): array
+    {
+        return array_diff_key($values, array_flip(ChromeLook::keys()));
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Modules\Design;
 
 use App\Core\Blocks;
-use App\Modules\Settings\ChromeLook;
+use App\Modules\Design\Vocabulary\Decisions;
 
 /**
  * The three bodies of a design set — decisions, look, composition — each checked by the
@@ -35,7 +35,7 @@ final class DesignSetParts
 
             return [];
         }
-        $known = array_keys(Presets::get(Presets::DEFAULT));
+        $known = Decisions::keys('decisions');
         $given = [];
         foreach ($raw as $key => $value) {
             $key = (string) $key;
@@ -57,49 +57,46 @@ final class DesignSetParts
             return [];
         }
 
-        // Contrast failures arrive here like any other error, and refuse the set (D-154).
-        $result = Tokens::validate($given + Presets::neutral());
+        // Contrast failures arrive here like any other error, and refuse the set (D-154). A
+        // key the set leaves out means what the vocabulary gives it, not the default
+        // character's: a set is drawn from itself.
+        $result = Tokens::validate($given + Decisions::neutral());
         foreach ($result['errors'] as $key => $message) {
             $errors[] = self::field('decisions.' . $key, $message);
         }
 
-        return $result['decisions'];
+        return array_intersect_key($result['decisions'], array_flip($known));
     }
 
     /**
-     * Every header and footer choice. '' follows the character, which a design may do and
-     * a character may not: a character IS what the others follow, so it says all of them.
+     * Every header and footer choice, each from its closed set or within its range. '' — or
+     * a choice left out — follows: for a design, the character; for a character, what the
+     * vocabulary gives (D-164).
      *
      * @param list<string> $errors
      * @return array<string, string>
      */
-    public static function look(mixed $raw, bool $character, array &$errors): array
+    public static function look(mixed $raw, array &$errors): array
     {
+        $look = array_fill_keys(Decisions::keys('look'), '');
         $raw = $raw ?? [];
         if (!is_array($raw)) {
             $errors[] = self::field('look', t('designset.missing'));
 
-            return ChromeLook::clean([]);
+            return $look;
         }
         foreach ($raw as $key => $value) {
             $key = (string) $key;
-            $options = ChromeLook::OPTIONS[$key] ?? null;
-            if ($options === null) {
+            if (!array_key_exists($key, $look)) {
                 $errors[] = self::field('look.' . $key, t('designset.unknown_choice'));
                 continue;
             }
-            if (!is_string($value) || ($value !== '' && !in_array($value, $options, true))) {
+            $clean = Decisions::clean($key, is_int($value) || is_float($value) ? (string) $value : $value);
+            if ($clean === null) {
                 $errors[] = self::field('look.' . $key, t('design.error.choice'));
+                continue;
             }
-        }
-
-        $look = ChromeLook::clean($raw);
-        if ($character) {
-            foreach ($look as $key => $value) {
-                if ($value === '') {
-                    $errors[] = self::field('look.' . $key, t('designset.look_incomplete'));
-                }
-            }
+            $look[$key] = $clean;
         }
 
         return $look;

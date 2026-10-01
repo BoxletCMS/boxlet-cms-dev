@@ -142,7 +142,7 @@ final class PageLayoutData
      */
     private static function design(Db $db): array
     {
-        $decisions = Design::load($db);
+        $decisions = Design::resolved($db);
 
         return ['bleeds' => $decisions, 'own' => Tokens::ownChrome($decisions), 'decisions' => $decisions];
     }
@@ -165,7 +165,7 @@ final class PageLayoutData
         if ($decisions === []) {
             return false;
         }
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], Tokens::byHand($decisions));
+        $colors = Palette::forDecisions($decisions);
         $surface = ($look['header_behaviour'] ?? '') === 'over' ? $firstSurface : ($look['header_surface'] ?? 'plain');
         if (($look['header_behaviour'] ?? '') !== 'over' && isset($own['header'])) {
             $ink = Palette::inksOn($own['header'], $colors)['text'];

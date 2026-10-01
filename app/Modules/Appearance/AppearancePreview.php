@@ -174,15 +174,11 @@ final class AppearancePreview
      */
     public function check(Request $request, string $locale, array $params): Response
     {
-        $result = Tokens::validate(AppearanceForm::decisions($request->query));
-        $decisions = $result['decisions'];
-        $byHand = Tokens::byHand($decisions);
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
-        $pairs = Palette::pairs($colors, $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions));
-        $character = is_string($request->query['character'] ?? null) && Presets::exists($request->query['character'])
-            ? $request->query['character']
-            : Composition::active($this->db());
-        $look = SectionSummaries::answered(ChromeLook::fromRequest($request->query), Characters::look($character));
+        $character = $this->character($request->query);
+        $result = Tokens::validate(self::fields($request->query), $character);
+        $decisions = Tokens::resolve($result['decisions'], $character);
+        $colors = Palette::forDecisions($decisions);
+        $pairs = Palette::pairs($colors, $decisions['secondary'] !== '', Tokens::byHand($decisions), Tokens::ownChrome($decisions));
         $body = json_encode([
             'errors' => (object) $result['errors'],
             'colors' => $colors,
@@ -190,7 +186,7 @@ final class AppearancePreview
             // What every control comes to, so a readout follows the control it belongs to
             // instead of holding the number the page was rendered with (D-066) — and the
             // line under each section's name on the home, by the same rule (D-157).
-            'readouts' => AppearanceForm::readouts($decisions) + SectionSummaries::of($decisions, $look, $pairs),
+            'readouts' => AppearanceForm::readouts($decisions) + SectionSummaries::of($decisions, $pairs),
             // The layout diagram's rectangles, worked out where the screen draws them.
             'diagram' => LayoutDiagram::geometry($decisions),
         ], JSON_THROW_ON_ERROR);
@@ -199,6 +195,9 @@ final class AppearancePreview
     }
 
     /**
+     * The design a request is drawing, every key answered: a character by name, the site's
+     * own when the request says nothing, or what the screen is trying (D-164).
+     *
      * @param array<mixed> $query
      * @return array<string, string>
      */
@@ -206,13 +205,45 @@ final class AppearancePreview
     {
         $preset = $query['preset'] ?? null;
         if (is_string($preset) && Presets::exists($preset)) {
-            return Presets::get($preset);
+            return Characters::decisions($preset);
         }
         if (!isset($query['seed'])) {
-            return Design::load($this->db());
+            return Design::resolved($this->db());
+        }
+        $character = $this->character($query);
+
+        return Tokens::resolve(Tokens::validate(self::fields($query), $character)['decisions'], $character);
+    }
+
+    /**
+     * The screen's fields as decisions: the switches read, and the header and footer's
+     * `look_` fields under their own keys.
+     *
+     * @param array<mixed> $query
+     * @return array<mixed>
+     */
+    private static function fields(array $query): array
+    {
+        $fields = AppearanceForm::decisions($query);
+        foreach (ChromeLook::keys() as $key) {
+            if (array_key_exists(ChromeLook::field($key), $query)) {
+                $fields[$key] = $query[ChromeLook::field($key)];
+            }
         }
 
-        return Tokens::validate(AppearanceForm::decisions($query))['decisions'];
+        return $fields;
+    }
+
+    /**
+     * The character a request draws over: the one it names, else the site's.
+     *
+     * @param array<mixed> $query
+     */
+    private function character(array $query): string
+    {
+        $named = $query['character'] ?? null;
+
+        return is_string($named) && Presets::exists($named) ? $named : Composition::active($this->db());
     }
 
     /**

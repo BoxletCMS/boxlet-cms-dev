@@ -18,7 +18,10 @@ testBothDrivers('a design is kept whole, and comes back as decisions rather than
     assertEquals('Autumn light', $saved['name'] ?? '', 'the name, tidied');
     assertEquals(Presets::get('soft')['seed'], $saved['decisions']['seed'] ?? '', 'the seed it was kept with');
     assertEquals('tinted', $saved['look']['header_surface'] ?? '', 'the header surface');
-    assertEquals('', $saved['look']['density'] ?? 'missing', 'a choice left to the character stays left to it');
+    // array_key_exists apart from the value: `??` reads a stored null as missing.
+    $look = $saved['look'] ?? [];
+    assertTrue(array_key_exists('header_height', $look), 'the bar\'s height is in the look');
+    assertEquals('', $look['header_height'] ?? 'missing', 'a choice left to the character stays left to it');
     assertEquals('soft', $saved['character'] ?? '', 'where it came from');
 
     // Decisions, never derived values: no colour the palette works out is in the row.
@@ -46,11 +49,13 @@ test('a row damaged by hand comes back as something the design layer accepts', f
 
     $saved = DesignLibrary::find($db, $id);
 
-    assertEquals(Presets::get(Presets::DEFAULT)['seed'], $saved['decisions']['seed'] ?? '', 'the seed falls back');
-    assertTrue(in_array($saved['decisions']['scale'] ?? '', App\Modules\Design\Tokens::SCALES, true), 'so does the scale');
+    // A value the vocabulary does not take follows the character (D-164): '' is a value
+    // every key can hold, and the design it resolves to can always be drawn.
+    assertEquals('', $saved['decisions']['seed'] ?? null, 'the seed follows the character');
+    assertEquals('', $saved['decisions']['scale'] ?? null, 'so does the scale');
     // Bound to the source: the chrome gained an eighth choice and a literal 7 would have
     // failed for a change it has nothing to do with.
-    assertEquals(count(ChromeLook::OPTIONS), count($saved['look'] ?? []), 'every chrome choice is there, empty');
+    assertEquals(count(ChromeLook::keys()), count($saved['look'] ?? []), 'every chrome choice is there, empty');
 });
 
 testBothDrivers('the screen keeps what is on it, and the site does not move', function (string $driver) {
@@ -152,4 +157,20 @@ testBothDrivers('writing over a design from its own card needs no name', functio
     assertEquals('#1f1fd1', $again['decisions']['seed'], 'holding what was on the screen');
     assertEquals('Autumn', $again['name'], 'under the name it already had');
     assertEquals(404, adminPost('/admin/appearance', appearanceFields(['action' => 'library:save:4242']))->status, 'one that is gone');
+});
+
+// Found by 03-design on 2026-10-01: a design kept with no character loaded on the screen was
+// kept over none, so the values it left to its character came back as whichever character
+// the site had by then — Bold's colours returned as Brutalist's.
+testBothDrivers('a kept design remembers the character it was kept over, and comes back over it', function (string $driver) {
+    $db = adminSite($driver);
+    App\Modules\Design\Composition::remember($db, 'bold');
+    adminPost('/admin/appearance', appearanceFields(['library_name' => 'Over Bold', 'action' => 'library:save']));
+    $row = $db->one('SELECT id FROM design_library WHERE name = ?', ['Over Bold']);
+    $kept = DesignLibrary::find($db, (int) ($row['id'] ?? 0));
+    assertEquals('bold', $kept['character'] ?? null, 'the site\'s character, with none loaded');
+
+    App\Modules\Design\Composition::remember($db, 'brutalist');
+    $used = adminPost('/admin/appearance', appearanceFields(['action' => 'library:use:' . (int) ($row['id'] ?? 0)]));
+    assertContains('name="character" value="bold"', $used->body, 'it comes back over Bold');
 });

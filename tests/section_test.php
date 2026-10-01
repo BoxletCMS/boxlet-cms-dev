@@ -67,17 +67,23 @@ test('every section style, design choice, colour and pair has an admin label', f
             $keys[] = "style.{$key}.{$value}";
         }
     }
-    foreach (Tokens::choices() as $key => $values) {
+    // The header and footer's are labelled under chrome.look (chrome_look_test).
+    foreach (array_diff_key(allChoices(), lookChoices()) as $key => $values) {
         if ($key !== 'typography') {
             foreach ($values as $value) {
                 $keys[] = "design.{$key}.{$value}";
             }
         }
     }
+    foreach (lookChoices() as $key => $values) {
+        foreach ($values as $value) {
+            $keys[] = "chrome.look.{$key}.{$value}";
+        }
+    }
     foreach (array_keys(Typography::PAIRINGS) as $pairing) {
         $keys[] = "design.typography.{$pairing}";
     }
-    foreach (array_keys(Palette::colors('#2f4f6f', '#ffe600', 'low')) as $color) {
+    foreach (array_keys(Palette::colors('#2f4f6f', '#ffe600', 20.0)) as $color) {
         $keys[] = "design.color.{$color}";
     }
     $source = (string) file_get_contents(dirname(__DIR__) . '/app/Modules/Design/Palette.php');

@@ -16,14 +16,14 @@ use App\Modules\Design\Tokens;
 final class SectionSummaries
 {
     /**
-     * @param array<string, string> $decisions validated decisions
-     * @param array<string, string> $look every look choice answered: the owner's, else the
-     *        character's
+     * @param array<string, string> $decisions the design as drawn, every key answered,
+     *        the header and footer included (D-164)
      * @param list<array{passes: bool}> $pairs the contrast pairs, measured
      * @return array<string, string> readout name => what it says
      */
-    public static function of(array $decisions, array $look, array $pairs): array
+    public static function of(array $decisions, array $pairs): array
     {
+        $look = $decisions;
         $readable = Tokens::readable($decisions);
         $boxed = $decisions['boxed'] === 'yes';
         $sheet = $readable['sheet_width'];
@@ -46,6 +46,10 @@ final class SectionSummaries
                 'radius' => $readable['radius'],
                 'shadow' => t('design.shadow.' . $decisions['shadow']),
             ]),
+            'summary.buttons' => t('inspector.summary.buttons', [
+                'style' => t('design.button_style.' . $decisions['button_style']),
+                'corners' => (float) $decisions['button_radius'] >= 28 ? t('design.button_radius.pill') : $decisions['button_radius'] . ' px',
+            ]),
             'summary.layout' => $boxed
                 ? t('inspector.summary.layout_boxed', ['sheet' => $sheet, 'content' => $content])
                 : t('inspector.summary.layout_full', ['content' => $content]),
@@ -55,24 +59,5 @@ final class SectionSummaries
             'layout.sheet' => $boxed ? t('inspector.layout.sheet', ['sheet' => $sheet]) : t('inspector.layout.full_width'),
             'layout.content' => t('inspector.layout.content', ['content' => $content]),
         ];
-    }
-
-    /**
-     * Every look choice answered: '' means the character's, and a summary says what the
-     * header IS, not that it follows something.
-     *
-     * @param array<string, string> $look
-     * @param array<string, string> $characterLook
-     * @return array<string, string>
-     */
-    public static function answered(array $look, array $characterLook): array
-    {
-        foreach ($characterLook as $choice => $value) {
-            if (($look[$choice] ?? '') === '') {
-                $look[$choice] = $value;
-            }
-        }
-
-        return $look;
     }
 }

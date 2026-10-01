@@ -108,7 +108,8 @@ test('invalid colours and choices are refused and named', function () {
     assertEquals(t('design.error.color'), $result['errors']['seed'] ?? null, 'seed');
     assertEquals(t('design.error.color'), $result['errors']['secondary'] ?? null, 'secondary');
     assertEquals(t('design.error.choice'), $result['errors']['typography'] ?? null, 'typography');
-    assertEquals(Presets::get('minimal')['typography'], $result['decisions']['typography'], 'fallback typography');
+    // Refused values follow the character (D-164): '' is a value every key can hold.
+    assertEquals('', $result['decisions']['typography'], 'fallback typography');
 });
 
 test('compiled tokens carry a content hash and include only the pairing\'s fonts', function () {
@@ -221,7 +222,7 @@ test('a missing stylesheet is recompiled on the next request', function () {
 // ---- Round 2: the loop closes (PLAN.md D-058) -----------------------------------------
 
 test('every pair is measured, and the failures are exactly the ones that do not pass', function () {
-    $colors = App\Modules\Design\Palette::colors('#ffe600', '', 'low');
+    $colors = App\Modules\Design\Palette::colors('#ffe600', '', 20.0);
     $pairs = App\Modules\Design\Palette::pairs($colors, false);
     $failures = App\Modules\Design\Palette::failures($colors, false);
 
@@ -293,11 +294,13 @@ test('the decisions are shown as numbers a person reads, never as CSS', function
     assertContains($readable['text']['base'] . 'px', $numbers, 'the body size');
     assertContains($readable['radius'] . 'px', $numbers, 'the corner radius');
     assertContains($readable['container'] . 'px', $numbers, 'the content width');
-    // rem is allowed only where it is the unit the control is IN: the two width sliders say
-    // "42rem · 672px" and "80rem · 1280px" (the content, and since D-116 the boxed sheet).
-    // Nowhere else may leak the compiler's language, and each gives pixels beside it.
+    // rem is allowed only where it is the unit the control is IN (D-164: a decision that is
+    // a number of rem — the spacing, the content's width, the sheet's, the side margin).
+    // Each gives pixels beside it; nowhere else may leak the compiler's language.
     $remOnly = array_values(array_filter($readouts[1], static fn (string $r): bool => str_contains($r, 'rem')));
-    assertEquals(2, count($remOnly), 'readouts mentioning rem: ' . implode(' | ', $remOnly));
+    $inRem = count(array_filter(App\Modules\Design\Vocabulary\Decisions::ALL, static fn (array $d): bool => ($d['unit'] ?? '') === 'rem'));
+    // The spacing's readout appears twice: in its section and in Quick start's mirror.
+    assertEquals($inRem + 1, count($remOnly), 'readouts mentioning rem: ' . implode(' | ', $remOnly));
     foreach ($remOnly as $readout) {
         assertContains('·', $readout, 'and it gives pixels beside it');
     }
@@ -459,7 +462,7 @@ test('the content width is a number, and a name is not one', function () {
     // something the design layer does not do, and saying so is the whole point of a refusal.
     $wide = Tokens::validate(['container' => '200'] + Presets::get('minimal'));
     assertContains('36', $wide['errors']['container'] ?? '', 'the message names the bounds');
-    assertEquals('56', $wide['decisions']['container'], 'and falls back to the default');
+    assertEquals('', $wide['decisions']['container'], 'and follows the character (D-164)');
     assertTrue(isset(Tokens::validate(['container' => 'enormous'] + Presets::get('minimal'))['errors']['container']), 'a word');
 });
 
@@ -467,14 +470,15 @@ test('the content width reaches the stylesheet as the number that was chosen', f
     $css = (new TokenCompiler())->css(Derived::from(['container' => '64'] + Presets::get('minimal')));
 
     assertContains('--container-width: 64rem;', $css, 'the width');
-    // The narrow and wide containers follow it, so one decision still moves all three.
-    assertContains('--container-narrow: 43.52rem;', $css, 'the narrow one');
-    assertContains('--container-wide: 83.2rem;', $css, 'the wide one');
+    // The narrow and wide containers follow it, so one decision still moves all three: two
+    // thirds and seven sixths since D-164 (README 1.6: 640 / 960 / 1120px at 60rem).
+    assertContains('--container-narrow: 42.667rem;', $css, 'the narrow one');
+    assertContains('--container-wide: 74.667rem;', $css, 'the wide one');
 });
 
 test('the text size moves the type and nothing else', function () {
-    $normal = Derived::from(['text_size' => 'normal'] + Presets::get('minimal'));
-    $larger = Derived::from(['text_size' => 'larger'] + Presets::get('minimal'));
+    $normal = Derived::from(['text_size' => '16'] + Presets::get('minimal'));
+    $larger = Derived::from(['text_size' => '18'] + Presets::get('minimal'));
 
     assertEquals('1rem', $normal['text']['base'], 'the base at normal');
     assertEquals('1.125rem', $larger['text']['base'], 'the base at larger');
@@ -490,9 +494,9 @@ test('the screen offers a text size and a real slider for the width', function (
     adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
-    // A closed set is a row of radios now, not a dropdown (D-065).
-    assertContains('name="text_size" value="large"', $body, 'the text size');
-    assertContains('id="design-text_size-larger"', $body, 'each of its segments');
+    // A number of pixels since D-164, a slider with its old names as marks.
+    assertContains('<input type="range" id="design-text_size" name="text_size" min="14" max="20" step="0.5"', $body, 'the text size');
+    assertContains('>Larger</text>', $body, 'a mark under it');
     assertContains('<input type="range" id="design-container" name="container"', $body, 'the width is a slider');
     assertContains('min="36"', $body, 'its smallest');
     assertContains('max="88"', $body, 'its largest');
@@ -513,11 +517,11 @@ testBothDrivers('a width outside the bounds is refused wherever it arrives, and 
 
 test('a colour set by hand is used exactly, and the ones that depend on it are worked out again', function () {
     $minimal = Presets::get('minimal');
-    $derived = Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast']);
+    $derived = Palette::colors($minimal['seed'], $minimal['secondary'], (float) $minimal['surface_contrast']);
 
     // A near-black page with near-white text: every "ink on a colour" has to flip with it.
     $byHand = ['background' => '#0d0d10', 'text' => '#f4f4f6'];
-    $mine = Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast'], $byHand);
+    $mine = Palette::colors($minimal['seed'], $minimal['secondary'], (float) $minimal['surface_contrast'], $byHand);
 
     assertEquals('#0d0d10', $mine['background'], 'the background is exactly what was set');
     assertEquals('#f4f4f6', $mine['text'], 'and so is the text');
@@ -536,7 +540,7 @@ test('a colour set by hand is used exactly, and the ones that depend on it are w
 
 test('only the seven independent roles can be set by hand', function () {
     $minimal = Presets::get('minimal');
-    $roles = array_keys(Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast']));
+    $roles = array_keys(Palette::colors($minimal['seed'], $minimal['secondary'], (float) $minimal['surface_contrast']));
     $onOffer = Palette::BY_HAND;
     sort($onOffer);
     $left = array_values(array_diff($roles, Palette::BY_HAND));
@@ -578,7 +582,7 @@ testBothDrivers('a colour is the owner\'s only while its switch is on', function
     assertEquals('#eceff4', Design::load($db)['color_surface'], 'with the switch, it is');
 
     // And it reaches the site's stylesheet as itself.
-    $css = (new TokenCompiler())->css(Derived::from(Design::load($db)));
+    $css = (new TokenCompiler())->css(Derived::from(Design::resolved($db)));
     assertContains('--color-surface: #eceff4;', $css, 'the compiled token');
 });
 
@@ -616,7 +620,7 @@ test('the palette is one list, and a colour the owner has taken can go back to i
     $paletteList = (string) substr($shut, (int) strpos($shut, 'id="group-colours-palette"'));
     $paletteList = (string) substr($paletteList, 0, (int) strpos($paletteList, 'id="group-colours-contrast"'));
     assertEquals(
-        count(Palette::colors(Presets::get(Presets::DEFAULT)['seed'], '', 'low')),
+        count(Palette::colors(Presets::get(Presets::DEFAULT)['seed'], '', 20.0)),
         substr_count($paletteList, '<li class="role'),
         'every role the palette works out is a row',
     );
@@ -691,7 +695,7 @@ test('the step between sizes is a number, and the characters keep the ratios the
     assertEquals('1.42', Tokens::validate(['scale' => '1.42'] + Presets::get('minimal'))['decisions']['scale'], 'a number of its own');
     $tooSteep = Tokens::validate(['scale' => '2.4'] + Presets::get('minimal'));
     assertTrue(isset($tooSteep['errors']['scale']), 'outside the bounds is refused');
-    assertEquals('1.2', $tooSteep['decisions']['scale'], 'and falls back to the default');
+    assertEquals('', $tooSteep['decisions']['scale'], 'and follows the character (D-164)');
 });
 
 test('a nudge moves one step and leaves the scale alone', function () {
@@ -728,9 +732,9 @@ test('the heading treatment follows the typeface until it is taken over', functi
     assertEquals($pairing['tracking'], $following['heading']['tracking'], 'the pairing\'s letter spacing');
     assertEquals($pairing['transform'], $following['heading']['transform'], 'the pairing\'s case');
 
-    $mine = Derived::from(['heading_weight' => '400', 'tracking' => 'wide', 'caps' => 'yes'] + $grotesk);
+    $mine = Derived::from(['heading_weight' => '400', 'tracking' => '0.06', 'caps' => 'yes'] + $grotesk);
     assertEquals('400', $mine['heading']['weight'], 'the weight that was chosen');
-    assertEquals(Tokens::TRACKING['wide'], $mine['heading']['tracking'], 'the letter spacing that was chosen');
+    assertEquals('0.06em', $mine['heading']['tracking'], 'the letter spacing that was chosen');
     assertEquals('uppercase', $mine['heading']['transform'], 'and the case');
 
     // A choice survives changing the typeface; what was never chosen follows the new one.
@@ -751,8 +755,8 @@ test('every readout the screen shows comes from one place', function () {
 
     // And the check endpoint returns them, so a readout follows the control being dragged
     // instead of holding the number the page was rendered with.
-    $checked = json_decode(dispatch('/admin/appearance/check?' . http_build_query(designFields(['spacing' => 'generous'] + Presets::get('minimal'))))->body, true);
-    assertEquals(Tokens::readable(['spacing' => 'generous'] + Presets::get('minimal'))['space'] . 'px', $checked['readouts']['spacing'] ?? '', 'the spacing it would come to');
+    $checked = json_decode(dispatch('/admin/appearance/check?' . http_build_query(designFields(['spacing' => '1.5'] + Presets::get('minimal'))))->body, true);
+    assertEquals('1.5rem · ' . Tokens::readable(['spacing' => '1.5'] + Presets::get('minimal'))['space'] . 'px', $checked['readouts']['spacing'] ?? '', 'the spacing it would come to');
 });
 
 // ---- Round 9: the sheet, and what breaks out of it (D-067) -----------------------------
@@ -787,10 +791,10 @@ test('the frame wraps the sheet, and the chrome chooses which side of it to be o
 
 test('the sheet\'s corners and lift are zero unless the page is boxed', function () {
     $boxed = Derived::from(Tokens::validate([
-        'boxed' => 'yes', 'frame' => 'wide', 'sheet_radius' => 'round', 'sheet_shadow' => 'shadow',
+        'boxed' => 'yes', 'frame' => '5', 'sheet_radius' => '20', 'sheet_shadow' => 'shadow',
     ] + Presets::get('soft'))['decisions']);
     $flat = Derived::from(Tokens::validate([
-        'boxed' => 'no', 'frame' => 'wide', 'sheet_radius' => 'round', 'sheet_shadow' => 'shadow',
+        'boxed' => 'no', 'frame' => '5', 'sheet_radius' => '20', 'sheet_shadow' => 'shadow',
     ] + Presets::get('soft'))['decisions']);
 
     assertTrue($boxed['page']['frame'] !== '0', 'a boxed page has a frame: ' . $boxed['page']['frame']);
@@ -804,20 +808,22 @@ test('the sheet\'s corners and lift are zero unless the page is boxed', function
     assertEquals('none', $flat['page']['sheet-shadow'], 'and no lift');
 });
 
+// The side margin is rem of its own since D-164; it was spacing units by name.
 test('how much room is around the sheet is a decision', function () {
     $decisions = static fn (string $frame): array => Tokens::validate(['boxed' => 'yes', 'frame' => $frame] + Presets::get('soft'))['decisions'];
-    $thin = Derived::from($decisions('thin'))['page']['frame'];
-    $wide = Derived::from($decisions('wide'))['page']['frame'];
+    $thin = Derived::from($decisions('1'))['page']['frame'];
+    $wide = Derived::from($decisions('6'))['page']['frame'];
 
-    assertEquals('1.5rem', $thin, 'thin is one spacing unit');
-    assertEquals('7.5rem', $wide, 'wide is five');
-    assertTrue(isset(Tokens::validate(['frame' => 'enormous'] + Presets::get('soft'))['errors']['frame']), 'and nothing else is a frame');
+    assertEquals('1rem', $thin, 'one rem');
+    assertEquals('6rem', $wide, 'six, the most');
+    assertTrue(isset(Tokens::validate(['frame' => '7'] + Presets::get('soft'))['errors']['frame']), 'and no further');
+    assertTrue(isset(Tokens::validate(['frame' => 'wide'] + Presets::get('soft'))['errors']['frame']), 'nor a name');
 });
 
 testBothDrivers('cards have a colour of their own, between the page and a tinted section', function (string $driver) {
     $db = adminSite($driver);
     $minimal = Presets::get('minimal');
-    $colors = Palette::colors($minimal['seed'], $minimal['secondary'], $minimal['surface_contrast']);
+    $colors = Palette::colors($minimal['seed'], $minimal['secondary'], (float) $minimal['surface_contrast']);
 
     assertTrue(isset($colors['card']), 'the palette has a card colour');
     assertTrue($colors['card'] !== $colors['background'] && $colors['card'] !== $colors['surface'],
@@ -830,7 +836,7 @@ testBothDrivers('cards have a colour of their own, between the page and a tinted
     // And the owner may take it over, like the other six.
     adminPost('/admin/appearance', appearanceFields(['color_card' => '#eef1f4', 'color_card_on' => '1', 'action' => 'save']));
     assertEquals('#eef1f4', Design::load($db)['color_card'], 'the card colour that was published');
-    assertContains('--color-card: #eef1f4;', (new TokenCompiler())->css(Derived::from(Design::load($db))), 'the compiled token');
+    assertContains('--color-card: #eef1f4;', (new TokenCompiler())->css(Derived::from(Design::resolved($db))), 'the compiled token');
 });
 
 testBothDrivers('the footer menu runs in as many columns as the chrome says', function (string $driver) {
@@ -869,13 +875,13 @@ testBothDrivers('the header and the footer may take a colour of their own, with 
     assertEquals('#1b3a2f', $stored['header_colour'], 'the header colour that was published');
     assertEquals('#f3e9d2', $stored['footer_colour'], 'the footer colour that was published');
 
-    $css = (new TokenCompiler())->css(Derived::from($stored));
+    $css = (new TokenCompiler())->css(Derived::from(App\Modules\Design\Tokens::resolve($stored)));
     assertContains('--chrome-header-bg: #1b3a2f;', $css, 'the header carries its colour as a token');
     assertContains('--chrome-footer-bg: #f3e9d2;', $css, 'and so does the footer');
 
     // The ink is not a colour from the palette that happened to be there: it is chosen
     // against THIS surface, and it reads on it.
-    $colors = Palette::colors($stored['seed'], $stored['secondary'], $stored['surface_contrast']);
+    $colors = Palette::forDecisions(Tokens::resolve($stored));
     foreach (['#1b3a2f', '#f3e9d2'] as $surface) {
         $inks = Palette::inksOn($surface, $colors);
         assertTrue(Color::contrast($inks['text'], $surface) >= Palette::AA_BODY,
@@ -902,7 +908,7 @@ testBothDrivers('the header and the footer may take a colour of their own, with 
 testBothDrivers('black and white are colours the header may take', function (string $driver) {
     $db = adminSite($driver);
     $decisions = Presets::get('minimal');
-    $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+    $colors = Palette::colors($decisions['seed'], $decisions['secondary'], (float) $decisions['surface_contrast']);
 
     foreach (['#000000', '#ffffff'] as $surface) {
         $inks = Palette::inksOn($surface, $colors);
@@ -932,7 +938,7 @@ testBothDrivers('no character gives a place a colour of its own', function (stri
     $db = adminSite($driver);
     foreach (['editorial', 'minimal', 'bold', 'soft', 'brutalist'] as $name) {
         $decisions = Presets::get($name);
-        foreach (Tokens::OWN_COLOURS as $field) {
+        foreach (App\Modules\Design\Vocabulary\Decisions::OWN_COLOURS as $field) {
             assertTrue(array_key_exists($field, $decisions), $name . ' carries ' . $field);
             assertEquals('', $decisions[$field], $name . ' leaves ' . $field . ' to the palette');
         }
@@ -949,11 +955,11 @@ testBothDrivers('the page\'s own colour paints what surrounds a boxed page, and 
     ]));
     $stored = Design::load($db);
     assertEquals('#101010', $stored['page_background_colour'], 'the colour that was published');
-    assertContains('--page-bg: #101010;', (new TokenCompiler())->css(Derived::from($stored)), 'and what the frame is painted with');
+    assertContains('--page-bg: #101010;', (new TokenCompiler())->css(Derived::from(App\Modules\Design\Tokens::resolve($stored))), 'and what the frame is painted with');
 
     // No text sits on it, so it adds nothing to the gauge — the reasoning that has always
     // made this decision harmless.
-    $colors = Palette::colors($stored['seed'], $stored['secondary'], $stored['surface_contrast']);
+    $colors = Palette::forDecisions(Tokens::resolve($stored));
     $pairs = Palette::pairs($colors, false, [], Tokens::ownChrome($stored));
     foreach ($pairs as $pair) {
         assertTrue(!str_contains($pair['decision'], 'page_background_colour'), 'no pair belongs to the page background');
@@ -1042,8 +1048,8 @@ test('every decision and chrome choice is in exactly one section', function () {
         }
     }
 
-    $expected = array_keys(Presets::get(Presets::DEFAULT));
-    foreach (array_keys(App\Modules\Settings\ChromeLook::OPTIONS) as $choice) {
+    $expected = App\Modules\Design\Vocabulary\Decisions::keys('decisions');
+    foreach (App\Modules\Settings\ChromeLook::keys() as $choice) {
         $expected[] = App\Modules\Settings\ChromeLook::field($choice);
     }
     $expected[] = 'header_menu';
@@ -1106,26 +1112,27 @@ test('header content can line up with the window on a boxed page, as well as wit
     foreach (Presets::names() as $name) {
         $character = Presets::get($name);
         if ($character['boxed'] === 'no') {
-            assertTrue($character['header_width'] !== 'full', "{$name} asks for the box on a page that has none");
+            assertTrue($character['header_width'] !== 'sheet', "{$name} asks for the box on a page that has none");
         }
     }
 });
 
 // The owner's detail on D-116: "full width" for the header follows the sheet on a boxed page.
 test('a full-width header on a boxed page runs to the sheet\'s width, and to the window\'s otherwise', function () {
-    $boxed = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_width' => 'full', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
-    $flat = Derived::from(Tokens::validate(['boxed' => 'no', 'header_width' => 'full', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+    // `sheet` since D-164: the stored name says what it lines up with.
+    $boxed = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_width' => 'sheet', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+    $flat = Derived::from(Tokens::validate(['boxed' => 'no', 'header_width' => 'sheet', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
     $content = Derived::from(Tokens::validate(['boxed' => 'yes', 'header_width' => 'content', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
 
     assertEquals('calc(72rem - 2 * var(--space-l))', $boxed['page']['header-width'], 'as wide as the sheet, less the container\'s own padding');
     assertEquals('72rem', $boxed['page']['sheet-width'], 'which is the sheet');
     assertEquals('100%', $flat['page']['header-width'], 'the window, when the sheet is the window');
     assertEquals('none', $flat['page']['sheet-width'], 'and no sheet width then');
-    assertEquals('56rem', $content['page']['header-width'], 'the content, when that is the choice');
+    assertEquals('60rem', $content['page']['header-width'], 'the content, when that is the choice');
 
     // The footer's contents answer the same question with their own decision.
-    $footer = Derived::from(Tokens::validate(['boxed' => 'yes', 'footer_width' => 'full', 'header_width' => 'content', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
+    $footer = Derived::from(Tokens::validate(['boxed' => 'yes', 'footer_width' => 'sheet', 'header_width' => 'content', 'sheet_width' => '72'] + Presets::get('soft'))['decisions']);
     assertEquals('calc(72rem - 2 * var(--space-l))', $footer['page']['footer-width'], 'the footer to the sheet');
-    assertEquals('56rem', $footer['page']['header-width'], 'while the header keeps to the content');
-    assertEquals('56rem', $content['page']['footer-width'], 'and content is every character\'s default for the footer');
+    assertEquals('60rem', $footer['page']['header-width'], 'while the header keeps to the content');
+    assertEquals('60rem', $content['page']['footer-width'], 'and content is every character\'s default for the footer');
 });

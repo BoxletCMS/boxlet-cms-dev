@@ -129,7 +129,6 @@ return [
     'hint.look.small_print_row' => 'The last row of the footer, the languages and the small print: one under the other, side by side with the space between, or centred.',
     'hint.look.header_surface' => 'The header’s background, from the site’s own colours. Not painted at all when the header lies over the first section.',
     'hint.look.footer_surface' => 'The footer’s background, from the site’s own colours.',
-    'hint.look.density' => 'How much room there is around the header’s and footer’s contents. One choice for both.',
     'hint.look.header_edge' => 'What separates the header from the page: nothing, a thin line, or a shadow.',
     'hint.look.brand' => 'What stands for the site at the top of every page: the logo, the site’s name in the heading typeface, or both side by side. A site with no logo shows its name whatever this says.',
     'hint.look.nav_style' => 'How the menu’s words are set: as they are; in small capitals with a little space between the letters; the current page on a pill; a bar under the current page and under the pointer; or every entry a bordered chip. Submenus follow the same style.',

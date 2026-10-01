@@ -69,13 +69,6 @@ return [
     'inspector.reset.done' => 'Put back as the character has it. The site has not changed — press Publish for that.',
     'inspector.reset.all_done' => 'Everything is back as the character has it. The site has not changed — press Publish for that.',
 
-    // Loading a character over the owner's changes (D-158).
-    'inspector.load.question' => 'Load :character?',
-    'inspector.load.lost_one' => 'This replaces :count of your changes. Your header and footer choices stay.',
-    'inspector.load.lost_many' => 'This replaces :count of your changes. Your header and footer choices stay.',
-    'inspector.load.replace' => 'Load :character',
-    'inspector.load.keep' => 'Keep my changes',
-
     // Publish's question after a character is loaded (D-068), with a way out of it (D-161).
     'inspector.apply.cancel' => 'Cancel',
     'inspector.apply.cancel_hint' => 'Back to the design as it is published. Nothing changes on the site.',
@@ -90,4 +83,9 @@ return [
     'inspector.contrast.fix' => 'Fix automatically',
     'inspector.contrast.change_seed' => 'Some pairs fail because of the main or second colour itself. Change that colour to fix them.',
     'inspector.contrast.every' => 'Every pair (:count)',
+
+    // Global decisions v2 (D-164).
+    'inspector.section.buttons' => 'Buttons',
+    'inspector.group.buttons.style' => 'Style',
+    'inspector.summary.buttons' => ':style · :corners',
 ];

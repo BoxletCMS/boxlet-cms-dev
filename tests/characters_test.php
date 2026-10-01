@@ -64,7 +64,8 @@ test('the five core files pass validation and the format\'s own reader, changing
         $read = DesignSet::parse($file, blockRegistry());
         assertEquals([], $read['errors'], "{$id}: the reader refused it");
         assertEquals([], $read['warnings'], "{$id}: the reader warned");
-        assertEquals($decisions, $read['set']['decisions'] ?? null, "{$id}: decisions as the reader has them");
+        // The decisions half: the look is the other half of the same store since D-164.
+        assertEquals(array_intersect_key($decisions, array_flip(App\Modules\Design\Vocabulary\Decisions::keys('decisions'))), $read['set']['decisions'] ?? null, "{$id}: decisions as the reader has them");
         assertEquals(Characters::look($id), $read['set']['look'] ?? null, "{$id}: look");
         assertEquals(Characters::composition($id), $read['set']['composition'] ?? null, "{$id}: composition");
         // What export writes is the file, byte for byte: the core files are in canonical form.
@@ -72,7 +73,12 @@ test('the five core files pass validation and the format\'s own reader, changing
         assertEquals($file, DesignSet::export($id, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author']), "{$id}: not in canonical form");
 
         // A character Boxlet ships makes none of the owner's exceptions (D-063, D-066, D-076).
-        $own = array_intersect_key((array) json_decode($file, true)['decisions'], Presets::neutral());
+        $exceptions = array_merge(
+            array_map(static fn (string $role): string => 'color_' . $role, App\Modules\Design\Vocabulary\Decisions::BY_HAND),
+            App\Modules\Design\Vocabulary\Decisions::OWN_COLOURS,
+            array_keys(Tokens::NUDGES),
+        );
+        $own = array_intersect_key((array) json_decode($file, true)['decisions'], array_flip($exceptions));
         assertEquals([], $own, "{$id} ships a decision that is the owner's to make");
         assertEquals('core', Characters::source($id), "{$id}: source");
     }
@@ -301,7 +307,7 @@ testBothDrivers('an import a custom file has since taken the id of, or that no l
         Characters::addImported($db, parsedSet('studio'));
     });
     // As a later Boxlet with stricter rules would read a row it once admitted.
-    $db->query('UPDATE design_characters SET set_json = ? WHERE slug = ?', ['{"format": "boxlet-design-set", "version": 1}', 'studio']);
+    $db->query('UPDATE design_characters SET set_json = ? WHERE slug = ?', ['{"format": "boxlet-design-set", "version": 2}', 'studio']);
     withImports($db, function () {
         $skipped = array_column(Characters::skipped(), 'reason', 'file');
         assertContains('harbour', $skipped['harbour'] ?? '', 'an import whose id a file now has');

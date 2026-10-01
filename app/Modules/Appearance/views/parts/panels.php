@@ -7,8 +7,8 @@ use App\Support\Url;
 /**
  * WHAT THE SCREEN HAS TO SAY OR ASK, at the top of the inspector (PLAN.md D-157): what the
  * last press did, a character the site was composed with that is gone (D-156), a design file
- * refused, and the three questions — load a character over the owner's changes (D-158),
- * how to publish a character, what to do with an imported file.
+ * refused, and the two questions — how to publish a character, what to do with an imported
+ * file. (Loading a character no longer asks: it keeps the owner's changes, D-164.)
  *
  * NOT A BAND ACROSS THE SCREEN ANY MORE. The questions stood under the bar at the full width
  * of the window and pushed the picture down, which is the one thing a question about the
@@ -21,9 +21,7 @@ use App\Support\Url;
  * @var string|null $missingCharacter
  * @var list<string> $importErrors
  * @var array{set: array<string, mixed>, warnings: list<string>}|null $import
- * @var array{character: string, count: int}|null $load
  * @var bool $confirm
- * @var int $replaces how many of the owner's published changes that publish replaces (D-161)
  * @var string $character
  * @var Closure(array<string, string>, string, string, string): string $card
  */
@@ -45,25 +43,11 @@ use App\Support\Url;
                         </ul>
                     </div>
 <?php endif; ?>
-<?php if ($load !== null): ?>
-                    <?php /* LOADING WOULD THROW SOMETHING AWAY, and says how much (D-158). */ ?>
-                    <div class="appearance-confirm load-confirm" role="alert">
-                        <p class="confirm-question"><?= e(t('inspector.load.question', ['character' => Characters::label($load['character'])])) ?></p>
-                        <p class="hint hint-always"><?= e(t($load['count'] === 1 ? 'inspector.load.lost_one' : 'inspector.load.lost_many', ['count' => $load['count']])) ?></p>
-                        <div class="confirm-options">
-                            <span><button type="submit" form="design-form" name="action" value="load:<?= e($load['character']) ?>" class="button"><?= e(t('inspector.load.replace', ['character' => Characters::label($load['character'])])) ?></button></span>
-                            <span><button type="submit" form="design-form" name="action" value="keep" class="button button-quiet"><?= e(t('inspector.load.keep')) ?></button></span>
-                        </div>
-                    </div>
-<?php endif; ?>
 <?php if ($confirm): ?>
                     <?php /* The one destructive choice in the design layer (D-068), asked once,
                              with what each answer does written beside it. */ ?>
                     <div class="appearance-confirm publish-confirm" role="alert">
                         <p class="confirm-question"><?= e(t('design.apply.title', ['character' => Characters::label($character)])) ?></p>
-<?php if ($replaces > 0): ?>
-                        <p class="hint hint-always"><?= e(t($replaces === 1 ? 'inspector.load.lost_one' : 'inspector.load.lost_many', ['count' => $replaces])) ?></p>
-<?php endif; ?>
                         <div class="confirm-options">
                             <span>
                                 <button type="submit" form="design-form" name="action" value="save_design" class="button button-secondary"><?= e(t('design.apply.design_only')) ?></button>

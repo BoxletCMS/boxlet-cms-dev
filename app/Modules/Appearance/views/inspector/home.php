@@ -3,7 +3,7 @@
 use App\Modules\Appearance\Overrides;
 use App\Modules\Design\Characters;
 use App\Modules\Design\Presets;
-use App\Modules\Design\Tokens;
+use App\Modules\Design\Vocabulary\Decisions;
 use App\Support\Controls;
 use App\Support\Url;
 
@@ -34,9 +34,25 @@ use App\Support\Url;
  * real field is the one in the section, and this one belongs to the empty form
  * #appearance-quick, so the two are not one radio group (D-157). Never shown without a script.
  */
-$mirror = static function (string $key, array $values) use ($decisions, $rowOptions): string {
-    return Controls::row(t('design.' . $key), segmented_group($key, $values, $decisions[$key] ?? '', 'quick-' . $key . '-label', 'quick-' . $key . '-', 'appearance-quick'),
-        ['labelId' => 'quick-' . $key . '-label', 'hint' => '', 'error' => ''] + $rowOptions($key, t('design.' . $key)));
+$mirror = static function (string $key) use ($decisions, $rowOptions, $readouts): string {
+    $definition = Decisions::ALL[$key];
+    $id = 'quick-' . $key;
+    if ($definition['type'] === 'number') {
+        $marks = [];
+        foreach ($definition['marks'] ?? [] as $mark => $value) {
+            $marks[(string) $value] = t('design.' . $key . '.' . $mark);
+        }
+
+        return Controls::row(t('design.' . $key), Controls::slider($key, $id, $decisions[$key] ?? '', (float) $definition['min'], (float) $definition['max'], (float) $definition['step'], $marks, ['form' => 'appearance-quick']),
+            ['for' => $id, 'readout' => $readouts[$key] ?? '', 'readoutKey' => $key, 'hint' => '', 'error' => ''] + $rowOptions($key, t('design.' . $key)));
+    }
+    $labels = [];
+    foreach ($definition['values'] ?? [] as $value) {
+        $labels[$value] = t('design.' . $key . '.' . $value);
+    }
+
+    return Controls::row(t('design.' . $key), segmented_group($key, $labels, $decisions[$key] ?? '', $id . '-label', $id . '-', 'appearance-quick'),
+        ['labelId' => $id . '-label', 'hint' => '', 'error' => ''] + $rowOptions($key, t('design.' . $key)));
 };
 
 ob_start();
@@ -77,15 +93,16 @@ ob_start();
                             <?= Controls::row(t('design.seed'), '<div class="colour-field"><input type="color" class="colour-input" id="quick-seed" name="seed" form="appearance-quick" value="' . e($decisions['seed']) . '">'
                                 . '<output class="colour-value" for="quick-seed" data-colour-for="quick-seed">' . e($decisions['seed']) . '</output></div>',
                                 ['for' => 'quick-seed', 'hint' => '', 'error' => ''] + $rowOptions('seed', t('design.seed'))) ?>
+                            <?= $mirror('mode') ?>
                             <?= Controls::row(t('design.typography'), $typefaceCards('appearance-quick'), ['labelId' => 'quick-typography-label', 'hint' => '', 'error' => ''] + $rowOptions('typography', t('design.typography'))) ?>
-                            <?= $mirror('text_size', $labels('text_size', array_keys(Tokens::TEXT_SIZE))) ?>
-                            <?= $mirror('radius', $labels('radius', Tokens::RADIUS)) ?>
-                            <?= $mirror('spacing', $labels('spacing', array_keys(Tokens::SPACING))) ?>
+                            <?= $mirror('text_size') ?>
+                            <?= $mirror('radius') ?>
+                            <?= $mirror('spacing') ?>
                         </div>
 <?php $quick = (string) ob_get_clean(); ?>
                 <section class="inspector-view inspector-home" id="appearance-home" data-view="home" aria-labelledby="appearance-home-title">
                     <h2 class="visually-hidden" id="appearance-home-title"><?= e(t('inspector.home')) ?></h2>
-                    <?= Controls::group('group-quick', t('inspector.quick'), $quick, ['changed' => count(array_intersect($changed, ['seed', 'typography', 'text_size', 'radius', 'spacing']))]) ?>
+                    <?= Controls::group('group-quick', t('inspector.quick'), $quick, ['changed' => count(array_intersect($changed, ['seed', 'mode', 'typography', 'text_size', 'radius', 'spacing']))]) ?>
 
                     <?php /* HOW MUCH IS THE OWNER'S OWN (D-158): shown only when something is, and
                              with the one press that gives all of it back. The count and the words

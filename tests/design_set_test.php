@@ -18,20 +18,21 @@ function sampleSet(): array
 {
     return [
         'format' => 'boxlet-design-set',
-        'version' => 1,
+        'version' => 2,
         'id' => 'harbour',
         'name' => ['en' => 'Harbour', 'hr' => 'Luka'],
         'description' => ['en' => 'Navy and sand.'],
         'decisions' => [
-            'seed' => '#1d3557', 'secondary' => '#f1e3c6', 'typography' => 'classic', 'text_size' => 'normal', 'scale' => '1.25',
-            'spacing' => 'roomy', 'radius' => 'subtle', 'shadow' => 'soft', 'container' => '60', 'surface_contrast' => 'medium',
+            'seed' => '#1d3557', 'secondary' => '#f1e3c6', 'typography' => 'classic', 'text_size' => '16', 'scale' => '1.25',
+            'spacing' => '1.25', 'radius' => '4', 'shadow' => 'soft', 'container' => '60', 'surface_contrast' => '50',
             'header_width' => 'content', 'boxed' => 'no', 'page_background' => 'surface',
         ],
         'look' => [
             'header_arrangement' => 'left', 'header_behaviour' => 'sticky', 'footer_layout' => 'columns', 'footer_edge' => 'line',
-            'small_print_row' => 'split', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'density' => 'normal',
-            'header_edge' => 'line', 'logo_size' => 'medium', 'brand' => 'both', 'nav_style' => 'bar', 'nav_ink' => 'ink',
+            'small_print_row' => 'split', 'header_surface' => 'plain', 'footer_surface' => 'tinted', 'header_height' => '72',
+            'header_edge' => 'line', 'logo_size' => '44', 'brand' => 'both', 'nav_style' => 'bar', 'nav_ink' => 'ink',
             'header_button' => 'outline', 'footer_columns' => '3', 'footer_links' => 'auto',
+            'header_opacity' => '100', 'header_blur' => '0',
         ],
         'composition' => [
             'section' => ['surface' => 'plain', 'rhythm' => 'normal', 'width' => 'normal', 'align' => 'left', 'divider' => 'none'],
@@ -60,10 +61,15 @@ test('a complete set is read: decisions validated and in stored order, look and 
     assertEquals('harbour', $set['id'], 'id');
     assertEquals(['en' => 'Harbour', 'hr' => 'Luka'], $set['name'], 'name');
     // Every decision, the neutral ones filled in, in the order design_tokens stores them.
-    assertEquals(array_keys(Presets::get(Presets::DEFAULT)), array_keys($set['decisions']), 'decision order');
+    assertEquals(App\Modules\Design\Vocabulary\Decisions::keys('decisions'), array_keys($set['decisions']), 'decision order');
     assertEquals('', $set['decisions']['color_text'], 'a neutral default');
     assertEquals('60', $set['decisions']['container'], 'a character decision');
-    assertEquals(sampleSet()['look'], $set['look'], 'look');
+    // In the vocabulary's order, which is not the file's.
+    $look = $set['look'];
+    $expected = sampleSet()['look'];
+    ksort($look);
+    ksort($expected);
+    assertEquals($expected, $look, 'look');
     assertEquals(['hero' => 'split', 'image_text' => 'image-right', 'text' => 'single'], $set['composition']['layouts'], 'layouts');
 });
 
@@ -103,8 +109,8 @@ test('numbers are taken for the numeric decisions, and only for them', function 
     $raw['decisions']['scale'] = 1.25;
     assertEquals('60', parseSet($raw)['set']['decisions']['container'] ?? null, 'a number of rem');
 
-    $raw['decisions']['radius'] = 3;
-    assertContains('decisions.radius', implode(' ', parseSet($raw)['errors']), 'a number for a closed set');
+    $raw['decisions']['shadow'] = 3;
+    assertContains('decisions.shadow', implode(' ', parseSet($raw)['errors']), 'a number for a closed set');
 });
 
 test('what is refused, each with its field and reason', function () {
@@ -116,7 +122,8 @@ test('what is refused, each with its field and reason', function () {
     $set = sampleSet();
 
     $refused(['format' => 'something-else'] + $set, 'not a Boxlet design', 'another format');
-    $refused(['version' => 2] + $set, 'format version 2', 'a version from the future');
+    $refused(['version' => 3] + $set, 'format version 3', 'a version from the future');
+    $refused(['version' => 1] + $set, 'format version 1', 'and one from the past (D-162)');
     $refused(['id' => 'Harbour Design'] + $set, 'id:', 'an id that is not a slug');
     $refused(['name' => []] + $set, 'name:', 'no name');
     $refused(array_replace_recursive($set, ['decisions' => ['typography' => 'comic']]), 'decisions.typography', 'an unknown typography');
@@ -126,10 +133,20 @@ test('what is refused, each with its field and reason', function () {
     $refused(array_replace_recursive($set, ['composition' => ['section' => ['surface' => 'image']]]), 'composition.section.surface', 'a picture surface');
     $refused(array_replace_recursive($set, ['composition' => ['surfaces' => ['hero' => 'neon']]]), 'composition.surfaces.hero', 'a surface outside its set');
 
-    // A character says every header and footer choice.
-    $partial = $set;
+});
+
+// THE RULE CHANGED DELIBERATELY with D-164: a character missing a header or footer choice was
+// refused, because nothing said what it meant. Every choice has a neutral answer now, as every
+// decision does, and a choice left out is that answer — the same rule as a decision left out.
+test('a character that leaves a header or footer choice out takes its neutral answer', function () {
+    $partial = sampleSet();
     unset($partial['look']['footer_links']);
-    $refused($partial, 'look.footer_links', 'a character missing a choice');
+    $read = parseSet($partial);
+    assertEquals([], $read['errors'], 'refused');
+    assertEquals('', $read['set']['look']['footer_links'] ?? null, 'the set follows');
+    withCustomDesigns(['harbour.json' => (string) json_encode($partial)], function () {
+        assertEquals(App\Modules\Design\Vocabulary\Decisions::neutral()['footer_links'], App\Modules\Design\Characters::look('harbour')['footer_links'], 'the character answers with the neutral');
+    });
 });
 
 test('a design that fails contrast is refused, naming the pair (D-154)', function () {
@@ -173,7 +190,8 @@ test('names and descriptions are one clean line of bounded length', function () 
 test('the vocabulary is read off the code that validates', function () {
     $vocabulary = DesignVocabulary::vocabulary(blockRegistry());
     assertEquals(array_keys(Typography::PAIRINGS), $vocabulary['decisions']['typography']['values'], 'typography');
-    assertEquals(ChromeLook::OPTIONS, $vocabulary['look'], 'look');
+    assertEquals(ChromeLook::keys(), array_keys($vocabulary['look']), 'look');
+    assertEquals(choicesOf('header_arrangement'), $vocabulary['look']['header_arrangement']['values'], 'a look choice\'s values');
     assertEquals(blockRegistry()->get('hero')['layouts'], $vocabulary['composition']['layouts']['hero'], 'a block\'s layouts');
     assertTrue(!in_array('image', $vocabulary['composition']['surfaces'], true), 'a picture surface is offered');
 });
@@ -215,7 +233,8 @@ test('every core character survives export and parse unchanged', function () {
     foreach (App\Modules\Design\Characters::CORE as $id) {
         $name = ['en' => App\Modules\Design\Characters::label($id)];
         $description = ['en' => App\Modules\Design\Characters::hint($id)];
-        $decisions = Presets::get($id);
+        // The decisions half: Presets::get answers the look's keys too since D-164.
+        $decisions = array_intersect_key(Presets::get($id), array_flip(App\Modules\Design\Vocabulary\Decisions::keys('decisions')));
         $look = App\Modules\Design\Characters::look($id);
         $composition = App\Modules\Design\Characters::composition($id);
 

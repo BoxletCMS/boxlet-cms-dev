@@ -114,7 +114,7 @@ final class Upgrade
             $state['phase'] = 'finish';
             $this->save($state);
         } elseif ($state['phase'] === 'finish') {
-            Design::publish($this->db, Design::load($this->db), $this->cache);
+            Design::publish($this->db, $this->cache);
             Sitemap::publish($this->db, $this->public);
             self::remove($this->dir() . '/new');
             if (is_file($this->dir() . '/package.zip')) {

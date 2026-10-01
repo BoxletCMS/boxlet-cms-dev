@@ -269,8 +269,10 @@
 /* ASKED ONLY WHERE IT MEANS SOMETHING (D-157), read off the form's own state like the boxed
    page's controls above: the second colour's picker while there is a second colour; a logo's
    size where the header shows a logo; how many columns the footer's menu runs in for the one
-   arrangement that has columns. The fields stay in the form and are posted either way. */
+   arrangement that has columns; how see-through and blurred the header is, for a bar that
+   moves with the page (D-164). The fields stay in the form and are posted either way. */
 .design-form:has(input[name="use_secondary"]:not(:checked)) .when-secondary,
+.design-form:has(input[name="look_header_behaviour"][value="static"]:checked) .when-moving,
 .design-form:has(input[name="look_brand"][value="name"]:checked) [data-control="logo_size"],
 .design-form:has(input[name="look_footer_layout"]:checked:not([value="columns"])) [data-control="footer_columns"] {
   display: none;

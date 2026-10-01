@@ -1,6 +1,6 @@
 {
     "format": "boxlet-design-set",
-    "version": 1,
+    "version": 2,
     "id": "bold",
     "name": {
         "en": "Bold"
@@ -12,35 +12,35 @@
     "decisions": {
         "seed": "#6d28d9",
         "secondary": "#1e1045",
+        "surface_contrast": "80",
         "typography": "grotesk",
-        "text_size": "normal",
         "scale": "1.5",
-        "spacing": "normal",
-        "radius": "round",
+        "radius": "12",
         "shadow": "layered",
         "container": "68",
-        "surface_contrast": "high",
+        "page_background": "contrast",
         "header_width": "window",
-        "boxed": "no",
-        "page_background": "contrast"
+        "button_radius": "12"
     },
     "look": {
         "header_arrangement": "left",
         "header_behaviour": "over",
-        "footer_layout": "columns",
-        "footer_edge": "none",
-        "small_print_row": "split",
+        "header_opacity": "100",
+        "header_blur": "0",
         "header_surface": "plain",
-        "footer_surface": "gradient",
-        "density": "normal",
         "header_edge": "none",
-        "logo_size": "large",
+        "header_height": "72",
+        "logo_size": "60",
         "brand": "logo",
         "nav_style": "pills",
         "nav_ink": "ink",
         "header_button": "filled",
+        "footer_layout": "columns",
         "footer_columns": "3",
-        "footer_links": "auto"
+        "footer_links": "auto",
+        "small_print_row": "split",
+        "footer_surface": "gradient",
+        "footer_edge": "none"
     },
     "composition": {
         "section": {

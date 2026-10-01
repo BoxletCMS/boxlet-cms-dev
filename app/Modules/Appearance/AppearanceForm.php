@@ -3,7 +3,8 @@
 namespace App\Modules\Appearance;
 
 use App\Core\Request;
-use App\Modules\Design\Palette;
+use App\Modules\Design\Vocabulary\Decisions;
+use App\Modules\Design\CssNumber;
 use App\Modules\Design\Tokens;
 use App\Modules\Settings\ChromeLook;
 use App\Modules\Settings\ChromeWords;
@@ -48,17 +49,18 @@ final class AppearanceForm
      */
     public static function read(Request $request, array $locales): array
     {
-        $design = Tokens::validate(self::decisions($request->body));
-        $words = ChromeWords::fromRequest($request, $locales);
-        // Every choice, not only the ones the request named: a save writes all seven, and a
-        // choice the form did not send is one the owner cleared.
-        $look = [];
-        foreach (array_keys(ChromeLook::OPTIONS) as $choice) {
-            $look[$choice] = trim($request->input(ChromeLook::field($choice)));
+        // Both halves are one design since D-164: the header and footer's fields carry their
+        // `look_` prefix on the form, and are validated with the rest.
+        $fields = self::decisions($request->body);
+        foreach (ChromeLook::keys() as $choice) {
+            $fields[$choice] = trim($request->input(ChromeLook::field($choice)));
         }
+        $design = Tokens::validate($fields);
+        $words = ChromeWords::fromRequest($request, $locales);
+        $look = array_intersect_key($design['decisions'], array_flip(ChromeLook::keys()));
 
         return [
-            'decisions' => $design['decisions'],
+            'decisions' => array_diff_key($design['decisions'], $look),
             'look' => $look,
             'menu' => trim($request->input(self::MENU)),
             'footer_menus' => self::footerMenusFrom($request->body),
@@ -79,19 +81,21 @@ final class AppearanceForm
      */
     public static function query(array $state, string $locale, string $character = ''): array
     {
-        $query = $state['decisions'] + ['use_secondary' => $state['decisions']['secondary'] !== '' ? '1' : '0'];
+        // What the screen SHOWS, every key answered: the picture is of the design as drawn,
+        // so a key that follows the character is sent as the character's value.
+        $resolved = Tokens::resolve($state['decisions'] + $state['look'], $character);
+        $query = [];
+        foreach ($resolved as $key => $value) {
+            $query[in_array($key, ChromeLook::keys(), true) ? ChromeLook::field($key) : $key] = $value;
+        }
+        $query['use_secondary'] = $resolved['secondary'] !== '' ? '1' : '0';
         // Each hand-set colour needs its switch in the query too, or the preview reads a
         // colour the form only carries as a default and draws something nobody chose.
-        foreach (Palette::BY_HAND as $role) {
-            $query['color_' . $role . '_on'] = ($state['decisions']['color_' . $role] ?? '') !== '' ? '1' : '0';
+        foreach (Decisions::BY_HAND as $role) {
+            $query['color_' . $role . '_on'] = $resolved['color_' . $role] !== '' ? '1' : '0';
         }
-        // And the three places that may take a colour of their own, for the same reason
-        // (D-076): the input always carries a colour, so only the switch says it is meant.
-        foreach (Tokens::OWN_COLOURS as $field) {
-            $query[$field . '_on'] = ($state['decisions'][$field] ?? '') !== '' ? '1' : '0';
-        }
-        foreach ($state['look'] as $choice => $value) {
-            $query[ChromeLook::field($choice)] = $value;
+        foreach (Decisions::OWN_COLOURS as $field) {
+            $query[$field . '_on'] = $resolved[$field] !== '' ? '1' : '0';
         }
         $query[self::MENU] = $state['menu'];
         foreach (self::footerMenuFields() as $i => $field) {
@@ -179,16 +183,24 @@ final class AppearanceForm
     public static function readouts(array $decisions): array
     {
         $readable = Tokens::readable($decisions);
-        $readouts = [
-            'text_size' => $readable['text']['base'] . 'px',
-            'scale' => $decisions['scale'] . '×',
-            'spacing' => $readable['space'] . 'px',
-            'radius' => $readable['radius'] . 'px',
-            'container' => $decisions['container'] . 'rem · ' . $readable['container'] . 'px',
-            'sheet_width' => $decisions['sheet_width'] . 'rem · ' . $readable['sheet_width'] . 'px',
-            'sheet_gap' => $readable['sheet_gap'] . 'px',
-            'phone' => t('design.readable.phone', ['phone' => $readable['text_phone'] . 'px']),
-        ];
+        $readouts = [];
+        // Every number, in what a person can picture: pixels, or rem with its pixels beside.
+        foreach (Decisions::ALL as $key => $definition) {
+            $value = $decisions[$key] ?? '';
+            if ($definition['type'] !== 'number' || $value === '') {
+                continue;
+            }
+            $readouts[$key] = match ($definition['unit'] ?? '') {
+                'rem' => $value . 'rem · ' . CssNumber::of((float) $value * 16) . 'px',
+                'px' => $value . 'px',
+                '%' => $value . '%',
+                'em' => $value . 'em',
+                default => $value,
+            };
+        }
+        $readouts['scale'] = t('design.scale_readout', ['scale' => $decisions['scale'], 'size' => $readable['text']['4xl'] . 'px']);
+        $readouts['sheet_gap'] = $readable['sheet_gap'] . 'px';
+        $readouts['phone'] = t('design.readable.phone', ['phone' => $readable['text_phone'] . 'px']);
         foreach (Tokens::NUDGES as $key => $bounds) {
             $readouts[$key] = t('design.nudge_readout', [
                 'nudge' => $decisions[$key] . 'px',
@@ -214,15 +226,17 @@ final class AppearanceForm
      */
     public static function decisions(array $fields): array
     {
+        // Unticked, the second colour is NONE — which settles to '' where the character has
+        // none either (Overrides::settle).
         if (($fields['use_secondary'] ?? '') !== '1') {
-            $fields['secondary'] = '';
+            $fields['secondary'] = 'none';
         }
-        foreach (Palette::BY_HAND as $role) {
+        foreach (Decisions::BY_HAND as $role) {
             if (($fields['color_' . $role . '_on'] ?? '') !== '1') {
                 $fields['color_' . $role] = '';
             }
         }
-        foreach (Tokens::OWN_COLOURS as $field) {
+        foreach (Decisions::OWN_COLOURS as $field) {
             if (($fields[$field . '_on'] ?? '') !== '1') {
                 $fields[$field] = '';
             }

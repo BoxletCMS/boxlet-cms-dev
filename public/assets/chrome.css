@@ -43,12 +43,13 @@
   font-family: var(--font-heading);
   font-weight: var(--heading-weight);
   letter-spacing: var(--heading-tracking);
-  font-size: var(--text-lg);
+  /* The name grows with the logo's size (D-164): half of it, between the body's size and
+     the xl step. Worked out in a property of its own, so font-size reads a token like every
+     other front-end size (blocks_test). */
+  --site-name-size: clamp(var(--text-base), calc(var(--chrome-logo-size, 2.75rem) * 0.5), var(--text-xl));
+  font-size: var(--site-name-size);
   line-height: 1;
 }
-
-.logo-small .site-name { font-size: var(--text-base); }
-.logo-large .site-name { font-size: var(--text-xl); }
 
 .site-nav ul,
 .site-footer-nav ul {
@@ -168,17 +169,19 @@ footer.block {
   --section-border: var(--chrome-footer-muted);
 }
 
-/* THE CHROME'S LOOK (PLAN.md D-032, D-036). Every value is a closed-set class drawn from
-   the tokens: density, a rule under the header, logo size, and the header's and footer's
-   arrangements. Surfaces are the sections' own (sections.css), so contrast is the
-   palette's guarantee here as everywhere. */
+/* THE CHROME'S LOOK (PLAN.md D-032, D-036, D-164). The bar's height is a number, a token
+   with a fallback; the closed sets — a rule under the header, the arrangements — are
+   classes. Surfaces are the sections' own (sections.css), so contrast is the palette's
+   guarantee here as everywhere. */
 
-.site-header.density-compact { padding-block: var(--space-s); }
-.site-header.density-normal { padding-block: var(--space-m); }
-.site-header.density-roomy { padding-block: var(--space-l); }
-.site-footer.density-compact { padding-block: var(--space-m); }
-.site-footer.density-normal { padding-block: var(--space-l); }
-.site-footer.density-roomy { padding-block: var(--space-xl); }
+.site-header {
+  min-block-size: var(--chrome-header-height, 4.5rem);
+  padding-block: var(--space-xs);
+}
+
+.site-footer {
+  padding-block: var(--space-xl);
+}
 
 /* THE HEADER'S EDGE (D-112): nothing, a hairline, or a shadow. On the HEADER element,
    because the bar inside it has no edge of its own to draw. */
@@ -195,28 +198,20 @@ footer.block {
   box-shadow: var(--shadow-m);
 }
 
-.logo-small .site-logo img { block-size: 2em; }
-.logo-medium .site-logo img { block-size: 2.75em; }
-.logo-large .site-logo img { block-size: 3.75em; }
+.site-logo img { block-size: var(--chrome-logo-size, 2.75rem); }
 
 /* On a phone the logo shares its line with the menu button, so it is capped (D-114): a large
    logo at 3.75em pushed the button onto a second line under it. Its shape stays; only its
    height is held, and its width is kept off the button. */
 @media (max-width: 40rem) {
-  .site-logo img,
-  .logo-medium .site-logo img,
-  .logo-large .site-logo img {
-    block-size: 2.25em;
+  .site-logo img {
+    block-size: min(var(--chrome-logo-size, 2.75rem), 2.25em);
     max-inline-size: 60vw;
     object-fit: contain;
   }
 
   .site-name {
-    font-size: var(--text-lg);
-  }
-
-  .logo-large .site-name {
-    font-size: var(--text-lg);
+    --site-name-size: min(var(--text-lg), calc(var(--chrome-logo-size, 2.75rem) * 0.5));
   }
 }
 

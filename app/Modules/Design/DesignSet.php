@@ -3,7 +3,7 @@
 namespace App\Modules\Design;
 
 use App\Core\Blocks;
-use App\Modules\Settings\ChromeLook;
+use App\Modules\Design\Vocabulary\Decisions;
 
 /**
  * A whole design as a portable file: the `boxlet-design-set` format, version 1 (PLAN.md
@@ -32,7 +32,8 @@ use App\Modules\Settings\ChromeLook;
 final class DesignSet
 {
     public const FORMAT = 'boxlet-design-set';
-    public const VERSION = 1;
+    /** 2 since the global decisions became numbers (D-164); no other version is read. */
+    public const VERSION = 2;
     /** Larger than any honest design by two orders of magnitude. */
     public const MAX_BYTES = 65536;
     public const MAX_DEPTH = 8;
@@ -41,8 +42,6 @@ final class DesignSet
     /** Every top-level key, in the order export() writes them. */
     private const KEYS = ['$schema', 'format', 'version', 'id', 'name', 'description', 'author', 'tags', 'decisions', 'look', 'composition'];
 
-    /** The decisions that may be a JSON number as well as a string. */
-    private const NUMERIC = ['scale', 'nudge_h1', 'nudge_h2', 'nudge_sm', 'container', 'sheet_width', 'sheet_gap'];
 
     /**
      * A file's text, checked and cleaned, or the reasons it was refused.
@@ -86,15 +85,20 @@ final class DesignSet
      */
     public static function export(string $id, array $name, array $description, array $decisions, array $look, ?array $composition, string $author = ''): string
     {
-        $neutral = Presets::neutral();
+        $neutral = Decisions::neutral();
         $kept = [];
-        foreach ($decisions as $key => $value) {
-            if (!array_key_exists($key, $neutral) || $neutral[$key] !== $value) {
+        foreach (Decisions::keys('decisions') as $key) {
+            $value = (string) ($decisions[$key] ?? '');
+            // The seed always: it is the one decision a set must make (the schema requires it),
+            // even where it happens to be the neutral one.
+            if ($value !== '' && ($value !== $neutral[$key] || $key === 'seed')) {
                 $kept[$key] = $value;
             }
         }
+        // Every header and footer choice, in the vocabulary's order; '' follows the
+        // character, and a character's own look answers every one.
         $ordered = [];
-        foreach (array_keys(ChromeLook::OPTIONS) as $choice) {
+        foreach (Decisions::keys('look') as $choice) {
             $ordered[$choice] = (string) ($look[$choice] ?? '');
         }
 
@@ -156,7 +160,7 @@ final class DesignSet
             $composition = DesignSetParts::composition($raw['composition'], $registry, $errors, $warnings);
         }
         $decisions = DesignSetParts::decisions($raw['decisions'] ?? null, $errors);
-        $look = DesignSetParts::look($raw['look'] ?? null, $composition !== null, $errors);
+        $look = DesignSetParts::look($raw['look'] ?? null, $errors);
 
         if ($errors !== []) {
             return ['set' => null, 'errors' => $errors, 'warnings' => $warnings];
@@ -218,6 +222,6 @@ final class DesignSet
     /** Whether a decision may arrive as a JSON number. */
     public static function numeric(string $key): bool
     {
-        return in_array($key, self::NUMERIC, true);
+        return (Decisions::ALL[$key]['type'] ?? '') === 'number';
     }
 }

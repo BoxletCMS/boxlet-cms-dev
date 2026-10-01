@@ -23,8 +23,8 @@ function occurrences(string $needle, string $body): int
 }
 
 test('every decision and every look choice is in exactly one group of one section', function () {
-    $decisions = array_keys(Tokens::validate(Presets::get(Presets::DEFAULT))['decisions']);
-    $expected = array_merge($decisions, array_keys(ChromeLook::OPTIONS));
+    // Every key of one design, the look's included: one store since D-164.
+    $expected = array_keys(Tokens::validate(Presets::get(Presets::DEFAULT))['decisions']);
     $placed = Overrides::keys('all') ?? [];
     sort($expected);
     $sorted = $placed;
@@ -59,15 +59,15 @@ testBothDrivers('without a script the screen is one column: the home, its links,
     assertEquals(0, preg_match('~\sstyle="~', $body), 'a style attribute');
 });
 
-testBothDrivers('each control is in the form once; Quick start repeats five, owned by a form that is never sent', function (string $driver) {
+testBothDrivers('each control is in the form once; Quick start repeats six, owned by a form that is never sent', function (string $driver) {
     adminSite($driver);
     $body = dispatch('/admin/appearance')->body;
-    $quick = ['seed', 'typography', 'text_size', 'radius', 'spacing'];
+    $quick = ['seed', 'mode', 'typography', 'text_size', 'radius', 'spacing'];
     foreach (Overrides::keys('all') ?? [] as $key) {
         assertEquals(in_array($key, $quick, true) ? 2 : 1, occurrences('data-control="' . $key . '"', $body), 'rows for ' . $key);
     }
     assertContains('<form id="appearance-quick" hidden></form>', $body, 'the mirrors\' form');
-    assertContains('name="spacing" value="roomy" form="appearance-quick"', $body, 'a mirror belongs to it');
+    assertEquals(1, preg_match('~<input type="range" id="quick-spacing" name="spacing"[^>]* form="appearance-quick">~', $body), 'a slider\'s mirror belongs to it');
     assertContains('id="quick-seed" name="seed" form="appearance-quick"', $body, 'the colour\'s mirror too');
     // And the forms are not nested: the mirrors' form closes before #design-form opens.
     assertTrue(strpos($body, '<form id="appearance-quick"') < (int) strpos($body, 'id="design-form"'), 'the mirrors\' form inside the design form');
@@ -75,10 +75,10 @@ testBothDrivers('each control is in the form once; Quick start repeats five, own
 
 testBothDrivers('a control the owner changed carries a dot and a reset; the defaults are the character\'s', function (string $driver) {
     adminSite($driver);
-    $screen = adminPost('/admin/appearance', appearanceFields(['spacing' => 'roomy', 'look_header_arrangement' => 'split', 'action' => 'keep']));
+    $screen = adminPost('/admin/appearance', appearanceFields(['spacing' => '1.25', 'look_header_arrangement' => 'split', 'action' => 'keep']));
     assertEquals(200, $screen->status, 'status');
-    assertContains('class="control-row is-changed" data-control="spacing" data-default="normal" data-kind="decision"', $screen->body, 'spacing, changed');
-    assertContains('class="control-row" data-control="radius" data-default="subtle" data-kind="decision"', $screen->body, 'corners, as Minimal has them');
+    assertContains('class="control-row is-changed" data-control="spacing" data-default="1" data-kind="decision"', $screen->body, 'spacing, changed');
+    assertContains('class="control-row" data-control="radius" data-default="4" data-kind="decision"', $screen->body, 'corners, as Minimal has them');
     assertContains('class="control-row is-changed" data-control="header_arrangement" data-default="centred" data-kind="look"', $screen->body, 'the header, changed');
     assertContains('value="reset:spacing"', $screen->body, 'the reset');
     assertContains('2 own changes over Minimal', $screen->body, 'the banner');
@@ -101,20 +101,22 @@ testBothDrivers('a look choice equal to the character\'s is stored as following 
 testBothDrivers('reset puts one control, a section or everything back, and publishes nothing', function (string $driver) {
     $db = adminSite($driver);
     $before = $db->all('SELECT * FROM design_tokens ORDER BY group_key');
-    $changed = ['spacing' => 'roomy', 'radius' => 'pill', 'container' => '68', 'look_header_arrangement' => 'split', 'color_text_on' => '1', 'color_text' => '#101010'];
+    $changed = ['spacing' => '1.25', 'radius' => '16', 'container' => '68', 'look_header_arrangement' => 'split', 'color_text_on' => '1', 'color_text' => '#101010'];
+    $slider = static fn (string $key, string $value, string $body): bool => preg_match('~<input type="range" id="design-' . $key . '" name="' . $key . '"[^>]* value="' . preg_quote($value, '~') . '"~', $body) === 1;
 
+    // A reset is '' — the character's (D-164); the screen shows Minimal's value again.
     $one = adminPost('/admin/appearance', appearanceFields($changed + ['action' => 'reset:spacing']));
     assertEquals(200, $one->status, 'status');
-    assertContains('name="spacing" value="normal" checked', $one->body, 'spacing back');
-    assertContains('name="radius" value="pill" checked', $one->body, 'corners kept');
+    assertTrue($slider('spacing', '1', $one->body), 'spacing back');
+    assertTrue($slider('radius', '16', $one->body), 'corners kept');
 
     $section = adminPost('/admin/appearance', appearanceFields($changed + ['action' => 'reset:section:space']));
-    assertContains('name="spacing" value="normal" checked', $section->body, 'spacing back');
-    assertContains('name="radius" value="subtle" checked', $section->body, 'corners back');
-    assertContains('name="container" min="36" max="88" step="2" value="68"', $section->body, 'the width, in another section, kept');
+    assertTrue($slider('spacing', '1', $section->body), 'spacing back');
+    assertTrue($slider('radius', '4', $section->body), 'corners back');
+    assertTrue($slider('container', '68', $section->body), 'the width, in another section, kept');
 
     $all = adminPost('/admin/appearance', appearanceFields($changed + ['action' => 'reset:all']));
-    assertContains('name="container" min="36" max="88" step="2" value="56"', $all->body, 'the width back');
+    assertTrue($slider('container', '56', $all->body), 'the width back');
     assertContains('name="look_header_arrangement" value="centred" checked', $all->body, 'the header back to Minimal\'s');
     assertTrue(!str_contains($all->body, 'name="color_text_on" value="1" checked'), 'the text colour still the owner\'s');
     assertContains(e(t('inspector.reset.all_done')), $all->body, 'what the owner is told');
@@ -124,31 +126,22 @@ testBothDrivers('reset puts one control, a section or everything back, and publi
     assertEquals($before, $db->all('SELECT * FROM design_tokens ORDER BY group_key'), 'the published design');
 });
 
-testBothDrivers('loading a character over the owner\'s changes asks first, and says how many go', function (string $driver) {
+// D-164, the rebuild's README 1.1: changing the character keeps every value the owner set.
+// Before it, a character replaced the decisions and the screen asked first (D-158); with
+// nothing replaced there is nothing to ask.
+testBothDrivers('loading a character keeps the owner\'s changes, and asks nothing', function (string $driver) {
     $db = adminSite($driver);
-    $mine = ['spacing' => 'roomy', 'radius' => 'pill', 'look_nav_style' => 'chips'];
+    $mine = ['spacing' => '1.25', 'radius' => '16', 'look_nav_style' => 'chips'];
 
-    $asked = adminPost('/admin/appearance', appearanceFields($mine + ['action' => 'preset:bold']));
-    assertEquals(200, $asked->status, 'status');
-    assertContains(e(t('inspector.load.question', ['character' => 'Bold'])), $asked->body, 'the question');
-    // Two: the header's choice is not lost, since it follows nothing but the owner (D-158).
-    assertContains(e(t('inspector.load.lost_many', ['count' => 2])), $asked->body, 'how many go');
-    assertContains('value="load:bold"', $asked->body, 'the answer that loads');
-    assertContains('name="spacing" value="roomy" checked', $asked->body, 'the screen still holds the owner\'s');
-
-    $kept = adminPost('/admin/appearance', appearanceFields($mine + ['action' => 'keep']));
-    assertContains('name="spacing" value="roomy" checked', $kept->body, 'kept');
-    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), '"keep" published');
-
-    $loaded = adminPost('/admin/appearance', appearanceFields($mine + ['action' => 'load:bold']));
-    assertContains('name="seed" value="' . Presets::get('bold')['seed'] . '"', $loaded->body, 'Bold on the screen');
+    $loaded = adminPost('/admin/appearance', appearanceFields($mine + ['action' => 'preset:bold']));
+    assertEquals(200, $loaded->status, 'status');
     assertContains('name="character" value="bold"', $loaded->body, 'the loaded character');
-    assertContains('name="look_nav_style" value="chips" checked', $loaded->body, 'the header choice survives');
-
-    // With nothing of the owner's on the screen, a tile loads at once, as it always did.
-    $plain = adminPost('/admin/appearance', appearanceFields(['action' => 'preset:bold']));
-    assertContains('name="character" value="bold"', $plain->body, 'loaded without a question');
-    assertEquals(404, adminPost('/admin/appearance', appearanceFields(['action' => 'load:nobody']))->status, 'a character that is none');
+    assertContains('name="seed" value="' . Presets::get('bold')['seed'] . '"', $loaded->body, 'Bold\'s colour, which the owner had not changed');
+    assertEquals(1, preg_match('~id="design-spacing" name="spacing"[^>]* value="1.25"~', $loaded->body), 'the owner\'s spacing kept');
+    assertContains('name="look_nav_style" value="chips" checked', $loaded->body, 'and the header choice');
+    assertTrue(!str_contains($loaded->body, 'load-confirm'), 'a question');
+    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), 'loading published something');
+    assertEquals(404, adminPost('/admin/appearance', appearanceFields(['action' => 'preset:nobody']))->status, 'a character that is none');
 });
 
 testBothDrivers('Fix automatically frees the colours by hand that fail, and only those', function (string $driver) {
@@ -166,7 +159,7 @@ testBothDrivers('Fix automatically frees the colours by hand that fail, and only
     assertTrue(!str_contains($fixed->body, 'name="color_text_on" value="1" checked'), 'the failing text still set by hand');
     assertContains('name="color_background_on" value="1" checked', $fixed->body, 'the background that passed kept');
     assertContains('data-contrast-fails hidden', $fixed->body, 'still failing');
-    $decisions = Tokens::validate(App\Modules\Appearance\AppearanceForm::decisions($fields))['decisions'];
+    $decisions = Tokens::resolve(Tokens::validate(App\Modules\Appearance\AppearanceForm::decisions($fields))['decisions']);
     assertEquals('color_text', AppearanceActions::failingByHand($decisions), 'the colour blamed');
 });
 
@@ -185,7 +178,7 @@ test('the layout diagram draws the sheet, the text and the bars from the decisio
     assertEquals(179, $flat['content']['width'], 'the text at 56rem of a 1440px window');
     assertEquals(288, $flat['header']['width'], 'the bar across the window');
 
-    $boxed = ['boxed' => 'yes', 'sheet_width' => '64', 'header_bleed' => 'full', 'header_width' => 'window', 'footer_bleed' => 'sheet', 'footer_width' => 'full'] + $minimal;
+    $boxed = ['boxed' => 'yes', 'sheet_width' => '64', 'header_bleed' => 'full', 'header_width' => 'window', 'footer_bleed' => 'sheet', 'footer_width' => 'sheet'] + $minimal;
     $drawn = LayoutDiagram::geometry($boxed);
     assertEquals(205, $drawn['sheet']['width'], 'a sheet of 64rem');
     assertEquals(288, $drawn['header']['width'], 'a header across the window');
@@ -224,48 +217,35 @@ test('the shared controls know nothing of designs and print what a script reads'
     assertContains('<details class="control-group has-changes" id="g" data-group="g" open>', Controls::group('g', 'Group', 'body', ['changed' => 2]), 'open, with its count');
 });
 
-test('settle() and lost() read the character the screen is measured against', function () {
-    $look = array_fill_keys(array_keys(ChromeLook::OPTIONS), '');
-    $look['header_arrangement'] = 'centred';
-    $look['nav_style'] = 'chips';
-    $settled = Overrides::settle($look, 'minimal');
-    assertEquals('', $settled['header_arrangement'], 'Minimal\'s own');
+test('settle() and changed() read the character the screen is measured against', function () {
+    $values = array_fill_keys(array_keys(Characters::decisions('minimal')), '');
+    $values['header_arrangement'] = 'centred';
+    $values['nav_style'] = 'chips';
+    $values['spacing'] = '1';
+    $values['radius'] = '16';
+    $values['color_link'] = '#123456';
+    $settled = Overrides::settle($values, 'minimal');
+    assertEquals('', $settled['header_arrangement'], 'Minimal\'s own header');
+    assertEquals('', $settled['spacing'], 'Minimal\'s own spacing');
     assertEquals('chips', $settled['nav_style'], 'the owner\'s');
-
-    $decisions = Characters::decisions('minimal');
-    assertEquals(0, Overrides::lost($decisions, 'minimal'), 'nothing of the owner\'s');
-    $decisions['spacing'] = 'roomy';
-    $decisions['color_link'] = '#123456';
-    assertEquals(2, Overrides::lost($decisions, 'minimal'), 'a decision and a colour by hand');
+    // A key that follows the pairing settles against the pairing (Modern: 650 → 700 on the
+    // slider's steps, a tracking of -0.025em).
+    $values['heading_weight'] = '700';
+    assertEquals('', Overrides::settle($values, 'minimal')['heading_weight'], 'the pairing\'s weight');
     // In the order of the sections: the palette is in Colours, before Space & shape.
-    assertEquals(['color_link', 'spacing'], Overrides::changed($decisions, [], 'minimal'), 'which');
+    assertEquals(['color_link', 'radius', 'nav_style'], Overrides::changed($settled, 'minimal'), 'which');
 });
 
-// D-161: Publish's question after a character is loaded says how much of the owner's own the
-// site loses, and has a way out. Measured on the screen in the owner's screenshot: seventeen
-// changes over Bold, and the question said nothing about them.
-testBothDrivers('Publish after a character says how many of the site\'s own changes it replaces, and offers Cancel', function (string $driver) {
+// D-161: Publish's question after a character is loaded has a way out. (Its count of what
+// the site loses went with D-164: a character no longer replaces the owner's values.)
+testBothDrivers('Publish after a character asks, and offers Cancel', function (string $driver) {
     $db = adminSite($driver);
     createPage($db, 'en', '', 'Home', true, [['type' => 'hero', 'content' => ['heading' => 'Welcome']]]);
-    // The site as published: Minimal, with roomy spacing and pill corners of the owner's own.
-    $published = Tokens::validate(['spacing' => 'roomy', 'radius' => 'pill'] + Presets::get('minimal'))['decisions'];
-    App\Modules\Design\Design::save($db, $published, tmpPath('cache'));
-
-    $asked = adminPost('/admin/appearance', appearanceFields(['character' => 'bold', 'action' => 'save'] + Presets::get('bold')));
+    $asked = adminPost('/admin/appearance', appearanceFields(['character' => 'bold', 'action' => 'save']));
     assertEquals(200, $asked->status, 'status');
     assertContains(e(t('design.apply.title', ['character' => 'Bold'])), $asked->body, 'the question');
-    // Bold has normal spacing and subtle corners: both of the owner's go.
-    assertContains(e(t('inspector.load.lost_many', ['count' => 2])), $asked->body, 'how many go');
     assertContains('<a class="button button-quiet" href="/admin/appearance" data-apply-cancel>' . e(t('inspector.apply.cancel')) . '</a>', $asked->body, 'the way out');
-    assertEquals($published, App\Modules\Design\Design::load($db), 'asking published something');
-
-    // A character that keeps one of them replaces one.
-    assertEquals(1, Overrides::replaced($published, ['spacing' => 'roomy'] + Presets::get('bold'), 'minimal'), 'one kept');
-    // And a site with nothing of the owner's is not told it loses anything.
-    App\Modules\Design\Design::save($db, Tokens::validate(Presets::get('minimal'))['decisions'], tmpPath('cache'));
-    $quiet = adminPost('/admin/appearance', appearanceFields(['character' => 'bold', 'action' => 'save'] + Presets::get('bold')));
-    assertContains('data-apply-cancel', $quiet->body, 'still asked');
-    assertTrue(!str_contains($quiet->body, 'of your changes'), 'a loss that is none');
+    assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), 'asking published something');
 });
 
 testBothDrivers('the header and footer arrangements are tiles with a drawing each', function (string $driver) {
@@ -275,8 +255,8 @@ testBothDrivers('the header and footer arrangements are tiles with a drawing eac
         $start = (int) strpos($body, '<div class="tile-choice" role="radiogroup" aria-labelledby="look_' . $choice . '-label">');
         assertTrue($start > 0, 'the ' . $choice . ' tiles');
         $group = substr($body, $start, (int) strpos($body, '</div>', $start) - $start);
-        assertEquals(count(ChromeLook::OPTIONS[$choice]), substr_count($group, '<label class="tile-option">'), 'a tile for every answer');
-        assertEquals(count(ChromeLook::OPTIONS[$choice]), substr_count($group, '<svg viewBox="0 0 48 24"'), 'a drawing on each');
+        assertEquals(count(choicesOf($choice)), substr_count($group, '<label class="tile-option">'), 'a tile for every answer');
+        assertEquals(count(choicesOf($choice)), substr_count($group, '<svg viewBox="0 0 48 24"'), 'a drawing on each');
     }
     // Minimal's own arrangement, pressed.
     assertContains('name="look_header_arrangement" value="centred" checked', $body, 'the character\'s answer');

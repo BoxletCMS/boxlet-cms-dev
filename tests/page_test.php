@@ -18,7 +18,7 @@ use App\Modules\Design\Tokens;
 
 test('the three page decisions are closed sets, and every value has a label', function (): void {
     foreach (['header_width', 'boxed', 'page_background'] as $key) {
-        $values = Tokens::choices()[$key] ?? [];
+        $values = choicesOf($key);
         assertTrue($values !== [], "{$key} is not offered as a decision");
         foreach ($values as $value) {
             $label = t("design.{$key}.{$value}");
@@ -33,7 +33,7 @@ test('every character answers all three, so a character stays a complete set', f
         foreach (['header_width', 'boxed', 'page_background'] as $key) {
             assertTrue(isset($preset[$key]), "{$name} does not say what {$key} is");
             assertTrue(
-                in_array($preset[$key], Tokens::choices()[$key], true),
+                in_array($preset[$key], choicesOf($key), true),
                 "{$name} sets {$key} to {$preset[$key]}, which is not one of its values",
             );
         }
@@ -72,7 +72,7 @@ test('an unboxed page has no frame at all, so nothing surrounds it', function ()
 test('the page background is a palette colour, never a free one', function (): void {
     foreach (Presets::names() as $name) {
         $decisions = Tokens::validate(Presets::get($name))['decisions'];
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], (float) $decisions['surface_contrast']);
         $derived = Derived::from($decisions);
 
         assertTrue(
@@ -97,6 +97,7 @@ test('the header takes its own width, not the content\'s', function (): void {
     $content = Derived::from(Tokens::validate(['header_width' => 'content'] + Presets::get('editorial'))['decisions']);
     assertEquals($content['container']['width'], $content['page']['header-width'], 'header_width: content');
 
-    $full = Derived::from(Tokens::validate(['header_width' => 'full'] + Presets::get('editorial'))['decisions']);
-    assertEquals('100%', $full['page']['header-width'], 'header_width: full');
+    // `window` since D-164; on a page that is not boxed `sheet` is the window too.
+    $full = Derived::from(Tokens::validate(['header_width' => 'window'] + Presets::get('editorial'))['decisions']);
+    assertEquals('100%', $full['page']['header-width'], 'header_width: window');
 });

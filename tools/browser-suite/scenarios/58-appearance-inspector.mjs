@@ -39,8 +39,9 @@ export default {
       };
     });
     await shot(report, page, '01-home');
-    report.verdict('the inspector opens on the home: characters, Quick start, six sections, no section shown',
-      home.shown && home.sections === 0 && home.tiles >= 5 && home.mirrors && home.links === 6 && home.sideways <= 0,
+    // Seven since D-164 gave the buttons a section of their own.
+    report.verdict('the inspector opens on the home: characters, Quick start, seven sections, no section shown',
+      home.shown && home.sections === 0 && home.tiles >= 5 && home.mirrors && home.links === 7 && home.sideways <= 0,
       JSON.stringify(home));
     // As the server sends it: the scripts measure sizes onto the frame and the specimen through
     // the CSSOM, which is allowed; the markup itself carries none (the admin's CSP).
@@ -104,11 +105,15 @@ export default {
 
     // ---- the dot and the reset, in place ----------------------------------------------------
     await openSection(page, 'space');
+    // A slider since D-164, moved the way a hand moves it from the keyboard: two steps right,
+    // or left at the top of the range.
     const row = '[data-view="space"] [data-control="spacing"]';
-    const start = await page.$eval(row, (el) => ({ value: el.querySelector('input:checked').value, fallback: el.getAttribute('data-default') }));
-    const other = start.fallback === 'roomy' ? 'compact' : 'roomy';
+    const slider = `${row} input[type="range"]`;
+    const start = await page.$eval(slider, (el) => ({ value: el.value, max: el.max, fallback: el.closest('[data-control]').getAttribute('data-default') }));
     await page.evaluate(() => { window.__sameDocument = true; });
-    await page.click(`${row} label.segment:has(input[value="${other}"])`);
+    await page.focus(slider);
+    await page.keyboard.press(start.value === start.max ? 'ArrowLeft' : 'ArrowRight');
+    await page.keyboard.press(start.value === start.max ? 'ArrowLeft' : 'ArrowRight');
     await wait(300);
     const dotted = await page.evaluate((selector) => ({
       changed: document.querySelector(selector).classList.contains('is-changed'),
@@ -122,7 +127,7 @@ export default {
     await page.click(`${row} .control-reset`);
     await wait(400);
     const reset = await page.evaluate((selector) => ({
-      value: document.querySelector(`${selector} input:checked`).value,
+      value: document.querySelector(`${selector} input[type="range"]`).value,
       changed: document.querySelector(selector).classList.contains('is-changed'),
       sameDocument: window.__sameDocument === true,
     }), row);
@@ -131,17 +136,22 @@ export default {
 
     // ---- Quick start mirrors, both ways -------------------------------------------------------
     await openSection(page, 'home');
-    const corners = await page.$eval('[data-quick] [data-control="radius"] input:checked', (el) => el.value);
-    const otherCorners = corners === 'round' ? 'subtle' : 'round';
-    await page.click(`[data-quick] label.segment:has(input[name="radius"][value="${otherCorners}"])`);
+    // Corners are a slider in both places since D-164; each is moved from the keyboard.
+    const quickCorners = '[data-quick] [data-control="radius"] input[type="range"]';
+    const fieldCorners = '[data-view="space"] [data-control="radius"] input[type="range"]';
+    const corners = await page.$eval(quickCorners, (el) => el.value);
+    await page.focus(quickCorners);
+    await page.keyboard.press('ArrowRight');
     await wait(200);
+    const otherCorners = await page.$eval(quickCorners, (el) => el.value);
     const fromQuick = await page.$eval('#design-form', (form) => form.elements.namedItem('radius').value);
     await openSection(page, 'space');
-    await page.click(`[data-view="space"] label.segment:has(input[name="radius"][value="${corners}"])`);
+    await page.focus(fieldCorners);
+    await page.keyboard.press('ArrowLeft');
     await wait(200);
-    const toQuick = await page.$eval('[data-quick] [data-control="radius"] input:checked', (el) => el.value);
+    const toQuick = await page.$eval(quickCorners, (el) => el.value);
     report.verdict('Quick start and its section are one control: each follows the other',
-      fromQuick === otherCorners && toQuick === corners, `quick → field: ${fromQuick}; field → quick: ${toQuick}`);
+      otherCorners !== corners && fromQuick === otherCorners && toQuick === corners, `quick ${corners} → ${otherCorners}, the field ${fromQuick}; the field back, quick ${toQuick}`);
 
     // ---- the diagram follows the width ---------------------------------------------------------
     await openSection(page, 'layout');

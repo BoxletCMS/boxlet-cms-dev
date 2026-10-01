@@ -24,7 +24,7 @@ import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHe
 
 const STYLE_GUIDE = 4;
 
-/** The inspector's views (D-157): the home, and its six sections. */
+/** The inspector's views (D-157): the home, and its seven sections (buttons since D-164). */
 const SECTIONS = ['home', 'colours', 'typography', 'space', 'layout', 'header', 'footer'];
 
 /** Every front-end section's class attribute, which is where layers 2 and 3 land. */
@@ -259,7 +259,7 @@ export default {
     await page.evaluate(() => window.scrollTo(0, 0));
 
     /*
-     * THE HOME LISTS THE SECTIONS (D-157): six links, each with a line saying what is in it
+     * THE HOME LISTS THE SECTIONS (D-157): seven links since D-164, each with a line saying what is in it
      * now, built from the values — and pressing one opens that section in the home's place,
      * with Back returning to the home rather than leaving the screen.
      */
@@ -267,8 +267,8 @@ export default {
       href: a.getAttribute('href'),
       summary: (a.querySelector('.section-link-summary') || {}).textContent?.trim() ?? '',
     })));
-    report.verdict('the home lists six sections, each saying what is in it',
-      list.length === 6 && list.every((l) => /^#section-[a-z]+$/.test(l.href) && l.summary.length > 0),
+    report.verdict('the home lists seven sections, each saying what is in it',
+      list.length === 7 && list.every((l) => /^#section-[a-z]+$/.test(l.href) && l.summary.length > 0),
       JSON.stringify(list));
     await openSection(page, 'typography');
     await page.goBack();
@@ -513,10 +513,15 @@ export default {
       await new Promise((resolve) => { setTimeout(resolve, 1200); });
     };
 
+    // The corners are a slider since D-164, moved a step from the keyboard and put back.
+    const cornerSlider = '[data-view="space"] [data-control="radius"] input[type="range"]';
     await openSection(page, 'space');
     await mark();
-    await press('label.segment:has(input[name="radius"][value="pill"]:not([form]))');
+    await page.focus(cornerSlider);
+    await page.keyboard.press('ArrowRight');
+    await new Promise((resolve) => { setTimeout(resolve, 1200); });
     const survivedTokens = await marked();
+    await page.keyboard.press('ArrowLeft');
     // Where the header breaks out is in Layout & widths since D-157, and shown only on a
     // boxed page since D-122 — so the page is boxed first, if it is not, and the mark set
     // again after that change, which is markup of its own.
@@ -716,21 +721,23 @@ export default {
      * Waited on inside the FRAME, for the same reason Compare is: the src no longer changes
      * when only the tokens do (D-073), so the address is no evidence either way.
      */
-    const spacingBefore = await page.evaluate(() => {
+    const shadowBefore = await page.evaluate(() => {
       const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
-      return inside ? getComputedStyle(inside.documentElement).getPropertyValue('--space-m').trim() : '';
+      return inside ? getComputedStyle(inside.documentElement).getPropertyValue('--shadow-m').trim() : '';
     });
     await openSection(page, 'space');
-    // A segment, deliberately: the width is a slider (D-062) and a slider is the one control
-    // this screen still waits 250ms for. A closed set is a row of radios now (D-065), and
-    // pressing one is a change like any other.
-    await page.click('label.segment:has(input[name="spacing"][value="generous"]:not([form]))');
+    // A segment, deliberately: a slider is the one control this screen waits 250ms for, and
+    // the spacing is one since D-164. The shadow is still a closed set, a row of radios
+    // (D-065), and pressing one is a change like any other.
+    const shadowNow = await page.$eval('[data-view="space"] input[name="shadow"]:checked', (el) => el.value);
+    const shadowOther = shadowNow === 'layered' ? 'hard' : 'layered';
+    await page.click(`[data-view="space"] label.segment:has(input[name="shadow"][value="${shadowOther}"])`);
     await page.waitForFunction((was) => {
       const inside = document.querySelector('iframe[data-design-preview]').contentDocument;
-      return inside && getComputedStyle(inside.documentElement).getPropertyValue('--space-m').trim() !== was;
-    }, { timeout: 15000 }, spacingBefore);
+      return inside && getComputedStyle(inside.documentElement).getPropertyValue('--shadow-m').trim() !== was;
+    }, { timeout: 15000 }, shadowBefore);
     report.pass('choosing a value refreshes the preview by itself',
-      `the picture followed the press with no button pressed: --space-m was ${spacingBefore}`);
+      `the picture followed the press with no button pressed: --shadow-m was ${shadowBefore}`);
 
     // And the screen says what it now is, rather than leaving the owner to remember.
     const said = await page.evaluate(() => ({

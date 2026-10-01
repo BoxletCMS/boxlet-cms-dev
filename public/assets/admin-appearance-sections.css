@@ -129,7 +129,9 @@
   border-radius: var(--ui-radius-m);
 }
 
-/* The boxed page's own controls are rows like any other, with the room a group gives them. */
+/* The boxed page's own controls, and a moving header's, are rows like any other, with the
+   room a group gives them. */
+.control-group-body .when-moving,
 .control-group-body .when-boxed {
   display: grid;
   gap: var(--ui-4);

@@ -120,10 +120,14 @@ test('the preview draws chrome choices the request is trying and writes none of 
     Composition::remember($db, 'minimal');
     $before = ChromeLook::stored($db);
 
-    $body = dispatch('/admin/appearance/preview?look_header_surface=contrast&look_density=roomy')->body;
+    $body = dispatch('/admin/appearance/preview?look_header_surface=contrast&look_nav_style=chips&look_header_height=92')->body;
 
     assertContains('surface-contrast', headerTag($body), 'the surface being tried');
-    assertContains('density-roomy', $body, 'the density being tried');
+    assertContains('nav-chips', $body, 'the menu being tried');
+    // A number reaches the picture through its stylesheet, which carries the same query.
+    assertContains('look_header_height=92', $body, 'the height being tried');
+    // The stylesheet reads a query only when it is the whole screen, which is what it is sent.
+    assertContains('--chrome-header-height: 5.75rem;', dispatch('/admin/appearance/stylesheet?' . http_build_query(appearanceFields(['look_header_height' => '92'])))->body, 'and the stylesheet draws it');
     assertEquals($before, ChromeLook::stored($db), 'nothing was written');
 });
 
@@ -146,7 +150,7 @@ test('the chrome follows the character being previewed, not the one the site is 
     $body = dispatch('/admin/appearance/preview?character=brutalist')->body;
 
     assertContains('layout-split', headerTag($body), 'Brutalist\'s arrangement');
-    assertContains('density-compact', $body, 'Brutalist\'s density');
+    assertContains('nav-caps', $body, 'Brutalist\'s menu');
 });
 
 test('a choice the owner saved survives a preview that says nothing about it', function () {

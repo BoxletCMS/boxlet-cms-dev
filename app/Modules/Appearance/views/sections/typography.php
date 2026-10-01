@@ -10,25 +10,11 @@ use App\Support\Controls;
  *
  * @var array<string, string> $decisions
  * @var array<string, string> $readouts
- * @var Closure(string, array<array-key, string>): string $segmented
- * @var Closure(string, float, float, float, array<array-key, string>=): string $slider
- * @var Closure(string, list<string>): array<string, string> $labels
+ * @var Closure(string): string $control
  * @var Closure(string, string, array<string, mixed>=): array<string, mixed> $rowOptions
  * @var Closure(string, string, string, bool=): string $group
  * @var Closure(string=): string $typefaceCards
  */
-
-/*
- * THE HEADING TREATMENT keeps its "as the typeface" answer in this phase (D-158): what the
- * pairing gives — a weight of 650, a tracking of −0.025em — is not one of the answers
- * offered, so it cannot be shown pressed the way a character's header choice is. It
- * becomes a slider in phase 2, starting at the pairing's own number.
- */
-/** @var array<array-key, string> $weights PHP turns '600' into 600 */
-$weights = ['' => t('design.heading_weight.follow')];
-foreach (Tokens::HEADING_WEIGHTS as $weight) {
-    $weights[(string) $weight] = $weight;
-}
 
 ob_start();
 ?>
@@ -36,8 +22,9 @@ ob_start();
 <?php $typeface = (string) ob_get_clean(); ob_start(); ?>
                     <?php /* SIZE FIRST, THEN SCALE: how big the text is, then how much bigger each
                              heading is than the one under it (D-062, D-066). */ ?>
-                    <?= $segmented('text_size', $labels('text_size', array_keys(Tokens::TEXT_SIZE))) ?>
-                    <?= $slider('scale', Tokens::SCALE_MIN, Tokens::SCALE_MAX, 0.005) ?>
+                    <?= $control('text_size') ?>
+                    <?= $control('scale') ?>
+                    <?= $control('line_height') ?>
                     <?php /* THE SPECIMEN, DRAWN RATHER THAN DESCRIBED (D-065, D-075): the lines at
                              the sizes the page will really use, shrunk together to fit, in the
                              pairing being chosen. The numbers beside them are the server's. */ ?>
@@ -50,14 +37,16 @@ ob_start();
                     </div>
                     <p class="derived" data-readout="phone"><?= e($readouts['phone'] ?? '') ?></p>
 <?php $sizes = (string) ob_get_clean(); ob_start(); ?>
-                    <?= $segmented('heading_weight', $weights) ?>
-                    <?= $segmented('tracking', ['' => t('design.tracking.follow')] + $labels('tracking', array_keys(Tokens::TRACKING))) ?>
-                    <?= $segmented('caps', ['' => t('design.caps.follow')] + $labels('caps', array_keys(Tokens::CAPS))) ?>
+                    <?php /* The pairing's treatment until the owner moves one: each slider stands
+                             where the typeface puts it, and a reset gives it back (D-164). */ ?>
+                    <?= $control('heading_weight') ?>
+                    <?= $control('tracking') ?>
+                    <?= $control('caps') ?>
 <?php $headings = (string) ob_get_clean(); ob_start(); ?>
                     <?php /* The three exceptions to the scale (D-066): a ratio cannot say "that
                              headline, two pixels smaller". */ ?>
-<?php foreach (Tokens::NUDGES as $key => $bounds): ?>
-                    <?= $slider($key, (float) $bounds['min'], (float) $bounds['max'], 1) ?>
+<?php foreach (array_keys(Tokens::NUDGES) as $key): ?>
+                    <?= $control($key) ?>
 <?php endforeach; ?>
 <?php $fine = (string) ob_get_clean(); ?>
                 <?= $group('typography', 'typeface', $typeface) ?>

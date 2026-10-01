@@ -4,6 +4,7 @@ namespace App\Modules\Design;
 
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Modules\Design\Vocabulary\Decisions;
 use Closure;
 
 /**
@@ -32,27 +33,6 @@ final class Characters
 {
     /** The five Boxlet ships, in the order the screen has always shown them. */
     public const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
-
-    /** The decisions no character makes, as every character's decisions are completed. */
-    private const NO_COLOURS_BY_HAND = [
-        'color_background' => '', 'color_card' => '', 'color_surface' => '', 'color_border' => '',
-        'color_text' => '', 'color_muted' => '', 'color_link' => '',
-    ];
-
-    /** No character nudges a step or overrides the pairing's heading treatment (D-066). */
-    private const NOTHING_NUDGED = [
-        'nudge_h1' => '0', 'nudge_h2' => '0', 'nudge_sm' => '0',
-        'heading_weight' => '', 'tracking' => '', 'caps' => '',
-    ];
-
-    /* The sheet as every character has drawn it: three units of frame, square corners, no
-     * lift, chrome inside the sheet, the footer's contents lined up with the page's (D-067,
-     * D-116). Soft is the one that is boxed, so it is the one where any of this shows. */
-    private const SHEET = [
-        'frame' => 'normal', 'sheet_width' => '80', 'sheet_gap' => '3', 'sheet_radius' => 'square', 'sheet_shadow' => 'none',
-        'header_bleed' => 'sheet', 'footer_bleed' => 'sheet',
-        'footer_width' => 'content',
-    ];
 
     /** @var array<string, array{source: string, set: array<string, mixed>}>|null id => where it came from and what it is */
     private static ?array $all = null;
@@ -105,37 +85,24 @@ final class Characters
     }
 
     /**
-     * The layer-1 decisions of a character, every one of them, in the order validate()
-     * stores them; the default character's for an id that is none.
-     *
-     * THE ORDER validate() STORES IN, spelled once: what a character gives, with the
-     * decisions no character makes merged into their places rather than appended. A test
-     * compares a character with what validation returns, and an array whose keys are in
-     * another order is a different array. A set that does make one of them — an owner's
-     * exception, which an imported set may carry (D-153) — has it put in its place by the
-     * array_replace(), never moved to the end.
+     * Every global decision of a character — its own, then what the vocabulary gives for a
+     * key it leaves out — in the vocabulary's order, the header and footer included (D-164).
+     * The default character's for an id that is none.
      *
      * @return array<string, string>
      */
     public static function decisions(string $id): array
     {
         $all = self::all();
-        $preset = ($all[$id] ?? $all[Presets::DEFAULT])['set']['decisions'];
+        $set = ($all[$id] ?? $all[Presets::DEFAULT])['set'];
+        $own = (is_array($set['decisions'] ?? null) ? $set['decisions'] : []) + (is_array($set['look'] ?? null) ? $set['look'] : []);
+        $decisions = [];
+        foreach (Decisions::neutral() as $key => $neutral) {
+            $value = $own[$key] ?? '';
+            $decisions[$key] = is_string($value) && $value !== '' ? $value : $neutral;
+        }
 
-        return array_replace(
-            ['seed' => $preset['seed'], 'secondary' => $preset['secondary']]
-                + self::NO_COLOURS_BY_HAND
-                + ['typography' => $preset['typography'], 'text_size' => $preset['text_size'], 'scale' => $preset['scale']]
-                + self::NOTHING_NUDGED
-                + $preset
-                /* NO CHARACTER BOXLET SHIPS GIVES ONE OF THE THREE A COLOUR OF ITS OWN (D-076).
-                   The shades of the palette are what a character IS. Split in two because they
-                   sit on either side of the sheet in the order validate() stores. */
-                + ['page_background_colour' => '']
-                + self::SHEET
-                + ['header_colour' => '', 'footer_colour' => ''],
-            $preset,
-        );
+        return $decisions;
     }
 
     /**
@@ -145,8 +112,7 @@ final class Characters
      */
     public static function neutral(): array
     {
-        return self::NO_COLOURS_BY_HAND + self::NOTHING_NUDGED
-            + ['page_background_colour' => ''] + self::SHEET + ['header_colour' => '', 'footer_colour' => ''];
+        return Decisions::neutral();
     }
 
     /**
@@ -166,16 +132,14 @@ final class Characters
     }
 
     /**
-     * What a character gives the header and footer, every choice set; the default
-     * character's for an id that is none.
+     * What a character gives the header and footer, every choice set: the look's part of its
+     * decisions. The default character's for an id that is none.
      *
      * @return array<string, string>
      */
     public static function look(string $id): array
     {
-        $all = self::all();
-
-        return ($all[$id] ?? $all[Presets::DEFAULT])['set']['look'];
+        return array_intersect_key(self::decisions($id), array_flip(Decisions::keys('look')));
     }
 
     /**

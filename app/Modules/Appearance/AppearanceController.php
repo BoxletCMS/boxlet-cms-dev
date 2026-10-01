@@ -63,8 +63,10 @@ final class AppearanceController
         $character = Presets::exists($character) ? $character : '';
         $db = $this->db();
         $basis = $character !== '' ? $character : Composition::active($db);
-        // A look choice equal to the character's is "as the character has it" (D-159): the
-        // form posts the character's answer for every choice nobody touched.
+        // A value equal to what it would follow is "as the character has it" (D-159, D-164):
+        // the form posts what every control shows, which for a key nobody touched is the
+        // character's or the pairing's value.
+        $state['decisions'] = Overrides::settle($state['decisions'], $basis);
         $state['look'] = Overrides::settle($state['look'], $basis);
         // A design as a file (D-152): export what is on the screen, load an import into it,
         // delete an imported character. Its own controller; this one only hands it the screen.
@@ -100,11 +102,7 @@ final class AppearanceController
          * is asked at the moment it applies.
          */
         if ($action === 'save' && $character !== '' && Composition::hasBlocks($db)) {
-            return $this->screen->render($state, [], null, 200, $character, [
-                'confirm' => true,
-                // And what of the owner's own it replaces on the site (D-161).
-                'replaces' => Overrides::replaced(Design::load($db), $state['decisions'], Composition::active($db)),
-            ]);
+            return $this->screen->render($state, [], null, 200, $character, ['confirm' => true]);
         }
         $composing = $action === 'save_composition';
         // A menu is chosen by name, and a name no menu carries any more is cleared rather
@@ -122,14 +120,17 @@ final class AppearanceController
             $footerMenus[$n] = $gone ? SiteChrome::FOOTER_MENU_NONE : $name;
         }
 
-        Design::save($db, $state['decisions'], (string) $this->container->get('config')->get('app.cache_path'));
+        // The character first: what the owner's values are drawn over is the one now chosen,
+        // and the stylesheet is compiled once, for both halves of the design (D-164).
+        if ($character !== '') {
+            Composition::remember($db, $character);
+        }
+        Design::save($db, $state['decisions'] + $state['look'], (string) $this->container->get('config')->get('app.cache_path'));
         SiteChrome::saveShared($db, $goneMenu ? '' : $state['menu'], $footerMenus);
-        ChromeLook::save($db, $state['look']);
         ChromeWords::save($db, $state['words']);
 
         $message = t('appearance.published');
         if ($character !== '') {
-            Composition::remember($db, $character);
             if ($composing) {
                 $count = Composition::apply($db, $this->container->get('blocks'), $character);
                 $message = t('design.saved_with_composition', [

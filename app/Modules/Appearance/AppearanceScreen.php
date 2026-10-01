@@ -10,6 +10,7 @@ use App\Modules\Design\Characters;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\Palette;
+use App\Modules\Design\Vocabulary\Decisions;
 use App\Modules\Design\Tokens;
 use App\Modules\Menus\Menu;
 use App\Modules\Pages\PageLinks;
@@ -44,9 +45,12 @@ final class AppearanceScreen
     {
         $db = $this->db();
 
+        $values = Design::load($db);
+        $look = array_intersect_key($values, array_flip(ChromeLook::keys()));
+
         return [
-            'decisions' => Design::load($db),
-            'look' => ChromeLook::stored($db),
+            'decisions' => array_diff_key($values, $look),
+            'look' => $look,
             'menu' => SiteChrome::menuName($db),
             'footer_menus' => SiteChrome::footerMenus($db),
             'words' => ChromeWords::stored($db, $this->locales()),
@@ -69,22 +73,33 @@ final class AppearanceScreen
      * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
-     * @param array{confirm?: bool, replaces?: int, load?: array{character: string, count: int}, import?: array{set: array<string, mixed>, warnings: list<string>}|null, importErrors?: list<string>} $extra
-     *        a question waiting for an answer: how to publish a character (confirm), whether
-     *        to load one over the owner's changes (load), what to do with an imported file
+     * @param array{confirm?: bool, import?: array{set: array<string, mixed>, warnings: list<string>}|null, importErrors?: list<string>} $extra
+     *        a question waiting for an answer: how to publish a character (confirm), what
+     *        to do with an imported file
      */
     public function render(array $state, array $errors, ?string $notice, int $status = 200, string $character = '', array $extra = []): Response
     {
         $db = $this->db();
-        $decisions = $state['decisions'];
-        $byHand = Tokens::byHand($decisions);
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
-        $pairs = Palette::pairs($colors, $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions));
-        $shown = Url::primaryLocale() !== '' ? Url::primaryLocale() : ($this->locales()[0] ?? 'en');
         $active = Composition::active($db);
         // WHAT THE SCREEN MEASURES AGAINST (D-158): the character loaded into it, else the one
         // the site was composed with. Every dot, count and reset on the screen reads this one.
         $basis = $character !== '' ? $character : $active;
+        $values = $state['decisions'] + $state['look'];
+        // What every control SHOWS (D-164): the design as drawn, and for a key that follows
+        // the typeface the pairing's own value, so a slider nobody moved stands where the
+        // page is.
+        $resolved = Tokens::resolve($values, $basis);
+        $defaults = Overrides::defaults($basis, $resolved['typography']);
+        $shown = $resolved;
+        foreach ($shown as $key => $value) {
+            if ($value === '' && Decisions::follows($key) === 'pairing') {
+                $shown[$key] = $defaults[$key];
+            }
+        }
+        $colors = Palette::forDecisions($resolved);
+        $pairs = Palette::pairs($colors, $resolved['secondary'] !== '', Tokens::byHand($resolved), Tokens::ownChrome($resolved));
+        $shownLocale = Url::primaryLocale() !== '' ? Url::primaryLocale() : ($this->locales()[0] ?? 'en');
+        $lookKeys = array_flip(ChromeLook::keys());
         $characterLook = Characters::look($basis);
 
         return AdminView::render($this->container, __DIR__ . '/views', 'appearance', [
@@ -113,34 +128,33 @@ final class AppearanceScreen
             // The screen IS the window, as the page editor's canvas is: the admin's rail
             // folds to its icons beside it (D-064).
             'bare' => true,
-            'decisions' => $decisions,
+            // Every key as shown; the look's half is also handed on its own, as the header and
+            // footer sections read it.
+            'decisions' => array_diff_key($shown, $lookKeys),
             'errors' => $errors,
             'notice' => $notice,
             'character' => $character,
             'basis' => $basis,
             'confirm' => $extra['confirm'] ?? false,
-            'replaces' => $extra['replaces'] ?? 0,
-            'load' => $extra['load'] ?? null,
             'activeCharacter' => $active,
             'hasBlocks' => Composition::hasBlocks($db),
             'library' => DesignLibrary::all($db),
             'colors' => $colors,
             'pairs' => $pairs,
-            'readable' => Tokens::readable($decisions),
-            'readouts' => AppearanceForm::readouts($decisions)
-                + SectionSummaries::of($decisions, SectionSummaries::answered($state['look'], $characterLook), $pairs),
+            'readable' => Tokens::readable($resolved),
+            'readouts' => AppearanceForm::readouts($shown) + SectionSummaries::of($resolved, $pairs),
             // What the owner has made theirs over that character, and what each control is
             // when they have not (D-158).
-            'defaults' => Overrides::defaults($basis),
-            'changed' => Overrides::changed($decisions, $state['look'], $basis),
-            // The chrome half of the screen.
-            'look' => $state['look'],
+            'defaults' => $defaults,
+            'changed' => Overrides::changed($values, $basis),
+            // The chrome half of the screen, as shown.
+            'look' => array_intersect_key($shown, $lookKeys),
             'menu' => $state['menu'],
             'footerMenus' => $state['footer_menus'] ?? SiteChrome::footerMenus($db),
             'menus' => self::menuNames($db),
             'words' => $state['words'],
             'locales' => $this->container->get('locales'),
-            'shownLocale' => $shown,
+            'shownLocale' => $shownLocale,
             'characterLook' => $characterLook,
             // What the button may point at, per language: a Croatian header links to
             // Croatian pages (D-034).
@@ -150,9 +164,9 @@ final class AppearanceScreen
             )),
             // What the strip over the picture says is in the frame.
             'host' => (string) parse_url(Url::withOrigin(''), PHP_URL_HOST),
-            'pageName' => self::previewedPage($db, $shown),
-            'previewPages' => self::previewPages($db, $shown),
-            'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shown, $character)),
+            'pageName' => self::previewedPage($db, $shownLocale),
+            'previewPages' => self::previewPages($db, $shownLocale),
+            'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shownLocale, $character)),
             // Design files (D-152): one brought in and waiting, why one was refused, the custom
             // files left out, and a character the site was composed with that is gone (D-156).
             'import' => $extra['import'] ?? null,

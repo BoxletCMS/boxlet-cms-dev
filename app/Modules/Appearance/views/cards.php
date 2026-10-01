@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Design\Palette;
+use App\Modules\Design\Vocabulary\Decisions;
 
 /**
  * How a whole design is shown in small: three swatches of its palette, and for the question
@@ -17,7 +18,8 @@ use App\Modules\Design\Palette;
  * @param array<string, string> $decisions
  */
 $chips = static function (array $decisions, string $key) use ($swatch): string {
-    $palette = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast']);
+    // Every key answered: a design that leaves one out means what the vocabulary gives it.
+    $palette = Palette::forDecisions($decisions + Decisions::neutral());
 
     return '<span class="design-chips" aria-hidden="true">'
         . $swatch($palette['accent'], $key . '-accent')
@@ -33,10 +35,9 @@ $chips = static function (array $decisions, string $key) use ($swatch): string {
  * @param array<string, string> $decisions
  */
 $summary = static fn (array $decisions, string $header): string => implode(' · ', array_filter([
-    t('design.typography.' . $decisions['typography']),
-    $decisions['container'] . 'rem',
-    t('design.spacing.' . $decisions['spacing']),
-    t($decisions['boxed'] === 'yes' ? 'appearance.boxed' : 'appearance.full_bleed'),
+    t('design.typography.' . ($decisions['typography'] ?? 'modern')),
+    ($decisions['container'] ?? '60') . 'rem',
+    t(($decisions['boxed'] ?? 'no') === 'yes' ? 'appearance.boxed' : 'appearance.full_bleed'),
     $header === '' ? '' : t('chrome.look.header_arrangement.' . $header),
 ]));
 

@@ -20,19 +20,19 @@ const shot = (report, page, name) => report.shot(page, name, { fullPage: false }
 /** A character as a file, made here so the scenario owns its test data (CLAUDE.md, rule 9). */
 const SET = {
   format: 'boxlet-design-set',
-  version: 1,
+  version: 2,
   id: SLUG,
   name: { en: 'Scenario Harbour' },
   description: { en: 'Navy and sand, imported by a browser check.' },
   decisions: {
-    seed: '#1d3557', secondary: '#f1e3c6', typography: 'classic', text_size: 'normal', scale: '1.25',
-    spacing: 'roomy', radius: 'subtle', shadow: 'soft', container: '60', surface_contrast: 'medium',
+    seed: '#1d3557', secondary: '#f1e3c6', typography: 'classic', text_size: '16', scale: '1.25',
+    spacing: '1.25', radius: '4', shadow: 'soft', container: '60', surface_contrast: '50',
     header_width: 'content', boxed: 'no', page_background: 'surface',
   },
   look: {
     header_arrangement: 'left', header_behaviour: 'sticky', footer_layout: 'columns', footer_edge: 'line',
-    small_print_row: 'split', header_surface: 'plain', footer_surface: 'tinted', density: 'normal',
-    header_edge: 'line', logo_size: 'medium', brand: 'both', nav_style: 'bar', nav_ink: 'ink',
+    small_print_row: 'split', header_surface: 'plain', footer_surface: 'tinted', header_height: '72',
+    header_edge: 'line', logo_size: '44', brand: 'both', nav_style: 'bar', nav_ink: 'ink',
     header_button: 'outline', footer_columns: '3', footer_links: 'auto',
   },
   composition: {

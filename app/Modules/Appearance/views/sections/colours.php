@@ -16,6 +16,7 @@ use App\Support\Controls;
  * @var list<string> $changed
  * @var Closure(string): string $error
  * @var Closure(string, array<array-key, string>): string $segmented
+ * @var Closure(string): string $control
  * @var Closure(string, list<string>): array<string, string> $labels
  * @var Closure(string, string): string $swatch
  * @var Closure(string, string, array<string, mixed>=): array<string, mixed> $rowOptions
@@ -85,6 +86,9 @@ ob_start();
                         . '<input type="color" class="colour-input" id="design-seed" name="seed" value="' . e($decisions['seed']) . '">'
                         . '<output class="colour-value" for="design-seed" data-colour-for="design-seed">' . e($decisions['seed']) . '</output></div>',
                         $rowOptions('seed', t('design.seed'), ['for' => 'design-seed', 'hint' => '<span class="hint">' . e(t('design.seed_hint')) . '</span>'])) ?>
+                    <?php /* Light or dark, for the whole site (D-164, the owner's choice): the
+                             same palette walked the other way, checked by the same pairs. */ ?>
+                    <?= $control('mode') ?>
                     <?php /* The second colour is two controls and one decision: the switch says there
                              is one, and the picker below it, shown only while the switch is on,
                              says which. Without the switch a colour input always posts a colour. */ ?>
@@ -93,7 +97,7 @@ ob_start();
                         . '<input type="color" class="colour-input" id="design-secondary" name="secondary" value="' . e($decisions['secondary'] !== '' ? $decisions['secondary'] : $colors['contrast']) . '" aria-label="' . e(t('design.secondary')) . '">'
                         . '<output class="colour-value" for="design-secondary" data-colour-for="design-secondary">' . e($decisions['secondary'] !== '' ? $decisions['secondary'] : $colors['contrast']) . '</output></div>',
                         $rowOptions('secondary', t('design.secondary'), ['hint' => field_hint('hint.design.secondary'), 'attributes' => ['data-kind' => 'secondary']])) ?>
-                    <?= $segmented('surface_contrast', $labels('surface_contrast', Tokens::SURFACE_CONTRAST)) ?>
+                    <?= $control('surface_contrast') ?>
 <?php $basics = (string) ob_get_clean(); ob_start(); ?>
                     <div class="palette-head">
                         <span class="hint hint-always"><?= e(t('inspector.palette_note')) ?></span>

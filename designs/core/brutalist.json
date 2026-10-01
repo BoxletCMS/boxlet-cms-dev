@@ -1,6 +1,6 @@
 {
     "format": "boxlet-design-set",
-    "version": 1,
+    "version": 2,
     "id": "brutalist",
     "name": {
         "en": "Brutalist"
@@ -12,35 +12,40 @@
     "decisions": {
         "seed": "#1f1fd1",
         "secondary": "#ffe600",
+        "surface_contrast": "80",
         "typography": "mono",
-        "text_size": "normal",
-        "scale": "1.414",
-        "spacing": "compact",
-        "radius": "none",
+        "scale": "1.415",
+        "spacing": "0.9",
+        "section_gap": "48",
+        "radius": "0",
+        "border_width": "3",
         "shadow": "hard",
+        "shadow_strength": "50",
         "container": "80",
-        "surface_contrast": "high",
+        "page_background": "border",
         "header_width": "window",
-        "boxed": "no",
-        "page_background": "border"
+        "button_radius": "0",
+        "button_caps": "yes"
     },
     "look": {
         "header_arrangement": "split",
         "header_behaviour": "static",
-        "footer_layout": "menu_first",
-        "footer_edge": "slant",
-        "small_print_row": "left",
+        "header_opacity": "100",
+        "header_blur": "0",
         "header_surface": "contrast",
-        "footer_surface": "contrast",
-        "density": "compact",
         "header_edge": "shadow",
-        "logo_size": "large",
+        "header_height": "56",
+        "logo_size": "60",
         "brand": "logo",
         "nav_style": "caps",
         "nav_ink": "accent",
         "header_button": "outline",
+        "footer_layout": "menu_first",
         "footer_columns": "3",
-        "footer_links": "auto"
+        "footer_links": "auto",
+        "small_print_row": "left",
+        "footer_surface": "contrast",
+        "footer_edge": "slant"
     },
     "composition": {
         "section": {

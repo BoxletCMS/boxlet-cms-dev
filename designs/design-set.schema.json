@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "boxlet-design-set-v1",
-    "title": "Boxlet design set (v1)",
+    "$id": "boxlet-design-set-v2",
+    "title": "Boxlet design set (v2)",
     "description": "A portable Boxlet design: decisions, header and footer look, and optionally a composition, which makes it a character. Generated from the code that validates it; Boxlet's own validator decides. Keys left out of decisions take the neutral defaults. A key Boxlet does not know is left out with a warning.",
     "type": "object",
     "required": [
@@ -20,7 +20,7 @@
             "const": "boxlet-design-set"
         },
         "version": {
-            "const": 1
+            "const": 2
         },
         "id": {
             "type": "string",
@@ -75,6 +75,20 @@
                     "type": "string",
                     "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
                 },
+                "mode": {
+                    "enum": [
+                        "",
+                        "light",
+                        "dark"
+                    ]
+                },
+                "surface_contrast": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number %, 0 – 100, step 1"
+                },
                 "color_background": {
                     "type": "string",
                     "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
@@ -103,8 +117,21 @@
                     "type": "string",
                     "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
                 },
+                "page_background_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "header_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
+                "footer_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                },
                 "typography": {
                     "enum": [
+                        "",
                         "editorial",
                         "classic",
                         "modern",
@@ -114,58 +141,39 @@
                     ]
                 },
                 "text_size": {
-                    "enum": [
-                        "small",
-                        "normal",
-                        "large",
-                        "larger"
-                    ]
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 14 – 20, step 0.5"
                 },
                 "scale": {
                     "type": [
                         "string",
                         "number"
                     ],
-                    "description": "number, 1.1 – 1.6"
+                    "description": "number, 1.1 – 1.6, step 0.005"
                 },
-                "nudge_h1": {
+                "line_height": {
                     "type": [
                         "string",
                         "number"
                     ],
-                    "description": "integer px, -30 – 40"
-                },
-                "nudge_h2": {
-                    "type": [
-                        "string",
-                        "number"
-                    ],
-                    "description": "integer px, -12 – 20"
-                },
-                "nudge_sm": {
-                    "type": [
-                        "string",
-                        "number"
-                    ],
-                    "description": "integer px, -3 – 5"
+                    "description": "number, 1.3 – 1.9, step 0.05"
                 },
                 "heading_weight": {
-                    "enum": [
-                        "",
-                        "400",
-                        "500",
-                        "600",
-                        "700",
-                        "800"
-                    ]
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number, 300 – 900, step 100"
                 },
                 "tracking": {
-                    "enum": [
-                        "",
-                        "tight",
-                        "normal",
-                        "wide"
-                    ]
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number em, -0.05 – 0.1, step 0.005"
                 },
                 "caps": {
                     "enum": [
@@ -174,29 +182,70 @@
                         "yes"
                     ]
                 },
+                "nudge_h1": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, -30 – 40, step 1"
+                },
+                "nudge_h2": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, -12 – 20, step 1"
+                },
+                "nudge_sm": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, -3 – 5, step 1"
+                },
                 "spacing": {
-                    "enum": [
-                        "compact",
-                        "normal",
-                        "roomy",
-                        "generous"
-                    ]
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number rem, 0.75 – 1.75, step 0.05"
+                },
+                "section_gap": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 32 – 160, step 4"
                 },
                 "radius": {
-                    "enum": [
-                        "none",
-                        "subtle",
-                        "round",
-                        "pill"
-                    ]
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 0 – 32, step 1"
+                },
+                "border_width": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 0 – 4, step 0.5"
                 },
                 "shadow": {
                     "enum": [
+                        "",
                         "none",
                         "soft",
                         "hard",
                         "layered"
                     ]
+                },
+                "shadow_strength": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number %, 0 – 100, step 1"
                 },
                 "container": {
                     "type": [
@@ -205,43 +254,11 @@
                     ],
                     "description": "number rem, 36 – 88, step 2"
                 },
-                "surface_contrast": {
-                    "enum": [
-                        "low",
-                        "medium",
-                        "high"
-                    ]
-                },
-                "header_width": {
-                    "enum": [
-                        "content",
-                        "full",
-                        "window"
-                    ]
-                },
                 "boxed": {
                     "enum": [
+                        "",
                         "no",
                         "yes"
-                    ]
-                },
-                "page_background": {
-                    "enum": [
-                        "surface",
-                        "border",
-                        "contrast"
-                    ]
-                },
-                "page_background_colour": {
-                    "type": "string",
-                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
-                },
-                "frame": {
-                    "enum": [
-                        "thin",
-                        "narrow",
-                        "normal",
-                        "wide"
                     ]
                 },
                 "sheet_width": {
@@ -251,59 +268,107 @@
                     ],
                     "description": "number rem, 40 – 120, step 2"
                 },
+                "frame": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number rem, 0 – 6, step 0.25"
+                },
                 "sheet_gap": {
                     "type": [
                         "string",
                         "number"
                     ],
-                    "description": "integer spacing units, 0 – 8"
+                    "description": "number, 0 – 8, step 1"
                 },
                 "sheet_radius": {
-                    "enum": [
-                        "square",
-                        "soft",
-                        "round"
-                    ]
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 0 – 32, step 1"
                 },
                 "sheet_shadow": {
                     "enum": [
+                        "",
                         "none",
                         "shadow",
                         "hairline"
                     ]
                 },
+                "page_background": {
+                    "enum": [
+                        "",
+                        "surface",
+                        "border",
+                        "contrast"
+                    ]
+                },
                 "header_bleed": {
                     "enum": [
+                        "",
                         "sheet",
                         "full"
                     ]
                 },
+                "header_width": {
+                    "enum": [
+                        "",
+                        "content",
+                        "sheet",
+                        "window"
+                    ]
+                },
                 "footer_bleed": {
                     "enum": [
+                        "",
                         "sheet",
                         "full"
                     ]
                 },
                 "footer_width": {
                     "enum": [
+                        "",
                         "content",
-                        "full",
+                        "sheet",
                         "window"
                     ]
                 },
-                "header_colour": {
-                    "type": "string",
-                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                "button_style": {
+                    "enum": [
+                        "",
+                        "filled",
+                        "outline",
+                        "soft"
+                    ]
                 },
-                "footer_colour": {
-                    "type": "string",
-                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$"
+                "button_radius": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 0 – 28, step 1"
+                },
+                "button_height": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 32 – 60, step 2"
+                },
+                "button_caps": {
+                    "enum": [
+                        "",
+                        "no",
+                        "yes"
+                    ]
                 }
             }
         },
         "look": {
             "type": "object",
-            "description": "'' follows the character. A character sets every choice.",
+            "description": "'' or a choice left out follows the character.",
             "additionalProperties": false,
             "properties": {
                 "header_arrangement": {
@@ -324,32 +389,19 @@
                         "over"
                     ]
                 },
-                "footer_layout": {
-                    "enum": [
-                        "",
-                        "simple",
-                        "centred",
-                        "columns",
-                        "menu_first",
-                        "three"
-                    ]
+                "header_opacity": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number %, 0 – 100, step 1"
                 },
-                "footer_edge": {
-                    "enum": [
-                        "",
-                        "none",
-                        "line",
-                        "slant",
-                        "curve"
-                    ]
-                },
-                "small_print_row": {
-                    "enum": [
-                        "",
-                        "left",
-                        "split",
-                        "centred"
-                    ]
+                "header_blur": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 0 – 24, step 1"
                 },
                 "header_surface": {
                     "enum": [
@@ -360,23 +412,6 @@
                         "gradient"
                     ]
                 },
-                "footer_surface": {
-                    "enum": [
-                        "",
-                        "plain",
-                        "tinted",
-                        "contrast",
-                        "gradient"
-                    ]
-                },
-                "density": {
-                    "enum": [
-                        "",
-                        "compact",
-                        "normal",
-                        "roomy"
-                    ]
-                },
                 "header_edge": {
                     "enum": [
                         "",
@@ -385,13 +420,19 @@
                         "shadow"
                     ]
                 },
+                "header_height": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 48 – 120, step 2"
+                },
                 "logo_size": {
-                    "enum": [
-                        "",
-                        "small",
-                        "medium",
-                        "large"
-                    ]
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "number px, 20 – 72, step 1"
                 },
                 "brand": {
                     "enum": [
@@ -423,7 +464,18 @@
                         "",
                         "filled",
                         "outline",
-                        "text"
+                        "text",
+                        "none"
+                    ]
+                },
+                "footer_layout": {
+                    "enum": [
+                        "",
+                        "simple",
+                        "centred",
+                        "columns",
+                        "menu_first",
+                        "three"
                     ]
                 },
                 "footer_columns": {
@@ -439,6 +491,32 @@
                         "",
                         "auto",
                         "list"
+                    ]
+                },
+                "small_print_row": {
+                    "enum": [
+                        "",
+                        "left",
+                        "split",
+                        "centred"
+                    ]
+                },
+                "footer_surface": {
+                    "enum": [
+                        "",
+                        "plain",
+                        "tinted",
+                        "contrast",
+                        "gradient"
+                    ]
+                },
+                "footer_edge": {
+                    "enum": [
+                        "",
+                        "none",
+                        "line",
+                        "slant",
+                        "curve"
                     ]
                 }
             }

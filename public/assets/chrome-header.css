@@ -80,11 +80,17 @@
    because that is what sticks or floats; the class is on the bar inside, which is what
    the template owns, and :has() reads it from there. */
 
-/* Sticky: always within reach, over whatever scrolls beneath on its own surface. */
+/* Sticky: always within reach, over whatever scrolls beneath on its own surface — as
+   see-through and as blurred as the owner says (D-164); a token of 1 and no blur is solid. */
 .block-header:has(> .container > .behaviour-sticky) {
   position: sticky;
   top: 0;
   z-index: 10;
+  /* Mixed in a property of its own, so background reads a token like every front-end
+     colour (blocks_test). */
+  --header-sticky-bg: color-mix(in srgb, var(--section-bg) calc(var(--chrome-header-opacity, 1) * 100%), transparent);
+  background: var(--header-sticky-bg);
+  backdrop-filter: blur(var(--chrome-header-blur, 0rem));
 }
 
 /* Over the top: laid over the first section, taking that section's colours rather than

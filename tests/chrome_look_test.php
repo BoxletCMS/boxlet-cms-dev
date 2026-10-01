@@ -43,7 +43,12 @@ testBothDrivers('the chrome dresses as the character says until the owner choose
     $tag = headerTag($body);
     assertContains('layout-split', $tag, 'Brutalist\'s arrangement');
     assertContains('surface-contrast', $tag, 'Brutalist\'s header surface');
-    assertContains('site-header density-compact logo-large behaviour-static edge-shadow nav-caps nav-ink-accent button-outline brand-logo', $body, 'Brutalist\'s density, logo size, behaviour, edge, menu, button and brand');
+    assertContains('site-header behaviour-static edge-shadow nav-caps nav-ink-accent button-outline brand-logo', $body, 'Brutalist\'s behaviour, edge, menu, button and brand');
+    // The bar's height and the logo's size are numbers since D-164, and tokens rather than
+    // classes: they reach the stylesheet, not the bar.
+    $chrome = App\Modules\Design\Derived::from(App\Modules\Design\Design::resolved($db))['chrome'];
+    assertEquals('3.5rem', $chrome['header-height'], 'Brutalist\'s compact bar, 56px');
+    assertEquals('3.75rem', $chrome['logo-size'], 'and its large logo, 60px');
 
     ChromeLook::save($db, ['header_behaviour' => 'sticky', 'header_surface' => 'tinted', 'header_edge' => 'none']);
     $body = dispatch('/')->body;
@@ -52,27 +57,29 @@ testBothDrivers('the chrome dresses as the character says until the owner choose
     assertContains('surface-tinted', $tag, 'the owner\'s surface');
     assertContains('edge-none', $body, 'the edge the owner took away');
     // Choices left alone still follow the character.
-    assertContains('density-compact', $body, 'a choice left to the character');
+    assertContains('nav-caps', $body, 'a choice left to the character');
     assertContains('layout-split', headerTag($body), 'the arrangement left to the character');
 
     Composition::remember($db, 'soft');
-    assertContains('density-roomy', dispatch('/')->body, 'changing character re-dresses what the owner left alone');
+    assertEquals('5.75rem', App\Modules\Design\Derived::from(App\Modules\Design\Design::resolved($db))['chrome']['header-height'], 'changing character re-dresses what the owner left alone: Soft\'s roomy bar, 92px');
+    assertContains('behaviour-sticky', dispatch('/')->body, 'and keeps what the owner chose');
 });
 
 test('a value outside a closed set is stored as "follow the character"', function () {
     $db = installedSite(['en' => 'English']);
-    ChromeLook::save($db, ['header_arrangement' => 'floating', 'density' => '<script>', 'logo_size' => 'large']);
+    ChromeLook::save($db, ['header_arrangement' => 'floating', 'header_height' => '<script>', 'logo_size' => '44', 'header_blur' => '99']);
 
     $stored = ChromeLook::stored($db);
     assertEquals('', $stored['header_arrangement'], 'an unknown arrangement');
-    assertEquals('', $stored['density'], 'an unknown density');
-    assertEquals('large', $stored['logo_size'], 'a real choice');
+    assertEquals('', $stored['header_height'], 'a height that is no number');
+    assertEquals('', $stored['header_blur'], 'a blur past its bounds');
+    assertEquals('44', $stored['logo_size'], 'a real choice');
 });
 
 test('every character answers every choice from its closed set', function () {
     foreach (App\Modules\Design\Presets::names() as $character) {
         assertTrue(App\Modules\Design\Characters::exists($character), "{$character} gives its chrome nothing");
-        foreach (ChromeLook::OPTIONS as $choice => $options) {
+        foreach (lookChoices() as $choice => $options) {
             $value = App\Modules\Design\Characters::look($character)[$choice] ?? null;
             assertTrue(in_array($value, $options, true), "{$character}: {$choice} is " . var_export($value, true));
         }
@@ -123,14 +130,14 @@ testBothDrivers('the Appearance screen saves the look', function (string $driver
      */
     assertRedirectedTo('/admin/appearance', adminPost('/admin/appearance', appearanceFields([
         'look_header_arrangement' => 'split',
-        'look_density' => '',
-        'look_logo_size' => 'large',
+        'look_header_height' => '',
+        'look_logo_size' => '60',
         'look_brand' => 'logo',
     ])));
     $stored = ChromeLook::stored($db);
     assertEquals('split', $stored['header_arrangement'], 'the arrangement');
-    assertEquals('', $stored['density'], 'a choice left to the character');
-    assertEquals('large', $stored['logo_size'], 'the logo size');
+    assertEquals('', $stored['header_height'], 'a choice left to the character');
+    assertEquals('60', $stored['logo_size'], 'the logo size');
     assertEquals('', $stored['brand'], 'Minimal\'s own answer, stored as following it');
 
     assertContains('name="look_header_arrangement" value="split" checked', dispatch('/admin/appearance')->body, 'the screen shows it');
@@ -191,7 +198,7 @@ testBothDrivers('a colour of the owner\'s own is a class on the bar, and only th
         'action' => 'save',
     ]));
     $coloured = dispatch('/')->body;
-    assertContains('site-header density-', $coloured, 'the header');
+    assertContains('site-header behaviour-', $coloured, 'the header');
     assertTrue(preg_match('~class="site-header [^"]*own-colour~', $coloured) === 1, 'the header wears its own colour');
     assertTrue(preg_match('~class="site-footer [^"]*own-colour~', $coloured) === 1, 'the footer wears its own colour');
 
@@ -246,7 +253,7 @@ testBothDrivers('every arrangement is drawn, and split puts the name in the midd
     lookSite($db);
     Settings::set($db, 'site_name', 'Northwind');
 
-    foreach (ChromeLook::OPTIONS['header_arrangement'] as $arrangement) {
+    foreach (choicesOf('header_arrangement') as $arrangement) {
         ChromeLook::save($db, ['header_arrangement' => $arrangement]);
         assertContains('layout-' . $arrangement, headerTag(dispatch('/')->body), $arrangement);
     }
@@ -263,7 +270,7 @@ testBothDrivers('every arrangement is drawn, and split puts the name in the midd
     assertEquals(2, preg_match_all('~<ul>\s*<li[ >]~', $nav), 'each list opens with an item');
     assertEquals(1, preg_match_all('~<li[^>]*>\s*<a[^>]*>About</a>~', $nav), 'About stands in one of them');
 
-    foreach (ChromeLook::OPTIONS['header_behaviour'] as $behaviour) {
+    foreach (choicesOf('header_behaviour') as $behaviour) {
         ChromeLook::save($db, ['header_behaviour' => $behaviour]);
         assertContains('behaviour-' . $behaviour, dispatch('/')->body, $behaviour);
     }
@@ -350,15 +357,15 @@ testBothDrivers('the footer is drawn in every arrangement, with its edge and its
     lookSite($db);
     Settings::set($db, 'site_credit', true);
 
-    foreach (ChromeLook::OPTIONS['footer_layout'] as $layout) {
+    foreach (choicesOf('footer_layout') as $layout) {
         ChromeLook::save($db, ['footer_layout' => $layout]);
         assertTrue(preg_match('~<footer class="[^"]*layout-' . $layout . '~', dispatch('/')->body) === 1, $layout);
     }
-    foreach (ChromeLook::OPTIONS['footer_edge'] as $edge) {
+    foreach (choicesOf('footer_edge') as $edge) {
         ChromeLook::save($db, ['footer_edge' => $edge]);
         assertTrue(preg_match('~<footer class="[^"]*divider-' . $edge . '~', dispatch('/')->body) === 1, $edge);
     }
-    foreach (ChromeLook::OPTIONS['small_print_row'] as $row) {
+    foreach (choicesOf('small_print_row') as $row) {
         ChromeLook::save($db, ['small_print_row' => $row]);
         $body = dispatch('/')->body;
         assertContains('foot-' . $row, $body, $row);

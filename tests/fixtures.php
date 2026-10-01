@@ -369,3 +369,43 @@ function blockIdsInOrder(Db $db, ?int $pageId = null): array
 {
     return array_map(static fn (array $row): int => $row['id'], blocksWithStyle($db, $pageId));
 }
+
+/**
+ * A closed decision's values, from the vocabulary (D-164); [] for a number or a colour.
+ *
+ * @return list<string>
+ */
+function choicesOf(string $key): array
+{
+    $definition = App\Modules\Design\Vocabulary\Decisions::ALL[$key] ?? [];
+    $values = $definition['values'] ?? [];
+
+    return $values;
+}
+
+/**
+ * Every closed decision and its values, the header and footer's included.
+ *
+ * @return array<string, list<string>>
+ */
+function allChoices(): array
+{
+    $choices = [];
+    foreach (array_keys(App\Modules\Design\Vocabulary\Decisions::ALL) as $key) {
+        if (choicesOf($key) !== []) {
+            $choices[$key] = choicesOf($key);
+        }
+    }
+
+    return $choices;
+}
+
+/**
+ * The header and footer's closed choices and their values.
+ *
+ * @return array<string, list<string>>
+ */
+function lookChoices(): array
+{
+    return array_intersect_key(allChoices(), array_flip(App\Modules\Settings\ChromeLook::keys()));
+}

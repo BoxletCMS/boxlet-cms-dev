@@ -1,6 +1,6 @@
 {
     "format": "boxlet-design-set",
-    "version": 1,
+    "version": 2,
     "id": "editorial",
     "name": {
         "en": "Editorial"
@@ -13,34 +13,32 @@
         "seed": "#8a1c2b",
         "secondary": "#1f1a17",
         "typography": "editorial",
-        "text_size": "large",
-        "scale": "1.333",
-        "spacing": "roomy",
-        "radius": "subtle",
-        "shadow": "none",
+        "text_size": "17",
+        "scale": "1.335",
+        "spacing": "1.25",
+        "section_gap": "112",
         "container": "42",
-        "surface_contrast": "low",
-        "header_width": "content",
-        "boxed": "no",
-        "page_background": "surface"
+        "button_radius": "4"
     },
     "look": {
         "header_arrangement": "masthead",
         "header_behaviour": "static",
-        "footer_layout": "simple",
-        "footer_edge": "line",
-        "small_print_row": "left",
+        "header_opacity": "100",
+        "header_blur": "0",
         "header_surface": "plain",
-        "footer_surface": "tinted",
-        "density": "roomy",
         "header_edge": "line",
-        "logo_size": "medium",
+        "header_height": "92",
+        "logo_size": "44",
         "brand": "logo",
         "nav_style": "caps",
         "nav_ink": "ink",
         "header_button": "outline",
+        "footer_layout": "simple",
         "footer_columns": "2",
-        "footer_links": "auto"
+        "footer_links": "auto",
+        "small_print_row": "left",
+        "footer_surface": "tinted",
+        "footer_edge": "line"
     },
     "composition": {
         "section": {

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Appearance;
 
-use App\Modules\Design\Tokens;
 
 /**
  * EVERY WIDTH ON ONE PICTURE (PLAN.md D-157): the window, the sheet a boxed page sits on,
@@ -41,12 +40,13 @@ final class LayoutDiagram
     public static function geometry(array $decisions): array
     {
         $boxed = ($decisions['boxed'] ?? 'no') === 'yes';
-        $unit = Tokens::SPACING[$decisions['spacing'] ?? 'normal'] ?? 1.0;
-        $frame = $boxed ? $unit * (Tokens::FRAME[$decisions['frame'] ?? 'normal'] ?? 3.0) * 16 : 0.0;
+        $unit = (float) ($decisions['spacing'] ?? 1);
+        // The side margin is rem of its own since D-164.
+        $frame = $boxed ? (float) ($decisions['frame'] ?? 3) * 16 : 0.0;
         $room = $boxed ? min(self::MOST_ROOM, $unit * (float) ($decisions['sheet_gap'] ?? 0) * 16 / self::SCALE) : 0.0;
         // The sheet is its own width, centred, never wider than the window less its margins.
         $sheetWidth = $boxed ? min((float) ($decisions['sheet_width'] ?? 72) * 16, self::WINDOW - 2 * $frame) / self::SCALE : self::WIDTH;
-        $text = (Tokens::width($decisions['container'] ?? '') ?? 56.0) * 16 / self::SCALE;
+        $text = (float) ($decisions['container'] ?? 60) * 16 / self::SCALE;
 
         $headerOut = $boxed && ($decisions['header_bleed'] ?? 'sheet') === 'full';
         $footerOut = $boxed && ($decisions['footer_bleed'] ?? 'sheet') === 'full';
@@ -61,7 +61,7 @@ final class LayoutDiagram
         $inside = static fn (string $width, array $bar): float => min($bar['width'], match ($width) {
             'window' => (float) self::WIDTH,
             // In line with the box: the sheet, which unboxed is the window.
-            'full' => $sheetWidth,
+            'sheet' => $sheetWidth,
             default => min($text, $sheetWidth),
         });
 

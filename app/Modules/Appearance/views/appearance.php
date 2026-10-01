@@ -30,7 +30,7 @@ use App\Support\Url;
 require __DIR__ . '/parts/controls.php';
 require __DIR__ . '/parts/words.php';
 require __DIR__ . '/cards.php';
-$icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'layout' => 'panels-top-left', 'header' => 'arrow-up', 'footer' => 'arrow-down'];
+$icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'layout' => 'panels-top-left', 'header' => 'arrow-up', 'footer' => 'arrow-down', 'buttons' => 'square-play'];
 ?>
         <div class="appearance" data-appearance>
 <?php require __DIR__ . '/parts/bar.php'; ?>

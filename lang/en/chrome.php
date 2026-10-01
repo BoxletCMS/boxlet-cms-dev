@@ -90,10 +90,6 @@ return [
     'chrome.look.footer_surface.tinted' => 'Tinted',
     'chrome.look.footer_surface.contrast' => 'Contrast',
     'chrome.look.footer_surface.gradient' => 'Gradient',
-    'chrome.look.density' => 'Density',
-    'chrome.look.density.compact' => 'Compact',
-    'chrome.look.density.normal' => 'Normal',
-    'chrome.look.density.roomy' => 'Roomy',
     'chrome.look.header_edge' => 'Header edge',
     'chrome.look.header_edge.none' => 'None',
     'chrome.look.header_edge.line' => 'Line',
@@ -131,4 +127,13 @@ return [
 
     'chrome.save' => 'Save header and footer',
     'chrome.saved' => 'Header and footer saved.',
+
+    // Global decisions v2 (D-164).
+    'chrome.look.header_opacity' => 'Background opacity',
+    'chrome.look.header_blur' => 'Background blur',
+    'chrome.look.header_height' => 'Header height',
+    'chrome.look.header_height.compact' => 'Compact',
+    'chrome.look.header_height.normal' => 'Normal',
+    'chrome.look.header_height.roomy' => 'Roomy',
+    'chrome.look.header_button.none' => 'None',
 ];

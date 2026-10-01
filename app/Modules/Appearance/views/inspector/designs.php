@@ -19,7 +19,7 @@ ob_start();
                         <ul class="design-rows" role="list">
 <?php foreach ($library as $saved): ?>
                             <li class="design-row">
-                                <?= $chips($saved['decisions'], 'saved-' . $saved['id']) ?>
+                                <?= $chips(App\Modules\Design\Tokens::resolve($saved['decisions'] + $saved['look'], $saved['character']), 'saved-' . $saved['id']) ?>
                                 <span class="design-row-text">
                                     <span class="design-row-name" title="<?= e($saved['name']) ?>"><?= e($saved['name']) ?></span>
                                     <span class="design-row-from"><?= e(Characters::exists($saved['character']) ? t('appearance.library.from', ['character' => Characters::label($saved['character'])]) : t('appearance.library.by_hand')) ?></span>

@@ -1,6 +1,6 @@
 {
     "format": "boxlet-design-set",
-    "version": 1,
+    "version": 2,
     "id": "soft",
     "name": {
         "en": "Soft"
@@ -12,35 +12,34 @@
     "decisions": {
         "seed": "#3b6b4f",
         "secondary": "#f5ecdc",
+        "surface_contrast": "50",
         "typography": "rounded",
-        "text_size": "normal",
-        "scale": "1.25",
-        "spacing": "generous",
-        "radius": "pill",
+        "scale": "1.275",
+        "radius": "8",
         "shadow": "soft",
-        "container": "56",
-        "surface_contrast": "medium",
-        "header_width": "content",
         "boxed": "yes",
-        "page_background": "surface"
+        "button_radius": "28",
+        "button_height": "46"
     },
     "look": {
         "header_arrangement": "inline",
         "header_behaviour": "sticky",
-        "footer_layout": "three",
-        "footer_edge": "curve",
-        "small_print_row": "split",
+        "header_opacity": "100",
+        "header_blur": "0",
         "header_surface": "tinted",
-        "footer_surface": "tinted",
-        "density": "roomy",
         "header_edge": "none",
-        "logo_size": "medium",
+        "header_height": "92",
+        "logo_size": "44",
         "brand": "both",
         "nav_style": "plain",
         "nav_ink": "ink",
         "header_button": "filled",
+        "footer_layout": "three",
         "footer_columns": "2",
-        "footer_links": "auto"
+        "footer_links": "auto",
+        "small_print_row": "split",
+        "footer_surface": "tinted",
+        "footer_edge": "curve"
     },
     "composition": {
         "section": {

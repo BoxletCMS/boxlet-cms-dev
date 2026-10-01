@@ -33,7 +33,7 @@ ob_start();
                     <?php /* A logo's size means nothing where the header shows only the name, so
                              it is offered only where there is a logo to size (admin-appearance.css). */ ?>
                     <?= $lookGroup('logo_size') ?>
-                    <?= $lookGroup('density') ?>
+                    <?= $lookGroup('header_height') ?>
 <?php $arrangement = (string) ob_get_clean(); ob_start(); ?>
                     <?= $lookGroup('header_surface') ?>
                     <?= $ownColour('header_colour') ?>
@@ -105,7 +105,9 @@ ob_start();
 <?php endforeach; ?>
 <?php $wordsGroup = (string) ob_get_clean(); ?>
                 <?= $group('header', 'arrangement', $arrangement) ?>
-                <?= $group('header', 'behaviour', $lookGroup('header_behaviour')) ?>
+                <?php /* How see-through and blurred a bar that moves with the page is: only a
+                         sticky bar or one over the hero has anything behind it (D-164). */ ?>
+                <?= $group('header', 'behaviour', $lookGroup('header_behaviour') . '<div class="when-moving">' . $lookGroup('header_opacity') . $lookGroup('header_blur') . '</div>') ?>
                 <?= $group('header', 'background', $background) ?>
                 <?= $group('header', 'menu', $menuGroup) ?>
                 <?= $group('header', 'words', $wordsGroup) ?>

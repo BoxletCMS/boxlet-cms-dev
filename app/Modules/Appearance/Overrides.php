@@ -3,55 +3,46 @@
 namespace App\Modules\Appearance;
 
 use App\Modules\Design\Characters;
+use App\Modules\Design\Vocabulary\Decisions;
 use App\Modules\Settings\ChromeLook;
 
 /**
  * WHAT THE OWNER HAS MADE THEIR OWN, over the character the screen is showing (PLAN.md
- * D-158), and how the Appearance screen is cut into sections and groups (D-157).
+ * D-158, D-164), and how the Appearance screen is cut into sections and groups (D-157).
  *
- * THREE KINDS OF CONTROL, three meanings of "changed", because the three are stored three
- * ways and only one of them can be read off a comparison:
+ * ONE MEANING OF "CHANGED" SINCE D-164. Every key is stored as '' while it follows — the
+ * character, the typeface pairing, or the palette for a colour by hand — so changed is simply
+ * "set, and not what it would follow": a dot, and a reset that writes ''. A value equal to
+ * what it would follow is stored as '' (settle()), so there is one way to say "as the
+ * character has it". Changing the character keeps every value the owner set.
  *
- * - a DECISION (spacing, the scale, the sheet's width…) always holds a value, and loading a
- *   character replaces all of them. Changed means "not what the character gives"; putting
- *   it back means writing the character's value. The stored model is untouched in this
- *   phase: '' for a decision is phase 2's (O-41).
- * - a colour BY HAND (a role of the palette, or a place's own colour) is '' while the
- *   palette decides. Changed means "set by hand" — not "unlike the character", because the
- *   value it is compared with would be a colour the palette worked out and the dot is about
- *   who chose it; putting it back is giving it to the palette (D-074).
- * - a LOOK choice for the header or footer is '' while the character decides. Changed means
- *   set AND unlike the character's; putting it back is ''. A choice equal to the character's
- *   is stored as '' (settle()), so there is one way to say "as the character has it".
- *
- * One class rather than three places that each know a third, because the dot, the counts,
- * the banner, the three resets and the question before a character is loaded all have to
- * agree about which keys moved — and a test can then ask it once.
+ * One class rather than several places that each know a part, because the dot, the counts,
+ * the banner and the three resets all have to agree about which keys moved.
  */
 final class Overrides
 {
     /**
      * The sections in the order the home lists them, each a list of groups and each group the
-     * keys it holds. Every decision and every look choice is in exactly one place
-     * (appearance_inspector_test). A group with no keys holds something that is not a
-     * decision: the contrast check, the diagram, a menu, the words.
+     * keys it holds. Every global decision is in exactly one place (appearance_inspector_test).
+     * A group with no keys holds something that is not a decision: the contrast check, the
+     * diagram, a menu, the words.
      */
     public const SECTIONS = [
         'colours' => [
-            'basics' => ['seed', 'secondary', 'surface_contrast'],
+            'basics' => ['seed', 'mode', 'secondary', 'surface_contrast'],
             'palette' => ['color_background', 'color_card', 'color_surface', 'color_border', 'color_text', 'color_muted', 'color_link'],
             'contrast' => [],
         ],
         'typography' => [
             'typeface' => ['typography'],
-            'sizes' => ['text_size', 'scale'],
+            'sizes' => ['text_size', 'scale', 'line_height'],
             'headings' => ['heading_weight', 'tracking', 'caps'],
             'fine' => ['nudge_h1', 'nudge_h2', 'nudge_sm'],
         ],
         'space' => [
-            'spacing' => ['spacing'],
-            'shape' => ['radius'],
-            'shadow' => ['shadow'],
+            'spacing' => ['spacing', 'section_gap'],
+            'shape' => ['radius', 'border_width'],
+            'shadow' => ['shadow', 'shadow_strength'],
         ],
         'layout' => [
             'diagram' => [],
@@ -60,8 +51,8 @@ final class Overrides
             'chrome' => ['header_bleed', 'header_width', 'footer_bleed', 'footer_width'],
         ],
         'header' => [
-            'arrangement' => ['header_arrangement', 'brand', 'logo_size', 'density'],
-            'behaviour' => ['header_behaviour'],
+            'arrangement' => ['header_arrangement', 'brand', 'logo_size', 'header_height'],
+            'behaviour' => ['header_behaviour', 'header_opacity', 'header_blur'],
             'background' => ['header_surface', 'header_colour', 'header_edge'],
             'menu' => ['nav_style', 'nav_ink', 'header_button'],
             'words' => [],
@@ -72,41 +63,37 @@ final class Overrides
             'background' => ['footer_surface', 'footer_colour', 'footer_edge'],
             'words' => [],
         ],
+        'buttons' => [
+            'style' => ['button_style', 'button_radius', 'button_height', 'button_caps'],
+        ],
     ];
 
-    /** The colours that are '' until set by hand: the palette's roles and the three places. */
-    private const BY_HAND = [
-        'color_background', 'color_card', 'color_surface', 'color_border', 'color_text', 'color_muted', 'color_link',
-        'page_background_colour', 'header_colour', 'footer_colour',
-    ];
-
-    /** 'decision', 'by_hand' or 'look'. */
+    /** 'by_hand' for a colour the palette works out while it is '', 'look' for the header and footer, else 'decision'. */
     public static function kind(string $key): string
     {
-        if (isset(ChromeLook::OPTIONS[$key])) {
+        if (in_array($key, ChromeLook::keys(), true)) {
             return 'look';
         }
 
-        return in_array($key, self::BY_HAND, true) ? 'by_hand' : 'decision';
+        return Decisions::follows($key) === 'palette' ? 'by_hand' : 'decision';
     }
 
     /**
-     * What each control is when the owner has not made it theirs: the character's decision,
-     * '' for a colour by hand (the palette's), the character's look choice. Printed as
-     * data-default, and what a reset writes — except a look, whose reset is ''.
+     * What each control is when the owner has not made it theirs: the character's value, the
+     * pairing's for a key that follows the typeface, '' for a colour by hand (the palette's).
      *
      * @return array<string, string>
      */
-    public static function defaults(string $character): array
+    public static function defaults(string $character, string $typography = ''): array
     {
-        $decisions = Characters::decisions($character);
-        $look = Characters::look($character);
+        $values = Characters::decisions($character);
+        $typography = $typography !== '' ? $typography : $values['typography'];
         $defaults = [];
-        foreach (self::keys('all') ?? [] as $key) {
-            $defaults[$key] = match (self::kind($key)) {
-                'look' => $look[$key] ?? '',
-                'by_hand' => '',
-                default => $decisions[$key] ?? '',
+        foreach (Decisions::ALL as $key => $definition) {
+            $defaults[$key] = match (Decisions::follows($key)) {
+                'pairing' => Decisions::fromPairing($key, $typography),
+                'palette' => '',
+                default => $values[$key],
             };
         }
 
@@ -114,23 +101,19 @@ final class Overrides
     }
 
     /**
-     * The keys that differ from what the character gives, in the order of SECTIONS.
+     * The keys the owner has set to something other than what they would follow, in the
+     * order of SECTIONS.
      *
-     * @param array<string, string> $decisions
-     * @param array<string, string> $look
+     * @param array<string, string> $values the owner's values, '' for what follows
      * @return list<string>
      */
-    public static function changed(array $decisions, array $look, string $character): array
+    public static function changed(array $values, string $character): array
     {
-        $defaults = self::defaults($character);
+        $defaults = self::defaults($character, $values['typography'] ?? '');
         $changed = [];
-        foreach ($defaults as $key => $default) {
-            $mine = match (self::kind($key)) {
-                'look' => ($look[$key] ?? '') !== '' && $look[$key] !== $default,
-                'by_hand' => ($decisions[$key] ?? '') !== '',
-                default => !self::same($decisions[$key] ?? '', $default),
-            };
-            if ($mine) {
+        foreach (self::keys('all') ?? [] as $key) {
+            $value = self::plain($key, $values[$key] ?? '', $defaults[$key] ?? '');
+            if ($value !== '' && !self::same($value, $defaults[$key] ?? '')) {
                 $changed[] = $key;
             }
         }
@@ -180,83 +163,42 @@ final class Overrides
     }
 
     /**
-     * The screen with the keys in $scope put back: a decision to the character's value, a
-     * colour by hand to the palette, a look choice to ''. Null when the scope names nothing.
+     * The owner's values with the keys in $scope put back: ''. Null when the scope names
+     * nothing.
      *
-     * @param array<string, string> $decisions
-     * @param array<string, string> $look
-     * @return array{decisions: array<string, string>, look: array<string, string>}|null
+     * @param array<string, string> $values
+     * @return array<string, string>|null
      */
-    public static function reset(array $decisions, array $look, string $scope, string $character): ?array
+    public static function reset(array $values, string $scope): ?array
     {
         $keys = self::keys($scope);
         if ($keys === null) {
             return null;
         }
-        $defaults = self::defaults($character);
         foreach ($keys as $key) {
-            if (self::kind($key) === 'look') {
-                $look[$key] = '';
-            } else {
-                $decisions[$key] = $defaults[$key];
-            }
+            $values[$key] = '';
         }
 
-        return ['decisions' => $decisions, 'look' => $look];
+        return $values;
     }
 
     /**
-     * A look as stored: every choice equal to the character's is '' (D-159). The form posts
-     * the character's answer for a choice nobody touched — there is no "follow" button any
-     * more, the character's answer is simply the one pressed — and storing it would pin it,
-     * so the next character would not re-dress that part of the header.
+     * The owner's values as stored (D-159, D-164): every value equal to what it would follow
+     * is ''. The form posts what every control shows, which for a key nobody touched is the
+     * character's or the pairing's value; storing that would pin it.
      *
-     * @param array<string, string> $look
+     * @param array<string, string> $values
      * @return array<string, string>
      */
-    public static function settle(array $look, string $character): array
+    public static function settle(array $values, string $character): array
     {
-        $characterLook = Characters::look($character);
-        foreach ($look as $choice => $value) {
-            if ($value !== '' && $value === ($characterLook[$choice] ?? null)) {
-                $look[$choice] = '';
-            }
+        $defaults = self::defaults($character, $values['typography'] ?? '');
+        foreach ($values as $key => $value) {
+            $value = self::plain($key, $value, $defaults[$key] ?? '');
+            $values[$key] = $value !== '' && isset($defaults[$key]) && self::same($value, $defaults[$key]) ? '' : $value;
         }
 
-        return $look;
-    }
-
-    /**
-     * How many of the owner's changes loading another character throws away: the decisions
-     * and the colours by hand, which a character replaces whole. The look survives, being ''
-     * wherever it follows (D-158).
-     *
-     * @param array<string, string> $decisions
-     */
-    public static function lost(array $decisions, string $character): int
-    {
-        return count(array_filter(
-            self::changed($decisions, [], $character),
-            static fn (string $key): bool => self::kind($key) !== 'look',
-        ));
-    }
-
-    /**
-     * How many of the owner's PUBLISHED changes a publish replaces (D-161): the decisions and
-     * colours by hand the site holds over the character it was composed with, that what is
-     * about to be published sets differently. Publish's question after a character is loaded
-     * says so — the load's own question counted the screen, which can already have been
-     * answered, or never asked when the screen held nothing of the owner's.
-     *
-     * @param array<string, string> $published the site's decisions
-     * @param array<string, string> $trying the decisions about to be published
-     */
-    public static function replaced(array $published, array $trying, string $character): int
-    {
-        return count(array_filter(
-            self::changed($published, [], $character),
-            static fn (string $key): bool => self::kind($key) !== 'look' && !self::same($trying[$key] ?? '', $published[$key] ?? ''),
-        ));
+        return $values;
     }
 
     /** The section a key is in, or null. */
@@ -273,13 +215,19 @@ final class Overrides
         return null;
     }
 
+    /** No second colour where the character has none either is no change at all. */
+    private static function plain(string $key, string $value, string $default): string
+    {
+        return $key === 'secondary' && $value === 'none' && $default === '' ? '' : $value;
+    }
+
     /**
-     * Two stored values that mean the same: equal text, or the same number written two ways
-     * ("72" and "72.0"), which a character's file and a slider can disagree about.
+     * Two stored values that mean the same: equal text in any case (a colour), or the same
+     * number written two ways ("72" and "72.0").
      */
     private static function same(string $a, string $b): bool
     {
-        if ($a === $b) {
+        if (strtolower($a) === strtolower($b)) {
             return true;
         }
 

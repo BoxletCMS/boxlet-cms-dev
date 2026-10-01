@@ -12,8 +12,15 @@ namespace App\Modules\Design;
  */
 final class Palette
 {
-    /** How far the tinted surface sits from the page background, in OKLCH lightness. */
-    public const SURFACE_STEPS = ['low' => 0.03, 'medium' => 0.065, 'high' => 0.11];
+    /**
+     * How far the tinted surface sits from the page background, in OKLCH lightness, at the
+     * points of the 0–100 surface contrast the step's old names stood for; between them it is
+     * interpolated (D-164).
+     */
+    private const SURFACE_CURVE = [0 => 0.0, 20 => 0.03, 50 => 0.065, 80 => 0.11, 100 => 0.14];
+
+    /** The page's lightness in each mode, when no background is set by hand. */
+    private const PAGE = ['light' => 0.99, 'dark' => 0.17];
 
     /** WCAG AA for normal-size text. Every pair below can hold body text, so all use it. */
     public const AA_BODY = 4.5;
@@ -31,14 +38,44 @@ final class Palette
     public const BY_HAND = ['background', 'card', 'surface', 'border', 'text', 'muted', 'link'];
 
     /**
+     * The palette of a design with every key answered (Tokens::resolve()).
+     *
+     * @param array<string, string> $resolved
+     * @return array<string, string>
+     */
+    public static function forDecisions(array $resolved): array
+    {
+        return self::colors($resolved['seed'], $resolved['secondary'], (float) $resolved['surface_contrast'], Tokens::byHand($resolved), $resolved['mode'] ?? 'light');
+    }
+
+    /** The surface step for a surface contrast of 0–100: straight lines between the points. */
+    public static function surfaceStep(float $contrast): float
+    {
+        $contrast = max(0.0, min(100.0, $contrast));
+        $from = 0.0;
+        $step = 0.0;
+        foreach (self::SURFACE_CURVE as $at => $to) {
+            $at = (float) $at;
+            if ($contrast <= $at) {
+                return $at <= $from ? $to : $step + ($to - $step) * ($contrast - $from) / max(0.001, $at - $from);
+            }
+            $from = $at;
+            $step = $to;
+        }
+
+        return $step;
+    }
+
+    /**
      * @param array<string, string> $byHand role => #rrggbb for a role the owner set, '' or
      *        absent for one the palette works out
+     * @param string $mode light or dark (D-164): which way the page and its inks go
      * @return array<string, string> colour name => #rrggbb, emitted as --color-{name}
      */
-    public static function colors(string $seed, string $secondary, string $surfaceContrast, array $byHand = []): array
+    public static function colors(string $seed, string $secondary, float $surfaceContrast, array $byHand = [], string $mode = 'light'): array
     {
         [$seedLightness, $seedChroma, $hue] = Color::toOklch($seed);
-        $step = self::SURFACE_STEPS[$surfaceContrast] ?? self::SURFACE_STEPS['low'];
+        $step = self::surfaceStep($surfaceContrast);
         // Neutrals carry a trace of the seed's hue, so greys belong to the palette.
         $tint = min($seedChroma, 0.14) * 0.1;
         $ink = min($seedChroma, 0.08) * 0.35;
@@ -53,9 +90,10 @@ final class Palette
          * then refuses. The page's own lightness decides the direction, so setting one
          * colour gives a coherent palette rather than a list of refusals.
          *
-         * Every character leaves the background alone, so all five are untouched by this.
+         * DARK MODE IS THE SAME BRANCH (D-164): the page starts dark instead of near-white,
+         * and every neutral and ink walks the other way, measured by the same pairs.
          */
-        $page = 0.99;
+        $page = self::PAGE[$mode] ?? self::PAGE['light'];
         if (($byHand['background'] ?? '') !== '') {
             [$page] = Color::toOklch($byHand['background']);
         }

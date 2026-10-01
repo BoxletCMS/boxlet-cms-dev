@@ -8,9 +8,12 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\Activity;
 use App\Modules\Design\Characters;
+use App\Modules\Design\Composition;
 use App\Modules\Design\Palette;
 use App\Modules\Design\Presets;
 use App\Modules\Design\Tokens;
+use App\Modules\Design\Vocabulary\Decisions;
+use App\Modules\Settings\ChromeLook;
 
 /**
  * WHAT THE APPEARANCE SCREEN'S BUTTONS DO, short of publishing (PLAN.md D-059, D-157): load a
@@ -37,29 +40,29 @@ final class AppearanceActions
      */
     public function handle(Request $request, string $action, array $state, string $character, string $basis): ?Response
     {
-        // The answer "keep my changes" to the question a character load asks: the screen as
-        // it was, and nothing else. An action this file did not know would be a publish.
+        // The screen as it was, and nothing else: an action this file did not know would be a
+        // publish, and a page reached with `keep` from an older screen must not be one.
         if ($action === 'keep') {
             return $this->screen->render($state, [], null, 200, $character);
         }
-        if (str_starts_with($action, 'preset:') || str_starts_with($action, 'load:')) {
-            return $this->load($action, $state, $character, $basis);
+        if (str_starts_with($action, 'preset:')) {
+            return $this->load(substr($action, strlen('preset:')), $state);
         }
         if (str_starts_with($action, 'library:')) {
             return $this->library($request, $action, $state, $character);
         }
         if (str_starts_with($action, 'colour:free')) {
-            return $this->free($action, $state, $character);
+            return $this->free($action, $state, $character, $basis);
         }
         if (str_starts_with($action, 'reset:')) {
-            $reset = Overrides::reset($state['decisions'], $state['look'], substr($action, strlen('reset:')), $basis);
+            $reset = Overrides::reset($state['decisions'] + $state['look'], substr($action, strlen('reset:')));
             if ($reset === null) {
                 return $this->screen->render($state, [], null, 404, $character);
             }
-            $again = Tokens::validate($reset['decisions']);
+            $again = Tokens::validate($reset, $basis);
 
             return $this->screen->render(
-                ['decisions' => $again['decisions'], 'look' => $reset['look']] + $state,
+                self::split($again['decisions']) + $state,
                 $again['errors'],
                 t($action === 'reset:all' ? 'inspector.reset.all_done' : 'inspector.reset.done'),
                 200,
@@ -71,35 +74,32 @@ final class AppearanceActions
     }
 
     /**
-     * LOADING A CHARACTER REPLACES THE DESIGN and keeps everything else the owner has typed:
-     * their words are not a preference of the character's, and the look follows by itself.
-     *
-     * IT ASKS FIRST WHEN IT WOULD THROW SOMETHING AWAY (D-158). The decisions are stored as
-     * values, so a character replaces every one — and the screen now shows which of them are
-     * the owner's. Pressing a tile with seven dots on the screen and watching them vanish is
-     * the one surprise the dots made possible, so the question says how many go. `load:` is
-     * the answer; `preset:` with nothing to lose loads at once, as it always has.
+     * LOADING A CHARACTER KEEPS THE OWNER'S CHANGES (D-164; the rebuild's README 1.1). Every
+     * value the owner set stays; only what follows the character changes, with it. Their words
+     * and menus are not the character's either. Publish is still the confirmation.
      *
      * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
      */
-    private function load(string $action, array $state, string $character, string $basis): Response
+    private function load(string $name, array $state): Response
     {
-        $name = substr($action, (int) strpos($action, ':') + 1);
         if (!Presets::exists($name)) {
             return $this->screen->render($state, [], null, 404, '');
         }
-        $lost = Overrides::lost($state['decisions'], $basis);
-        if (str_starts_with($action, 'preset:') && $lost > 0) {
-            return $this->screen->render($state, [], null, 200, $character, ['load' => ['character' => $name, 'count' => $lost]]);
-        }
 
-        return $this->screen->render(
-            ['decisions' => Presets::get($name)] + $state,
-            [],
-            t('design.preset_loaded', ['preset' => Characters::label($name)]),
-            200,
-            $name,
-        );
+        return $this->screen->render($state, [], t('design.preset_loaded', ['preset' => Characters::label($name)]), 200, $name);
+    }
+
+    /**
+     * The owner's values in the two halves the screen's state keeps them in.
+     *
+     * @param array<string, string> $values
+     * @return array{decisions: array<string, string>, look: array<string, string>}
+     */
+    private static function split(array $values): array
+    {
+        $look = array_intersect_key($values, array_flip(ChromeLook::keys()));
+
+        return ['decisions' => array_diff_key($values, $look), 'look' => $look];
     }
 
     /**
@@ -113,7 +113,7 @@ final class AppearanceActions
      *
      * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
      */
-    private function free(string $action, array $state, string $character): Response
+    private function free(string $action, array $state, string $character, string $basis): Response
     {
         $decisions = $state['decisions'];
         $freed = 0;
@@ -124,7 +124,7 @@ final class AppearanceActions
                ink can be enough and the background the owner chose should then stay theirs.
                A pair the main colour fails is left: no colour by hand caused it, and the
                screen says to change the main colour instead. */
-            while (($culprit = self::failingByHand($decisions)) !== null) {
+            while (($culprit = self::failingByHand(Tokens::resolve($decisions + $state['look'], $basis))) !== null) {
                 $decisions[$culprit] = '';
                 $freed++;
             }
@@ -132,17 +132,17 @@ final class AppearanceActions
             /* The seven palette roles and the three places that may take a colour of their
                own (D-076) are one list here: "Free all" frees all ten. */
             $named = $action === 'colour:free' ? null : substr($action, strlen('colour:free:'));
-            foreach (array_merge(array_map(static fn (string $role): string => 'color_' . $role, Palette::BY_HAND), Tokens::OWN_COLOURS) as $field) {
+            foreach (array_merge(array_map(static fn (string $role): string => 'color_' . $role, Decisions::BY_HAND), Decisions::OWN_COLOURS) as $field) {
                 if ($named === null || $named === $field || $named === substr($field, strlen('color_'))) {
                     $decisions[$field] = '';
                     $freed++;
                 }
             }
         }
-        $again = Tokens::validate($decisions);
+        $again = Tokens::validate($decisions + $state['look'], $basis);
 
         return $this->screen->render(
-            ['decisions' => $again['decisions']] + $state,
+            self::split($again['decisions']) + $state,
             $again['errors'],
             $freed === 0 ? null : t($freed > 1 ? 'design.by_hand.all_freed' : 'design.by_hand.freed'),
             200,
@@ -153,13 +153,12 @@ final class AppearanceActions
     /**
      * The first colour by hand that a failing pair blames, or null when none does.
      *
-     * @param array<string, string> $decisions
+     * @param array<string, string> $decisions the design as drawn
      */
     public static function failingByHand(array $decisions): ?string
     {
         $byHand = Tokens::byHand($decisions);
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], $decisions['surface_contrast'], $byHand);
-        foreach (Palette::failures($colors, $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions)) as $failure) {
+        foreach (Palette::failures(Palette::forDecisions($decisions), $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions)) as $failure) {
             if (Overrides::kind($failure['decision']) === 'by_hand' && ($decisions[$failure['decision']] ?? '') !== '') {
                 return $failure['decision'];
             }
@@ -176,6 +175,11 @@ final class AppearanceActions
     private function library(Request $request, string $action, array $state, string $character): Response
     {
         $db = $this->db();
+        // A kept design is the owner's values over a character, and '' in it means that
+        // character's (D-164): so it keeps the one it was made over — the one loaded on the
+        // screen, else the site's. Without it a kept design came back over whichever
+        // character was active by then, and its colours with it.
+        $over = $character !== '' ? $character : Composition::active($db);
 
         // Overwriting from a design's own row: the name comes from the design itself, so
         // "save what is on screen into this one" needs no field and cannot be mistyped.
@@ -184,7 +188,7 @@ final class AppearanceActions
             if ($into === null) {
                 return $this->screen->render($state, [], null, 404, $character);
             }
-            DesignLibrary::save($db, $into['name'], $state['decisions'], $state['look'], $character);
+            DesignLibrary::save($db, $into['name'], $state['decisions'], $state['look'], $over);
             Activity::record($db, 'design', 'kept', null, $into['name']);
 
             return $this->screen->render($state, [], t('appearance.library.overwritten', ['name' => $into['name']]), 200, $character);
@@ -196,7 +200,7 @@ final class AppearanceActions
                 return $this->screen->render($state, ['library_name' => t('appearance.library.name_needed')], null, 422, $character);
             }
             $written = DesignLibrary::exists($db, $name);
-            DesignLibrary::save($db, $name, $state['decisions'], $state['look'], $character);
+            DesignLibrary::save($db, $name, $state['decisions'], $state['look'], $over);
             Activity::record($db, 'design', 'kept', null, $name);
 
             return $this->screen->render($state, [], t($written ? 'appearance.library.overwritten' : 'appearance.library.saved', ['name' => $name]), 200, $character);

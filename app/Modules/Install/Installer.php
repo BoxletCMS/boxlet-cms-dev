@@ -8,7 +8,6 @@ use App\Core\Migrator;
 use App\Core\Settings;
 use App\Modules\Demo\DemoSite;
 use App\Modules\Design\Design;
-use App\Modules\Design\Presets;
 use ErrorException;
 use RuntimeException;
 use Throwable;
@@ -63,8 +62,9 @@ final class Installer
             throw $e;
         }
 
-        // A new site starts with the default character, compiled so its first page is styled.
-        Design::save($db, Presets::get(Presets::DEFAULT), $this->cacheDirectory);
+        // A new site starts with nothing of the owner's: the default character, compiled so
+        // its first page is styled (D-164).
+        Design::save($db, [], $this->cacheDirectory);
         if ($demo) {
             DemoSite::seed($db, Blocks::discover($this->root . '/app/Blocks'), $site['locale']);
         }

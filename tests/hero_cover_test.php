@@ -54,7 +54,7 @@ test('the weakest veil keeps the words at 4.5:1 over a white or a black picture,
 
     foreach (Presets::names() as $name) {
         $design = Presets::get($name);
-        $colors = Palette::colors((string) $design['seed'], (string) $design['secondary'], (string) ($design['surface_contrast'] ?? 'normal'));
+        $colors = Palette::colors((string) $design['seed'], (string) $design['secondary'], (float) ($design['surface_contrast'] ?? 20));
         foreach (['#ffffff', '#000000'] as $picture) {
             $ratio = Color::contrast($colors['on-contrast'], veiled($colors['contrast'], $picture, $weakest));
             assertTrue($ratio >= 4.5, sprintf('%s over %s at %.2f is %.2f:1', $name, $picture, $weakest, $ratio));

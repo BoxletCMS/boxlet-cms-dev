@@ -157,11 +157,15 @@ export default {
 
     // ---- Navigation, and both screens read aloud --------------------------------------------------------
     await openSection(page, 'header');
+    const shownHeader = await page.evaluate(() => [...document.querySelectorAll('[data-view="header"] .navigation-where')].filter((p) => p.getBoundingClientRect().width > 0).length);
+    await openSection(page, 'footer');
+    const shownFooter = await page.evaluate(() => [...document.querySelectorAll('[data-view="footer"] .navigation-where')].filter((p) => p.getBoundingClientRect().width > 0).length);
     const where = await page.evaluate(() => ({
-      links: document.querySelectorAll('.navigation-where a[href$="/admin/navigation"]').length,
+      // Shown, not only there: a hint is hidden until hints are asked for (D-078).
+      links: [...document.querySelectorAll('.navigation-where a[href$="/admin/navigation"]')].filter((a) => a.getBoundingClientRect().width > 0).length,
       words: !!document.querySelector('[name="header_menu"], [name^="header_button_label_"], [name^="footer_text_"]'),
     }));
-    report.verdict('Appearance keeps no word or menu of the header and footer, and says they are in Navigation', where.links === 2 && !where.words, JSON.stringify(where));
+    report.verdict('Appearance keeps no word or menu of the header and footer, and says they are in Navigation, shown', shownHeader === 1 && shownFooter === 1 && !where.words, JSON.stringify({ shownHeader, shownFooter, ...where }));
     const appearance = await a11yProblems(page);
     report.verdict('Appearance: every control has a name, no id twice, one h1', appearance.length === 0, appearance.join('; ') || 'none');
     await page.goto(`${BASE}/admin/navigation`, { waitUntil: 'networkidle2' });

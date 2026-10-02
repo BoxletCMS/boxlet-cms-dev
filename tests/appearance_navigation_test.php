@@ -74,7 +74,7 @@ test('Appearance carries no word or menu field, and says where they went', funct
     foreach (['header_menu', 'footer_menu_1', 'header_button_label_en', 'footer_text_en', 'footer_small_print_en'] as $field) {
         assertTrue(!str_contains($body, 'name="' . $field . '"'), $field . ' is on Appearance');
     }
-    assertEquals(2, preg_match_all('~class="hint navigation-where">[^<]*<a href="/admin/navigation"~', $body), 'the header\'s and the footer\'s line to Navigation');
+    assertEquals(2, preg_match_all('~class="hint hint-always navigation-where">[^<]*<a href="/admin/navigation"~', $body), 'the header\'s and the footer\'s line to Navigation');
 });
 
 test('an address Navigation would not follow is refused, and nothing is saved', function () {

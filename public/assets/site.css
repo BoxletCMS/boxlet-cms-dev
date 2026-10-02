@@ -139,7 +139,9 @@ code {
 }
 
 .locale-switcher [aria-current] {
-  color: var(--color-text);
+  /* The section's text, not the page's: the switcher stands in the footer, whose surface may
+     be dark or a gradient, where the page's text colour cannot be read. */
+  color: var(--section-text, var(--color-text));
   text-decoration: none;
 }
 

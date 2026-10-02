@@ -16,7 +16,7 @@
  * list. Without one this is a failure, not NOT CHECKABLE.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login } from '../harness.mjs';
+import { login, openBuilder, blockKey, clickInCanvas } from '../harness.mjs';
 
 const SHOWROOM = '/blocks';
 const SETTLE = 1500;
@@ -99,70 +99,53 @@ export default {
       const link = links.find((a) => a.textContent.trim() === 'Every block' && /\/admin\/pages\/\d+$/.test(a.getAttribute('href')));
       return link ? link.getAttribute('href').split('/').pop() : '';
     });
-    await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
-    await page.waitForFunction(() => {
-      const f = document.querySelector('iframe[data-canvas]');
-      return f && f.contentDocument && f.contentDocument.querySelector('[data-bx-index]');
-    }, { timeout: 20000 }).catch(() => {});
-    await wait(SETTLE);
-    const key = await page.evaluate(() => {
-      const select = document.querySelector('select[data-poster-url]');
-      const group = select && select.closest('[data-block-group]');
-      return group ? group.getAttribute('data-block-key') : null;
-    });
+    await openBuilder(page, BASE, PAGE);
+    const key = await blockKey(page, 'embed');
     if (key === null) {
-      report.fail('page 1 has an Embed block', 'no cover field on page 1');
+      report.fail('the Every block page has an Embed block', 'none on it');
       return;
     }
-    const canvas = page.frames().find((f) => f.url().includes('/canvas'));
     /*
      * PRESSED WITH THE MOUSE, WHERE THE OWNER PRESSES (D-148). The owner, 2026-09-30: the
      * block "se ne može ni editirati ni obrisati, na click u editoru ne desi se ništa". A frame
      * of another site's swallows the press, and until D-147 the video was one. Pressed twice:
      * on the link it is now, and on a frame put in its place in this browser only — the map
-     * that is still drawn as one — and each press must select the block.
+     * that is still drawn as one — and each press must select the block. clickInCanvas()
+     * presses where the scaled canvas shows it (D-175).
      */
-    const canvasBox = await (await page.$('iframe[data-canvas]')).boundingBox();
     const pressBlock = async () => {
-      const at = await canvas.evaluate((k) => {
-        const el = document.querySelector(`[data-bx-key="${k}"] .embed-frame`);
-        el.scrollIntoView({ block: 'center' });
-        const r = el.getBoundingClientRect();
-        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-      }, key);
-      await wait(500);
-      const now = await canvas.evaluate((k) => {
-        const r = document.querySelector(`[data-bx-key="${k}"] .embed-frame`).getBoundingClientRect();
-        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-      }, key);
-      await page.mouse.click(canvasBox.x + (now.x || at.x), canvasBox.y + (now.y || at.y));
+      await page.evaluate(() => window.pb.select(null));
+      await clickInCanvas(page, `[data-bx-key="${key}"] .embed-frame`);
       await wait(SETTLE);
-      return canvas.evaluate(() => (document.querySelector('.bx-selected') || { getAttribute: () => null }).getAttribute('data-bx-key'));
+      return page.evaluate(() => (window.pb.selection || {}).key || null);
     };
     const onLink = await pressBlock();
-    const frameHtml = await canvas.evaluate((k) => {
-      const holder = document.querySelector(`[data-bx-key="${k}"] .embed-frame`);
+    const frameHtml = await page.evaluate((k) => {
+      const doc = document.querySelector('[data-pb-canvas]').contentDocument;
+      const holder = doc.querySelector(`[data-bx-key="${k}"] .embed-frame`);
       const kept = holder.innerHTML;
-      const frame = document.createElement('iframe');
+      const frame = doc.createElement('iframe');
       frame.src = 'https://www.openstreetmap.org/export/embed.html?bbox=15.97,45.81,15.98,45.82&layer=mapnik';
       holder.innerHTML = '';
       holder.appendChild(frame);
-      document.querySelector('.bx-selected') && document.querySelector('.bx-selected').classList.remove('bx-selected');
       return kept;
     }, key);
     await wait(SETTLE);
     const onFrame = await pressBlock();
-    await canvas.evaluate((k, html) => { document.querySelector(`[data-bx-key="${k}"] .embed-frame`).innerHTML = html; }, key, frameHtml);
+    await page.evaluate((k, html) => {
+      document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] .embed-frame`).innerHTML = html;
+    }, key, frameHtml);
     report.verdict('pressing the block in the canvas selects it, on the link and on a frame alike',
       onLink === key && onFrame === key, `on the link: ${onLink}; on a frame: ${onFrame}; wanted ${key}`);
-    const field = `[data-block-key="${key}"] select[data-poster-url]`;
+    await page.waitForSelector(`[data-block-fields="${key}"] select[data-poster-url]`, { timeout: 10000 }).catch(() => {});
+    const field = `[data-block-fields="${key}"] select[data-poster-url]`;
     const was = await page.$eval(field, (el) => el.value);
     const known = await page.evaluate(async (base) => {
       const html = await (await fetch(`${base}/admin/media/pick`, { credentials: 'same-origin' })).text();
       return [...html.matchAll(/data-pick="(\d+)"/g)].map((m) => m[1]);
     }, BASE);
 
-    await page.click(`[data-block-key="${key}"] .media-picker-poster`);
+    await page.click(`[data-block-fields="${key}"] .media-picker-poster`);
     await page.waitForFunction((selector, before) => {
       const select = document.querySelector(selector);
       return select && select.value !== before;
@@ -173,8 +156,7 @@ export default {
       name: (el.options[el.selectedIndex] || {}).textContent || '',
       status: (el.parentNode.querySelector('.media-picker [role="status"]') || {}).textContent || '',
     }));
-    const drawn = await page.frames().find((f) => f.url().includes('/canvas'))
-      .evaluate((k) => !!document.querySelector(`[data-bx-key="${k}"] .embed-play picture`), key).catch(() => false);
+    const drawn = await page.evaluate((k) => !!document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] .embed-play picture`), key).catch(() => false);
     await shot(report, page, '03-cover-taken');
     const isNew = after.value !== '' && !known.includes(after.value);
     // A block that already has this cover — the owner took it on 2026-09-30 — gets the same
@@ -184,7 +166,12 @@ export default {
       after.value !== '' && (was !== '' || after.value !== was) && drawn && /cover now/.test(after.status),
       `field ${was || '(empty)'} → ${after.value} "${after.name}"; canvas draws it=${drawn}; "${after.status.trim()}"`);
 
-    // ---- cleanup: never saved; the new picture goes, by its id ----------------------------
+    // ---- cleanup: the draft the builder saved is discarded; the new picture goes, by its id
+    await openBuilder(page, BASE, PAGE);
+    if (await page.$('[data-pb-discard]:not([hidden])')) {
+      await page.click('[data-pb-discard]');
+      await page.waitForFunction(() => document.querySelector('[data-pb-discard]').hidden, { timeout: 10000 }).catch(() => {});
+    }
     await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
     if (isNew) {
       const gone = await page.evaluate(async (base, id) => {

@@ -35,10 +35,10 @@ final class PageDraftController
         $page = Page::find($this->db(), $id);
         $current = $page === null ? null : PageDraft::current($this->db(), $this->registry(), $id);
         if ($page === null || $current === null) {
-            return self::json(['error' => t('pages.not_found')], 404);
+            return Response::json(['error' => t('pages.not_found')], 404);
         }
 
-        return self::json([
+        return Response::json([
             'version' => $current['version'],
             'state' => PageDraft::state($this->db(), $page),
             'document' => $current['document'],
@@ -54,12 +54,12 @@ final class PageDraftController
         $id = (int) $params['id'];
         $page = Page::find($db, $id);
         if ($page === null) {
-            return self::json(['error' => t('pages.not_found')], 404);
+            return Response::json(['error' => t('pages.not_found')], 404);
         }
         $from = $request->body['version'] ?? null;
         $document = PageDocument::read($this->registry(), $request->body['document'] ?? null);
         if (!is_int($from) || $from < 0 || $document === null) {
-            return self::json(['error' => t('pages.draft.unreadable')], 422);
+            return Response::json(['error' => t('pages.draft.unreadable')], 422);
         }
         // Whether the page is on the site is the page's, never the draft's to say.
         $document['status'] = (string) $page['status'];
@@ -68,22 +68,97 @@ final class PageDraftController
         if ($version === null) {
             $current = PageDraft::current($db, $this->registry(), $id);
 
-            return self::json(['error' => t('pages.draft.conflict'), 'version' => $current['version'] ?? 0], 409);
+            return Response::json(['error' => t('pages.draft.conflict'), 'version' => $current['version'] ?? 0], 409);
         }
 
-        return self::json(['version' => $version, 'savedAt' => gmdate('Y-m-d\TH:i:s\Z')]);
+        return Response::json(['version' => $version, 'savedAt' => gmdate('Y-m-d\TH:i:s\Z')]);
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Publish, as the builder asks for it (D-174): the draft is checked and written, and the
+     * answer says what stops it, field by field, for the bar to show.
+     *
+     * @param array<string, string> $params
      */
-    private static function json(array $data, int $status = 200): Response
+    public function publish(Request $request, string $locale, array $params): Response
     {
-        return new Response(
-            (string) json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR),
-            $status,
-            ['Content-Type' => 'application/json; charset=utf-8', 'Cache-Control' => 'no-store'],
-        );
+        $id = (int) $params['id'];
+        $page = Page::find($this->db(), $id);
+        if ($page === null) {
+            return Response::json(['error' => t('pages.not_found')], 404);
+        }
+        $errors = PagePublish::publish($this->container, $id);
+        // Published, it is published with no draft; refused, nothing about it changed.
+        $state = $errors === [] ? 'published' : PageDraft::state($this->db(), $page);
+
+        return Response::json(['ok' => $errors === [], 'errors' => $errors, 'state' => $state] + $this->current($id), $errors === [] ? 200 : 422);
+    }
+
+    /**
+     * Discard, back to the published page; the answer carries that page, to draw.
+     *
+     * @param array<string, string> $params
+     */
+    public function discard(Request $request, string $locale, array $params): Response
+    {
+        $id = (int) $params['id'];
+        $done = PagePublish::discard($this->container, $id);
+        $page = Page::find($this->db(), $id) ?? [];
+
+        return Response::json(['ok' => $done, 'state' => PageDraft::state($this->db(), $page)] + $this->current($id), $done ? 200 : 409);
+    }
+
+    /**
+     * A revision into the draft (README 2.1): `{"revision": id, "version": n}`.
+     *
+     * @param array<string, string> $params
+     */
+    public function restore(Request $request, string $locale, array $params): Response
+    {
+        $id = (int) $params['id'];
+        $revision = $request->body['revision'] ?? null;
+        $from = $request->body['version'] ?? null;
+        if (!is_int($revision) || !is_int($from) || !PagePublish::restore($this->container, $id, $revision, $from)) {
+            return Response::json(['error' => t('pages.restore_gone')] + $this->current($id), 409);
+        }
+        $page = Page::find($this->db(), $id) ?? [];
+
+        return Response::json(['ok' => true, 'state' => PageDraft::state($this->db(), $page)] + $this->current($id));
+    }
+
+    /**
+     * The draft as a visitor would get it once published: the whole page, header and footer,
+     * for "open preview in a new tab". Never indexed, never kept by the page cache (an admin
+     * address), and drawn by the visitor's own drawing.
+     *
+     * @param array<string, string> $params
+     */
+    public function preview(Request $request, string $locale, array $params): Response
+    {
+        $id = (int) $params['id'];
+        $page = Page::find($this->db(), $id);
+        $current = $page === null ? null : PageDraft::current($this->db(), $this->registry(), $id);
+        if ($page === null || $current === null) {
+            return PagesController::missing();
+        }
+        $pageLocale = (string) $page['locale'];
+        $drawn = PageRender::draw($this->db(), $this->registry(), $current['document'], $pageLocale, \App\Modules\Design\Composition::active($this->db()), (string) $this->container->get('config')->get('app.key'), ['pageId' => $id]);
+        $head = ['title' => $current['document']['title'], 'description' => '', 'canonical' => null, 'noindex' => true, 'first_surface' => $drawn['firstSurface']];
+        $data = ['blocksHtml' => $drawn['html']] + PageLayoutData::forPage($this->container, $pageLocale, $head, $page);
+
+        return Response::html((new \App\Core\View(__DIR__ . '/views'))->render('page', $pageLocale, $data));
+    }
+
+    /**
+     * The document an editor now works on, and its version.
+     *
+     * @return array{version: int, document: mixed}
+     */
+    private function current(int $id): array
+    {
+        $current = PageDraft::current($this->db(), $this->registry(), $id);
+
+        return ['version' => $current['version'] ?? 0, 'document' => $current['document'] ?? null];
     }
 
     private function registry(): Blocks

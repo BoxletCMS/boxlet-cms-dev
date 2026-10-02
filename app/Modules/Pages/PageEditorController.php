@@ -246,16 +246,9 @@ final class PageEditorController
     }
 
     /**
-     * The editor the request came from, re-rendered with the change applied and nothing
-     * saved: a repeater's Add, Move up or Move down pressed without JavaScript.
-     *
-     * A BLOCK's own move and remove render the plain form unconditionally, and that is
-     * safe only because builder-inspector.css hides them inside the visual editor's panel
-     * — they would, in its own words, "either do nothing or throw the user back into the
-     * plain editor". A repeater's controls are NOT hidden there, because in the panel they
-     * do real work, so a submit from the panel has to come back as the panel. Without
-     * this, one press of Add on an item would replace the canvas with the plain form and
-     * take every unsaved change on the page with it.
+     * The form re-rendered with the change applied and nothing saved: a repeater's Add, Move
+     * up or Move down pressed without JavaScript. Only the plain editor posts here since the
+     * builder keeps its document in the browser (D-175).
      *
      * Not reject(): that answers 422 for a save that failed. Nothing here failed, so this
      * answers 200.
@@ -267,10 +260,6 @@ final class PageEditorController
      */
     private function again(Request $request, array $page, string $title, string $slug, array $blocks, ?array $sections, int $version): Response
     {
-        if ($request->input('editor') === 'builder') {
-            return (new PageBuilderController($this->container))->again($page, $title, $slug, $blocks, $sections, $version);
-        }
-
         return $this->form($page, $title, $slug, $blocks, $sections, $version);
     }
 
@@ -286,10 +275,6 @@ final class PageEditorController
      */
     private function reject(Request $request, array $page, string $title, string $slug, array $blocks, ?array $sections, int $version, array $errors, ?string $notice): Response
     {
-        if ($request->input('editor') === 'builder') {
-            return (new PageBuilderController($this->container))->rejected($page, $title, $slug, $blocks, $sections, $version, $errors, $notice);
-        }
-
         return $this->form($page, $title, $slug, $blocks, $sections, $version, $errors, $notice, 422);
     }
 

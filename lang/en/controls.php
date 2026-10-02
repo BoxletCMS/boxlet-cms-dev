@@ -8,4 +8,5 @@
 return [
     'controls.changed' => 'Changed',
     'controls.changed_count' => 'changed here',
+    'controls.reset' => 'Back to the character',
 ];

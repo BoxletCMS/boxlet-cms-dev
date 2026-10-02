@@ -22,7 +22,7 @@
  */
 import { statSync } from 'node:fs';
 import { BASE, ADMIN, PHOTOS, SITE_DIR } from '../config.mjs';
-import { login } from '../harness.mjs';
+import { login, openBuilder, blockKey, selectBlock } from '../harness.mjs';
 import { attemptDelete } from '../media-helpers.mjs';
 
 const PHOTO = `${PHOTOS}/big-photo.jpg`;
@@ -75,40 +75,21 @@ export default {
     try {
       // ---- place it in the hero, in the editor ---------------------------------------------
       await page.setViewport({ width: 1920, height: 1100, deviceScaleFactor: 2 });
-      await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
-      await page.waitForFunction(() => {
-        const frame = document.querySelector('iframe[data-canvas]');
-        return frame && frame.contentDocument
-          && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
-      }, { timeout: 20000 });
-      // Two different things, and they stopped being the same on D-094: data-block-group is
-      // WHERE the block is drawn, and the key in a field name is WHICH block it is. This read
-      // took the group and used it as both, so the select below had matched nothing since.
-      const found = await page.$$eval('[data-block-group]', (groups) => {
-        const hero = groups.find((g) => g.querySelector('input[name$="[type]"]')?.value === 'hero');
-        if (!hero) { return null; }
-        const field = hero.querySelector('input[name$="[type]"]');
-        return { index: hero.getAttribute('data-block-group'), key: (field.name.match(/^blocks\[([^\]]+)\]/) || [])[1] };
-      });
-      if (found === null || !found.key) { report.fail('place it in a hero', `page ${PAGE} has no hero`); return; }
-      const { index, key } = found;
-      // Chosen on the canvas first, as a person does: only the selected block is redrawn.
-      const frame = page.frames().find((f) => f.url().includes('/canvas'));
-      await (await frame.$(`[data-bx-index="${index}"]`)).click();
-      await page.waitForFunction((i) => !document.querySelector(`[data-block-group="${i}"]`).hidden, { timeout: 8000 }, index);
-      await page.select(`[data-block-group="${index}"] select[name="blocks[${key}][image]"]`, String(card.id));
-      // The canvas redraws the block from the server: wait for the picture, not a clock.
-      await page.waitForFunction((i, wanted) => {
-        const frame = document.querySelector('iframe[data-canvas]');
-        return frame.contentDocument.querySelector(`[data-bx-index="${i}"] img[src*="${wanted}"]`) !== null;
-      }, { timeout: 20000 }, index, NAME).catch(() => {});
+      await openBuilder(page, BASE, PAGE);
+      const key = await blockKey(page, 'hero');
+      if (key === null) { report.fail('place it in a hero', `page ${PAGE} has no hero`); return; }
+      // Chosen on the canvas first, as a person does; its picture is among the fields the page
+      // does not show as words, in the inspector (D-175).
+      const form = await selectBlock(page, key);
+      await page.select(`${form} select[name="blocks[${key}][image]"]`, String(card.id));
+      // The canvas draws the band again from the server: wait for the picture, not a clock.
+      await page.waitForFunction((k, wanted) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] img[src*="${wanted}"]`) !== null, { timeout: 20000 }, key, NAME).catch(() => {});
       await wait(SETTLE);
 
-      const drawn = await page.evaluate((i, wanted) => {
-        const frame = document.querySelector('iframe[data-canvas]');
-        const img = frame.contentDocument.querySelector(`[data-bx-index="${i}"] img[src*="${wanted}"]`);
+      const drawn = await page.evaluate((k, wanted) => {
+        const img = document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] img[src*="${wanted}"]`);
         return img ? { current: img.currentSrc, largest: img.src, width: img.naturalWidth } : null;
-      }, index, NAME);
+      }, key, NAME);
       await report.shot(page, '01-hero-with-4mb-photo', { fullPage: false });
       report.verdict('place it in a hero', drawn !== null,
         drawn ? `the hero draws it at ${drawn.width} across` : 'no <img> for it in the hero');
@@ -153,8 +134,14 @@ export default {
       report.verdict('a second request does not hit PHP', second.etag === expected,
         `ETag ${second.etag}; the file on disk gives ${expected} (mtime and size in hex, which only the web server reading the file can send)`);
     } finally {
-      // Leave the editor unsaved, then take the photograph out again if this run put it in.
-      await page.evaluate(() => { window.onbeforeunload = null; });
+      // The builder saved a draft with the photograph in it: Discard it, then take the
+      // photograph out again if this run put it in.
+      await page.evaluate(() => window.pb && window.pb.flush().catch(() => {})).catch(() => {});
+      await openBuilder(page, BASE, PAGE).catch(() => {});
+      if (await page.$('[data-pb-discard]:not([hidden])')) {
+        await page.click('[data-pb-discard]');
+        await page.waitForFunction(() => document.querySelector('[data-pb-discard]').hidden, { timeout: 10000 }).catch(() => {});
+      }
       if (uploadedHere) {
         await page.goto(`${BASE}/admin/media/${card.id}`, { waitUntil: 'networkidle2' });
         const said = await attemptDelete(page);

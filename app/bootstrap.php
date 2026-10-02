@@ -41,13 +41,14 @@ use App\Modules\Media\MediaUpload;
 use App\Modules\Media\MediaVariants;
 use App\Modules\Media\MediaWriter;
 use App\Modules\Menus\MenusController;
-use App\Modules\Pages\PageBlockController;
+use App\Modules\Pages\PageBuilderApi;
 use App\Modules\Pages\PageBuilderController;
 use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageDraftController;
 use App\Modules\Pages\PageEditorController;
 use App\Modules\Pages\PagePaths;
 use App\Modules\Pages\PagesController;
+use App\Modules\Pages\PatternController;
 use App\Modules\Pages\Slug;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Redirects\RedirectsController;
@@ -254,15 +255,20 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // fallback for a browser without JavaScript or a canvas that will not load.
     $router->get('/admin/pages/{id:\d+}', [PageBuilderController::class, 'edit'], $requireAdmin);
     $router->get('/admin/pages/{id:\d+}/canvas', [PageBuilderController::class, 'canvas'], $requireAdmin);
-    // One block, drawn for the canvas and the panel. Its own controller since 4c: the
-    // builder renders the editor, this answers for a single block and writes nothing.
-    $router->post('/admin/pages/{id:\d+}/block', [PageBlockController::class, 'insert'], $requireAdmin);
-    // And one band, for the choices a block cannot show: the number of columns is the
-    // markup AROUND the blocks, so redrawing one of them can never put a column there.
-    $router->post('/admin/pages/{id:\d+}/section', [PageBlockController::class, 'band'], $requireAdmin);
     // The page's draft as one JSON document: what the builder autosaves and reads (D-173).
     $router->get('/admin/pages/{id:\d+}/draft', [PageDraftController::class, 'show'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/draft', [PageDraftController::class, 'save'], $requireAdmin);
+    // The builder's own (D-175): publish, discard and restore as JSON, the draft as a page,
+    // and what the server draws and cleans for the document the browser holds.
+    $router->post('/admin/pages/{id:\d+}/publish', [PageDraftController::class, 'publish'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/discard', [PageDraftController::class, 'discard'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/restore', [PageDraftController::class, 'restore'], $requireAdmin);
+    $router->get('/admin/pages/{id:\d+}/preview', [PageDraftController::class, 'preview'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/render', [PageBuilderApi::class, 'render'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/inspect', [PageBuilderApi::class, 'inspect'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/fields', [PageBuilderApi::class, 'fields'], $requireAdmin);
+    $router->get('/admin/patterns', [PatternController::class, 'show'], $requireAdmin);
+    $router->post('/admin/patterns', [PatternController::class, 'store'], $requireAdmin);
     $router->get('/admin/pages/{id:\d+}/form', [PageEditorController::class, 'edit'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
     $router->post('/admin/pages/order', [PagesController::class, 'reorder'], $requireAdmin);

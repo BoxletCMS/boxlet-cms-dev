@@ -90,3 +90,14 @@ testBothDrivers('the Media screen starts a pass and continues it until nothing i
     assertContains(e(t('media.remake_done')), $body, 'done');
     assertTrue(!str_contains($body, 'data-auto-continue'), 'Continue once nothing is left');
 });
+
+// The next variant is allowed the time the slowest one in the request took (D-175): on the
+// browser copy a `full` AVIF written twice took longer than the reserve, and the remake's
+// step ran into PHP's own limit, answering an empty page.
+test('another variant is started only if the slowest one so far would still fit', function () {
+    $started = microtime(true) - 80.0;
+
+    assertTrue(App\Modules\Media\MediaVariants::roomFor($started, 0.0, 87.0), 'eighty seconds in, with nothing measured: the reserve alone, as before');
+    assertTrue(!App\Modules\Media\MediaVariants::roomFor($started, 6.0, 87.0), 'eighty seconds in, after one that took six: no room');
+    assertTrue(App\Modules\Media\MediaVariants::roomFor($started, 600.0, null), 'no limit at all');
+});

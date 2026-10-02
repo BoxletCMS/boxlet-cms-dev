@@ -20,7 +20,7 @@
  */
 import { existsSync } from 'node:fs';
 import { BASE, ADMIN } from '../config.mjs';
-import { login, fixtures } from '../harness.mjs';
+import { login, fixtures, openBuilder, blockKey, selectBlock, settle } from '../harness.mjs';
 import {
   PHOTOS, CONTENT_FIELD, SURFACE_FIELD, uploadPhoto, pick, posted, save, firstPageId, photographs,
 } from '../media-helpers.mjs';
@@ -132,58 +132,28 @@ export default {
         `chose ${surface.chosen}, stored ${storedSurface}; what it looks like behind a section is 14-front`);
     }
 
-    // ---- the canvas follows the choice, without saving --------------------------------------
+    // ---- the canvas follows the choice, without publishing ----------------------------------
     //
-    // Selection is made THROUGH THE CANVAS, the way 07-live-canvas does it and the way a
-    // person does. builder.js keeps `selected` as module state that only that path sets, and
-    // redraw() returns immediately when api.selected() is -1 — so forcing a group's hidden
-    // flag off selects nothing, redraw never runs, and the canvas correctly shows nothing.
-    // An earlier version did that and reported the product as broken.
-    await page.goto(`${BASE}/admin/pages/${pageId}`, { waitUntil: 'networkidle2' });
-    const ready = await page.waitForFunction(() => {
-      const frame = document.querySelector('iframe[data-canvas]');
-      return frame && frame.contentDocument
-        && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
-    }, { timeout: 20000 }).then(() => true).catch(() => false);
-
-    if (!ready) {
-      report.fail('the canvas follows a chosen picture without saving', 'the canvas never loaded');
+    // Selection is made THROUGH THE CANVAS, the way a person does, and the picture chosen in
+    // the inspector's picker (D-175). The draft saves itself; the end of this scenario
+    // discards it.
+    await openBuilder(page, BASE, pageId);
+    const key = (await blockKey(page, 'image_text')) || (await blockKey(page, 'hero'));
+    if (key === null) {
+      report.skip('the canvas follows a chosen picture', 'no block with a picture on the page');
     } else {
-      // The block that actually has a media field, not block 0: the demo's first block is a
-      // hero, and selecting the wrong one measures a section nobody edited.
-      const index = await page.evaluate((selector) => {
-        const field = document.querySelector(selector);
-        const group = field && field.closest('[data-block-group]');
-        return group ? group.getAttribute('data-block-group') : null;
-      }, CONTENT_FIELD);
-
-      if (index === null) {
-        report.skip('the canvas follows a chosen picture', 'no media field in the visual editor');
-      } else {
-        const frame = page.frames().find((f) => f.url().includes('/canvas'));
-        await (await frame.$(`[data-bx-index="${index}"]`)).click();
-        await page.waitForFunction((i) => {
-          const group = document.querySelector(`[data-block-group="${i}"]`);
-          return group && !group.hidden;
-        }, { timeout: 8000 }, index);
-
-        const picked = await pick(page, CONTENT_FIELD, 0);
-        // builder-blocks.js debounces the redraw; 300ms is the figure in the 2h brief.
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-        // The canvas draws the block through the same renderer, so the same contract change
-        // applies: the id now arrives inside the variant URL, not on a placeholder.
-        const drawn = await page.evaluate(() => {
-          const canvas = document.querySelector('iframe[data-canvas]');
-          if (!canvas || !canvas.contentDocument) return null;
-          return Array.from(canvas.contentDocument.querySelectorAll('img')).map((el) => el.getAttribute('src'));
-        });
-        await report.shot(page, '04-canvas');
-        const inCanvas = (drawn || []).filter((src) => new RegExp(`/m/[a-z]+/${picked.chosen}-`).test(src || ''));
-        report.verdict('the canvas follows a chosen picture without saving',
-          inCanvas.length > 0,
-          drawn === null ? 'no reachable canvas'
-            : `chose ${picked.chosen}, the canvas shows ${JSON.stringify(drawn)}`);
-      }
+      const form = await selectBlock(page, key);
+      const picked = await pick(page, `${form} select[data-media-field][name$="[image]"]`, 0);
+      await page.waitForFunction((k, id) => [...document.querySelector('[data-pb-canvas]').contentDocument.querySelectorAll(`[data-bx-key="${k}"] img`)]
+        .some((img) => new RegExp(`/m/[a-z]+/${id}-`).test(img.getAttribute('src') || '')), { timeout: 15000 }, key, picked.chosen).catch(() => {});
+      // The canvas draws the block through the visitor's renderer, so the id arrives inside
+      // the variant URL, not on a placeholder.
+      const drawn = await page.evaluate((k) => [...document.querySelector('[data-pb-canvas]').contentDocument.querySelectorAll(`[data-bx-key="${k}"] img`)].map((el) => el.getAttribute('src')), key);
+      await report.shot(page, '04-canvas');
+      const inCanvas = drawn.filter((src) => new RegExp(`/m/[a-z]+/${picked.chosen}-`).test(src || ''));
+      report.verdict('the canvas follows a chosen picture without publishing',
+        inCanvas.length > 0, `chose ${picked.chosen}, the canvas shows ${JSON.stringify(drawn)}`);
+      await settle(page);
     }
 
     // ---- leave the page as it was found --------------------------------------------------
@@ -209,6 +179,12 @@ export default {
       const found = now.find((other) => other.name === field.name);
       return !found || found.value !== field.value;
     });
+    // And no draft left behind: the builder's, and the plain form's save above, discarded.
+    await openBuilder(page, BASE, pageId);
+    if (await page.$('[data-pb-discard]:not([hidden])')) {
+      await page.click('[data-pb-discard]');
+      await page.waitForFunction(() => document.querySelector('[data-pb-discard]').hidden, { timeout: 10000 }).catch(() => {});
+    }
     report.verdict('the page is left with exactly the pictures it had, of either kind',
       differs.length === 0,
       differs.length === 0

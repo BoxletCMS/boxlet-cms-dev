@@ -31,7 +31,7 @@ function saveBlock(int $pageId, int $blockId, string $heading, array $extra = []
     return adminPost("/admin/pages/{$pageId}", [
         'title' => 'About',
         'slug' => 'about',
-        'editor' => 'builder',
+       
         'action' => 'publish',
         '_end' => '1',
         'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'heading' => $heading, 'body' => '<p>two</p>']],
@@ -66,7 +66,7 @@ testBothDrivers('Publish records what the page was, and restoring it brings that
     assertEquals(1, count($revisions), 'one publish over a published page, one revision');
 
     $restore = adminPost("/admin/pages/{$id}", [
-        'title' => 'About', 'slug' => 'about', 'editor' => 'builder',
+        'title' => 'About', 'slug' => 'about',
         'action' => 'restore-' . $revisions[0]['id'], '_end' => '1', 'blocks' => [],
     ]);
     assertEquals(302, $restore->status, 'the restore');
@@ -89,7 +89,7 @@ test('the blocks on screen are discarded by a restore, not merged into it', func
     // The form still holds an edit nobody saved. Restoring is a choice between two whole
     // pages, and keeping this would make it neither.
     adminPost("/admin/pages/{$id}", [
-        'title' => 'Typed but not saved', 'slug' => 'about', 'editor' => 'builder',
+        'title' => 'Typed but not saved', 'slug' => 'about',
         'action' => 'restore-' . $revision, '_end' => '1',
         'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'heading' => 'TYPED', 'body' => '<p>x</p>']],
     ]);
@@ -125,7 +125,7 @@ test('a revision belongs to its page and cannot be poured into another', functio
     assertEquals(null, PageRevision::find($db, blockRegistry(), $other, $mine), 'found under the wrong page');
 
     $refused = adminPost("/admin/pages/{$other}", [
-        'title' => 'Contact', 'slug' => 'contact', 'editor' => 'builder',
+        'title' => 'Contact', 'slug' => 'contact',
         'action' => 'restore-' . $mine, '_end' => '1', 'blocks' => [],
     ]);
     assertEquals(422, $refused->status, 'restoring another page\'s revision');

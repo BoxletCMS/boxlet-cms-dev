@@ -87,6 +87,7 @@ final class MediaVariants
             'is_string',
         ));
         $started = microtime(true);
+        $slowest = 0.0;
         $made = [];
 
         foreach (self::ORDER as $preset) {
@@ -100,7 +101,7 @@ final class MediaVariants
             foreach ($missing as $format) {
                 // Asked BEFORE starting, never during: a check inside an encode cannot
                 // stop one, and the point is to stop before the wall rather than at it.
-                if ($budgetSeconds !== null && (microtime(true) - $started) + self::RESERVE_SECONDS > $budgetSeconds) {
+                if (!self::roomFor($started, $slowest, $budgetSeconds)) {
                     $this->record($mediaId, $existing, false);
 
                     return ['made' => $made, 'complete' => false];
@@ -115,6 +116,7 @@ final class MediaVariants
                 );
                 $relative = MediaPresets::file($preset, $mediaId, (string) $media['filename'], $format);
 
+                $encoding = microtime(true);
                 try {
                     $result = $this->writer->encode($source, $this->publicPath . '/' . $relative, $crop, $format, $orientation);
                 } catch (Throwable) {
@@ -138,10 +140,12 @@ final class MediaVariants
                         $unavailable[] = $format;
                         $existing[self::UNAVAILABLE] = array_values(array_unique($unavailable));
                     }
+                    $slowest = max($slowest, microtime(true) - $encoding);
                     continue;
                 }
 
                 $result = $this->smallerAvif($preset, $format, $source, $relative, $crop, $orientation, $result);
+                $slowest = max($slowest, microtime(true) - $encoding);
 
                 $existing[$preset]['formats'] = array_values(array_unique(
                     array_merge(is_array($have) ? $have : [], [$format]),
@@ -157,6 +161,22 @@ final class MediaVariants
         $this->record($mediaId, $existing, $complete);
 
         return ['made' => $made, 'complete' => $complete];
+    }
+
+    /**
+     * Whether one more variant fits in what is left of a request's time (D-175).
+     *
+     * The reserve alone assumed an encode takes a second or two. A large photograph's `full`
+     * AVIF, written twice when the first comes out too heavy, took longer under load, and the
+     * request ran into PHP's own limit: "Maximum execution time of 90 seconds exceeded" in
+     * MediaWriter, measured on the browser copy, twice, and the remake's step answered an
+     * empty page. So the next encode is allowed the time the slowest one in this request
+     * took, on top of the reserve. The first has no measure yet and gets the reserve alone,
+     * as before.
+     */
+    public static function roomFor(float $started, float $slowest, ?float $budgetSeconds): bool
+    {
+        return $budgetSeconds === null || (microtime(true) - $started) + $slowest + self::RESERVE_SECONDS <= $budgetSeconds;
     }
 
     /**

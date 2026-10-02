@@ -32,7 +32,7 @@ $idPrefix = 'block-' . $key . '-';
    knows, `m0` for one made in this session. Its fields are a prefix of their own beside the
    block's rather than a wrapper around it — `sections[s7][style][surface]` — because a
    nested name would be rewritten by five things that have nothing to do with sections
-   (admin.js's rename regexes, repeater.js, item.php, builder-blocks.js, builder-save.js).
+   (admin.js's rename regexes, repeater.js, item.php).
    While a section holds one block this fieldset stands exactly where it always has. */
 $sectionKey = $block['section'] ?? \App\Modules\Pages\SectionForm::key(null, 0);
 $sectionPrefix = 'sections[' . $sectionKey . ']';

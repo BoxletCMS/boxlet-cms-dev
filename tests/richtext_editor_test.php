@@ -42,7 +42,7 @@ test('guard (source, not behaviour): the editor is configured to the storage whi
 });
 
 // The canvas follows the text as it is typed by listening for `input` on the field groups
-// (builder-blocks.js debounces redraw). Assigning .value in script fires nothing, so the
+// (builder-inspector.js debounces sending them). Assigning .value in script fires nothing, so the
 // editor has to say so itself — without this line a rich text edit was invisible both to
 // the canvas and to the unsaved-changes warning, while every other field type worked,
 // because a person typing into a real control fires its own event.
@@ -62,12 +62,12 @@ test('guard (source, not behaviour): a rich text edit announces itself', functio
         'the editor stopped announcing its edits, so the canvas will not follow the text',
     );
 
-    // The listener the event has to reach, and the delay it is debounced by — in
-    // builder-redraw.js since the split of D-117.
-    $blocks = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-redraw.js');
-    assertContains("api.groups.addEventListener('input'", $blocks, 'the field groups no longer listen for input');
+    // The listener the event has to reach, and the delay it is debounced by — the
+    // inspector's since D-175, which sends the block's fields and redraws its band.
+    $blocks = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-inspector.js');
+    assertContains("panel.addEventListener('input'", $blocks, 'the inspector no longer listens for input');
     assertTrue(
-        (bool) preg_match('~setTimeout\(redraw,\s*(\d{2,4})\)~', $blocks, $delay) && (int) $delay[1] <= 400,
+        (bool) preg_match('~rethink \? 0 : (\d{2,4})\)~', $blocks, $delay) && (int) $delay[1] <= 400,
         'the redraw debounce is longer than 400ms, which reads as lag rather than as the page following you',
     );
 });
@@ -102,25 +102,19 @@ test('guard (source, not behaviour): naming a group knows nothing about the rich
     }
 });
 
-test('guard (source, not behaviour): a duplicate is reset to a plain textarea before it is placed', function () {
-    // builder-actions.js since the split of D-117.
+/*
+ * A DUPLICATE IS A COPY OF THE DOCUMENT'S BLOCK, NEVER OF ITS MARKUP (D-175). The old builder
+ * cloned a block's field group, and the clone's rich text was dead markup until it was reset;
+ * a guard stood over that reset. The builder now copies the block in the document, and the
+ * server draws its fields afresh when it is selected, so there is no clone to reset. Changed
+ * deliberately, to the rule that replaces the old one: the copy is made from the document.
+ */
+test('guard (source, not behaviour): a duplicate is made from the document, not from the page', function () {
     $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-actions.js');
-
-    /* A duplicate no longer becomes a band of its own at the next position on the page
-       (D-103) — it stands beside the block it was copied from, in the same column — so what
-       places it is `group.after(groupCopy)` and not place(). The rule is unchanged and is
-       what this guards: the copy's rich text is dead markup until it is reset, and resetting
-       it after it is on the screen is a window in which the author can type into nothing. */
-    $reset = strpos($js, 'unsetRichText(groupCopy)');
-    $placed = strpos($js, 'group.after(groupCopy)');
-    assertTrue($reset !== false, 'the duplicate no longer resets its rich text');
-    assertTrue($placed !== false && $reset < $placed, 'the copy is placed before its rich text is reset');
-
-    // In rich mode what is on screen lives in the hidden input, while the textarea still
-    // holds what the server rendered. A reset that ignored that would copy the old text
-    // and quietly discard the author's edits.
-    assertContains('textarea.value = hidden.value', $js, 'the duplicate takes the rendered value, not the edited one');
-    assertContains('textarea.name = hidden.name', $js, 'the duplicate does not carry the field name back');
+    $start = strpos($js, 'pb.duplicateBlock = function');
+    $body = $start === false ? '' : substr($js, $start, 600);
+    assertContains('pb.copy(block)', $body, 'the duplicate is not a copy of the document\'s block');
+    assertTrue(!str_contains($body, 'cloneNode'), 'the duplicate clones markup again');
 });
 
 // The link panel is hidden by the hidden attribute, and admin.css makes that attribute win
@@ -169,7 +163,12 @@ test('guard (source, not behaviour): nothing duplicates the browser\'s plain-tex
 });
 
 test('guard (source, not behaviour): the editor still renders the shapes richtext.js binds to', function () {
-    $body = dispatch('/admin/pages/' . builderPage())->body;
+    // The builder's text is typed in the inspector's All content since D-175: its markup,
+    // as the server draws it for a selected text block, is what richtext.js binds to.
+    $id = builderPage();
+    [, $section, $blocks] = builderBand($id, 1);
+    $key = $blocks[0]['key'];
+    $body = json_decode(builderRequest("/admin/pages/{$id}/inspect", ['kind' => 'block', 'key' => $key, 'section' => $section, 'blocks' => $blocks])->body, true)['html'] ?? '';
 
     assertContains('data-richtext', $body, 'the wrapper richtext.js looks for');
     assertContains('data-richtext-toolbar', $body, 'the toolbar it binds by data-rt');
@@ -180,10 +179,10 @@ test('guard (source, not behaviour): the editor still renders the shapes richtex
     /*
      * The label has to point at the textarea. Asserted as that RELATION rather than as the
      * shape of an id: the shape changed with D-094, from block-3-body to block-b42-body,
-     * and a guard written against the shape reported "the label no longer points at the
-     * field" when the label pointed at the field perfectly well.
+     * and again with D-175 (ins-b-b42-body), and a guard written against the shape would
+     * report the label lost when it pointed at the field perfectly well.
      */
-    if (preg_match('~<label for="(block-[a-z0-9]+-body)">~', $body, $labelled) !== 1) {
+    if (preg_match('~<label for="([a-z0-9-]+-body)">~', $body, $labelled) !== 1) {
         fail('no label for a body field');
     }
     assertContains('<textarea id="' . $labelled[1] . '"', $body, 'the label points at no textarea');

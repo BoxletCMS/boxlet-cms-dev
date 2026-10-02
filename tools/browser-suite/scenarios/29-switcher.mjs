@@ -6,13 +6,15 @@
  * is checked beside it: each version names the other.
  *
  * LEAVES THE SITE AS FOUND: the language is added for this run, the home page's translation
- * made and published through the admin, and both removed again at the end. It stops before
- * touching anything if the language is already there.
+ * made and published through the builder, and both removed again at the end. The language
+ * is the first one Settings offers that the copy does not have.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait } from '../harness.mjs';
+import { login, clickAndWait, openBuilder, publish } from '../harness.mjs';
 
-const CODE = 'hr';
+// A language the copy does not have yet, read off Settings when the run starts (D-174:
+// the demo already has hr, which made this skip on every run).
+let CODE = '';
 const HOME = 1;
 
 const alternates = (page) => page.$$eval('link[rel="alternate"]', (links) => links.map((l) => `${l.hreflang} ${new URL(l.href).pathname}`));
@@ -26,9 +28,9 @@ export default {
       return;
     }
     await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
-    const free = await page.$$eval('#language-code option', (options, code) => options.some((o) => o.value === code), CODE);
-    if (!free) {
-      report.skip('switcher: a language to add', `${CODE} is already on the site; not touching the owner's`);
+    CODE = await page.$$eval('#language-code option', (options) => (options.find((o) => o.value !== '') || {}).value || '');
+    if (CODE === '') {
+      report.fail('switcher: a language to add', 'Settings offers no language the site does not have');
       return;
     }
     await page.select('#language-code', CODE);
@@ -37,13 +39,12 @@ export default {
     let made = null;
     try {
       // ---- the home page, translated and published ------------------------------------------
-      await page.goto(`${BASE}/admin/pages/${HOME}`, { waitUntil: 'networkidle2' });
-      await page.evaluate(() => { window.onbeforeunload = null; });
+      await openBuilder(page, BASE, HOME);
       await page.click('details.builder-locale > summary');
       await clickAndWait(page, `button[form="translate-${CODE}"]`);
       made = Number((page.url().match(/\/admin\/pages\/(\d+)$/) || [])[1]) || null;
-      await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
-      await clickAndWait(page, `form[action$="/pages/${made}/status"] button`);
+      await openBuilder(page, BASE, made);
+      await publish(page);
 
       // ---- a visitor switches ---------------------------------------------------------------
       await page.setViewport({ width: 1400, height: 900, deviceScaleFactor: 2 });
@@ -63,9 +64,9 @@ export default {
         `${JSON.stringify(there)}, back to ${back}`);
     } finally {
       // ---- leave the site as found ----------------------------------------------------------
-      await page.evaluate(() => { window.onbeforeunload = null; }).catch(() => {});
       if (made !== null && made !== HOME) {
         await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
+        await page.$eval(`tr[data-page-id="${made}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
         await page.$eval(`form[action$="/pages/${made}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
         await clickAndWait(page, `form[action$="/pages/${made}/delete"] button`).catch(() => {});
       }
@@ -74,8 +75,9 @@ export default {
       await clickAndWait(page, `form[action$="/languages/${CODE}/delete"] button`).catch(() => {});
       const left = await page.$$eval('#languages code', (codes) => codes.map((c) => c.textContent));
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
-      const switcher = await page.$('.locale-switcher');
-      report.verdict('the translation and the language are gone again, and so is the switcher', !left.includes(CODE) && switcher === null, left.join(', '));
+      // The demo has other languages, so the switcher stays; the one added is gone from it.
+      const switcher = await page.$(`.locale-switcher a[hreflang="${CODE}"]`);
+      report.verdict('the translation and the language are gone again, and so is its link in the switcher', !left.includes(CODE) && switcher === null, left.join(', '));
     }
   },
 };

@@ -120,8 +120,10 @@ async function nested(page, report) {
   const address = `${parent.address}${child.address}`;
   try {
     await place(parent.id);
-    // A save lands in the visual editor, not the form it came from; both carry the line.
-    const shown = await page.$$eval('#page-slug ~ .hint', (hints) => hints.map((e) => e.textContent.trim()).join(' | '));
+    // A save lands in the builder, not the form it came from: its Page tab says the whole
+    // address under the slug (D-175), filled in by its script from the document.
+    await page.waitForFunction(() => (document.querySelector('[data-pb-address]') || {}).textContent, { timeout: 15000 }).catch(() => {});
+    const shown = await page.$eval('[data-pb-address]', (e) => e.textContent.trim()).catch(() => '');
     report.verdict('the editor shows the whole address under the slug', shown.includes(address), `${page.url()}: ${shown}`);
 
     const visited = await fetch(`${BASE}${address}`, { headers: { 'user-agent': 'Mozilla/5.0 Chrome/126.0' } });

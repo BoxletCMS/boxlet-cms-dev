@@ -7,13 +7,15 @@
  *
  * LEAVES THE SITE AS FOUND: it adds a language the site does not have, deletes the
  * translation it made through the pages list, and removes the language again, all through
- * the admin. It stops before touching anything if the language is already there.
+ * the admin. The language is the first one Settings offers that the copy does not have.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait } from '../harness.mjs';
+import { login, clickAndWait, openBuilder } from '../harness.mjs';
 
 const PAGE = 1;
-const CODE = 'hr';
+// A language the copy does not have yet, read off Settings when the run starts (D-174:
+// the demo already has hr, which made this skip on every run).
+let CODE = '';
 
 export default {
   name: 'translate',
@@ -26,9 +28,9 @@ export default {
 
     // ---- a second language, added for this run ---------------------------------------------
     await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
-    const free = await page.$$eval('#language-code option', (options, code) => options.some((o) => o.value === code), CODE);
-    if (!free) {
-      report.skip('translate: a language to add', `${CODE} is already on the site; not touching the owner's`);
+    CODE = await page.$$eval('#language-code option', (options) => (options.find((o) => o.value !== '') || {}).value || '');
+    if (CODE === '') {
+      report.fail('translate: a language to add', 'Settings offers no language the site does not have');
       return;
     }
     await page.select('#language-code', CODE);
@@ -37,41 +39,39 @@ export default {
     let made = null;
     try {
       // ---- the menu offers it -------------------------------------------------------------
-      await page.setViewport({ width: 1600, height: 1000, deviceScaleFactor: 2 });
-      await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
+      await page.setViewport({ width: 1600, height: 1000, deviceScaleFactor: 1 });
+      await openBuilder(page, BASE, PAGE);
       await page.click('details.builder-locale > summary');
       const offered = await page.$$eval('.menu-popover-list li', (items) => items.map((li) => li.textContent.replace(/\s+/g, ' ').trim()));
       await report.shot(page, '01-menu', { fullPage: false });
-      report.verdict('the language menu lists this page\'s language and offers to translate into the other',
-        offered.length === 2 && /this page/.test(offered[0]) && /Translate/.test(offered[1]), JSON.stringify(offered));
+      report.verdict('the language menu lists this page\'s language and offers to translate into the one added',
+        /this page/.test(offered[0] || '') && offered.some((o) => /Translate/.test(o)), JSON.stringify(offered));
 
       // ---- translate ----------------------------------------------------------------------
-      await page.evaluate(() => { window.onbeforeunload = null; });
       await clickAndWait(page, `button[form="translate-${CODE}"]`);
       made = Number((page.url().match(/\/admin\/pages\/(\d+)$/) || [])[1]) || null;
+      await page.waitForFunction(() => window.pb && window.pb.canvas && window.pb.canvas.main(), { timeout: 20000 }).catch(() => {});
       const landed = await page.evaluate(() => ({
-        flash: Array.from(document.querySelectorAll('[role="status"], .flash, .notice')).map((e) => e.textContent.trim()).join(' | '),
-        title: (document.querySelector('[data-title-echo]') || {}).textContent || '',
+        flash: Array.from(document.querySelectorAll('[role="status"].notice, .flash')).map((e) => e.textContent.trim()).join(' | '),
+        title: (document.querySelector('[data-pb-title]') || {}).textContent || '',
         language: ((document.querySelector('details.builder-locale > summary') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        bands: document.querySelector('[data-pb-canvas]').contentDocument.querySelectorAll('main > [data-bx-section]').length,
       }));
-      await page.waitForFunction(() => {
-        const frame = document.querySelector('iframe[data-canvas]');
-        return frame && frame.contentDocument && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
-      }, { timeout: 20000 }).catch(() => {});
       await report.shot(page, '02-translation', { fullPage: false });
       report.verdict('Translate opens the new version, says it is a draft to translate, and names its language',
-        made !== null && made !== PAGE && /draft/.test(landed.flash) && landed.language.includes(CODE.toUpperCase()),
+        made !== null && made !== PAGE && /draft/.test(landed.flash) && landed.language.includes(CODE.toUpperCase()) && landed.bands > 0,
         JSON.stringify(landed));
 
       // ---- and its own menu leads back ------------------------------------------------------
       await page.click('details.builder-locale > summary');
-      const back = await page.$eval('.menu-popover-list a', (a) => a.getAttribute('href')).catch(() => null);
-      report.verdict('the translation\'s menu leads back to the original', back === `/admin/pages/${PAGE}`, `link: ${back}`);
+      const back = await page.$$eval('.menu-popover-list a', (links) => links.map((a) => a.getAttribute('href')));
+      report.verdict('the translation\'s menu leads back to the original', back.includes(`/admin/pages/${PAGE}`), `links: ${back.join(', ')}`);
     } finally {
       // ---- leave the site as found ----------------------------------------------------------
       await page.evaluate(() => { window.onbeforeunload = null; }).catch(() => {});
       if (made !== null && made !== PAGE) {
         await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
+        await page.$eval(`tr[data-page-id="${made}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
         await page.$eval(`form[action$="/pages/${made}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
         await clickAndWait(page, `form[action$="/pages/${made}/delete"] button`).catch(() => {});
       }

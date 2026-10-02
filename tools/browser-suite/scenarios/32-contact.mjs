@@ -11,7 +11,7 @@
  * the end, the form's message with it.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait, SLOW } from '../harness.mjs';
+import { login, clickAndWait, SLOW, openBuilder, addBlock, publish } from '../harness.mjs';
 
 const STAMP = Date.now();
 const FORM = `Zz contact check ${STAMP}`;
@@ -41,42 +41,19 @@ export default {
       await page.select('#page-template', '');
       await clickAndWait(page, 'form.panel button[type="submit"]');
       pageId = Number((page.url().match(/\/admin\/pages\/(\d+)$/) || [])[1]) || null;
-      /* A BAND FIRST, THEN THE BLOCK (PLAN.md D-099, the owner's own choice: "prvo raspored,
-         pa + u prazan stupac"). This pressed the library card straight away, which worked
-         while every added block quietly brought a band with it. Since D-101 a card with
-         nothing aimed at does nothing — deliberately — and a brand-new page offers exactly
-         one control: + Section. Measured on an empty page: 0 bands, one .bx-insert, and
-         pressing the card added nothing at all. */
-      await page.waitForFunction(() => {
-        const doc = document.querySelector('iframe[data-canvas]');
-        return doc && doc.contentDocument && doc.contentDocument.querySelector('.bx-insert');
-      }, { timeout: 20000 });
-      const canvas = page.frames().find((f) => f.url().includes('/canvas'));
-      await canvas.click('.bx-insert');
-      await wait(2500);
-      // Then AIM: the new band's column offers one "+ Block", and the library card fills
-      // whatever is aimed at. Measured on an empty page — + Section gives one band with one
-      // slot (m0/0), and only after pressing it does a card add anything.
-      const aimed = page.frames().find((f) => f.url().includes('/canvas'));
-      await aimed.click('.bx-slot');
-      await wait(1200);
-      await page.click('[data-add-type="form"]');
-      await wait(1500);
-      const group = await page.evaluate(() => {
-        const shown = Array.from(document.querySelectorAll('[data-block-group]')).find((g) => !g.hidden);
-        return shown ? shown.getAttribute('data-block-group') : null;
-      });
-      await page.type(`[data-block-group="${group}"] input[name$="[heading]"]`, 'Write to us', { delay: SLOW });
-      await page.select(`[data-block-group="${group}"] select[name$="[form]"]`, String(formId));
-      await wait(1500);
-      const onCanvas = await page.evaluate(() => {
-        const frame = document.querySelector('iframe[data-canvas]');
-        return frame.contentDocument.querySelector('form.site-form') !== null;
-      });
+      // From the rail's Add, at the end of the empty page (D-175); its form chosen among the
+      // fields the page does not show as words, its heading in All content.
+      await openBuilder(page, BASE, pageId);
+      const key = await addBlock(page, 'form');
+      const fields = `[data-pb-inspector] [data-block-fields="${key}"]`;
+      await page.select(`${fields} select[name$="[form]"]`, String(formId));
+      await page.$eval('#ins-content', (d) => { d.open = true; });
+      await page.type(`${fields} input[name$="[heading]"]`, 'Write to us', { delay: SLOW });
+      await page.waitForFunction(() => document.querySelector('[data-pb-canvas]').contentDocument.querySelector('form.site-form') !== null, { timeout: 15000 }).catch(() => {});
+      const onCanvas = await page.evaluate(() => document.querySelector('[data-pb-canvas]').contentDocument.querySelector('form.site-form') !== null);
       await report.shot(page, '01-editor', { fullPage: false });
       report.verdict('the Form block shows the chosen form on the canvas', onCanvas, `form drawn: ${onCanvas}`);
-      await page.evaluate(() => { window.onbeforeunload = null; });
-      await clickAndWait(page, '.builder-bar button[value="publish"]');
+      await publish(page);
       // Publish puts the page on the site since D-173: the row's status button, pressed here
       // before, would take it off again, and the visitor found no form.
       await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
@@ -110,7 +87,6 @@ export default {
       await report.shot(page, '04-messages', { fullPage: false });
       report.verdict('the message is in the admin, marked new', /Ana Horvat/.test(listed) && /New/.test(listed), listed.slice(0, 120));
     } finally {
-      await page.evaluate(() => { window.onbeforeunload = null; }).catch(() => {});
       if (pageId !== null) {
         await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
         // Deleting moved into the row's menu (D-052), which is a closed <details> until

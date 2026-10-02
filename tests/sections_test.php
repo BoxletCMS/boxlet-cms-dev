@@ -158,7 +158,9 @@ testBothDrivers('the section panel offers every closed set as a radio group', fu
     $db = adminSite($driver);
     // With a block, because the fields belong to the band a block stands in.
     $id = createPage($db, 'en', 'panel', 'Panel', true, [['type' => 'text', 'content' => ['body' => '<p>One.</p>']]]);
-    $body = dispatch("/admin/pages/{$id}")->body;
+    // The plain editor's panel since D-175; the builder's section inspector is
+    // tests/builder_api_test.php's.
+    $body = dispatch("/admin/pages/{$id}/form")->body;
     $key = preg_match('~name="sections\[([a-z0-9]+)\]\[layout\]"~', $body, $found) === 1 ? $found[1] : null;
     assertTrue($key !== null, 'the page editor renders no section fields at all');
 

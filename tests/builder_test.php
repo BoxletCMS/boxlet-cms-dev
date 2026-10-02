@@ -18,32 +18,45 @@ function builderPage(string $driver = 'sqlite'): int
     ]);
 }
 
-test('the visual editor holds every block\'s fields in one form, with _end last', function () {
+test('the builder is one shell: bar, rail, canvas and inspector, and its document handed over as JSON', function () {
     $id = builderPage();
     $response = dispatch("/admin/pages/{$id}");
 
     assertEquals(200, $response->status, 'status');
-    // Every block is in the form, not only the selected one: that is what keeps the
-    // save path identical to the fallback editor's.
-    foreach ([0, 1, 2] as $index) {
-        assertContains('data-block-group="' . $index . '"', $response->body, "group {$index}");
+    assertContains('data-pb ', $response->body, 'the shell');
+    foreach (['structure', 'add', 'page'] as $tab) {
+        assertContains('data-pb-tab="' . $tab . '"', $response->body, "the rail's {$tab} tab");
     }
-    // data-block-group above is still positional — it is which group the panel shows.
-    // A field NAME is not: it carries the block's own key (D-094), so a reorder renames
-    // nothing and an error keyed to a block stays with that block. Read out of the page
-    // rather than looked up, which also proves the keys are the stored ids and in order.
-    preg_match_all('~name="blocks\[(b[0-9]+)\]\[type\]" value="([a-z_]+)"~', $response->body, $named, PREG_SET_ORDER);
-    assertEquals(['hero', 'text', 'image_text'], array_column($named, 2), 'every block, named by its own key, in order');
-    assertContains('name="blocks[' . $named[0][1] . '][heading]"', $response->body, 'hero field');
-    assertContains('name="blocks[' . $named[1][1] . '][body]"', $response->body, 'text field');
-    assertTrue((bool) preg_match('~name="_end" value="1">\s*</form>~', $response->body), '_end is not the last field');
-    assertContains('name="editor" value="builder"', $response->body, 'the editor marker');
-    assertContains('data-canvas', $response->body, 'the canvas frame');
+    assertContains('data-pb-canvas', $response->body, 'the canvas frame');
+    assertContains('data-pb-inspector', $response->body, 'the inspector');
+    assertContains('data-pb-nothing', $response->body, 'which starts with nothing selected');
 
-    // admin.js claims any form marked data-page-editor and then reaches for its block
-    // list, which the visual editor does not have. Marking this form would throw on
-    // every load, and nothing but a browser would notice.
-    assertTrue(!str_contains($response->body, 'data-page-editor'), 'the builder form is marked as the fallback editor');
+    // No Save button since D-175: the draft saves itself, and the bar says so. Discard and
+    // Publish are the bar's only words.
+    assertTrue(!str_contains($response->body, e(t('pages.save_draft'))), 'a Save draft button');
+    assertContains('data-pb-save', $response->body, 'the save state');
+    assertContains('data-pb-publish', $response->body, 'Publish');
+    assertContains('data-pb-undo', $response->body, 'undo');
+    assertContains('data-pb-redo', $response->body, 'redo');
+
+    // The document, once, as data the page carries: the admin's CSP runs no inline script.
+    if (!preg_match('~<script type="application/json" data-pb-data>(.*?)</script>~s', $response->body, $json)) {
+        fail('no document handed over');
+    }
+    $data = json_decode($json[1], true);
+    assertEquals(['hero', 'text', 'image_text'], array_column($data['document']['blocks'] ?? [], 'type'), 'every block, in order');
+    assertEquals(0, $data['version'] ?? null, 'the draft version it starts from');
+    foreach (['draft', 'render', 'inspect', 'fields', 'publish', 'discard', 'restore', 'patterns'] as $endpoint) {
+        assertTrue(is_string($data['endpoints'][$endpoint] ?? null), "the {$endpoint} endpoint");
+    }
+
+    // Add is a list of icon, name and a line — never a live preview of each block.
+    assertEquals(1, substr_count($response->body, '<iframe'), 'the canvas is the one frame on the screen');
+    assertContains('data-add-block="hero"', $response->body, 'the Hero in the list');
+
+    // The document's keys are the browser's to pair by, never a person's to read.
+    $words = strip_tags((string) preg_replace('~<(script|template)\b.*?</\1>~s', '', $response->body));
+    assertTrue(preg_match('~\b[bsnm][0-9]+\b~', $words) !== 1, 'an internal key is shown: ' . (preg_match('~.{20}\b[bsnm][0-9]+\b.{20}~', $words, $m) ? $m[0] : ''));
 });
 
 test('the visual editor links the fallback, and the fallback links back', function () {
@@ -104,6 +117,8 @@ test('the canvas is the one admin document that renders with the site design', f
     assertTrue((bool) preg_match('~/cache/tokens\.[0-9a-f]{12}\.css~', $canvas->body), 'canvas tokens');
     assertContains('assets/site.css', $canvas->body, 'canvas site styles');
     assertContains('assets/canvas.css', $canvas->body, 'canvas editor chrome');
+    // And no script: the builder draws over it from the parent (D-175).
+    assertTrue(!str_contains($canvas->body, '<script'), 'the canvas runs a script of its own');
 
     // The shell around it is the admin, so it links none of them.
     assertTrue(!str_contains($shell->body, '/cache/tokens.'), 'the shell links the site design');
@@ -139,93 +154,39 @@ test('the visual editor and the canvas require an admin session, and refuse a mi
     assertEquals(404, dispatch('/admin/pages/9999/canvas')->status, 'canvas of a page that does not exist');
 });
 
-testBothDrivers('a save from the visual editor stores exactly what the plain form would', function (string $driver) {
-    $db = adminSite($driver);
-    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>Before</p>']]]);
-    $blockId = (int) ($db->one('SELECT id FROM page_blocks')['id'] ?? 0);
+// THE PAGE TAB (D-175): title, address and parent are fields of the document the browser
+// holds, saved with the draft and checked when it is published.
 
-    $response = adminPost("/admin/pages/{$id}", [
-        'title' => 'Edited in the canvas',
-        'slug' => 'about',
-        'editor' => 'builder',
-        'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'heading' => 'Now', 'body' => '<p>After</p>']],
-        'action' => 'publish',
-        '_end' => '1',
-    ]);
-
-    assertRedirectedTo("/admin/pages/{$id}", $response);
-    assertEquals('Edited in the canvas', $db->one('SELECT title FROM pages')['title'] ?? null, 'stored title');
-    assertEquals('<p>After</p>', storedContent($db, $blockId)['body'] ?? null, 'stored body');
-});
-
-// An empty slug means "the home page of this language". A save that leaves the address
-// out would therefore either be refused, or quietly move the page to the site's root.
-testBothDrivers('saving from the visual editor keeps the page\'s address', function (string $driver) {
-    $db = adminSite($driver);
-    createPage($db, 'en', '', 'Home', true);
-    $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>Kept</p>']]]);
-    $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$id])['id'] ?? '');
-
-    assertContains('name="slug" value="about"', dispatch("/admin/pages/{$id}")->body, 'the address is not carried');
-
-    $response = adminPost("/admin/pages/{$id}", [
-        'title' => 'About',
-        'slug' => 'about',
-        'editor' => 'builder',
-        'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>Kept</p>']],
-        'action' => 'publish',
-        '_end' => '1',
-    ]);
-
-    assertRedirectedTo("/admin/pages/{$id}", $response);
-    assertEquals('about', $db->one('SELECT slug FROM pages WHERE id = ?', [$id])['slug'] ?? null, 'stored address');
-});
-
-test('an error with no field on screen is still shown', function () {
-    $db = adminSite('sqlite');
-    createPage($db, 'en', '', 'Home', true);
-    $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>Kept</p>']]]);
-    $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$id])['id'] ?? '');
-
-    // An empty address collides with the existing home page. The visual editor has no
-    // address field, so without this the user is told to fix something nowhere on screen.
-    $response = adminPost("/admin/pages/{$id}", [
-        'title' => 'About',
-        'slug' => '',
-        'editor' => 'builder',
-        'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>Kept</p>']],
-        'action' => 'publish',
-        '_end' => '1',
-    ]);
-
-    assertEquals(422, $response->status, 'status');
-    assertContains(e(t('pages.slug.home_taken')), $response->body, 'the reason is on screen');
-});
-
-// The page panel: title, address and parent travel with the save. Whether the page is on the
-// site is no longer a field of it: Publish is a button of the bar (D-173).
-
-testBothDrivers('the page panel saves the parent, and Publish puts the page on the site', function (string $driver) {
+testBothDrivers('the page tab\'s parent travels with the draft, and Publish puts the page on the site', function (string $driver) {
     $db = adminSite($driver);
     $parent = createPage($db, 'en', 'about', 'About', true);
     $id = createPage($db, 'en', 'team', 'Team', false, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
-    $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$id])['id'] ?? '');
+    [$document] = builderBand($id);
+    $document['parent_id'] = $parent;
+    assertEquals(200, draftRequest($id, ['version' => 0, 'document' => $document])->status, 'saved');
+    assertEquals(null, $db->one('SELECT parent_id FROM pages WHERE id = ?', [$id])['parent_id'] ?? null, 'a draft is not the page');
 
-    $response = adminPost("/admin/pages/{$id}", [
-        'title' => 'Team',
-        'slug' => 'team',
-        'editor' => 'builder',
-        'parent_id' => (string) $parent,
-        'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>x</p>']],
-        'action' => 'publish',
-        '_end' => '1',
-    ]);
-
-    assertRedirectedTo("/admin/pages/{$id}", $response);
+    assertEquals(200, builderRequest("/admin/pages/{$id}/publish", [])->status, 'published');
     $row = $db->one('SELECT parent_id, status, published_at FROM pages WHERE id = ?', [$id]) ?? [];
     assertEquals($parent, (int) ($row['parent_id'] ?? 0), 'stored parent');
-    assertEquals('published', $row['status'] ?? null, 'stored visibility');
+    assertEquals('published', $row['status'] ?? null, 'on the site');
     assertTrue(($row['published_at'] ?? null) !== null, 'published_at was not stamped');
+});
+
+// An empty address means "the home page of this language": a page that already has one
+// refuses it, and Publish says which field is wrong.
+test('an address that collides is refused at Publish, named by its field', function () {
+    $db = adminSite('sqlite');
+    createPage($db, 'en', '', 'Home', true);
+    $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>Kept</p>']]]);
+    [$document] = builderBand($id);
+    $document['slug'] = '';
+    draftRequest($id, ['version' => 0, 'document' => $document]);
+
+    $refused = builderRequest("/admin/pages/{$id}/publish", []);
+    assertEquals(422, $refused->status, 'status');
+    assertEquals(t('pages.slug.home_taken'), json_decode($refused->body, true)['errors']['slug'] ?? null, 'the reason, by the field it is about');
+    assertEquals('about', $db->one('SELECT slug FROM pages WHERE id = ?', [$id])['slug'] ?? null, 'the stored address');
 });
 
 // The select never offers a parent that would make a cycle. This is the request that
@@ -237,167 +198,64 @@ test('a parent that would make a cycle is refused however the request arrives', 
     $db->query('UPDATE pages SET parent_id = ? WHERE id = ?', [$about, $team]);
     $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$about])['id'] ?? '');
 
+    // Through the plain form...
     $response = adminPost("/admin/pages/{$about}", [
         'title' => 'About',
         'slug' => 'about',
-        'editor' => 'builder',
         'parent_id' => (string) $team,
         'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>x</p>']],
         'action' => 'publish',
         '_end' => '1',
     ]);
-
     assertEquals(422, $response->status, 'status');
     assertContains(e(t('pages.parent_invalid')), $response->body, 'the reason is on screen');
+
+    // ...and through the builder's draft and Publish.
+    [$document] = builderBand($about);
+    $document['parent_id'] = $team;
+    draftRequest($about, ['version' => 0, 'document' => $document]);
+    assertEquals(422, builderRequest("/admin/pages/{$about}/publish", [])->status, 'published under its own subpage');
     assertEquals(null, $db->one('SELECT parent_id FROM pages WHERE id = ?', [$about])['parent_id'] ?? null, 'stored parent');
 });
 
-test('the page panel carries the address as a real field, not a hidden one', function () {
+test('the page tab carries the address, the parent and the search words as fields bound to the document', function () {
     $db = adminSite('sqlite');
     createPage($db, 'en', '', 'Home', true);
-    $id = createPage($db, 'en', 'about', 'About', true);
+    $id = createPage($db, 'en', 'about', 'About', false);
     $body = dispatch("/admin/pages/{$id}")->body;
 
-    assertContains('name="slug" value="about"', $body, 'the address');
-    assertContains('data-slug-field', $body, 'the generator hook');
-    assertContains('name="parent_id"', $body, 'the parent select');
-    // No visibility select since D-173: the bar's Publish button is how a page goes live.
-    assertTrue(!str_contains($body, 'name="status"'), 'no visibility select');
-    assertContains('name="action" value="publish"', $body, 'Publish in the bar');
-    // Home is a valid parent for About; About must not be offered itself. Read inside the
-    // parent select only: a link field elsewhere on the screen rightly offers every page,
-    // About included, and the whole body stopped proving anything once the Columns block
-    // put link fields into the repeater templates every builder carries.
-    $parent = preg_match('~<select id="page-parent" name="parent_id">(.*?)</select>~s', $body, $match) === 1 ? $match[1] : '';
+    assertContains('data-pb-page="slug" value="about"', $body, 'the address');
+    assertContains('data-pb-slug-hint', $body, 'the line that says it follows the title');
+    foreach (['title', 'parent_id', 'seo_title', 'seo_description', 'noindex'] as $field) {
+        assertContains('data-pb-page="' . $field . '"', $body, $field);
+    }
+    assertContains('class="pb-serp"', $body, 'the picture of a search result');
+    assertTrue(!str_contains($body, 'name="status"'), 'no visibility select: Publish is how a page goes live');
+    // Home is a valid parent for About; About must not be offered itself.
+    $parent = preg_match('~<select id="pb-parent" data-pb-page="parent_id">(.*?)</select>~s', $body, $match) === 1 ? $match[1] : '';
     assertContains('>Home</option>', $parent, 'another page as a parent');
     assertTrue(!str_contains($parent, '>About</option>'), 'the page was offered itself as its parent');
 });
 
-// A rejected save re-renders the builder, and the canvas reloads. It reads the database,
-// which is precisely what was not written, so without care the page appears to empty
-// itself while every field is still full.
-test('a rejected save leaves the canvas showing the work, not the stored page', function () {
-    $db = adminSite('sqlite');
-    createPage($db, 'en', '', 'Home', true);
-    $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>Stored</p>']]]);
-    $blockId = (string) ($db->one('SELECT id FROM page_blocks WHERE page_id = ?', [$id])['id'] ?? '');
-
-    $rejected = adminPost("/admin/pages/{$id}", [
-        'title' => '',
-        'slug' => 'about',
-        'editor' => 'builder',
-        'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>Being written</p>']],
-        'action' => 'publish',
-        '_end' => '1',
-    ]);
-    assertEquals(422, $rejected->status, 'status');
-
-    $canvas = dispatch("/admin/pages/{$id}/canvas");
-    assertContains('<p>Being written</p>', $canvas->body, 'the canvas lost the unsaved work');
-    assertTrue(!str_contains($canvas->body, '<p>Stored</p>'), 'the canvas showed the stored page instead');
-
-    // Read once: the next canvas is the stored page again.
-    assertContains('<p>Stored</p>', dispatch("/admin/pages/{$id}/canvas")->body, 'the pending state was never cleared');
-});
-
-test('a rejected save comes back in the editor it was sent from', function () {
+test('a rejected save of the plain form comes back in the plain form, and stores nothing', function () {
     $db = adminSite('sqlite');
     $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>Kept</p>']]]);
     $blockId = (string) ($db->one('SELECT id FROM page_blocks')['id'] ?? '');
-    $blocks = [['id' => $blockId, 'type' => 'text', 'body' => '']];
-    $body = ['title' => '', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'publish', '_end' => '1'];
-
-    $fromBuilder = adminPost("/admin/pages/{$id}", $body + ['editor' => 'builder']);
-    assertEquals(422, $fromBuilder->status, 'status');
-    assertContains('data-canvas', $fromBuilder->body, 'the builder came back');
-    assertContains(e(t('pages.title_required')), $fromBuilder->body, 'the error');
+    $body = ['title' => '', 'slug' => 'about', 'blocks' => [['id' => $blockId, 'type' => 'text', 'body' => '']], 'action' => 'publish', '_end' => '1'];
 
     $fromForm = adminPost("/admin/pages/{$id}", $body);
     assertEquals(422, $fromForm->status, 'status');
     assertContains('<template data-block-template=', $fromForm->body, 'the plain form came back');
+    assertContains(e(t('pages.title_required')), $fromForm->body, 'the error');
     assertEquals('<p>Kept</p>', storedContent($db, (int) $blockId)['body'] ?? null, 'nothing was stored');
 });
 
-/*
- * THE TRAP UNDER D-081, held open by a test because reasoning alone found it late.
- *
- * builder-save.js lets a block the author never touched send its id and a marker instead
- * of its fields, and the server restores it from storage. That is only true while what is
- * on screen CAME from storage. A save that fails validation re-renders the submitted
- * blocks — valid edits included, because a save is refused whole — so a baseline taken
- * there would call an edited block unchanged and roll it back on the next save.
- *
- * The signal is one attribute, and the default is the safe answer.
- */
-test('the builder offers the skeleton saving only while the form is the stored page', function () {
-    $db = adminSite('sqlite');
-    $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['heading' => 'H', 'body' => '<p>A</p>']]]);
-    $blockId = (int) ($db->one('SELECT id FROM page_blocks')['id'] ?? 0);
-
-    $opened = dispatch("/admin/pages/{$id}");
-    assertContains('data-blocks-stored', $opened->body, 'the editor opened on the stored page');
-
-    // A save refused for an empty title comes back with the blocks as submitted.
-    $rejected = adminPost("/admin/pages/{$id}", [
-        'title' => '',
-        'slug' => 'about',
-        'editor' => 'builder',
-        'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'heading' => 'Edited, never saved', 'body' => '<p>A</p>']],
-        'action' => 'publish',
-        '_end' => '1',
-    ]);
-    assertEquals(422, $rejected->status, 'status');
-    assertContains('Edited, never saved', $rejected->body, 'the submitted heading is still in the form');
-    assertTrue(!str_contains($rejected->body, 'data-blocks-stored'), 'a rejected save must not offer the skeleton saving');
-});
-
-testBothDrivers('the page outline shows the page as a tree, before any script runs', function (string $driver) {
-    $db = adminSite($driver);
-    $id = createPage($db, 'en', 'about', 'About', false, [
-        ['type' => 'hero', 'content' => ['heading' => 'One']],
-        ['type' => 'text', 'content' => ['body' => '<p>Two</p>']],
-        ['type' => 'form', 'content' => []],
-    ]);
-    [$hero, $text, $form] = blockIdsInOrder($db, $id);
-
-    // The second and third blocks side by side in one band of two columns, which is the
-    // shape an outline exists to show: the canvas draws what a page looks like and this
-    // draws what it IS (D-100).
-    App\Modules\Pages\Page::update($db, blockRegistry(), $id, [
-        'title' => 'About', 'slug' => 'about', 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',
-    ], [
-        ['key' => 'b' . $hero, 'id' => $hero, 'type' => 'hero', 'content' => ['heading' => 'One'], 'style' => [], 'layout' => '', 'section' => 'm0', 'column' => 0],
-        ['key' => 'b' . $text, 'id' => $text, 'type' => 'text', 'content' => ['body' => '<p>Two</p>'], 'style' => [], 'layout' => '', 'section' => 'm1', 'column' => 0],
-        ['key' => 'b' . $form, 'id' => $form, 'type' => 'form', 'content' => [], 'style' => [], 'layout' => '', 'section' => 'm1', 'column' => 1],
-    ], [
-        ['key' => 'm0', 'id' => null, 'layout' => 'one', 'stack' => 'stack', 'style' => []],
-        ['key' => 'm1', 'id' => null, 'layout' => 'wide-left', 'stack' => 'stack', 'style' => []],
-    ]);
-
-    $body = dispatch("/admin/pages/{$id}")->body;
-    assertContains('data-outline', $body, 'the outline is not on the screen');
-    // Two bands, three blocks — the two numbers that say how big a page is without counting.
-    assertContains('>2 / 3<', $body, 'the counts');
-    assertEquals(2, substr_count($body, 'data-outline-section='), 'a row per band');
-    assertEquals(3, substr_count($body, 'data-outline-block='), 'a row per block');
-    // The arrangement as notation, which is what fits in a row a few characters wide.
-    assertContains('2/3+', $body, 'the band\'s arrangement');
-    // A column row only where there is more than one column: "Column 1" under a band of one
-    // is a level of nothing.
-    assertEquals(2, substr_count($body, 'outline-row-column'), 'a row per column of the band that has them');
-    assertContains('data-outline-block="b' . $form . '"', $body, 'a block is named the way the rest of the editor names it');
-});
-
-test('guard (source, not behaviour): the outline is drawn by the server, not only by a script', function () {
-    // It is a third view of the same page and it has to be right before a script has run —
-    // after a rejected save, with JavaScript off, and on the first paint. The script moves
-    // the highlight and rebuilds rows; it does not own the shape (D-100).
-    $view = (string) file_get_contents(dirname(__DIR__) . '/app/Modules/Pages/views/admin/outline.php');
-    assertContains('data-outline-section', $view, 'the server does not draw the band rows');
-    assertContains('data-outline-block', $view, 'the server does not draw the block rows');
-
-    // And the script reads the panel rather than holding a second copy of the page.
-    $script = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-outline.js');
-    assertContains('api.groupNodes()', $script, 'the outline stopped reading the panel');
-    assertTrue(!str_contains($script, 'fetch('), 'the outline asks the server for the page shape');
+test('guard (source, not behaviour): the Structure tree is drawn from the document, with no key a person reads', function () {
+    // The tree is a third view of the document the browser holds (D-175): drawn from it,
+    // never fetched, and named in words — a band by its name or "Section N", a block by its
+    // type's name — while the keys stay in attributes.
+    $script = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-tree.js');
+    assertContains('pb.doc.sections', $script, 'the tree does not read the document');
+    assertTrue(!str_contains($script, 'fetch('), 'the tree asks the server for the page shape');
+    assertContains('pb.sectionName(', $script, 'a band is not named in words');
 });

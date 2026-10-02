@@ -560,3 +560,92 @@ export async function ensureHeaderMenu(page, base) {
   await openSection(page, 'header');
   return page.$eval('#header_menu', (select) => select.value).catch(() => '');
 }
+
+/**
+ * A click on something inside the builder's canvas, at where it is SHOWN (D-175).
+ *
+ * The canvas is drawn at its device's width and scaled to fit (builder-canvas.js). Puppeteer's
+ * boundingBox() and ElementHandle.click() inside a scaled iframe ignore the scale: measured,
+ * a card at (400, 530) on screen was reported at (444, 773), and the click landed on the
+ * next block. The point is computed here from the frame's place and the builder's own scale,
+ * and pressed with the mouse, which is what a person does.
+ */
+export async function clickInCanvas(page, selector, { index = 0, at = 'center', side = 'middle' } = {}) {
+  const point = await page.evaluate((sel, i, where, side) => {
+    const frame = document.querySelector('[data-pb-canvas]');
+    const el = frame.contentDocument.querySelectorAll(sel)[i];
+    if (!el) {
+      return null;
+    }
+    el.scrollIntoView({ block: 'center' });
+    const f = frame.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const s = window.pb.canvas.scale;
+    const y = where === 'bottom' ? r.bottom - 6 : where === 'top' ? r.top + 6 : r.top + r.height / 2;
+    const x = side === 'left' ? r.left + 12 : r.left + r.width / 2;
+    return { x: f.left + x * s, y: f.top + y * s };
+  }, selector, index, at, side);
+  if (!point) {
+    throw new Error(`nothing in the canvas matches ${selector} [${index}]`);
+  }
+  await page.mouse.click(point.x, point.y);
+}
+
+/* ---- THE BUILDER (D-175): what scenarios do in it, said once ---------------------------- */
+
+/** The builder for a page, once its canvas is drawn and its scripts hold the document. */
+export async function openBuilder(page, base, id) {
+  await page.goto(`${base}/admin/pages/${id}`, { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => window.pb && window.pb.canvas && window.pb.canvas.main(), { timeout: 20000 });
+  await new Promise((resolve) => setTimeout(resolve, 500));
+}
+
+/** The key of the n-th block of a type, in the order of the page. */
+export async function blockKey(page, type, nth = 0) {
+  return page.evaluate((t, n) => {
+    const keys = [];
+    window.pb.doc.sections.forEach((s) => window.pb.blocksIn(s.key).forEach((b) => { if (b.type === t) { keys.push(b.key); } }));
+    return keys[n] || null;
+  }, type, nth);
+}
+
+/** A block chosen on the canvas, and its inspector drawn: the form its fields are in. */
+export async function selectBlock(page, key) {
+  // The middle: a block's top edge may be its band's, where the "+" lies.
+  await clickInCanvas(page, `[data-bx-key="${key}"]`);
+  await page.waitForSelector(`[data-pb-inspector] [data-block-fields="${key}"]`, { timeout: 10000 });
+  return `[data-pb-inspector] [data-block-fields="${key}"]`;
+}
+
+/** A tab of the rail, open. Pressing the tab that is open folds the rail, so it is not pressed. */
+export async function openTab(page, name) {
+  const open = await page.evaluate((n) => document.querySelector(`[data-pb-tab="${n}"]`).getAttribute('aria-pressed') === 'true'
+    && !document.querySelector('[data-pb-body]').classList.contains('pb-folded'), name);
+  if (!open) {
+    await page.click(`[data-pb-tab="${name}"]`);
+  }
+}
+
+/** A block added from the rail's Add tab, where the rail says; its key, selected. */
+export async function addBlock(page, type) {
+  await openTab(page, 'add');
+  await page.click(`[data-add-block="${type}"]`);
+  await page.waitForFunction(() => window.pb.selection && window.pb.selection.kind === 'block', { timeout: 10000 });
+  const key = await page.evaluate(() => window.pb.selection.key);
+  await page.waitForFunction((k) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"]`), { timeout: 10000 }, key);
+  await page.waitForSelector(`[data-pb-inspector] [data-block-fields="${key}"]`, { timeout: 10000 });
+  return key;
+}
+
+/** Every pending change in the draft, and the band it touched drawn again. */
+export async function settle(page) {
+  await page.evaluate(() => window.pb.flush().catch(() => {}));
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+}
+
+/** Publish pressed, and the bar saying so. */
+export async function publish(page) {
+  await settle(page);
+  await page.click('[data-pb-publish]');
+  await page.waitForFunction(() => document.querySelector('[data-pb-state]').className.includes('status-published'), { timeout: 15000 });
+}

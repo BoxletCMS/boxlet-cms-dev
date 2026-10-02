@@ -33,7 +33,10 @@ testBothDrivers('a stored layout the definition no longer declares renders as th
     $db->query('UPDATE page_blocks SET layout = ?', ['removed-in-a-later-version']);
 
     assertContains('class="block block-hero layout-center ', dispatch('/about')->body, 'front end');
-    assertContains('<option value="center" selected>', dispatch("/admin/pages/{$id}")->body, 'editor');
+    // The two editors since D-175: the plain form's select, and the document the builder starts from.
+    assertContains('<option value="center" selected>', dispatch("/admin/pages/{$id}/form")->body, 'the plain editor');
+    $document = json_decode(dispatch("/admin/pages/{$id}/draft")->body, true)['document'] ?? [];
+    assertEquals('center', $document['blocks'][0]['layout'] ?? null, 'the builder\'s document');
 });
 
 test('new blocks start in their default layout', function () {

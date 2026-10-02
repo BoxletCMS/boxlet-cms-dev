@@ -317,9 +317,6 @@ return [
     'pages.editor.visual' => 'Visual editor',
     'pages.panel.nothing_selected' => 'Nothing selected',
     'pages.panel.nothing_selected_hint' => 'Choose a block on the page to edit what it says.',
-    'pages.panel.done' => 'Done',
-    'pages.duplicate' => 'Duplicate',
-    'pages.panel.page' => 'Page settings & SEO',
     'pages.field.parent' => 'Parent page',
     'pages.parent.none' => 'Top level',
     'pages.parent_invalid' => 'Choose a parent page from the list.',
@@ -343,7 +340,6 @@ return [
     'pages.place.home' => 'Nothing goes under a home page: its subpages would keep top-level addresses.',
     'pages.place.own_child' => 'A page cannot go under itself or one of its own subpages.',
     'pages.place.too_deep' => 'Pages go :levels levels deep at most, counting the subpages it takes with it.',
-    'pages.insert_unknown' => 'That block type is not installed.',
 
     // What the page says about itself in a search result (PLAN.md D-004). Two fields,
     // and no more: no sharing image, no robots directive, no sitemap.
@@ -357,65 +353,21 @@ return [
     'pages.field.seo_noindex' => 'Keep out of search engines',
     'pages.field.seo_noindex_hint' => 'The page stays published for anyone with its address, but search engines are asked not to list it, and it is left out of the sitemap and llms.txt.',
 
-    'pages.library' => 'Add a block',
-    // WHERE A BLOCK LANDS IS CHOSEN FIRST (PLAN.md D-103, and the design artifact says the
-    // same). A card pressed with nowhere aimed at used to add the block as a band of its
-    // own at the end of the page — which is a guess, and the one place nobody meant.
-    'pages.library_hint' => 'Press a + in the page to choose where a block lands.',
-    // FINDING A BLOCK when there are more than a handful (D-104, O-15).
-    'pages.library.filter' => 'Filter blocks',
-    'pages.library.groups' => 'Kinds of block',
-    'pages.library.all' => 'All',
-    'pages.library.none' => 'No block matches that.',
-    // THE SHELVES THEMSELVES. Named for what a person is looking for rather than for what
-    // the block is made of: somebody wants "a picture" or "something that sells", and
-    // nobody has ever gone looking for a block by its field types.
+    // THE SHELVES a block is found on (D-104). Named for what a person is looking for
+    // rather than for what the block is made of: somebody wants "a picture" or "something
+    // that sells", and nobody has ever gone looking for a block by its field types.
     'block.group.text' => 'Text',
     'block.group.media' => 'Media',
     'block.group.layout' => 'Layout',
     'block.group.marketing' => 'Marketing',
     'block.group.embed' => 'Embed',
-    'pages.insert_here' => 'Add a section here',
-    // On a block that draws nothing yet, in the canvas only (PLAN.md D-117).
-    'pages.canvas_empty_block' => 'Empty — fill it in on the right',
-    'pages.insert_at_end' => 'Add a section at the end',
-    'pages.insert_in_column' => 'Add a block in this column',
-    // THE WORD ON THE CONTROL ITSELF, where the sentence above is what it is called for
-    // somebody who cannot see it. The artifact draws "+ Section" and "+ Block" on the
-    // lines, and a line that says only "+" leaves you to find out by pressing it.
-    'pages.insert_word.section' => 'Section',
-    'pages.insert_word.block' => 'Block',
-    // THE PAGE AS A TREE (PLAN.md D-100). "Page outline" and not "Structure": it is the
-    // thing an editor has always called an outline, and the word says what it is for —
-    // seeing the shape of the page, not editing it.
-    'pages.outline' => 'Page outline',
-    'pages.outline.section' => 'Section :n',
-    'pages.outline.column' => 'Column :n',
-    'pages.outline.empty' => 'Nothing on this page yet.',
-    'pages.outline.show' => 'Show the page outline',
-    'pages.outline.hide' => 'Hide the page outline',
     // What this page was before the last few saves (D-088).
-    'pages.history' => 'Earlier versions',
     'pages.history_hint' => 'The page as it was before each of its last :count publishes. Restoring one puts it in the draft; the site changes only when you publish.',
-    'pages.restore' => 'Restore',
     'pages.restored' => 'That version is in the draft now. Publish to put it back on the site.',
     'pages.restore_gone' => 'That version is no longer kept. Only the last few saves of a page are.',
 
-    'pages.panel.content' => 'Content',
-    'pages.panel.section' => 'Section',
-    // The panel's heading when a BAND is what is selected rather than a block (D-101).
-    'pages.panel.band' => 'Section',
-    // And a column, for the breadcrumb over the canvas: Section 2 › Column 1 › Text.
-    'pages.panel.column' => 'Column',
-    'pages.undo' => 'Undo',
-    'pages.removed' => ':block removed.',
-    // A whole band taken away, with everything standing in it — which is why it says so
-    // rather than naming one block (D-102).
-    'pages.band_removed' => 'Section removed, with everything in it.',
-    'pages.inserting' => 'Adding…',
-    'pages.insert_failed' => 'The block could not be added. Check your connection and try again.',
-
-    // Sample copy for the library previews, rendered from each block's own fields.
+    // Sample copy for a block's fields (BlockField's 'sample'), written for the library
+    // previews that D-175 retired: no screen reads them now (PLAN.md D-175, open).
     'preview.heading' => 'A heading sits here',
     'preview.body' => 'A sentence or two of body copy, set the way this site sets it.',
     'preview.link' => 'A link',

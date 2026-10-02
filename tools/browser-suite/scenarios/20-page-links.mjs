@@ -6,39 +6,27 @@
  * would see — the address input stepping aside while a page is chosen, the canvas drawing
  * the page's real address, and the panel reopening on the page it was given.
  *
- * NOTHING IS SAVED. Every verdict is read off the editor and the canvas, which draw links
- * exactly as the site does (the canvas asks the same resolver), so the development site is
- * left as it was found. That the SAVED page leads to the right address is asserted by
+ * NOTHING IS PUBLISHED. Every verdict is read off the inspector and the canvas, which draw
+ * links exactly as the site does (the canvas asks the same resolver); the draft the builder
+ * saves by itself is discarded at the end (D-175), so the copy is left as it was found. That the SAVED page leads to the right address is asserted by
  * tests/page_links_test.php on the served HTML, on both drivers.
  *
  * Runs against the demo's home page: its first block is a hero with a button, and it has
  * a rich text block further down.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, SLOW } from '../harness.mjs';
+import { login, openBuilder, blockKey, selectBlock, settle } from '../harness.mjs';
 
 const PAGE = 1;
-const SETTLE = 1500; // the canvas redraw is debounced by 300ms, then a round trip
+const SETTLE = 2000; // the fields are sent after 400ms, then the band is drawn again
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** The hrefs inside one section of the canvas. */
-const canvasHrefs = (page, index) => page.evaluate((i) => {
-  const frame = document.querySelector('iframe[data-canvas]');
-  const section = frame && frame.contentDocument
-    ? frame.contentDocument.querySelector(`[data-bx-index="${i}"]`)
-    : null;
-  return section ? Array.from(section.querySelectorAll('a')).map((a) => a.getAttribute('href')) : [];
-}, index);
-
-async function selectBlock(page, index) {
-  const frame = page.frames().find((f) => f.url().includes('/canvas'));
-  await (await frame.$(`[data-bx-index="${index}"]`)).click();
-  await page.waitForFunction((i) => {
-    const group = document.querySelector(`[data-block-group="${i}"]`);
-    return group && !group.hidden;
-  }, { timeout: 8000 }, index);
-}
+/** The hrefs inside one block on the canvas. */
+const canvasHrefs = (page, key) => page.evaluate((k) => {
+  const block = document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"]`);
+  return block ? Array.from(block.querySelectorAll('a')).map((a) => a.getAttribute('href')) : [];
+}, key);
 
 export default {
   name: 'page-links',
@@ -49,25 +37,15 @@ export default {
       return;
     }
 
-    await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
-    await page.waitForFunction(() => {
-      const frame = document.querySelector('iframe[data-canvas]');
-      return frame && frame.contentDocument
-        && frame.contentDocument.querySelectorAll('[data-bx-blocks] > section').length > 0;
-    }, { timeout: 20000 });
+    await openBuilder(page, BASE, PAGE);
 
     // ---- a link field: the hero's button ------------------------------------------------
-    const heroIndex = await page.evaluate(() => {
-      const select = document.querySelector('[data-block-group] select[name$="[cta][page]"]');
-      return select ? select.closest('[data-block-group]').getAttribute('data-block-group') : null;
-    });
-    if (heroIndex === null) {
-      report.fail('a link field offers pages', 'no block on the home page has a cta page chooser');
+    const heroKey = await blockKey(page, 'hero');
+    if (heroKey === null) {
+      report.fail('a link field offers pages', 'no hero on the home page');
       return;
     }
-    await selectBlock(page, heroIndex);
-
-    const field = `[data-block-group="${heroIndex}"]`;
+    const field = await selectBlock(page, heroKey);
     const choices = await page.$$eval(`${field} select[name$="[cta][page]"] option`,
       (options) => options.map((o) => ({ value: o.value, text: o.textContent.trim() })));
     const about = choices.find((c) => c.value !== '' && /about/i.test(c.text));
@@ -84,7 +62,7 @@ export default {
     await page.select(`${field} select[name$="[cta][page]"]`, about.value);
     await wait(SETTLE);
     const withPage = await address();
-    const heroHrefs = await canvasHrefs(page, heroIndex);
+    const heroHrefs = await canvasHrefs(page, heroKey);
     await page.$eval(`${field} .link-field`, (el) => el.scrollIntoView({ block: 'center' }));
     await report.shot(page, '01-button-to-a-page', { fullPage: false });
     // The owner's review (D-038): the chosen page's address is shown, read-only, rather
@@ -102,17 +80,25 @@ export default {
       again.shown && !again.readOnly && again.value === '', JSON.stringify(again));
 
     // ---- rich text: the link panel ------------------------------------------------------
-    const richIndex = await page.evaluate(() => {
-      const group = Array.from(document.querySelectorAll('[data-block-group]'))
-        .find((g) => g.querySelector('.ProseMirror') && g.querySelector('.rt-link-page'));
-      return group ? group.getAttribute('data-block-group') : null;
-    });
-    if (richIndex === null) {
+    // A block whose words carry a rich text field with a page chooser, in All content.
+    let rich = null;
+    let richKey = null;
+    for (const type of ['text', 'image_text']) {
+      const key = await blockKey(page, type);
+      if (key === null) { continue; }
+      const form = await selectBlock(page, key);
+      await page.$eval('#ins-content', (d) => { d.open = true; }).catch(() => {});
+      await page.waitForSelector(`${form} .ProseMirror`, { timeout: 5000 }).catch(() => {});
+      if (await page.$(`${form} .ProseMirror`) && await page.$(`${form} .rt-link-page`)) {
+        rich = form;
+        richKey = key;
+        break;
+      }
+    }
+    if (rich === null) {
       report.fail('the rich text link panel offers pages', 'no rich text field with a page chooser on the home page');
       return;
     }
-    await selectBlock(page, richIndex);
-    const rich = `[data-block-group="${richIndex}"]`;
 
     // Select the whole text with Ctrl+A, which the editor handles as its own command.
     // Measured through this driver: Shift+ArrowRight, Ctrl+Shift+ArrowRight and a double
@@ -150,7 +136,7 @@ export default {
     // Services, not About: the demo's image and text block already carries a typed /about
     // in its own link field, and a check for /about passed on that before any rich text
     // link existed.
-    const before = await canvasHrefs(page, richIndex);
+    const before = await canvasHrefs(page, richKey);
     await page.select(`${rich} .rt-link-page`, option.value);
     const inputHidden = await page.$eval(`${rich} .rt-link-input`, (input) => getComputedStyle(input).display === 'none');
     await page.$eval(`${rich} [data-richtext-link]`, (el) => el.scrollIntoView({ block: 'center' }));
@@ -159,7 +145,7 @@ export default {
     await wait(SETTLE);
 
     const stored = await page.$eval(`${rich} input[type="hidden"][name$="[body]"]`, (input) => input.value).catch(() => '');
-    const richHrefs = await canvasHrefs(page, richIndex);
+    const richHrefs = await canvasHrefs(page, richKey);
     await report.shot(page, '03-rich-text-linked');
     report.verdict('the address input steps aside in the panel too', inputHidden, inputHidden ? 'hidden' : 'shown');
     report.verdict('the rich text stores a page reference', stored.includes(`href="${option.value}"`),
@@ -187,8 +173,12 @@ export default {
     report.verdict('the panel reopens on the page it was given', reopened === option.value && typed === '',
       `page ${JSON.stringify(reopened)}, address ${JSON.stringify(typed)}`);
 
-    // Leave without saving: nothing on the site changes (see the header).
-    await page.evaluate(() => { window.onbeforeunload = null; });
-    await wait(SLOW);
+    // Discard the draft the builder saved: nothing on the site changes (see the header).
+    await settle(page);
+    if (await page.$('[data-pb-discard]:not([hidden])')) {
+      await page.click('[data-pb-discard]');
+      await page.waitForFunction(() => document.querySelector('[data-pb-discard]').hidden, { timeout: 10000 }).catch(() => {});
+    }
+    report.verdict('the draft is discarded, and the home page is as it was', await page.$eval('[data-pb-state]', (p) => p.className.includes('status-published')), await page.$eval('[data-pb-state]', (p) => p.textContent.trim()));
   },
 };

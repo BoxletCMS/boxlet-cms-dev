@@ -1,0 +1,60 @@
+/* The builder's quick inserter inside the canvas iframe (PLAN.md D-175; builder-inserter.js
+ * draws it). canvas.css's rule holds here: literals and --bx- values, set on .bx-canvas, never
+ * a site token; every size in em of the layer's, which keeps it its size on screen. */
+
+.bx-inserter {
+  inline-size: min(34em, calc(100vw - 2em));
+  padding: 0.5em;
+  border-radius: 0.75em;
+  background: var(--bx-ink);
+  color: var(--bx-paper);
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 1px var(--bx-paper), 0 16px 40px rgb(0 0 0 / 0.3);
+}
+
+.bx-inserter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0.4em 0.4em;
+  color: var(--bx-muted);
+}
+
+.bx-inserter-group {
+  padding: 0.6em 0 0.4em 0.4em;
+  color: var(--bx-muted);
+}
+
+.bx-inserter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.375em;
+}
+
+.bx-inserter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-inline-size: 0;
+  padding: 0.55em 0.6em;
+  border: 0;
+  border-radius: 0.5em;
+  background: var(--bx-ink-raised);
+  color: var(--bx-paper);
+  font: var(--bx-font);
+  text-align: start;
+  cursor: pointer;
+}
+
+.bx-inserter-item .bx-icon {
+  flex: none;
+  color: var(--bx-muted);
+}
+
+.bx-inserter-item:hover {
+  background: var(--bx-select);
+}
+
+.bx-inserter-item:hover .bx-icon {
+  color: var(--bx-paper);
+}

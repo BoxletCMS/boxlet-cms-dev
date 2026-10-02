@@ -1,7 +1,6 @@
 <?php
 
 use App\Modules\Pages\BlockForm;
-use App\Modules\Pages\BlockPreview;
 
 // The Cards block (PLAN.md D-008, D-041; the Columns block, renamed with D-166): one block,
 // two to four cards in a row, every card the same bounded content. Asserted on the served page
@@ -92,14 +91,17 @@ test('a new Cards block starts with one row of empty cards', function () {
     assertEquals(blockRegistry()->normalize('hero', []), blockRegistry()->fresh('hero'), 'a block without a repeater');
 });
 
-testBothDrivers('the editor inserts a Cards block with its three cards outlined', function (string $driver) {
+testBothDrivers('the editor draws a new Cards block with its three cards outlined, and their fields', function (string $driver) {
     $db = adminSite($driver);
-    $page = createPage($db, 'en', 'grid', 'Grid');
+    $page = createPage($db, 'en', 'grid', 'Grid', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
+    [, $section] = builderBand($page);
+    // As the builder adds one (D-175): the block's fresh content, in a band of the document.
+    $block = ['key' => 'n1', 'id' => null, 'type' => 'cards', 'content' => blockRegistry()->fresh('cards'), 'style' => [], 'options' => [], 'layout' => '', 'section' => $section['key'], 'column' => 0];
 
-    $response = adminPost("/admin/pages/{$page}/block", ['type' => 'cards']);
-    assertEquals(200, $response->status, 'status');
-    assertEquals(3, substr_count($response->body, 'cards-item is-empty'), 'empty cards on the canvas');
-    assertContains('name="blocks[n0][items][2][heading]"', $response->body, 'the third item\'s fields in the inspector');
+    $drawn = json_decode(builderRequest("/admin/pages/{$page}/render", ['section' => $section, 'blocks' => [$block]])->body, true)['html'] ?? '';
+    assertEquals(3, substr_count($drawn, 'cards-item is-empty'), 'empty cards on the canvas');
+    $inspector = json_decode(builderRequest("/admin/pages/{$page}/inspect", ['kind' => 'block', 'key' => 'n1', 'section' => $section, 'blocks' => [$block]])->body, true)['html'] ?? '';
+    assertContains('name="blocks[n1][items][2][heading]"', $inspector, 'the third item\'s fields in the inspector');
 });
 
 test('a Cards block with no cards is refused on save', function () {
@@ -107,40 +109,6 @@ test('a Cards block with no cards is refused on save', function () {
 
     // Errors are keyed by the BLOCK since D-094; a block with no id is n0.
     assertEquals(t('pages.field.required'), $parsed['errors']['n0.items'] ?? null, 'a block of no cards was let through');
-});
-
-test('the library shows Cards as a row of sample cards', function () {
-    $dir = tmpPath('previews-cards');
-    removeTree($dir);
-    $file = BlockPreview::file(blockRegistry(), 'cards', 'tokens.test.css', $dir);
-    $html = (string) file_get_contents($dir . '/previews/' . $file);
-
-    // The words changed deliberately when a field gained its own 'sample' (D-083); what
-    // this test is for has not. It is still: three items, drawn from the repeater.
-    assertEquals(3, substr_count($html, '<h3 class="cards-item-heading">' . e(t('preview.cards.item_heading')) . '</h3>'), 'sample cards');
-});
-
-test('each block\'s preview says its own words, and a block without a sample still gets one', function () {
-    $dir = tmpPath('previews-samples');
-    removeTree($dir);
-    $registry = blockRegistry();
-
-    $headings = [];
-    foreach ($registry->types() as $type) {
-        $file = BlockPreview::file($registry, $type, 'tokens.test.css', $dir);
-        $headings[$type] = (string) file_get_contents($dir . '/previews/' . $file);
-    }
-
-    // Before this, sampleFields() mapped every text field to one generic string, so all
-    // five cards read "A heading sits here" and only their shape told them apart.
-    assertTrue(str_contains($headings['hero'], e(t('preview.hero.heading'))), 'the hero says its own line');
-    assertTrue(str_contains($headings['form'], e(t('preview.form.heading'))), 'the form says its own line');
-    assertTrue(!str_contains($headings['hero'], e(t('preview.form.heading'))), 'and they are not the same line');
-
-    // A field that declares nothing keeps the generic sample: that is what lets a block
-    // added later have a preview without anyone writing copy for it.
-    $definition = ['fields' => ['heading' => ['type' => 'text', 'sample' => null]]];
-    assertEquals(t('preview.heading'), BlockPreview::sample($definition)['heading'] ?? null, 'the fallback');
 });
 
 /*
@@ -176,14 +144,14 @@ test('a row that is already full is left alone', function () {
     assertEquals(7, count($parsed['blocks'][0]['content']['items'] ?? []), 'items after parsing seven');
 });
 
-test('the layout options carry what they ask for, so the editor need not guess', function () {
-    $db = adminSite('sqlite');
-    $page = createPage($db, 'en', 'grid', 'Grid');
-    $response = adminPost("/admin/pages/{$page}/block", ['type' => 'gallery']);
+test('a row size chosen in the inspector brings the cells it asks for', function () {
+    $page = builderPage();
+    // The inspector sends the block's fields whole when its layout changes (D-175), and the
+    // form's own parser adds the cells: nothing in the browser needs to know what "four" means.
+    $answer = json_decode(dispatch("/admin/pages/{$page}/fields", null, 'POST', ['_csrf' => (new App\Core\Session())->csrfToken(), 'blocks' => ['n2' => [
+        'type' => 'gallery', 'layout' => 'four', 'items' => [['caption' => 'One'], ['caption' => 'Two'], ['caption' => 'Three']],
+    ]]])->body, true);
 
-    assertEquals(200, $response->status, 'status');
-    // The view writes the block's own declaration onto the option; builder-blocks.js reads
-    // the number off whichever option was chosen.
-    assertContains('data-wants="{&quot;items&quot;:4}"', $response->body, 'the four-in-a-row option');
-    assertContains('data-wants="{&quot;items&quot;:2}"', $response->body, 'the two-in-a-row option');
+    assertEquals(4, count($answer['block']['content']['items'] ?? []), 'four in a row, with three pictures given');
+    assertEquals('Three', $answer['block']['content']['items'][2]['caption'] ?? null, 'the cells that were there are untouched');
 });

@@ -48,6 +48,10 @@ const ICONS = [
     'arrow-right', 'arrow-left',
     // What kind of file a download is, in the Media library (MediaFileType::icon()).
     'file-type', 'file-spreadsheet', 'presentation', 'file-archive',
+    // The page builder's shell (D-175): redo beside undo, the rail's three tabs and its fold,
+    // a section and its actions, the badges, and the how-to shown when nothing is selected.
+    'redo-2', 'list-tree', 'square-plus', 'file', 'panel-left', 'rows-3', 'bookmark-plus',
+    'eye', 'eye-off', 'hash', 'sparkles', 'text-cursor', 'mouse-pointer-click', 'circle-plus',
 ];
 
 if (PHP_SAPI !== 'cli') {

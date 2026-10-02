@@ -11,7 +11,7 @@
  * the editor: the heading put back and published.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, clickAndWait, retype, alerts } from '../harness.mjs';
+import { login, clickAndWait, retype, alerts, openBuilder } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const shot = (report, page, name) => report.shot(page, name, { fullPage: false });
@@ -67,19 +67,24 @@ export default {
       drafted.heading === 'How we work, in draft' && /unpublished/i.test(drafted.state) && drafted.discard && afterDraft === before,
       JSON.stringify({ drafted, before, afterDraft }));
 
-    // ---- The canvas draws the draft ------------------------------------------------------------
-    await page.goto(`${BASE}/admin/pages/${id}`, { waitUntil: 'networkidle2' });
-    await wait(1200);
-    const frame = page.frames().find((f) => /\/canvas$/.test(f.url()));
-    const canvasHeading = frame ? await frame.$eval('section h1, section h2', (h) => h.textContent.trim()).catch(() => '') : '';
+    // ---- The canvas draws the draft -------------------------------------------------------------
+    await openBuilder(page, BASE, id);
+    const canvasHeading = await page.evaluate(() => {
+      const h = document.querySelector('[data-pb-canvas]').contentDocument.querySelector('section h1, section h2');
+      return h ? h.textContent.trim() : '';
+    });
     const bar = await page.evaluate(() => ({
-      state: (document.querySelector('[data-page-state]') || {}).textContent || '',
-      publish: document.querySelector('.builder-bar button[value="publish"]') !== null,
-      saveDraft: document.querySelector('.builder-bar button[value="save"]') !== null,
+      state: (document.querySelector('[data-pb-state]') || {}).textContent || '',
+      publish: document.querySelector('[data-pb-publish]') !== null,
+      discard: !document.querySelector('[data-pb-discard]').hidden,
+      saveDraft: [...document.querySelectorAll('.pb-bar button')].some((b) => /save draft/i.test(b.textContent)),
     }));
     await shot(report, page, '02-builder-draft');
-    report.verdict('the builder\'s canvas draws the draft, and its bar offers Save draft and Publish',
-      canvasHeading === 'How we work, in draft' && /unpublished/i.test(bar.state) && bar.publish && bar.saveDraft, JSON.stringify({ canvasHeading, bar }));
+    // Since D-175 the builder saves its draft by itself, so its bar offers Discard and Publish
+    // and no Save button (the owner's point 1). The rule changed deliberately; the canvas
+    // drawing the draft is what it checked before and checks still.
+    report.verdict('the builder\'s canvas draws the draft, and its bar offers Discard and Publish, with no Save button',
+      canvasHeading === 'How we work, in draft' && /unpublished/i.test(bar.state) && bar.publish && bar.discard && !bar.saveDraft, JSON.stringify({ canvasHeading, bar }));
 
     // ---- Publish -------------------------------------------------------------------------------
     await editor();
@@ -106,8 +111,7 @@ export default {
     const typesOf = () => page.$$eval('.block-list [name$="[type]"]', (fields) => fields.map((f) => f.value));
     const withPattern = (await typesOf()).length;
     await shot(report, page, '03-editor-pattern');
-    await page.goto(`${BASE}/admin/pages/${id}`, { waitUntil: 'networkidle2' });
-    await wait(1200);
+    await openBuilder(page, BASE, id);
     await shot(report, page, '04-builder-pattern');
     await editor();
     await clickAndWait(page, '.editor-actions button[value="discard"]');

@@ -67,9 +67,16 @@ testBothDrivers('editing one block of the source marks only that block, in every
 
         // On the canvas, exactly one section carries the mark; in the inspector, one notice.
         assertEquals(1, substr_count(dispatch("/admin/pages/{$translation}/canvas")->body, 'data-bx-stale'), "{$name}: marked sections");
+        // Since D-175 the builder holds one form per stale block, and the notice with the
+        // original's words is the block's inspector's.
         $builder = dispatch("/admin/pages/{$translation}")->body;
-        assertEquals(1, substr_count($builder, 'form="current-'), "{$name}: stale notices");
-        assertContains('Mali studio, od 2019.', $builder, "{$name}: what the original says now");
+        assertEquals(1, substr_count($builder, 'id="current-'), "{$name}: forms to mark as up to date");
+        $document = json_decode(dispatch("/admin/pages/{$translation}/draft")->body, true)['document'] ?? [];
+        $block = array_values(array_filter($document['blocks'] ?? [], static fn (array $b): bool => $b['id'] === $second))[0] ?? fail("{$name}: the stale block is not in the document");
+        $section = array_values(array_filter($document['sections'], static fn (array $x): bool => $x['key'] === $block['section']))[0];
+        $inspector = json_decode(builderRequest("/admin/pages/{$translation}/inspect", ['kind' => 'block', 'key' => $block['key'], 'section' => $section, 'blocks' => [$block]])->body, true)['html'] ?? '';
+        assertEquals(1, substr_count($inspector, 'form="current-' . $second . '"'), "{$name}: the block's notice and its button");
+        assertContains('Mali studio, od 2019.', $inspector, "{$name}: what the original says now");
     }
     // The source itself is never behind anything.
     assertEquals([], TranslationStatus::of($db, blockRegistry(), $source)['stale'], 'the source');

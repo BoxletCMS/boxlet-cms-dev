@@ -24,7 +24,7 @@ function adminStylesheets(): array
     // The editor's chrome. canvas.css matters most: it is the one admin stylesheet loaded
     // into a document full of the site's tokens, so a selection outline that borrowed one
     // would be unreadable on the designs that need it most.
-    return array_merge(['admin.css'], $sheets, ['builder.css', 'builder-inspector.css', 'canvas.css']);
+    return array_merge(['admin.css'], $sheets, ['builder.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css', 'canvas.css', 'canvas-inserter.css', 'canvas-marks.css']);
 }
 
 test('every admin stylesheet on disk is one this file checks', function () {

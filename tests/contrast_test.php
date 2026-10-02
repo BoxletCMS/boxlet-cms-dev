@@ -441,7 +441,9 @@ test('every colour in the admin comes from the admin palette', function () {
         // is the user's design, not a surface this palette knows. Its colours are literals
         // on purpose and their legibility cannot be computed from the admin's tokens —
         // .bx-insert carries two tones so that one edge contrasts whatever is behind it.
-        if ($file === 'canvas.css') {
+        // canvas-inserter.css and canvas-marks.css are the same document's, split from it
+        // (D-175), for the same reason.
+        if (in_array($file, ['canvas.css', 'canvas-inserter.css', 'canvas-marks.css'], true)) {
             continue;
         }
 
@@ -492,28 +494,21 @@ test('the insertion control keeps two tones in every state', function () {
         $rules[$selector] = $body;
     }
 
-    /* THE CONTROL IS THE PILL INSIDE THE STRIP, since D-106. `.bx-insert` used to be the
-       pill itself; it is now the full-width seam it sits on, and the two tones moved with
-       the control to `.bx-insert > span`. The rule did not change and neither did the
-       measurement behind it — what changed is which selector carries it, and this test is
-       followed to it rather than relaxed. */
-    assertTrue(isset($rules['.bx-insert > span']), '.bx-insert > span is gone from canvas.css');
-    $rest = $rules['.bx-insert > span'];
-    assertContains('background: var(--bx-ink)', $rest, 'the resting disc is no longer the dark tone');
-    assertTrue(
-        (bool) preg_match('~border:[^;]*#ffffff~', $rest),
-        'the resting control lost its white ring: on a dark page nothing else marks its edge',
-    );
-
-    // And the seam it lies on has no edge of its own to be mistaken for the band's (D-106).
-    assertTrue(
-        !preg_match('~(?:border|outline):\s*[1-9]~', $rules['.bx-insert'] ?? ''),
-        'the seam strip grew an edge again; over an outlined band two sets of dashes read as one confused thing',
-    );
-
-    $hover = $rules['.bx-insert:hover > span, .bx-insert:focus-visible > span'] ?? '';
-    assertTrue($hover !== '', 'the hover and focus rule changed shape; check both still carry two tones');
-    assertContains('--bx-ink', $hover, 'hover fills with the accent and keeps no dark edge, which measured 2.39:1');
+    /* THE CONTROLS ARE THE "+" ON EACH SEAM AND "ADD SECTION AT THE END", since D-175: the
+       seam strip and its pill (D-106) went with the old canvas. The rule did not change and
+       neither did the measurement behind it — the test is followed to the controls that
+       carry it now, not relaxed. */
+    // The two tones are named once, on the canvas: a near-black ink and a pure white.
+    assertContains('--bx-ink: #161826', $rules['.bx-canvas'] ?? '', 'the dark tone changed');
+    assertContains('--bx-paper: #ffffff', $rules['.bx-canvas'] ?? '', 'the white tone changed');
+    foreach (['.bx-plus', '.bx-add-end'] as $control) {
+        assertTrue(isset($rules[$control]), "{$control} is gone from canvas.css");
+        assertContains('background: var(--bx-ink)', $rules[$control], "{$control}: the resting face is no longer the dark tone");
+        assertContains('border: 2px solid var(--bx-paper)', $rules[$control], "{$control}: the resting control lost its white ring: on a dark page nothing else marks its edge");
+        $hover = $rules["{$control}:hover, {$control}:focus-visible"] ?? '';
+        assertTrue($hover !== '', "{$control}: the hover and focus rule changed shape; check both still carry two tones");
+        assertContains('--bx-ink', $hover, "{$control}: hover fills with the accent and keeps no dark edge, which measured 2.39:1");
+    }
 });
 
 test('opacity is never what makes a control quiet', function () {

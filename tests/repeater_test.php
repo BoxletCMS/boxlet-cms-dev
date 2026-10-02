@@ -286,8 +286,8 @@ test('guard (source, not behaviour): the two indices are rewritten independently
     assertContains('boxletRichText', $js, 'a new item never becomes a rich text editor');
     assertContains('boxletPicker', $js, 'a new item never becomes a picture picker');
 
-    // One bubbling change, which admin.js reads as "dirty" and builder-blocks.js as
-    // "redraw this block". Adding an item is a change to the block's content.
+    // One bubbling change, which admin.js reads as "dirty" and builder-inspector.js as
+    // "send this block's fields and redraw it". Adding an item is a change to the block's content.
     assertContains('bubbles: true', $js, 'adding an item tells nothing that the page changed');
 
     // Both editors render a repeater, so both must load the file that drives it.
@@ -307,11 +307,10 @@ test('guard (source, not behaviour): a picker can be raised on markup that arriv
     // Idempotent, or a duplicated block would get two buttons in front of one field.
     assertContains('data-picker-ready', $picker, 'upgrading twice is no longer refused');
 
-    // Adding and duplicating live in two files since the split of D-117.
-    $builder = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-blocks.js');
-    assertContains('boxletPicker.scan', $builder, 'an inserted block never becomes a picker');
-    $actions = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-actions.js');
-    assertContains('unsetPicker', $actions, 'a duplicated block keeps its clone\'s dead picker');
+    // The inspector's fields arrive as markup from the server (D-175). A duplicate is a copy
+    // of the document's block, drawn afresh, so there is no clone of a picker to undo.
+    $inspector = (string) file_get_contents(dirname(__DIR__) . '/public/assets/builder-inspector.js');
+    assertContains('boxletPicker.scan', $inspector, 'a block\'s fields never become a picker');
 });
 
 test('moving an item swaps it with its neighbour, and only within its own block', function (): void {

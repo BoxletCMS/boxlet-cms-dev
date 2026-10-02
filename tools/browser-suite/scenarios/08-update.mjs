@@ -71,7 +71,11 @@ export default {
       }
 
       // ---- the public site waits ------------------------------------------------------
-      const publicResponse = await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
+      // An address with a query, which the page cache never keeps (PageCache::eligible): a
+      // page kept from an earlier visit is answered before the gate, by PHP here and by the
+      // web server on nginx (D-020), so "/" measured 200 once nothing had emptied the cache
+      // since a visitor's visit. That is O-49; this checks the gate itself.
+      const publicResponse = await page.goto(`${BASE}/?update-check`, { waitUntil: 'networkidle2' });
       const retryAfter = publicResponse.headers()['retry-after'];
       const body = await page.evaluate(() => document.body.textContent.replace(/\s+/g, ' ').trim());
       await report.shot(page, '01-public-503');

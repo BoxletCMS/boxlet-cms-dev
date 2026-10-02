@@ -92,7 +92,7 @@ final class BlockForm
                 // empty block here would turn a lost id into content the author never wrote.
                 if ($id !== null) {
                     // ITS FIELDS COME FROM STORAGE, BUT NOT ITS PLACE (D-081 meets D-098).
-                    // builder-save.js lets an untouched block send a skeleton; the block may
+                    // A form may let an untouched block send a skeleton; the block may
                     // be untouched and still have been moved, so where it stands is read
                     // from what was sent and only the content is restored.
                     $blocks[] = $where === [] ? $stored[$id] : $where + $stored[$id];

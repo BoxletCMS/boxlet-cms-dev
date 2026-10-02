@@ -286,7 +286,7 @@
   }
 
   // Blocks added to the canvas arrive as HTML from the server and need the same
-  // treatment; builder-blocks.js calls this after inserting one.
+  // treatment; builder-inspector.js calls this after drawing a block's fields.
   window.boxletRichText = { scan: scan };
 
   if (document.readyState === 'loading') {

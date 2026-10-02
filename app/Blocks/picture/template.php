@@ -11,6 +11,7 @@
  * @var array<string, mixed> $content
  * @var array<string, mixed> $style
  * @var string $layout
+ * @var array<string, string> $options the block's options, every one answered (D-166)
  * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}> $media
  * @var bool $eager
  */
@@ -18,10 +19,10 @@ $picture = is_int($content['image'] ?? null) ? ($media[$content['image']] ?? nul
 /* A NATURAL SHAPE IS THE PICTURE'S OWN (D-119). `card` and `wide` are cropped to 3:2 and
    1.9:1, so "natural" drew every picture landscape — a portrait 1000×1333 as 600×400. The
    other shapes are drawn by the stylesheet over a crop, and keep asking for one. */
-$presets = $content['shape'] === 'natural' ? ['natural', 'full'] : ['card', 'wide'];
+$presets = $options['shape'] === 'natural' ? ['natural', 'full'] : ['card', 'wide'];
 $tag = \App\Modules\Media\MediaPicture::tag($picture, $presets, '(max-width: 40rem) 100vw, 50vw', $eager);
 ?>
-<figure class="picture shape-<?= e($content['shape']) ?>">
+<figure class="picture shape-<?= e($options['shape']) ?>">
     <div class="picture-frame">
 <?php if ($tag !== ''): ?>
         <?= $tag ?>

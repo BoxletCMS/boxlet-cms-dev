@@ -21,10 +21,17 @@
   text-align: center;
 }
 
+/* A rule down the left of centred words reads as detached from them. */
+.align-center .quote-words {
+  padding: 0;
+  border: 0;
+}
+
 .layout-card .quote {
   padding: var(--space-l);
   background: var(--section-card);
-  border-radius: var(--radius-m);
+  border: var(--border-width) solid var(--section-border);
+  border-radius: var(--radius-l);
 }
 
 .quote-portrait img {
@@ -39,10 +46,30 @@
    came out a fifth larger and read as a slightly emphatic paragraph rather than a quotation. */
 .quote-words {
   margin: 0;
+  padding: 0 0 0 calc(var(--space-m) * 1.125);
+  /* The accent's rule down its left (README 1.6), three hairlines wide. */
+  border: 0;
+  border-inline-start: calc(var(--border-width) * 3) solid var(--section-link);
+  color: var(--section-text);
+  --quote-size: calc(var(--text-base) * 1.375);
+  font-size: var(--quote-size);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Large: the words alone, bigger, and no rule. */
+.layout-big .quote-words {
   padding: 0;
   border: 0;
-  font-size: var(--text-xl);
-  line-height: var(--leading-heading);
+  --quote-size: calc(var(--text-base) * 1.875);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+/* On a card the card is the frame, so the rule goes. */
+.layout-card .quote-words {
+  padding: 0;
+  border: 0;
 }
 
 .quote-said {
@@ -50,12 +77,14 @@
   flex-wrap: wrap;
   gap: var(--space-s);
   align-items: baseline;
+  color: var(--section-muted);
   font-size: var(--text-sm);
 }
 
 .quote-who {
+  color: var(--section-text);
   font-style: normal;
-  font-weight: var(--heading-weight);
+  font-weight: 600;
 }
 
 .quote-role {
@@ -162,15 +191,28 @@
   gap: var(--space-l);
 }
 
+/* A banner is a centred stack whatever the section's alignment (README 1.6). */
+.layout-banner .cta {
+  justify-items: center;
+  text-align: center;
+}
+
+.layout-banner .cta-body {
+  margin-inline: auto;
+}
+
+.layout-banner .cta-links {
+  justify-content: center;
+}
+
 .layout-beside .cta {
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-xl);
+  gap: calc(var(--space-m) * 1.5);
   align-items: center;
 }
 
 .cta-heading {
   margin: 0;
-  font-size: var(--text-xl);
 }
 
 .cta-body {

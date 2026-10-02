@@ -95,7 +95,7 @@
 
 /* Over the top: laid over the first section, taking that section's colours rather than
    painting its own — which is what makes it readable over any surface a hero can have.
-   The first section gains the header's room above its own rhythm, so nothing sits under
+   The first section gains the header's room above its own padding, so nothing sits under
    the bar.
 
    THE SHEET IS WHAT IT IS LAID OVER (D-067). A header that BREAKS OUT of the sheet has
@@ -115,7 +115,7 @@
 }
 
 .page-sheet:has(> .block-header .behaviour-over) > main > .block:first-child {
-  padding-block-start: calc(var(--section-rhythm) + var(--space-3xl));
+  padding-block-start: calc(var(--section-pad-top) + var(--space-3xl));
 }
 
 .page-sheet:has(> main > .block:first-child:is(.surface-contrast, .surface-image)) > .block-header:has(.behaviour-over) {

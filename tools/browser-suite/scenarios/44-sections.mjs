@@ -61,7 +61,10 @@ const submit = async (page) => {
   await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
 
   return page.evaluate(() => Array.from(document.querySelectorAll('.alert, [role="alert"], .field-error'))
-    .map((a) => a.textContent.trim().slice(0, 120)));
+    .map((a) => a.textContent.trim().slice(0, 120))
+    // An empty live region is not a message: every picture field carries one, waiting for a
+    // failure to announce, and the demo's pages have more of them since D-167.
+    .filter((text) => text !== ''));
 };
 
 export default {
@@ -201,7 +204,9 @@ export default {
       const doc = document.querySelector('iframe[data-canvas]').contentDocument;
       const blocks = [...doc.querySelectorAll('.section-column > *')];
       const before = document.querySelector('form[data-builder]').getAttribute('data-panel-tab');
-      blocks[3].click();
+      // The last block on the page, a band away from the one selected: the demo's About page
+      // has three since D-167.
+      blocks[blocks.length - 1].click();
       await new Promise((r) => setTimeout(r, 900));
 
       return { before: before, after: document.querySelector('form[data-builder]').getAttribute('data-panel-tab') };

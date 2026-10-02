@@ -9,6 +9,7 @@ use App\Core\Response;
 use App\Core\View;
 use App\Modules\Design\Characters;
 use App\Modules\Design\Composition;
+use App\Modules\Design\SectionStyle;
 use App\Modules\Design\Design;
 use App\Modules\Design\Derived;
 use App\Modules\Design\Palette;
@@ -16,7 +17,7 @@ use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
 use App\Modules\Design\Tokens;
 use App\Modules\Design\Typography;
-use App\Modules\Pages\Page;
+use App\Modules\Pages\PageBody;
 use App\Modules\Pages\PageLayoutData;
 use App\Modules\Settings\ChromeLook;
 use App\Support\Url;
@@ -69,24 +70,32 @@ final class AppearancePreview
             [''],
         ));
 
-        $blocks = [];
+        // Each section as it would be drawn under the character being tried: the owner's own
+        // values over what that character composes (D-165), which is what publishing the
+        // design gives — drawn by the page's own drawing, so the picture is the page (D-168).
+        // A loaded character's layouts are shown as Apply would make them.
+        $basis = $character !== '' ? $character : Composition::active($this->db());
         if ($home !== null) {
-            foreach (Page::blocks($this->db(), (int) $home['id']) as $block) {
-                if ($registry->has($block['type'])) {
-                    $blocks[] = [$block['type'], $block['content'], $block['style'], $block['layout']];
+            $layouts = [];
+            if ($character !== '') {
+                foreach ($registry->types() as $type) {
+                    $layouts[$type] = Composition::layout($registry, $character, $type);
                 }
             }
+            $drawn = PageBody::draw($this->db(), $registry, (int) $home['id'], $shown, $basis, (string) $this->container->get('config')->get('app.key'), null, $layouts);
+            $html = $drawn['html'];
+            $firstSurface = $drawn['firstSurface'];
         } else {
-            $blocks = self::specimen();
-        }
-
-        $html = '';
-        foreach ($blocks as [$type, $content, $style, $layout]) {
-            if ($character !== '') {
-                $style = Composition::style($character, $type);
-                $layout = Composition::layout($registry, $character, $type);
+            $html = '';
+            $firstSurface = null;
+            foreach (self::specimen() as [$type, $content, $style, $layout]) {
+                $style = SectionStyle::effective(SectionStyle::normalize($style), Composition::style($basis, $type));
+                $firstSurface ??= (string) $style['surface'];
+                if ($character !== '') {
+                    $layout = Composition::layout($registry, $character, $type);
+                }
+                $html .= $registry->render($type, $content, $style, $layout, [], false, 'section', [], '', [], Composition::options($basis, $type));
             }
-            $html .= $registry->render($type, $content, $style, $layout);
         }
 
         // Every variable the layout reads comes from ONE place (D-057), and everything the
@@ -99,11 +108,7 @@ final class AppearancePreview
         // And the design itself with what the first section stands on, for the choice
         // between the two logos (D-112): the same facts a visitor's page hands the layout.
         $trying['decisions'] = $decisions;
-        $trying['first_surface'] = '';
-        foreach ($blocks as [$type, $content, $style, $layout]) {
-            $trying['first_surface'] = (string) (($character !== '' ? Composition::style($character, $type) : $style)['surface'] ?? '');
-            break;
-        }
+        $trying['first_surface'] = $firstSurface ?? '';
         $body = (new View(dirname(__DIR__) . '/Pages/views'))->render('page', $shown, [
             'blocksHtml' => $html,
         ] + PageLayoutData::forPreview($this->container, $shown, t('design.preview'), $trying));
@@ -257,7 +262,7 @@ final class AppearancePreview
         $paragraph = static fn (string $key): string => '<p>' . e(t($key)) . ' <a href="#">' . e(t('design.specimen.link')) . '</a>.</p>';
 
         return [
-            ['hero', ['heading' => t('design.specimen.hero'), 'subheading' => t('design.specimen.hero_sub'), 'cta' => ['label' => t('design.specimen.button'), 'url' => '#']], ['surface' => 'gradient', 'rhythm' => 'airy', 'align' => 'center'], 'center'],
+            ['hero', ['heading' => t('design.specimen.hero'), 'subheading' => t('design.specimen.hero_sub'), 'cta' => ['label' => t('design.specimen.button'), 'url' => '#']], ['surface' => 'gradient', 'pad_top' => '120', 'pad_bottom' => '120', 'align' => 'center'], 'center'],
             ['text', ['heading' => t('design.specimen.text_heading'), 'body' => $paragraph('design.specimen.text_body')], [], 'single'],
             ['image_text', ['heading' => t('design.specimen.tinted_heading'), 'body' => $paragraph('design.specimen.tinted_body'), 'image' => 1, 'link' => ['label' => t('design.specimen.button'), 'url' => '#']], ['surface' => 'tinted', 'divider' => 'line'], 'image-left'],
             ['hero', ['heading' => t('design.specimen.contrast_heading'), 'subheading' => t('design.specimen.contrast_body'), 'cta' => ['label' => t('design.specimen.button'), 'url' => '#']], ['surface' => 'contrast', 'divider' => 'slant'], 'left'],

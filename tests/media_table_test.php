@@ -15,7 +15,7 @@ testBothDrivers('Used on counts pages, a column\'s picture included, and the sit
     createPage($db, 'en', 'a', 'A', true, [['type' => 'hero', 'content' => ['heading' => 'A', 'image' => $hero]]]);
     createPage($db, 'en', 'b', 'B', true, [
         ['type' => 'hero', 'content' => ['heading' => 'B', 'image' => $hero]],
-        ['type' => 'columns', 'content' => ['heading' => 'C', 'items' => [['image' => $column, 'heading' => 'One']]]],
+        ['type' => 'cards', 'content' => ['heading' => 'C', 'items' => [['image' => $column, 'heading' => 'One']]]],
     ]);
     Settings::set($db, 'site_logo', $logo);
 

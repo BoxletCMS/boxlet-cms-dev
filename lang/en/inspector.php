@@ -70,6 +70,8 @@ return [
     'inspector.reset.all_done' => 'Everything is back as the character has it. The site has not changed — press Publish for that.',
 
     // Publish's question after a character is loaded (D-068), with a way out of it (D-161).
+    'inspector.apply.restyles_one' => 'One section you styled by hand goes back to the character.',
+    'inspector.apply.restyles_many' => ':count sections you styled by hand go back to the character.',
     'inspector.apply.cancel' => 'Cancel',
     'inspector.apply.cancel_hint' => 'Back to the design as it is published. Nothing changes on the site.',
 

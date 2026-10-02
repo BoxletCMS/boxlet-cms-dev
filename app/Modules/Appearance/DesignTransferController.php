@@ -29,6 +29,8 @@ use Closure;
  * answers an address ending in .json from the disk and never asks PHP (routing_test.php), so
  * the file's name travels in Content-Disposition instead. And every one is a plain GET or a
  * form post: nothing here needs a script.
+ *
+ * @phpstan-import-type ParsedSet from DesignSet
  */
 final class DesignTransferController
 {
@@ -78,6 +80,7 @@ final class DesignTransferController
             Characters::look($id),
             Characters::composition($id),
             Characters::source($id) === 'core' ? 'Boxlet' : '',
+            Characters::patterns($id),
         ));
     }
 
@@ -118,7 +121,7 @@ final class DesignTransferController
             return $this->appearance()->withImport(null, $read['errors']);
         }
         $this->container->get('session')->set(self::PENDING, [
-            'json' => DesignSet::export($set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author']),
+            'json' => DesignSet::export($set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns']),
             'warnings' => $read['warnings'],
         ]);
 
@@ -242,7 +245,7 @@ final class DesignTransferController
     /**
      * The set waiting for an answer, read again through the format's reader.
      *
-     * @return array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>}|null}|null
+     * @return ParsedSet|null
      */
     private function pending(): ?array
     {

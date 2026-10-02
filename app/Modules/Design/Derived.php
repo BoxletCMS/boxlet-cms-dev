@@ -70,6 +70,12 @@ final class Derived
             'button' => [
                 'height' => CssNumber::rem((float) $resolved['button_height']),
                 'transform' => $resolved['button_caps'] === 'yes' ? 'uppercase' : 'none',
+                // The style as two numbers, because a token at the root cannot name the
+                // section's colours (a var() in one resolves where it is declared): how much
+                // of the button colour fills it, and whether its words take the colour on it
+                // (1) or the button colour itself (0). Filled, outline, soft (D-164).
+                'fill' => ['filled' => '1', 'outline' => '0', 'soft' => '0.14'][$resolved['button_style']] ?? '1',
+                'filled' => $resolved['button_style'] === 'outline' || $resolved['button_style'] === 'soft' ? '0' : '1',
             ],
             'container' => [
                 'width' => self::rem((float) $resolved['container']),

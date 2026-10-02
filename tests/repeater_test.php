@@ -40,7 +40,7 @@ function repeaterRegistry(int $max = 3): Blocks
                 ],
             ],
         ],
-        'layouts' => ['two'],
+        'layouts' => ['two' => ['image' => [[4, 4, 18, 16], [26, 4, 18, 16]]]],
         'defaults' => ['layout' => 'two'],
     ];
     file_put_contents($dir . '/cards/block.php', '<?php return ' . var_export($definition, true) . ';');

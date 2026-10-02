@@ -37,14 +37,27 @@
      words on top stay readable whatever the photograph is (D-024). A token rather than a
      number in a rule: a character that needs more of it says so in one place. */
   --section-picture-veil: 0.55;
-  --section-rhythm: var(--space-xl);
+  /* The room above and below: the design's section gap, unless the owner gave this
+     section its own (a pad-t-* or pad-b-* class, sections-steps.css, D-165). */
+  --section-pad-top: var(--space-section, var(--space-xl));
+  --section-pad-bottom: var(--space-section, var(--space-xl));
   --section-width: var(--container-width);
   --divider-depth: var(--space-xl);
 
   position: relative;
-  padding-block: var(--section-rhythm);
+  padding-block: var(--section-pad-top) var(--section-pad-bottom);
   color: var(--section-text);
   background: var(--section-bg);
+}
+
+/* On a phone the design's section gap is three fifths of itself: a band of air sized for a
+   wide screen is most of a small one. Only the default — a padding the owner set is theirs
+   (sections-steps.css, linked after this). */
+@media (max-width: 40rem) {
+  .block {
+    --section-pad-top: calc(var(--space-section, var(--space-xl)) * 0.6);
+    --section-pad-bottom: calc(var(--space-section, var(--space-xl)) * 0.6);
+  }
 }
 
 .block > .container {
@@ -62,12 +75,13 @@
    height is the owner's density choice (D-032), drawn by site.css on the bar itself. */
 .block-header,
 .block-footer {
-  /* 0rem, not 0: a shaped edge adds its depth to this (`calc(var(--section-rhythm) +
+  /* 0rem, not 0: a shaped edge adds its depth to this (`calc(var(--section-pad-top) +
      var(--divider-depth))`), and a unitless 0 added to a length is an invalid calc, which
      the browser throws out whole. The footer's slant and curve then had no room at all
      and covered its menu, from D-113 until it was measured on 2026-09-29 (D-143). A rem
      rather than a pixel, which the front end never writes (blocks_test). */
-  --section-rhythm: 0rem;
+  --section-pad-top: 0rem;
+  --section-pad-bottom: 0rem;
 }
 
 /* The header runs to the content's measure or edge to edge: its own decision, not the
@@ -197,16 +211,6 @@
 .focal-y-90 { --focal-y: 90%; }
 .focal-y-100 { --focal-y: 100%; }
 
-/* Rhythm */
-
-.rhythm-tight {
-  --section-rhythm: var(--space-l);
-}
-
-.rhythm-airy {
-  --section-rhythm: var(--space-3xl);
-}
-
 /* Width */
 
 .width-narrow {
@@ -255,14 +259,14 @@
 .divider-slant,
 .divider-curve {
   margin-top: calc(var(--divider-depth) * -1);
-  padding-top: calc(var(--section-rhythm) + var(--divider-depth));
+  padding-top: calc(var(--section-pad-top) + var(--divider-depth));
 }
 
 /* The section above a shaped edge keeps extra room at its bottom, so the edge never
-   covers its content, whatever that section's rhythm. */
+   covers its content, whatever that section's own padding. */
 .block:has(+ .divider-slant),
 .block:has(+ .divider-curve) {
-  padding-bottom: calc(var(--section-rhythm) + var(--divider-depth));
+  padding-bottom: calc(var(--section-pad-bottom) + var(--divider-depth));
 }
 
 .divider-slant {
@@ -278,7 +282,7 @@
    section: the last section inside keeps the room the rule above gives a section above a
    shaped edge, so the footer's slant never cuts into its words. */
 main:has(+ .block-footer:is(.divider-slant, .divider-curve)) > .block:last-child {
-  padding-bottom: calc(var(--section-rhythm) + var(--divider-depth));
+  padding-bottom: calc(var(--section-pad-bottom) + var(--divider-depth));
 }
 
 /* A divider marks a transition between two sections. The first section has nothing to
@@ -286,7 +290,7 @@ main:has(+ .block-footer:is(.divider-slant, .divider-curve)) > .block:last-child
    the first section never draws one whatever its stored style says. */
 main > .block:first-child {
   margin-top: 0;
-  padding-top: var(--section-rhythm);
+  padding-top: var(--section-pad-top);
   border-top: 0;
   clip-path: none;
   border-start-start-radius: 0;

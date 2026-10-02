@@ -13,7 +13,7 @@ use App\Support\Url;
  * @var array<string, mixed> $page
  * @var string $titleValue
  * @var string $slugValue
- * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+ * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
  * @var array<string, array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}> $sections the bands this page holds, by key
  * @var array<string, string> $errors
  * @var string|null $notice
@@ -341,15 +341,15 @@ foreach ($errors as $key => $message) {
                     <div class="panel-sections" data-section-groups>
 <?php foreach ($sections as $sectionOf): ?>
 <?php
-    /* What the character would compose for this band (D-096), from the types it HOLDS, so
-       a hand-tuned band announces itself by being open and a composed one stays quiet. */
+    /* What the character composes for this band (D-096), from the types it HOLDS: what each
+       Auto in its fields names (D-165). */
     $holds = [];
     foreach ($blocks as $inBand) {
         if (($inBand['section'] ?? null) === $sectionOf['key'] && $registry->has($inBand['type'])) {
             $holds[] = $inBand['type'];
         }
     }
-    $composed = $holds === [] ? [] : \App\Modules\Design\Composition::section($character, $holds);
+    $composed = \App\Modules\Design\Composition::section($character, $holds);
 ?>
                         <div class="panel-section" data-section-group="<?= e($sectionOf['key']) ?>" hidden>
 <?php require __DIR__ . '/section.php'; ?>

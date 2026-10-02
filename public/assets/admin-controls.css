@@ -232,7 +232,8 @@
 }
 
 /* The drawing in the admin's own colours: a strip, the mark that stands for the logo, the
-   lines that stand for words and links. */
+   lines that stand for words and links, the blocks that stand for pictures and the pill
+   that stands for a button (D-166). */
 .tile-picture .pict-ground {
   fill: var(--ui-panel-sunken);
 }
@@ -243,6 +244,14 @@
 
 .tile-picture .pict-line {
   fill: var(--ui-ink-faint);
+}
+
+.tile-picture .pict-image {
+  fill: var(--ui-line-strong);
+}
+
+.tile-picture .pict-button {
+  fill: var(--ui-accent);
 }
 
 .tile-label {

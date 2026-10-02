@@ -281,7 +281,7 @@ testBothDrivers('a picture in a column of a Columns block is in use, and cannot 
     );
     $mediaId = (int) $db->lastInsertId();
     createPage($db, 'en', 'team', 'Team', true, [
-        ['type' => 'columns', 'content' => ['heading' => 'Us', 'items' => [['image' => $mediaId, 'heading' => 'One']]]],
+        ['type' => 'cards', 'content' => ['heading' => 'Us', 'items' => [['image' => $mediaId, 'heading' => 'One']]]],
     ]);
 
     assertEquals(['Team'], array_values($library->usedBy($mediaId)), 'the page using it');

@@ -116,19 +116,32 @@ final class Characters
     }
 
     /**
-     * Layers 2 and 3 of a character: `section` is the style every block starts from,
-     * `surfaces` and `dividers` what one block type does differently, `layouts` the
+     * Layers 2 and 3 of a character: `section` is the style every section has where its
+     * owner has set nothing (every key of SectionStyle::DEFAULTS, D-165), `surfaces` and
+     * `dividers` what a section of one block type does differently, `layouts` the
      * arrangement of a type that offers several. The default character's for an id that is
      * none; Composition keeps its own answer for that case (SectionStyle::DEFAULTS), which
      * is what a site has always had.
      *
-     * @return array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>}
+     * @return array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>, options: array<string, array<string, string>>}
      */
     public static function composition(string $id): array
     {
         $all = self::all();
 
         return ($all[$id] ?? $all[Presets::DEFAULT])['set']['composition'];
+    }
+
+    /**
+     * The starter sections a character offers (D-169), each with its words per language.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function patterns(string $id): array
+    {
+        $all = self::all();
+
+        return ($all[$id] ?? $all[Presets::DEFAULT])['set']['patterns'] ?? [];
     }
 
     /**
@@ -233,7 +246,7 @@ final class Characters
         $now = gmdate('Y-m-d H:i:s');
         $db->query(
             'INSERT INTO design_characters (slug, set_json, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-            [$slug, DesignSet::export($slug, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author']), $source, $now, $now],
+            [$slug, DesignSet::export($slug, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns']), $source, $now, $now],
         );
         self::reset();
 

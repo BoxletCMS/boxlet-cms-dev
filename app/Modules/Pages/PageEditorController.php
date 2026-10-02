@@ -91,7 +91,7 @@ final class PageEditorController
                 'id' => null,
                 'type' => $type,
                 'content' => $registry->fresh($type),
-                'style' => Composition::style($character, $type),
+                'style' => \App\Modules\Design\SectionStyle::normalize([]), // every key '' — the character's (D-165)
                 'layout' => Composition::layout($registry, $character, $type),
                 // AND A SECTION OF ITS OWN, named for this render too. A stored block's
                 // section is `s{id}`, so `m{n}` cannot collide with one — and two blocks
@@ -293,7 +293,7 @@ final class PageEditorController
      * answers 200.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
     private function again(Request $request, array $page, string $title, string $slug, array $blocks, ?array $sections = null): Response
@@ -311,7 +311,7 @@ final class PageEditorController
      * before this point — parsing, validation, storage — is the same for both.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      */
@@ -325,7 +325,7 @@ final class PageEditorController
     }
 
     /**
-     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}>
      */
     private function storedBlocks(int $pageId): array
     {
@@ -371,7 +371,7 @@ final class PageEditorController
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      */

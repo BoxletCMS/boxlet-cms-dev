@@ -18,8 +18,9 @@ const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
 
 /** Which demo page gets which pictures, column by column. The home page's stay words. */
 const PICTURES = {
-  about: ['hands-working', 'atelier'],
-  services: ['tools', 'desk-wood', 'workshop', 'room-light'],
+  // The demo's home page and Services page hold Cards since D-167.
+  '': ['hands-working', 'atelier', 'tools'],
+  services: ['desk-wood', 'workshop', 'room-light'],
 };
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -28,8 +29,13 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const pageId = async (page, slug) => {
   await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
   return page.evaluate((wanted) => {
+    // Only a link in a page's own row: the admin's header links to `/` too.
     const view = Array.from(document.querySelectorAll('a[href]'))
-      .find((a) => a.getAttribute('href') === `/${wanted}` || a.getAttribute('href').endsWith(`/${wanted}`));
+      .filter((a) => { const r = a.closest('tr, li'); return r !== null && r.querySelector('a[href*="/admin/pages/"]') !== null; })
+      .find((a) => (wanted === ''
+        // The home page is `/` exactly: every address ends in a slash's worth of nothing.
+        ? a.getAttribute('href') === '/'
+        : a.getAttribute('href') === `/${wanted}` || a.getAttribute('href').endsWith(`/${wanted}`)));
     const row = view ? view.closest('tr, li') : null;
     const edit = row ? row.querySelector('a[href*="/admin/pages/"]') : null;
     return edit ? Number((edit.getAttribute('href').match(/\/admin\/pages\/(\d+)/) || [])[1]) : null;
@@ -89,15 +95,15 @@ export default {
     // ---- every character, desktop and phone ---------------------------------------------------
     for (const character of CHARACTERS) {
       await applyCharacter(page, BASE, character);
-      for (const slug of ['', 'about', 'services']) {
+      for (const slug of ['', 'services']) {
         for (const [device, width, height] of [['desktop', 1400, 900], ['phone', 390, 844]]) {
           await page.setViewport({ width, height, deviceScaleFactor: 2 });
           await page.goto(`${BASE}/${slug}`, { waitUntil: 'networkidle2' });
           const found = await page.evaluate(() => {
-            const block = document.querySelector('.block-columns');
+            const block = document.querySelector('.block-cards');
             if (!block) return null;
             block.scrollIntoView({ block: 'start' });
-            const items = Array.from(block.querySelectorAll('.columns-item'));
+            const items = Array.from(block.querySelectorAll('.cards-item'));
             return {
               count: items.length,
               rows: new Set(items.map((i) => Math.round(i.getBoundingClientRect().top))).size,

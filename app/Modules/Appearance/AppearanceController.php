@@ -102,7 +102,7 @@ final class AppearanceController
          * is asked at the moment it applies.
          */
         if ($action === 'save' && $character !== '' && Composition::hasBlocks($db)) {
-            return $this->screen->render($state, [], null, 200, $character, ['confirm' => true]);
+            return $this->screen->render($state, [], null, 200, $character, ['confirm' => true, 'restyled' => Composition::styledByHand($db)]);
         }
         $composing = $action === 'save_composition';
         // A menu is chosen by name, and a name no menu carries any more is cleared rather

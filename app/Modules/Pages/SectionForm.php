@@ -11,7 +11,7 @@ use App\Modules\Design\SectionStyle;
  * SectionRender is: a section is not a block, and the moment the two are parsed by one
  * function somebody will reach for a block's field while holding a section.
  *
- * WHAT MOVED HERE. surface, rhythm, width, align, divider and the background picture used
+ * WHAT MOVED HERE. surface, spacing, width, align, divider and the background picture used
  * to be typed at `blocks[b42][style][…]` and were written onto the section on save, because
  * a block was a section (D-095 undid that in the database; this undoes it in the form). They
  * are now typed at `sections[s7][style][…]`, once per section however many blocks it holds,
@@ -89,6 +89,35 @@ final class SectionForm
             ];
         }
 
+        return self::anchors($sections);
+    }
+
+    /**
+     * Every anchor on a page once (D-165): two sections answering to `#services` would send a
+     * link to whichever comes first, silently. A later one that repeats an earlier one is
+     * numbered — `services-2` — rather than dropped, so the field shows what it became and the
+     * owner can rename it.
+     *
+     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}> $sections
+     * @return list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>
+     */
+    private static function anchors(array $sections): array
+    {
+        $taken = [];
+        foreach ($sections as $at => $section) {
+            $anchor = $section['style'][SectionStyle::ANCHOR] ?? '';
+            if (!is_string($anchor) || $anchor === '' || $section['style'] === null) {
+                continue;
+            }
+            $unique = $anchor;
+            for ($n = 2; isset($taken[$unique]); $n++) {
+                // Shortened first, so an anchor at its full length still has room for its number.
+                $unique = rtrim(substr($anchor, 0, SectionStyle::ANCHOR_LENGTH - strlen('-' . $n)), '-') . '-' . $n;
+            }
+            $taken[$unique] = true;
+            $sections[$at]['style'][SectionStyle::ANCHOR] = $unique;
+        }
+
         return $sections;
     }
 
@@ -111,9 +140,9 @@ final class SectionForm
      * saying "one column" — that is how a save from the plain page editor would collapse a
      * section somebody had arranged in the builder.
      *
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $blocks
      * @param array<int, int|null> $sectionOf block id => the section it is stored in
-     * @return array{sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>, blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>}
+     * @return array{sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>, blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section: string, column: int}>}
      */
     public static function oneEach(array $blocks, array $sectionOf): array
     {

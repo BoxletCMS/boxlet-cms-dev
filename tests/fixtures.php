@@ -161,7 +161,7 @@ function blockRegistry(): Blocks
 /**
  * A page created through the model, with the given blocks, published unless told not to.
  *
- * @param list<array{type: string, content: array<string, mixed>, style?: array<string, string|int|null>, layout?: string}> $blocks
+ * @param list<array{type: string, content: array<string, mixed>, style?: array<string, string|int|null>, layout?: string, options?: array<string, string>}> $blocks
  */
 function createPage(Db $db, string $locale, string $slug, string $title, bool $published = true, array $blocks = []): int
 {
@@ -176,6 +176,8 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
                 'type' => $block['type'],
                 'content' => $registry->normalize($block['type'], $block['content']),
                 'style' => SectionStyle::normalize($block['style'] ?? []),
+                // The block's options, as a form sends them (D-166).
+                'options' => $block['options'] ?? [],
                 'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
             ];
         }

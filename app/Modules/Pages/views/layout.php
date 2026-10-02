@@ -68,6 +68,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-header.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
 <?php /* A script a visitor's page loads only when the header has a menu for it to fold: the
          mobile menu and submenu buttons (D-036). Without it nothing breaks. */ ?>
 <?php if (str_contains($headerHtml, 'data-site-nav-toggle')): ?>
@@ -77,6 +78,11 @@ use App\Support\Url;
          the frame (D-147). Without it the press opens the video on its own site. */ ?>
 <?php if (str_contains($content, 'data-embed-src')): ?>
     <script src="<?= e(Url::versioned('assets/site-embed.js')) ?>" defer></script>
+<?php endif; ?>
+<?php /* And a third, only where a section arrives as it is scrolled to (D-165). Without it
+         every section is simply there. */ ?>
+<?php if (str_contains($content, 'data-anim=')): ?>
+    <script src="<?= e(Url::versioned('assets/anim.js')) ?>" defer></script>
 <?php endif; ?>
 </head>
 <body>

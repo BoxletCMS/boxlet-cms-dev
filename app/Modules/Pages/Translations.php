@@ -124,8 +124,8 @@ final class Translations
                 $from = $block['section_id'] === null ? null : (int) $block['section_id'];
                 $db->query(
                     "INSERT INTO page_blocks (page_id, section_id, column_index, block_group_id, block_type, sort, content_json,
-                                              style_json, layout, translation_status, source_hash, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, '{}', ?, 'reviewed', ?, ?, ?)",
+                                              options_json, style_json, layout, translation_status, source_hash, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, '{}', ?, 'reviewed', ?, ?, ?)",
                     [
                         $id,
                         $from === null ? null : ($sections[$from] ?? null),
@@ -137,6 +137,8 @@ final class Translations
                         $type,
                         (int) $block['sort'],
                         (string) $block['content_json'],
+                        // Its options with it: a translation is the same page in other words.
+                        (string) ($block['options_json'] ?? '{}'),
                         (string) ($block['layout'] ?? ''),
                         $hash,
                         $now,

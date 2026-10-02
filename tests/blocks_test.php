@@ -23,7 +23,8 @@ function validBlock(): array
             'heading' => ['type' => 'text', 'required' => true],
             'fit' => ['type' => 'select', 'options' => ['a', 'b']],
         ],
-        'layouts' => ['one', 'two'],
+        // Each layout with its drawing since D-166.
+        'layouts' => ['one' => ['line' => [[4, 4, 40, 2]]], 'two' => ['line' => [[4, 4, 18, 2], [26, 4, 18, 2]]]],
         'defaults' => ['layout' => 'one'],
     ];
 }
@@ -33,7 +34,7 @@ test('every shipped block is valid, and the set is the one PLAN.md names', funct
     // abuse an existing one — beside the five that shipped first, and Downloads (D-127).
     assertEquals(
         [
-            'accordion', 'columns', 'cta', 'divider', 'downloads', 'embed', 'form', 'gallery', 'hero',
+            'accordion', 'cards', 'cta', 'divider', 'downloads', 'embed', 'form', 'gallery', 'hero',
             'image_text', 'logos', 'picture', 'quote', 'stats', 'text',
         ],
         Blocks::discover(dirname(__DIR__) . '/app/Blocks')->types(),
@@ -48,10 +49,16 @@ test('a valid definition passes and gets its optional flags filled in', function
     // shows in a library preview (D-083, SPEC §5.3). It is filled in like the others, so a
     // definition that declares none still has the key and nothing has to test for it.
     assertEquals(
-        ['type' => 'text', 'required' => true, 'translatable' => false, 'sample' => null],
+        ['type' => 'text', 'required' => true, 'translatable' => false, 'sample' => null, 'inline' => true],
         $definition['fields']['heading'],
         'heading field',
     );
+    // And the shape of the block around them (D-166): layouts as a list, each with its
+    // drawing, and no options when it declares none.
+    assertEquals(['one', 'two'], $definition['layouts'], 'the layouts');
+    assertEquals([[4, 4, 40, 2]], $definition['pictograms']['one']['line'] ?? null, 'a layout\'s drawing');
+    assertEquals([], $definition['options'], 'no options');
+    assertEquals(false, $definition['fields']['fit']['inline'], 'a select is the panel\'s');
 });
 
 // Each case breaks one thing; the message must name the block and, for a field, the field.
@@ -83,8 +90,16 @@ $malformed = [
     'max on a text field' => [fn () => ['fields' => ['x' => ['type' => 'text', 'max' => 2]]] + validBlock(), "Block sample: field 'x': only a repeater takes 'max'"],
     'a repeater inside a repeater' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 2, 'fields' => ['y' => ['type' => 'repeater', 'max' => 2, 'fields' => ['z' => ['type' => 'text']]]]]]] + validBlock(), "a repeater cannot hold another repeater"],
     'a bad field inside an item' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 2, 'fields' => ['y' => ['type' => 'colour']]]]] + validBlock(), "Block sample: field 'y': 'type' must be one of"],
-    'no layouts' => [fn () => ['layouts' => []] + validBlock(), "Block sample: 'layouts' must be a non-empty list"],
-    'duplicate layout' => [fn () => ['layouts' => ['one', 'one']] + validBlock(), "Block sample: 'layouts' contains a duplicate"],
+    'no layouts' => [fn () => ['layouts' => []] + validBlock(), "Block sample: 'layouts' must map each layout name to its pictogram"],
+    // A map since D-166, so a name cannot be there twice; a list without drawings is refused.
+    'layouts without drawings' => [fn () => ['layouts' => ['one', 'two']] + validBlock(), "Block sample: 'layouts' must map each layout name to its pictogram"],
+    'a drawing outside its strip' => [fn () => ['layouts' => ['one' => ['line' => [[40, 4, 20, 2]]]]] + validBlock(), 'inside 48 × 24'],
+    'a drawing of an unknown part' => [fn () => ['layouts' => ['one' => ['star' => [[4, 4, 4, 4]]]]] + validBlock(), 'pictogram parts are'],
+    'an option with no default among its values' => [fn () => ['options' => ['shape' => ['values' => ['a', 'b'], 'default' => 'c']]] + validBlock(), "option 'shape': 'default' must be one of its values"],
+    'an option with a free value' => [fn () => ['options' => ['size' => ['default' => 3]]] + validBlock(), "option 'size': a number takes integer 'min', 'max' and 'step'"],
+    'a number option defaulting outside its range' => [fn () => ['options' => ['per_row' => ['min' => 2, 'max' => 4, 'step' => 1, 'default' => 5]]] + validBlock(), "option 'per_row': 'default' must lie within"],
+    'allow on a text field' => [fn () => ['fields' => ['x' => ['type' => 'text', 'allow' => ['bold']]]] + validBlock(), "only rich text fields take 'allow'"],
+    'allow naming what rich text cannot hold' => [fn () => ['fields' => ['x' => ['type' => 'richtext', 'allow' => ['tables']]]] + validBlock(), "'allow' must be a list from"],
     'default layout not offered' => [fn () => ['defaults' => ['layout' => 'three']] + validBlock(), "Block sample: 'defaults' must be"],
 ];
 foreach ($malformed as $case => [$make, $message]) {
@@ -165,7 +180,8 @@ test('rendering escapes content and puts type and layout classes on the wrapper'
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
     $html = $blocks->render('hero', ['heading' => '<script>alert(1)</script>', 'cta' => ['label' => 'Go', 'url' => '/go']]);
 
-    assertContains('<section class="block block-hero layout-center surface-plain rhythm-normal width-normal align-left divider-none">', $html, 'wrapper');
+    // No rhythm since D-165: the padding is the section gap unless the owner set one.
+    assertContains('<section class="block block-hero layout-center surface-plain width-normal align-left divider-none">', $html, 'wrapper');
     assertContains('&lt;script&gt;alert(1)&lt;/script&gt;', $html, 'escaped heading');
     assertTrue(!str_contains($html, '<script>'), 'raw script tag in output');
     assertContains('<a class="button" href="/go">Go</a>', $html, 'button');
@@ -226,7 +242,7 @@ test('stored content of the wrong shape renders as empty values, never an error'
  */
 test('every token a front-end stylesheet reads without a fallback is one something defines', function () {
     $root = dirname(__DIR__);
-    $sheets = ['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-header.css', 'sections.css'];
+    $sheets = ['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-header.css', 'sections.css', 'sections-steps.css'];
     // Comments first: this file explains itself with `var(--section-*)` in prose, and a
     // scanner that cannot tell prose from a declaration reports the prose.
     $strip = static fn (string $css): string => (string) preg_replace('~/\*.*?\*/~s', '', $css);
@@ -285,7 +301,7 @@ test('no front-end stylesheet defines a custom property in terms of itself', fun
     $strip = static fn (string $css): string => (string) preg_replace('~/\*.*?\*/~s', '', $css);
 
     $cycles = [];
-    foreach (['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-header.css', 'sections.css'] as $css) {
+    foreach (['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-header.css', 'sections.css', 'sections-steps.css'] as $css) {
         $source = $strip((string) file_get_contents($root . '/public/assets/' . $css));
         preg_match_all('~(--[a-z0-9]+(?:-[a-z0-9]+)*)\s*:([^;}]*)[;}]~', $source, $found, PREG_SET_ORDER);
         foreach ($found as [, $name, $value]) {
@@ -317,7 +333,7 @@ test('no block template or front-end stylesheet hard-codes a colour, size, font 
     // this test passed over it; the rule was never "no # character", it was "no colour of
     // its own" (D-084).
     $encoded = '~%23[0-9a-fA-F]{3,8}\b~';
-    foreach (['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-header.css', 'sections.css'] as $css) {
+    foreach (['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-header.css', 'sections.css', 'sections-steps.css'] as $css) {
         $source = (string) file_get_contents($root . '/public/assets/' . $css);
         assertTrue(!preg_match($literal, $source, $match), "{$css} contains the literal " . ($match[0] ?? ''));
         assertTrue(!preg_match($encoded, $source, $match), "{$css} contains the encoded colour " . ($match[0] ?? ''));
@@ -379,7 +395,7 @@ test('per_layout is refused when it asks for the impossible', function () {
         'icon' => 'image',
         'version' => 1,
         'fields' => ['items' => ['type' => 'repeater', 'max' => 4, 'fields' => ['heading' => ['type' => 'text']]] + $repeater],
-        'layouts' => ['two', 'four'],
+        'layouts' => ['two' => ['image' => [[4, 4, 18, 16], [26, 4, 18, 16]]], 'four' => ['image' => [[4, 7, 9, 10], [14, 7, 9, 10], [25, 7, 9, 10], [35, 7, 9, 10]]]],
         'defaults' => ['layout' => 'two'],
     ];
 
@@ -400,9 +416,10 @@ test('per_layout is refused when it asks for the impossible', function () {
         assertTrue($thrown !== null && str_contains($thrown, $expected), "{$name}: got " . var_export($thrown, true));
     }
 
-    // And the shipped Columns block, which is the one that needed this.
-    $columns = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->get('columns');
-    assertEquals(['two' => 2, 'three' => 3, 'four' => 4], $columns['fields']['items']['per_layout'], 'what Columns declares');
+    // And the shipped Gallery, which tops its pictures up to a row (Cards, which needed this
+    // first, has an option for how many stand in a row since D-166).
+    $gallery = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->get('gallery');
+    assertEquals(['two' => 2, 'three' => 3, 'four' => 4], $gallery['fields']['items']['per_layout'], 'what Gallery declares');
 });
 
 test('every block a page can hold says which shelf it sits on', function () {
@@ -424,4 +441,25 @@ test('every block a page can hold says which shelf it sits on', function () {
     foreach ($chrome->types() as $type) {
         assertEquals(null, $chrome->get($type)['group'] ?? null, "the site's {$type} claims a shelf in the library");
     }
+});
+
+// D-166: an option is '' until the owner sets it, then the character's, then its default —
+// and a value it cannot hold is nothing at all, never a free value.
+test('a block option is the owner\'s, else the character\'s, else its default', function () {
+    $specs = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->get('cards')['options'];
+    $stored = App\Core\BlockOptions::normalize($specs, ['per_row' => '5', 'image_shape' => 'round', 'colour' => 'red']);
+    assertEquals(['per_row' => '', 'image_shape' => 'round'], $stored, 'stored: a row of five is no option, a colour no option at all');
+    assertEquals(['per_row' => '2', 'image_shape' => 'round'], App\Core\BlockOptions::effective($specs, $stored, ['per_row' => '2', 'image_shape' => 'square']), 'the owner\'s shape over the character\'s, the character\'s row');
+    assertEquals(['per_row' => '3', 'image_shape' => 'wide'], App\Core\BlockOptions::effective($specs, [], []), 'the defaults');
+    assertEquals('4', App\Core\BlockOptions::clean($specs['per_row'], '3.6'), 'a number lands on its step');
+});
+
+// D-166: what a rich text field may hold is one list, and the save keeps to it.
+test('a rich text field keeps only what it allows', function () {
+    $field = ['type' => 'richtext', 'allow' => ['bold', 'link']];
+    $allowed = App\Support\RichText::allowedFor($field['allow']);
+    $html = App\Support\RichText::sanitize('<h2>Big</h2><p><strong>Bold</strong> <em>leaning</em> <a href="/x">link</a></p>', $allowed);
+    assertTrue(!str_contains($html, '<h2>') && !str_contains($html, '<em>'), 'a heading and italics survived a field that allows neither');
+    assertContains('<strong>Bold</strong>', $html, 'what it allows');
+    assertContains('<a href="/x">link</a>', $html, 'and its link');
 });

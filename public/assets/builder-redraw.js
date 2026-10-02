@@ -271,58 +271,20 @@
    * of their own (D-099): the Section tab was a panel where nothing you chose did anything
    * until you saved. It listened here all along; it just listened to the wrong container.
    *
-   * TWO THINGS HAPPEN, because a band is drawn by two different pieces of markup. The five
-   * style keys are class names on the band's own <section>, which no block redraw can reach
-   * when the band holds several — so they are swapped straight onto it, which is instant
-   * and needs no round trip. Everything else the server has to draw, so the selected block
-   * is redrawn too, carrying the band's fields with it now (values()).
+   * THE SERVER DRAWS THE BAND for every one of them since D-165. The style keys used to be
+   * swapped onto the band's classes here, with no round trip; but a key left on Auto is the
+   * character's answer for the blocks the band holds, which only the server composes, and a
+   * class this file guessed at would be the editor showing something the page will not.
+   * The same SectionRender the page uses draws it, so the shapes stay declared once.
    */
   var bands = document.querySelector('[data-section-groups]');
   if (bands) {
-    var STYLE_KEYS = ['surface', 'rhythm', 'width', 'align', 'divider'];
-    var paint = function (group) {
-      var doc = api.frame.contentDocument;
-      var key = group.getAttribute('data-section-group');
-      var band = doc && doc.querySelector('[data-bx-section="' + key + '"]');
-      if (!band) {
-        return;
-      }
-      STYLE_KEYS.forEach(function (name) {
-        // :checked, because the control is a radio group since D-107 and the first radio's
-        // value is the first OPTION, not the chosen one. As a <select> this read right by
-        // accident of there being only one element to find.
-        var field = group.querySelector('[name$="[style][' + name + ']"]:checked');
-        if (!field) {
-          return;
-        }
-        // A snapshot, because classList is LIVE: removing while iterating it skips the
-        // entry after each removal, which leaves a second `surface-` class behind and lets
-        // the old one win or lose by document order.
-        Array.prototype.slice.call(band.classList).forEach(function (had) {
-          if (had.indexOf(name + '-') === 0) {
-            band.classList.remove(had);
-          }
-        });
-        band.classList.add(name + '-' + field.value);
-      });
-    };
     bands.addEventListener('change', function (event) {
       var group = event.target.closest && event.target.closest('[data-section-group]');
       if (!group) {
         return;
       }
-      var name = event.target.name || '';
-      /* THE NUMBER OF COLUMNS IS NOT A CLASS, it is the markup around every block in the
-         band, so it is the one choice here the browser cannot make look right by itself.
-         The server draws the band — the same SectionRender the page uses, so the two
-         shapes stay declared once instead of being written out again in JavaScript. */
-      if (/\[(layout|stack)\]$/.test(name)) {
-        redrawBand(group);
-
-        return;
-      }
-      paint(group);
-      redraw();
+      redrawBand(group);
     });
     bands.addEventListener('input', function () {
       window.clearTimeout(timer);

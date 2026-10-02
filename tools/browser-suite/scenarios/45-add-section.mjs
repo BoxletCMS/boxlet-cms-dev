@@ -29,7 +29,10 @@ const submit = async (page) => {
   await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
 
   return page.evaluate(() => Array.from(document.querySelectorAll('.alert, [role="alert"], .field-error'))
-    .map((a) => a.textContent.trim().slice(0, 120)));
+    .map((a) => a.textContent.trim().slice(0, 120))
+    // An empty live region is not a message: every picture field carries one, waiting for a
+    // failure to announce, and the demo's pages have more of them since D-167.
+    .filter((text) => text !== ''));
 };
 
 const ready = async (page) => {

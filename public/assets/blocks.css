@@ -1,4 +1,4 @@
-/* The page blocks' own styles: text, image and text, columns, form. Split out of site.css,
+/* The page blocks' own styles: text, image and text, cards, form. Split out of site.css,
    which keeps the page and what every block shares, when the two together passed the size
    limit. The same rule: only custom properties from tokens.css and the --section-*
    properties each section sets in sections.css. No literal colours, pixel values, fonts or
@@ -11,11 +11,7 @@
 
 /* Text and image-text */
 
-.text-heading,
-.image-text-heading {
-  margin: 0 0 var(--space-m);
-  font-size: var(--text-2xl);
-}
+
 
 .layout-columns .richtext {
   columns: 2;
@@ -24,9 +20,15 @@
 
 .image-text {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-xl);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-columns);
   align-items: center;
+}
+
+/* The picture stands at least this tall beside the words, whatever its own shape. */
+.image-text-media .media-placeholder {
+  aspect-ratio: auto;
+  min-block-size: calc(var(--space-m) * 17.5);
 }
 
 .layout-image-right .image-text-media {
@@ -68,96 +70,116 @@
 
 /* Columns (PLAN.md D-008)
 
-   The layout is how many columns share a row; more items start a new row on the same
+   How many cards share a row is an option (D-166); more items start a new row on the same
    grid. minmax(0, 1fr) rather than 1fr, so a long word or a picture's intrinsic width
    cannot push one column wider than the others. */
 
-.columns-head {
+.cards-head {
   margin-block-end: var(--space-l);
 }
 
-.columns-heading {
+.cards-heading {
   margin: 0;
-  font-size: var(--text-2xl);
 }
 
-.columns-intro {
-  max-inline-size: var(--container-narrow);
+.cards-intro {
   margin: var(--space-s) 0 0;
-  color: var(--section-muted);
-  /* Body size, not the hero's larger subheading: under Minimal's tight scale on a phone
-     the larger size came out as big as the block's own heading, and the introduction
-     read as the title. */
-  font-size: var(--text-base);
 }
 
-.align-center .columns-intro {
+.align-center .cards-intro {
   margin-inline: auto;
 }
 
-.columns-grid {
+.cards-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-xl) var(--space-l);
+  gap: calc(var(--space-m) * 1.25);
 }
 
-.layout-two .columns-grid {
+.per-row-2 .cards-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.layout-four .columns-grid {
+.per-row-4 .cards-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-l) var(--space-m);
 }
 
-.columns-item {
+/* A card (README 1.6): the card colour on the section's surface — raised on a dark one — a
+   hairline, the large corner, and its parts a little closer than its padding. */
+.cards-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-s);
+  gap: calc(var(--space-m) * 0.875);
+  padding: calc(var(--space-m) * 1.125);
+  background: var(--section-card);
+  border: var(--border-width) solid var(--section-border);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-s);
 }
 
-.columns-media {
-  margin-block-end: var(--space-xs);
-}
-
-/* One shape for every picture in the block, so a row lines up whatever was uploaded. */
-.columns-media img,
-.columns-media .media-placeholder {
+.cards-media img,
+.cards-media .media-placeholder {
   display: block;
   inline-size: 100%;
-  block-size: auto;
-  aspect-ratio: 3 / 2;
+  block-size: calc(var(--space-m) * 6.875);
+  aspect-ratio: auto;
   object-fit: cover;
-  border-radius: var(--radius-l);
+  --card-media-radius: calc(var(--radius-l) * 0.7);
+  border-radius: var(--card-media-radius);
 }
 
-.shape-square .columns-media img,
-.shape-square .columns-media .media-placeholder {
+.shape-square .cards-media img,
+.shape-square .cards-media .media-placeholder {
+  block-size: calc(var(--space-m) * 9.375);
+}
+
+.shape-round .cards-media img,
+.shape-round .cards-media .media-placeholder {
+  inline-size: calc(var(--space-m) * 5.5);
+  block-size: auto;
   aspect-ratio: 1;
+  --card-media-radius: 50%;
 }
 
-/* A portrait: smaller than the column, so a row of people reads as faces rather than as a
-   wall of photographs, and centred on the column when the section is. Cut to a circle
-   rather than rounded: a circle is a shape, not the character's radius, and border-radius
-   here may only take a token. */
-.shape-round .columns-media img,
-.shape-round .columns-media .media-placeholder {
-  inline-size: 60%;
-  aspect-ratio: 1;
-  clip-path: circle(50%);
-}
-
-.align-center .shape-round .columns-media img,
-.align-center .shape-round .columns-media .media-placeholder {
+.align-center .shape-round .cards-media img,
+.align-center .shape-round .cards-media .media-placeholder {
   margin-inline: auto;
 }
 
-.columns-item-heading {
+/* As a list: one card to a row, the picture beside the words. */
+.layout-list .cards-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.layout-list .cards-item {
+  display: grid;
+  grid-template-columns: calc(var(--space-m) * 9) minmax(0, 1fr);
+  column-gap: calc(var(--space-m) * 1.25);
+  align-items: start;
+}
+
+.layout-list .cards-item > :not(.cards-media) {
+  grid-column: 2;
+}
+
+.layout-list .cards-media {
+  grid-row: 1 / span 4;
+}
+
+.cards-item-heading {
   margin: 0;
   font-size: var(--text-lg);
 }
 
-.columns-link {
+.cards-item .richtext {
+  /* Small text, fourteen pixels under the default set (README 1.6): a share of the body size rather
+     than a step of the scale, which on a wide scale is too small to read. */
+  --text-small: calc(var(--text-base) * 0.875);
+  font-size: var(--text-small);
+  line-height: 1.6;
+}
+
+.cards-link {
   margin: auto 0 0;
   padding-block-start: var(--space-xs);
   font-weight: var(--heading-weight);
@@ -165,7 +187,7 @@
 
 /* Four in a row needs more room than a tablet gives it: two rows of two instead. */
 @media (max-width: 64rem) {
-  .layout-four .columns-grid {
+  .per-row-4 .cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -181,13 +203,10 @@
 
 .form-block-heading {
   margin: 0;
-  font-size: var(--text-2xl);
 }
 
 .form-block-intro {
-  max-inline-size: var(--container-narrow);
   margin: var(--space-s) 0 0;
-  color: var(--section-muted);
 }
 
 .layout-beside .form-block {
@@ -298,9 +317,9 @@
     columns: 1;
   }
 
-  .columns-grid,
-  .layout-two .columns-grid,
-  .layout-four .columns-grid {
+  .cards-grid,
+  .per-row-2 .cards-grid,
+  .per-row-4 .cards-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

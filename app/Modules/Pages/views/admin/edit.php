@@ -13,7 +13,7 @@ use App\Support\Url;
  * @var string $titleValue
  * @var string $slugValue
  * @var list<array{id: int, title: string, depth: int}> $parents
- * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+ * @var list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
  * @var array<string, string> $errors
  * @var string|null $notice
  * @var string $character the character new blocks are composed with
@@ -153,7 +153,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         'id' => null,
         'type' => $type,
         'content' => $registry->fresh($type),
-        'style' => Composition::style($character, $type),
+        'style' => \App\Modules\Design\SectionStyle::normalize([]), // every key '' — the character's (D-165)
         'layout' => Composition::layout($registry, $character, $type),
         // A block cloned out of this template arrives in a band of its own, so it carries
         // that band's fields. admin.js mints the section key over the placeholder the same

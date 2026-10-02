@@ -17,7 +17,8 @@ function shapeOf(string $preset): array
 
     return [
         'width' => $section['width'],
-        'rhythm' => $section['rhythm'],
+        // The space between sections is a decision since D-164, the character's section gap.
+        'gap' => App\Modules\Design\Characters::decisions($preset)['section_gap'],
         'align' => $section['align'],
         'divider' => Presets::dividerAccent($preset),
         'hero' => App\Modules\Design\Characters::composition($preset)['layouts']['hero'] ?? '',
@@ -84,7 +85,8 @@ test('a character composes every block type, including ones it never names', fun
     assertEquals('split', Composition::layout($registry, 'soft', 'hero'), 'soft hero');
 
     // A type the character never names still gets its section style and a valid layout.
-    assertEquals(Composition::style('soft', 'hero')['rhythm'], Composition::style('soft', 'unnamed')['rhythm'], 'unnamed block');
+    assertEquals(Composition::style('soft', 'hero')['width'], Composition::style('soft', 'unnamed')['width'], 'unnamed block');
+    assertEquals(App\Modules\Design\Characters::composition('soft')['section']['surface'], Composition::style('soft', 'unnamed')['surface'], 'and its surface is the section\'s own');
     assertEquals('center', Composition::layout($registry, 'no-such-character', 'hero'), 'a character that does not exist');
     assertEquals(SectionStyle::DEFAULTS, Composition::style(null, 'hero'), 'no character');
 
@@ -94,52 +96,79 @@ test('a character composes every block type, including ones it never names', fun
         foreach ($registry->types() as $type) {
             $layout = Composition::layout($registry, $preset, $type);
             assertTrue(in_array($layout, $registry->get($type)['layouts'], true), "{$preset} gives {$type} the undeclared layout {$layout}");
-            assertEquals(SectionStyle::normalize(Composition::style($preset, $type)), Composition::style($preset, $type), "{$preset}/{$type} section style");
+            // Every composed key answered, each a value it may hold (the padding '' being the
+            // section gap): a composition is never itself a source of a refused value.
+            $composed = Composition::style($preset, $type);
+            assertEquals(array_keys(SectionStyle::DEFAULTS), array_keys($composed), "{$preset}/{$type} section style keys");
+            assertEquals($composed, array_intersect_key(SectionStyle::normalize($composed), SectionStyle::DEFAULTS), "{$preset}/{$type} section style");
         }
     }
 });
 
-testBothDrivers('new blocks are composed by the active character', function (string $driver) {
+// THE RULE CHANGED DELIBERATELY with D-165 (O-41): a new block's section used to be given the
+// active character's style, copied in, so a later character re-dressed nothing the owner had
+// not asked it to. Now it stores nothing and is drawn as whatever character the site has.
+testBothDrivers('a new section stores nothing, and is drawn as the character the site has now', function (string $driver) {
     $db = adminSite($driver);
     adminPost('/admin/appearance', designFields(Presets::get('brutalist')) + ['character' => 'brutalist', 'action' => 'save']);
 
     assertEquals('brutalist', Composition::active($db), 'active character');
     adminPost('/admin/pages', ['title' => 'Landing', 'locale' => 'en', 'template' => templateId($db, 'landing')]);
     $blocks = blocksWithStyle($db);
+    $page = (int) ($db->one('SELECT id FROM pages WHERE title = ?', ['Landing'])['id'] ?? 0);
+    $db->query('UPDATE pages SET status = ? WHERE id = ?', ['published', $page]);
+    $slug = (string) ($db->one('SELECT slug FROM pages WHERE id = ?', [$page])['slug'] ?? '');
 
     foreach ($blocks as $block) {
-        $style = $block['style'];
-        $type = $block['type'];
-        assertEquals('full', $style['width'] ?? null, "{$type} width");
-        assertEquals('tight', $style['rhythm'] ?? null, "{$type} rhythm");
+        assertTrue(!SectionStyle::overridden(SectionStyle::normalize($block['style'])), "{$block['type']} stored a style");
     }
     assertEquals('split', (string) $blocks[0]['layout'], 'hero layout');
+    assertContains('width-full', dispatch('/' . $slug)->body, 'drawn as Brutalist');
+
+    // Another character, published as design only: the sections nobody touched follow it.
+    Composition::remember($db, 'editorial');
+    $body = dispatch('/' . $slug)->body;
+    assertTrue(!str_contains($body, 'width-full'), 'still drawn as Brutalist');
+    assertContains('width-normal', $body, 'drawn as Editorial');
 });
 
-testBothDrivers('applying a character resets sections only when that is what was asked', function (string $driver) {
+testBothDrivers('applying a character hands back what was set by hand only when that is what was asked', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', true, [
-        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy'], 'layout' => 'center'],
+        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'pad_top' => '120', 'anchor' => 'top', 'hide_mobile' => 'yes'], 'layout' => 'center'],
     ]);
     // The style is the SECTION's since D-095; the page has exactly one block.
     $styleOf = static fn (): array => blocksWithStyle($db, $id)[0]['style'] ?? [];
     $chosen = $styleOf();
+    assertEquals(1, Composition::styledByHand($db), 'one section styled by hand');
 
     // Design only: the section keeps what its author chose. Publish ASKS first on a site
-    // that has blocks (D-068), and this is the answer that leaves them alone.
+    // that has blocks (D-068), and this is the answer that leaves them alone. The question
+    // says how many sections it would hand back (D-165).
     $asked = adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save']);
     assertEquals(200, $asked->status, 'Publish asked rather than applying');
+    assertContains('One section you styled by hand goes back to the character.', $asked->body, 'and said what Apply would hand back');
     assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM design_tokens')['n'] ?? -1), 'and wrote nothing while it asked');
     adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save_design']);
     assertEquals($chosen, $styleOf(), 'saving the design alone changed a section style');
     assertEquals('editorial', Composition::active($db), 'active character');
+    assertContains('surface-contrast', dispatch('/about')->body, 'the owner\'s surface, drawn');
 
-    // Design and composition: every section takes the character's shape.
+    // Design and composition: what the character composes goes back to it; the anchor and
+    // the visibility are the owner's content and stay.
     $response = adminPost('/admin/appearance', designFields(Presets::get('editorial')) + ['character' => 'editorial', 'action' => 'save_composition']);
     assertRedirectedTo('/admin/appearance', $response);
-    assertEquals(Composition::style('editorial', 'hero'), $styleOf(), 'the section was not reset');
+    $reset = $styleOf();
+    foreach (SectionStyle::composed() as $key) {
+        assertEquals('', $reset[$key] ?? null, "{$key} was not handed back");
+    }
+    assertEquals('top', $reset['anchor'] ?? null, 'the anchor stays');
+    assertEquals('yes', $reset['hide_mobile'] ?? null, 'and where it is hidden');
+    assertEquals(0, Composition::styledByHand($db), 'nothing left styled by hand');
     assertEquals('left', (string) ($db->one('SELECT layout FROM page_blocks')['layout'] ?? ''), 'the layout was not reset');
-    assertContains('rhythm-airy', dispatch('/about')->body, 'the rendered section');
+    $body = dispatch('/about')->body;
+    assertContains(implode(' ', SectionStyle::classes(SectionStyle::effective(SectionStyle::normalize($reset), Composition::style('editorial', 'hero')))), $body, 'the rendered section, as Editorial composes it');
+    assertContains('id="top"', $body, 'still answering to its anchor');
     assertEquals(1, (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? -1), "the page itself survived (id {$id})");
 });
 
@@ -177,8 +206,11 @@ test('the preview shows the character composition, not only its palette', functi
     $plain = dispatch('/admin/appearance/preview')->body;
     assertContains('width-narrow', $plain, 'the stored section style');
 
+    // THE RULE CHANGED DELIBERATELY with D-165: the owner's own width is theirs under any
+    // character, and only what the section left to its character is the character's — so
+    // the preview of Brutalist keeps the narrow measure and takes Brutalist's surface.
     $composed = dispatch('/admin/appearance/preview?preset=brutalist&character=brutalist')->body;
-    assertContains('width-full', $composed, 'the character measure');
+    assertContains('width-narrow', $composed, 'the owner\'s measure, kept');
+    assertContains('surface-' . App\Modules\Design\Composition::style('brutalist', 'hero')['surface'], $composed, 'the character\'s surface for what was left to it');
     assertContains('layout-split', $composed, 'the character hero layout');
-    assertTrue(!str_contains($composed, 'width-narrow'), 'the stored width survived the composed preview');
 });

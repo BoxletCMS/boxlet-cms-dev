@@ -47,8 +47,12 @@ final class DesignVocabulary
         $decisions = $rules('decisions');
 
         $layouts = [];
+        $options = [];
         foreach ($registry->types() as $type) {
             $layouts[$type] = array_values($registry->get($type)['layouts']);
+            foreach ($registry->get($type)['options'] as $name => $spec) {
+                $options[$type][$name] = $spec;
+            }
         }
         $surfaces = array_values(array_diff(SectionStyle::OPTIONS['surface'], [SectionStyle::IMAGE]));
 
@@ -56,10 +60,11 @@ final class DesignVocabulary
             'decisions' => $decisions,
             'look' => $rules('look'),
             'composition' => [
-                'section' => ['surface' => $surfaces] + SectionStyle::OPTIONS,
+                'section' => ['surface' => $surfaces] + SectionStyle::OPTIONS + SectionStyle::NUMBERS,
                 'surfaces' => $surfaces,
                 'dividers' => SectionStyle::OPTIONS['divider'],
                 'layouts' => $layouts,
+                'options' => $options,
             ],
         ];
     }
@@ -91,11 +96,25 @@ final class DesignVocabulary
         }
         $section = [];
         foreach ($vocabulary['composition']['section'] as $key => $values) {
-            $section[$key] = ['enum' => $values];
+            // A stepped number, or for the padding '' — the design's section gap (D-165).
+            $section[$key] = isset($values['step'])
+                ? ['type' => ['string', 'number'], 'description' => 'number px' . ($key === 'min_height' ? ' (% of the window)' : '') . ', ' . $values['min'] . ' – ' . $values['max'] . ', step ' . $values['step'] . (str_starts_with($key, 'pad_') ? "; '' is the section gap" : '')]
+                : ['enum' => $values];
         }
         $layouts = [];
         foreach ($vocabulary['composition']['layouts'] as $type => $values) {
             $layouts[$type] = ['enum' => $values];
+        }
+        // Each block type's options (D-166): a closed set, or a number on its step.
+        $options = [];
+        foreach ($vocabulary['composition']['options'] as $type => $specs) {
+            $properties = [];
+            foreach ($specs as $name => $spec) {
+                $properties[$name] = $spec['type'] === 'choice'
+                    ? ['enum' => $spec['values']]
+                    : ['type' => ['string', 'number'], 'description' => 'number, ' . $spec['min'] . ' – ' . $spec['max'] . ', step ' . $spec['step']];
+            }
+            $options[$type] = ['type' => 'object', 'additionalProperties' => false, 'properties' => $properties];
         }
         $localized = static fn (int $length): array => [
             'type' => 'object',
@@ -133,6 +152,21 @@ final class DesignVocabulary
                     'additionalProperties' => false,
                     'properties' => $look,
                 ],
+                'patterns' => [
+                    'type' => 'array',
+                    'description' => 'Starter sections, the one place a set carries words: per language ({"en": …, "hr": …}, or one string), English the fallback. No pictures, files or forms.',
+                    'maxItems' => DesignSetPatterns::MAX,
+                    'items' => [
+                        'type' => 'object',
+                        'required' => ['id', 'name', 'blocks'],
+                        'properties' => [
+                            'id' => ['type' => 'string', 'pattern' => trim(DesignSet::ID_PATTERN, '~')],
+                            'name' => $localized(80),
+                            'section' => ['type' => 'object', 'properties' => ['layout' => ['type' => 'string'], 'style' => ['type' => 'object']]],
+                            'blocks' => ['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'object', 'required' => ['type']]],
+                        ],
+                    ],
+                ],
                 'composition' => [
                     'type' => 'object',
                     'description' => 'Present: the set can be a character. Block types this site does not have, and layouts a block does not offer, are left out with a warning.',
@@ -143,6 +177,7 @@ final class DesignVocabulary
                         'surfaces' => ['type' => 'object', 'additionalProperties' => ['enum' => $vocabulary['composition']['surfaces']]],
                         'dividers' => ['type' => 'object', 'additionalProperties' => ['enum' => $vocabulary['composition']['dividers']]],
                         'layouts' => ['type' => 'object', 'properties' => $layouts, 'additionalProperties' => ['type' => 'string']],
+                        'options' => ['type' => 'object', 'properties' => (object) $options, 'additionalProperties' => ['type' => 'object']],
                     ],
                 ],
             ],

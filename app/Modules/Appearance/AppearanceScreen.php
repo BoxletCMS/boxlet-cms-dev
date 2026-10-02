@@ -73,7 +73,7 @@ final class AppearanceScreen
      * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
-     * @param array{confirm?: bool, import?: array{set: array<string, mixed>, warnings: list<string>}|null, importErrors?: list<string>} $extra
+     * @param array{confirm?: bool, restyled?: int, import?: array{set: array<string, mixed>, warnings: list<string>}|null, importErrors?: list<string>} $extra
      *        a question waiting for an answer: how to publish a character (confirm), what
      *        to do with an imported file
      */
@@ -136,6 +136,9 @@ final class AppearanceScreen
             'character' => $character,
             'basis' => $basis,
             'confirm' => $extra['confirm'] ?? false,
+            // The header's and footer's blocks, whose layouts draw their arrangements (D-166).
+            'chromeBlocks' => $this->container->get('chrome'),
+            'restyled' => $extra['restyled'] ?? 0,
             'activeCharacter' => $active,
             'hasBlocks' => Composition::hasBlocks($db),
             'library' => DesignLibrary::all($db),

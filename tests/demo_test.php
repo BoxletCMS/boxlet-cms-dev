@@ -2,23 +2,40 @@
 
 use App\Core\Blocks;
 use App\Modules\Demo\DemoSite;
+use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Media\MediaReference;
+use App\Modules\Pages\SectionRender;
+use App\Modules\Pages\Sections;
 
-// The demo site is the visual regression fixture: it has to cover everything.
+// The demo site (PLAN.md D-167, README 1.6): the mockup's page as the home, four pages behind
+// it, the home translated, and one unlisted page of every block. It is the visual regression
+// fixture, so between its pages it still has to cover everything.
 
 testBothDrivers('the demo site publishes pages covering every block, layout and section style', function (string $driver) {
     $db = installedSite(['en' => 'English'], $driver);
     $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
 
-    assertEquals(count(DemoSite::pages()), DemoSite::seed($db, $registry, 'en'), 'pages created');
+    assertEquals(count(DemoSite::pages('en')), DemoSite::seed($db, $registry, 'en'), 'pages created');
     assertEquals(0, (int) ($db->one("SELECT COUNT(*) AS n FROM pages WHERE status <> 'published'")['n'] ?? -1), 'unpublished demo pages');
 
-    $used = ['layout' => []] + array_fill_keys(array_keys(SectionStyle::OPTIONS), []);
-    foreach (blocksWithStyle($db) as $row) {
-        $used['layout'][] = $row['type'] . '/' . $row['layout'];
-        foreach (SectionStyle::OPTIONS as $key => $values) {
-            $used[$key][] = $row['style'][$key] ?? '';
+    // AS DRAWN: a section stores only what it sets since D-165, so what the demo shows is
+    // the stored values over the character's — which is what has to cover every value.
+    $character = Composition::active($db);
+    $used = ['layout' => [], 'animation' => [], 'v_align' => []] + array_fill_keys(array_keys(SectionStyle::OPTIONS), []);
+    foreach ($db->all('SELECT id FROM pages') as $page) {
+        $blocks = App\Modules\Pages\Page::blocks($db, (int) $page['id']);
+        foreach ($blocks as $block) {
+            $used['layout'][] = $block['type'] . '/' . $block['layout'];
+        }
+        foreach (Sections::group(Sections::forPage($db, (int) $page['id']), $blocks) as $group) {
+            $style = SectionRender::style($character, $group['section']['style'], $group['blocks']);
+            foreach (array_keys(SectionStyle::OPTIONS) as $key) {
+                // Where the content sits counts only in a band taller than it.
+                if ($key !== 'v_align' || (int) $style['min_height'] > 0) {
+                    $used[$key][] = (string) $style[$key];
+                }
+            }
         }
     }
     foreach ($registry->types() as $type) {
@@ -28,17 +45,15 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     }
     foreach (SectionStyle::OPTIONS as $key => $values) {
         foreach ($values as $value) {
-            assertTrue(in_array($value, $used[$key], true), "the demo never uses {$key}: {$value}");
+            assertTrue(in_array($value, $used[$key], true), "the demo never draws {$key}: {$value}");
         }
     }
 
     // The seed references no picture at all. An id for a picture nobody uploaded is a
     // dangling reference, and the first photograph that happened to take that number was
     // silently adopted by the page holding it — measured, and then not deletable, because
-    // a page "used" it. Photographs arrive with D-022 and are set explicitly.
+    // a page "used" it.
     $referenced = [];
-    // Through idsIn(), so a picture in a repeater item (a Columns block's column) counts too:
-    // the top-level field list this used to walk could not see one (D-052).
     foreach ($db->all('SELECT block_type, content_json FROM page_blocks') as $row) {
         $content = json_decode((string) $row['content_json'], true);
         foreach (MediaReference::idsIn($registry, (string) $row['block_type'], is_array($content) ? $content : []) as $id) {
@@ -47,71 +62,62 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     }
     assertEquals([], $referenced, 'the demo seed references media ids');
 
-    foreach (['/', '/about', '/services', '/style-guide', '/blocks'] as $path) {
+    foreach (['/', '/about', '/services', '/how-we-work', '/contact', '/blocks', '/hr/'] as $path) {
         assertEquals(200, dispatch($path)->status, $path);
     }
 });
 
+// The home page is the mockup's, and a section stores what the page names and nothing else.
+testBothDrivers('the home page is the mockup page, its sections holding only what they set', function (string $driver) {
+    $db = installedSite(['hr' => 'Hrvatski'], $driver);
+    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
+    DemoSite::seed($db, $registry, 'hr');
+
+    $home = (int) ($db->one("SELECT id FROM pages WHERE slug = '' AND locale = 'hr'")['id'] ?? 0);
+    $sections = array_values(Sections::forPage($db, $home));
+    $seeded = DemoSite::pages('hr')[0]['sections'];
+    assertEquals(count($seeded), count($sections), 'sections');
+    foreach ($seeded as $at => $section) {
+        assertEquals(SectionStyle::normalize($section['style']), $sections[$at]['style'], "section {$at} stored more than it set");
+        assertEquals($section['layout'], $sections[$at]['layout'], "section {$at}'s layout");
+    }
+
+    $body = dispatch('/')->body;
+    assertContains('Prostori koji izgledaju kao da ste ih oduvijek imali', $body, 'the mockup\'s heading, word for word');
+    assertTrue(preg_match('~<section class="[^"]*surface-tinted[^"]*pad-t-120 pad-b-120"[^>]*data-anim="fade"~', $body) === 1, 'Uvod: tinted, 120 px, fading in');
+    assertContains('id="usluge"', $body, 'Usluge answers to its anchor');
+    assertContains('<a href="/#usluge">Što radimo</a>', $body, 'and the menu leads to it');
+    assertContains('class="section-cols cols-wide-left', $body, 'Iskustvo: two columns, the wide one left');
+    assertContains('surface-contrast', $body, 'Kontakt on the contrast surface');
+});
+
 // The demo links to its own pages the way an owner's site does: by reference, so renaming
-// a page cannot break it (PLAN.md D-034). A typed '/services' would still render; only the
-// stored form shows which one the seed wrote.
+// a page cannot break it (PLAN.md D-034).
 testBothDrivers('the demo links its pages by reference, and the links lead there', function (string $driver) {
     $db = installedSite(['en' => 'English'], $driver);
     DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
 
     $stored = implode("\n", array_column($db->all('SELECT content_json FROM page_blocks'), 'content_json'));
     assertTrue(!str_contains($stored, 'demo:'), 'a demo: marker was stored');
-    assertTrue(!str_contains($stored, '"\/services"') && !str_contains($stored, '"\/about"'), 'a demo link was stored as a typed path');
+    $contact = (int) ($db->one("SELECT id FROM pages WHERE slug = 'contact'")['id'] ?? 0);
+    assertContains('"url":"page:' . $contact . '"', $stored, 'no reference to the contact page');
+    assertContains('<a class="button" href="/contact">Book a consultation</a>', dispatch('/')->body, 'the hero\'s button does not lead to its page');
 
-    $services = (int) ($db->one("SELECT id FROM pages WHERE slug = 'services'")['id'] ?? 0);
-    assertContains('"url":"page:' . $services . '"', $stored, 'no reference to the services page');
-
-    // A link inside a column is a link like any other (the Columns block's items).
-    assertContains('<a href="/about">How we design</a>', dispatch('/')->body, 'a column\'s link does not lead to its page');
-
-    $db->query("UPDATE pages SET slug = 'what-we-do' WHERE id = ?", [$services]);
-    assertContains('href="/what-we-do"', dispatch('/')->body, 'the home page does not follow the renamed page');
-    assertContains('<a href="/">', dispatch('/style-guide')->body, 'the style guide\'s links to home do not lead there');
+    $db->query("UPDATE pages SET slug = 'write-to-us' WHERE id = ?", [$contact]);
+    assertContains('href="/write-to-us"', dispatch('/')->body, 'the home page does not follow the renamed page');
 });
 
-// The seed stores what the editor would store. A block that names only its surface takes
-// the character's composition for everything else — otherwise the unnamed keys fall to the
-// closed-set defaults, which the character did not choose, and the editor rightly shows the
-// section as hand-tuned. That is how all 21 demo panels came to be open.
-testBothDrivers('a block that seeds only its surface matches the composition everywhere else', function (string $driver) {
-    $db = installedSite(['en' => 'English'], $driver);
-    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
-    DemoSite::seed($db, $registry, 'en');
+// README 1.6: the home page in the other language, so a translation is always there.
+testBothDrivers('the demo\'s home page is translated, with its own words and its own anchor', function (string $driver) {
+    $db = installedSite(['hr' => 'Hrvatski'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'hr');
 
-    $character = App\Modules\Design\Composition::active($db);
-    $stored = [];
-    foreach (blocksWithStyle($db) as $row) {
-        $stored[] = [
-            'type' => $row['type'],
-            'style' => SectionStyle::normalize($row['style']),
-        ];
-    }
-
-    // The seed definitions, in the same order the seeder writes them.
-    $seeded = [];
-    foreach (DemoSite::pages() as $page) {
-        foreach ($page['blocks'] as [$type, , $style]) {
-            $seeded[] = ['type' => $type, 'style' => $style];
-        }
-    }
-    assertEquals(count($seeded), count($stored), 'blocks seeded and blocks stored');
-
-    $checked = 0;
-    foreach ($seeded as $index => $block) {
-        if (array_keys($block['style']) !== ['surface']) {
-            continue;
-        }
-        $checked++;
-        $expected = App\Modules\Design\Composition::style($character, $block['type']);
-        $expected['surface'] = $block['style']['surface'];
-        assertEquals($expected, $stored[$index]['style'], "block {$index} ({$block['type']}) seeded with only a surface");
-    }
-    assertTrue($checked > 0, 'no demo block seeds only a surface, so this proves nothing');
+    $translation = $db->one("SELECT id, translation_status FROM pages WHERE locale = 'en' AND slug = ''");
+    assertTrue($translation !== null, 'no English home page');
+    $body = dispatch('/en/')->body;
+    assertContains('Spaces that feel as if they had always been yours', $body, 'its words are English');
+    assertContains('id="services"', $body, 'its anchor is its own');
+    assertContains('href="/en/#services"', $body, 'and its menu leads to it');
 });
 
 test('the demo is never added to a site that already has pages', function () {
@@ -133,7 +139,8 @@ test('installing with the demo option adds the demo site', function () {
     installPost($installer, ['name' => 'Demo', 'locale' => 'en', 'timezone' => 'UTC', 'demo' => '1']);
 
     $db = new \App\Core\Db('sqlite', 'sqlite:' . tmpPath('test.sqlite'));
-    assertEquals(count(DemoSite::pages()), (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? -1), 'demo pages');
+    // Its pages, and the home page's translation.
+    assertEquals(count(DemoSite::pages('en')) + 1, (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? -1), 'demo pages');
 });
 
 testBothDrivers('the demo site has navigation, so its header is drawn at all', function (string $driver) {
@@ -144,8 +151,8 @@ testBothDrivers('the demo site has navigation, so its header is drawn at all', f
     // with no navigation anywhere — and an Appearance screen with no header to show (D-057).
     $body = dispatch('/')->body;
     assertContains('<header class="', $body, 'the demo site draws no header');
-    foreach (['About', 'Services', 'Style guide'] as $title) {
+    foreach (['What we do', 'About', 'Services', 'How we work', 'Contact'] as $title) {
         assertContains('>' . $title . '<', $body, 'in the menu: ' . $title);
     }
-    assertTrue(!str_contains($body, '>Northwind Studio</a>'), 'the home page is in the menu as well as being the logo\'s job');
+    assertTrue(!str_contains($body, '>Every block<'), 'the showroom is in the menu');
 });

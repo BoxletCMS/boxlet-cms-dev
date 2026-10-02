@@ -23,6 +23,7 @@ use App\Support\Url;
  * @var list<string> $changed the keys the owner has made theirs over $basis (D-158)
  * @var string $basis the character the screen measures against
  * @var string $character character loaded into the form, '' when none
+ * @var \App\Core\Blocks $chromeBlocks the header and footer blocks, whose layouts draw their arrangements (D-166)
  * @var string $title
  * @var string $csrf
  */

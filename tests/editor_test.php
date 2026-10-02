@@ -103,8 +103,9 @@ test('without JavaScript, a media field is a list of pictures and never an id', 
     $newest = strpos($form, '<option value="' . $second . '"');
     $oldest = strpos($form, '<option value="' . $first . '"');
     assertTrue($newest !== false && $oldest !== false && $newest < $oldest, 'pictures are not offered newest first');
-    // The id itself never appears as something to type.
-    assertTrue(!str_contains($form, 'type="number"'), 'a media id is still typed as a number');
+    // The id itself never appears as something to type. A number field of a section's own
+    // (its spacing, D-165) is a number the owner types; a picture is not.
+    assertTrue(preg_match('~<input type="number"[^>]*name="[^"]*image[^"]*"~', $form) === 0, 'a media id is still typed as a number');
 });
 
 // guard (source, not behaviour): this runner has no browser, so it stands over what the

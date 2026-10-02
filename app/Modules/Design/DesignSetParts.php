@@ -2,6 +2,7 @@
 
 namespace App\Modules\Design;
 
+use App\Core\BlockOptions;
 use App\Core\Blocks;
 use App\Modules\Design\Vocabulary\Decisions;
 
@@ -110,7 +111,7 @@ final class DesignSetParts
      *
      * @param list<string> $errors
      * @param list<string> $warnings
-     * @return array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>}|null
+     * @return array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>, options: array<string, array<string, string>>}|null
      */
     public static function composition(mixed $raw, Blocks $registry, array &$errors, array &$warnings): ?array
     {
@@ -120,32 +121,32 @@ final class DesignSetParts
             return null;
         }
         foreach (array_keys($raw) as $key) {
-            if (!in_array($key, ['section', 'surfaces', 'dividers', 'layouts'], true)) {
+            if (!in_array($key, ['section', 'surfaces', 'dividers', 'layouts', 'options'], true)) {
                 $warnings[] = t('designset.unknown_key', ['key' => 'composition.' . $key]);
             }
         }
 
         $surfaces = array_values(array_diff(SectionStyle::OPTIONS['surface'], [SectionStyle::IMAGE]));
-        $section = [];
+        $style = SectionStyle::DEFAULTS;
         foreach ($raw['section'] as $key => $value) {
             $key = (string) $key;
-            $allowed = $key === 'surface' ? $surfaces : (SectionStyle::OPTIONS[$key] ?? null);
-            if ($allowed === null) {
+            $value = is_int($value) || is_float($value) ? (string) $value : $value;
+            if (!array_key_exists($key, SectionStyle::DEFAULTS)) {
                 $warnings[] = t('designset.unknown_key', ['key' => 'composition.section.' . $key]);
-            } elseif (!is_string($value) || !in_array($value, $allowed, true)) {
-                $errors[] = self::field('composition.section.' . $key, t('design.error.choice'));
+            } elseif ($value === '' && in_array($key, ['pad_top', 'pad_bottom'], true)) {
+                // The padding may be left to the design's section gap (D-165).
+                $style[$key] = '';
+            } elseif (!is_string($value) || SectionStyle::clean($key, $value) === '' || ($key === 'surface' && !in_array($value, $surfaces, true))) {
+                $errors[] = self::field('composition.section.' . $key, isset(SectionStyle::NUMBERS[$key])
+                    ? t('design.error.range', SectionStyle::NUMBERS[$key])
+                    : t('design.error.choice'));
             } else {
-                $section[$key] = $value;
+                $style[$key] = SectionStyle::clean($key, $value);
             }
         }
 
-        // The five keys in their own order; a key left out is SectionStyle's default. Never the
-        // picture: normalize() adds its slot, and a composition has no picture to put in it.
-        $normalized = SectionStyle::normalize($section);
-        $style = [];
-        foreach (array_keys(SectionStyle::OPTIONS) as $key) {
-            $style[$key] = (string) $normalized[$key];
-        }
+        // Every composed key in SectionStyle's order; a key left out is its default. Never the
+        // picture, the name, the anchor or the visibility: a character has no opinion on them.
         $out = [
             'section' => $style,
             'surfaces' => self::byType($raw['surfaces'] ?? [], 'surfaces', $surfaces, $registry, $errors, $warnings),
@@ -160,6 +161,40 @@ final class DesignSetParts
                 $warnings[] = t('designset.layout_unknown', ['field' => 'composition.layouts.' . $type]);
             } else {
                 $out['layouts'][$type] = $layout;
+            }
+        }
+        $out['options'] = self::options($raw['options'] ?? [], $registry, $warnings);
+
+        return $out;
+    }
+
+    /**
+     * What a character answers for each block type's options (D-166): type => option =>
+     * value. Like a layout, an option this site's block does not have, or a value it cannot
+     * hold, is left out with a warning rather than refusing the set: it is a set made for a
+     * site with other blocks, not a broken one.
+     *
+     * @param list<string> $warnings
+     * @return array<string, array<string, string>>
+     */
+    private static function options(mixed $raw, Blocks $registry, array &$warnings): array
+    {
+        $out = [];
+        foreach (is_array($raw) ? $raw : [] as $type => $options) {
+            $type = (string) $type;
+            if (!$registry->has($type)) {
+                $warnings[] = t('designset.block_unknown', ['field' => 'composition.options.' . $type]);
+                continue;
+            }
+            $specs = $registry->get($type)['options'];
+            foreach (is_array($options) ? $options : [] as $name => $value) {
+                $name = (string) $name;
+                $clean = isset($specs[$name]) ? BlockOptions::clean($specs[$name], is_int($value) ? (string) $value : $value) : '';
+                if ($clean === '') {
+                    $warnings[] = t('designset.option_unknown', ['field' => 'composition.options.' . $type . '.' . $name]);
+                } else {
+                    $out[$type][$name] = $clean;
+                }
             }
         }
 

@@ -12,14 +12,15 @@
  * @var array<string, mixed> $content
  * @var array<string, mixed> $style
  * @var string $layout
+ * @var array<string, string> $options the block's options, every one answered (D-166)
  * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}> $media
  * @var bool $eager
  */
 $sizes = '(max-width: 40rem) 50vw, ' . (['two' => '50vw', 'four' => '25vw'][$layout] ?? '33vw');
 // A natural shape is each picture's own, so it asks for the uncropped presets (D-119).
-$presets = $content['shape'] === 'natural' ? ['natural', 'full'] : ['card', 'wide'];
+$presets = $options['shape'] === 'natural' ? ['natural', 'full'] : ['card', 'wide'];
 ?>
-<div class="gallery shape-<?= e($content['shape']) ?>">
+<div class="gallery shape-<?= e($options['shape']) ?>">
 <?php if ($content['heading'] !== ''): ?>
     <h2 class="gallery-heading"><?= e($content['heading']) ?></h2>
 <?php endif; ?>

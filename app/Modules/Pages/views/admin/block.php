@@ -12,7 +12,7 @@ use App\Modules\Design\Composition;
  * silently does not there (PLAN.md O-11).
  *
  * @var int|string $index which group the panel shows; NOT part of any field name
- * @var array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int} $block
+ * @var array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int} $block
  * @var array<string, string> $errors
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
@@ -47,9 +47,9 @@ $sectionOf = (isset($sections) && is_array($sections) ? $sections : [])[$section
     'stack' => \App\Modules\Pages\SectionLayout::DEFAULT_STACK,
     'style' => $block['style'],
 ];
-// Section style opens when it differs from what the active character would compose for this
-// section, so a hand-tuned one announces itself and a composed one stays quiet. Composed
-// from the types the section HOLDS (D-096), which for a section of one block is that block.
+// What the active character composes for this section, which each Auto in the section's
+// fields names (D-165). Composed from the types the section HOLDS (D-096), which for a
+// section of one block is that block.
 $composed = $known ? Composition::section($character, [$block['type']]) : [];
 
 // What media-picker.js needs, on the field itself rather than in a script: the admin's CSP
@@ -146,6 +146,35 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
                     <?= field_hint('hint.layout') ?>
                 </div>
 <?php endif; ?>
+<?php
+    /* THE BLOCK'S OPTIONS (D-166): how it is presented, each Auto until the owner sets it, and
+       Auto named — the character's answer for this block type, else the option's default.
+       A closed set is a row of buttons like a section's style; a number is a number field,
+       empty for Auto, until the builder's own controls arrive with its rebuild. */
+    $optionSpecs = $registry->get($block['type'])['options'];
+    $optionsShown = \App\Core\BlockOptions::effective($optionSpecs, [], \App\Modules\Design\Composition::options($character, $block['type']));
+    $optionsStored = \App\Core\BlockOptions::normalize($optionSpecs, $block['options'] ?? []);
+?>
+<?php foreach ($optionSpecs as $optionName => $optionSpec):
+    $optionLabel = $idPrefix . 'option-' . $optionName . '-label';
+    $optionKey = 'block.' . $block['type'] . '.option.' . $optionName;
+?>
+                <div class="field">
+<?php if ($optionSpec['type'] === 'choice'):
+    $optionLabels = ['' => t('style.auto', ['value' => short_label($optionKey, $optionsShown[$optionName])])];
+    foreach ($optionSpec['values'] as $optionValue) {
+        $optionLabels[$optionValue] = short_label($optionKey, $optionValue);
+    }
+?>
+                    <div class="choice-head"><span class="choice-name" id="<?= e($optionLabel) ?>"><?= e(t($optionKey)) ?></span></div>
+                    <?= segmented_group($prefix . '[options][' . $optionName . ']', $optionLabels, $optionsStored[$optionName], $optionLabel, $idPrefix . 'option-' . $optionName . '-', '', 'auto') ?>
+<?php else: ?>
+                    <label for="<?= e($idPrefix . 'option-' . $optionName) ?>"><?= e(t($optionKey)) ?></label>
+                    <input type="number" id="<?= e($idPrefix . 'option-' . $optionName) ?>" name="<?= e($prefix) ?>[options][<?= e($optionName) ?>]" value="<?= e($optionsStored[$optionName]) ?>" min="<?= e((string) $optionSpec['min']) ?>" max="<?= e((string) $optionSpec['max']) ?>" step="<?= e((string) $optionSpec['step']) ?>" placeholder="<?= e(t('style.auto', ['value' => $optionsShown[$optionName]])) ?>" inputmode="numeric">
+<?php endif; ?>
+                    <?= field_hint('hint.' . $optionKey) ?>
+                </div>
+<?php endforeach; ?>
                 <?php /* THE SECTION'S OWN FIELDS, when this block is the one that carries
                          them. In the plain editor that is the first block of each band and
                          they are folded at the foot of it, exactly where they have always

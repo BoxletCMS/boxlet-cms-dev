@@ -29,6 +29,10 @@ return [
         // is usually squarer, and neither knows what it is being put next to.
         'ratio' => ['type' => 'select', 'options' => ['wide', 'square', 'tall']],
     ],
-    'layouts' => ['full', 'inset'],
+    // Each layout with its drawing (D-166): part => [x, y, width, height] on 48 × 24.
+    'layouts' => [
+        'full' => ['image' => [[2, 3, 44, 18]], 'button' => [[20, 9, 8, 6]]],
+        'inset' => ['image' => [[10, 4, 28, 16]], 'button' => [[20, 9, 8, 6]]],
+    ],
     'defaults' => ['layout' => 'full'],
 ];

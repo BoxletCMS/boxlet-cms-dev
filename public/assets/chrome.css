@@ -8,7 +8,7 @@
 
    What the chrome LOOKS like lives here; what it measures lives in sections.css, next to
    the .block rule that sets those properties. Two rules of mine sat here setting
-   --section-rhythm and --section-width and neither ever applied: .block sets both, the
+   the section padding and --section-width and neither ever applied: .block sets both, the
    selectors weigh the same, and sections.css is linked second. The header's height did
    fall when I wrote the first one, so I believed it — but it fell because a bar holds less
    than a band of content. Measured afterwards: the header was still taking --space-xl. */

@@ -30,7 +30,7 @@ function sectionRowOf(Db $db, int $blockId): array
 testBothDrivers('every block has a section of its own, carrying its style', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', false, [
-        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy']],
+        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'pad_top' => '120']],
         ['type' => 'text', 'content' => ['body' => '<p>A</p>'], 'style' => ['surface' => 'tinted']],
     ]);
 
@@ -222,4 +222,52 @@ test('every value the section panel puts on a button is short enough to read', f
         }
     }
     assertEquals([], $long, "values with no short label, over {$longest} characters on a button");
+});
+
+// D-165: every value a stepped number can hold has its class in sections-steps.css, and no
+// class there names a value it cannot hold. The stylesheet is written out by hand, so this is
+// what keeps it and SectionStyle::NUMBERS one list.
+test('every padding and height step a section can hold has its class, and only those', function () {
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections-steps.css');
+    $prefixes = ['pad_top' => 'pad-t-', 'pad_bottom' => 'pad-b-', 'min_height' => 'min-h-'];
+    foreach (SectionStyle::NUMBERS as $key => $range) {
+        $expected = [];
+        // 0 is a height of nothing, which is no class: the band is as tall as its content.
+        for ($n = $key === 'min_height' ? $range['step'] : $range['min']; $n <= $range['max']; $n += $range['step']) {
+            $expected[] = $n;
+        }
+        preg_match_all('~^\.' . preg_quote($prefixes[$key], '~') . '(\d+) \{~m', $css, $found);
+        assertEquals($expected, array_map('intval', $found[1]), "{$key}: the classes and the steps");
+    }
+    assertContains('.pad-t-120 { --section-pad-top: 7.5rem; }', $css, 'a padding in rem');
+    assertContains('.min-h-50 { min-block-size: 50vh; min-block-size: 50svh; }', $css, 'a height in the window\'s');
+});
+
+testBothDrivers('a section draws its anchor, its padding and its animation, and the page loads the script only for it', function (string $driver) {
+    $db = adminSite($driver);
+    createPage($db, 'en', 'about', 'About', true, [
+        ['type' => 'text', 'content' => ['body' => '<p>Plain</p>']],
+    ]);
+    $plain = dispatch('/about')->body;
+    assertTrue(!str_contains($plain, 'anim.js'), 'the script on a page that has nothing to animate');
+    assertContains('assets/sections-steps.css', $plain, 'the steps\' stylesheet');
+
+    createPage($db, 'en', 'services', 'Services', true, [
+        ['type' => 'text', 'content' => ['body' => '<p>Moving</p>'], 'style' => ['anchor' => 'usluge', 'animation' => 'up', 'pad_top' => '120', 'min_height' => '50', 'v_align' => 'center', 'hide_desktop' => 'yes']],
+    ]);
+    $body = dispatch('/services')->body;
+    assertTrue(preg_match('~<section class="block block-text [^"]*pad-t-120 min-h-50 v-center hide-desktop" id="usluge" data-anim="up">~', $body) === 1, 'the section\'s classes and attributes');
+    assertContains('assets/anim.js', $body, 'and the script that animates it');
+});
+
+test('two sections of one page never answer to one anchor', function () {
+    $parsed = App\Modules\Pages\SectionForm::parse([
+        'm0' => ['style' => ['anchor' => 'Usluge']],
+        'm1' => ['style' => ['anchor' => 'usluge']],
+        'm2' => ['style' => ['anchor' => 'usluge']],
+        'm3' => ['style' => ['anchor' => str_repeat('a', 64)]],
+        'm4' => ['style' => ['anchor' => str_repeat('a', 64)]],
+    ], []);
+    $anchors = array_map(static fn (array $section): string => (string) ($section['style']['anchor'] ?? ''), $parsed);
+    assertEquals(['usluge', 'usluge-2', 'usluge-3', str_repeat('a', 64), str_repeat('a', 62) . '-2'], $anchors, 'numbered in page order');
 });

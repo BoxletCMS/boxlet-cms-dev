@@ -35,7 +35,7 @@ $tag = \App\Modules\Media\MediaPicture::tag($picture, ['card', 'wide'], '(max-wi
 <?php endif; ?>
         <div class="richtext"><?= $content['body'] ?></div>
 <?php if ($content['link']['url'] !== '' && $content['link']['label'] !== ''): ?>
-        <p><a href="<?= e($content['link']['url']) ?>"><?= e($content['link']['label']) ?></a></p>
+        <p class="text-link"><a href="<?= e($content['link']['url']) ?>"><?= e($content['link']['label']) ?></a></p>
 <?php endif; ?>
     </div>
 </div>

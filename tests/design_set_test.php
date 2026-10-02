@@ -35,7 +35,7 @@ function sampleSet(): array
             'header_opacity' => '100', 'header_blur' => '0',
         ],
         'composition' => [
-            'section' => ['surface' => 'plain', 'rhythm' => 'normal', 'width' => 'normal', 'align' => 'left', 'divider' => 'none'],
+            'section' => ['surface' => 'plain', 'pad_top' => '', 'pad_bottom' => '96', 'min_height' => '0', 'width' => 'normal', 'align' => 'left', 'divider' => 'none', 'animation' => 'fade'],
             'surfaces' => ['image_text' => 'tinted'],
             'dividers' => ['text' => 'line'],
             'layouts' => ['hero' => 'split', 'image_text' => 'image-right', 'text' => 'single'],
@@ -149,6 +149,27 @@ test('a character that leaves a header or footer choice out takes its neutral an
     });
 });
 
+// D-165: a composition's section is the composed keys of SectionStyle — numbers on their
+// steps, the padding '' for the design's section gap, and the old rhythm a key it does not know.
+test('a composition says how a section is spaced, with numbers, and nothing it cannot compose', function () {
+    $read = parseSet(sampleSet());
+    $section = $read['set']['composition']['section'] ?? [];
+    assertEquals(App\Modules\Design\SectionStyle::composed(), array_keys($section), 'every composed key, in order');
+    assertEquals('', $section['pad_top'], 'the section gap');
+    assertEquals('96', $section['pad_bottom'], 'a padding of its own');
+    assertEquals('top', $section['v_align'], 'a key left out takes its default');
+    assertEquals('fade', $section['animation'], 'an animation');
+
+    $old = array_replace_recursive(sampleSet(), ['composition' => ['section' => ['rhythm' => 'airy']]]);
+    assertContains('composition.section.rhythm', implode(' ', parseSet($old)['warnings']), 'the old rhythm is a key it does not know');
+    $tall = array_replace_recursive(sampleSet(), ['composition' => ['section' => ['min_height' => '150']]]);
+    assertContains('composition.section.min_height', implode(' ', parseSet($tall)['errors']), 'a height past its bounds');
+    $empty = array_replace_recursive(sampleSet(), ['composition' => ['section' => ['min_height' => '']]]);
+    assertContains('composition.section.min_height', implode(' ', parseSet($empty)['errors']), 'a height of nothing: only the padding may be the gap');
+    $hidden = array_replace_recursive(sampleSet(), ['composition' => ['section' => ['hide_mobile' => 'yes', 'anchor' => 'top']]]);
+    assertEquals(2, count(parseSet($hidden)['warnings']), 'the visibility and the anchor are no character\'s to set');
+});
+
 test('a design that fails contrast is refused, naming the pair (D-154)', function () {
     $raw = array_replace_recursive(sampleSet(), ['decisions' => ['color_background' => '#ffffff', 'color_text' => '#f4f4f4']]);
     $read = parseSet($raw);
@@ -158,7 +179,8 @@ test('a design that fails contrast is refused, naming the pair (D-154)', functio
 
 test('too large and too deep are refused before anything is read', function () {
     assertContains('larger than', implode(' ', DesignSet::parse(str_repeat(' ', DesignSet::MAX_BYTES + 1), blockRegistry())['errors']), 'too large');
-    $deep = '{"format":"boxlet-design-set","version":1,"x":' . str_repeat('[', 10) . str_repeat(']', 10) . '}';
+    // Twelve levels since D-169, for a pattern's words in a card; past that, refused.
+    $deep = '{"format":"boxlet-design-set","version":2,"x":' . str_repeat('[', 14) . str_repeat(']', 14) . '}';
     assertContains('nested more than', implode(' ', DesignSet::parse($deep, blockRegistry())['errors']), 'too deep');
     assertContains('not JSON', implode(' ', DesignSet::parse('{"format":', blockRegistry())['errors']), 'broken JSON');
 });
@@ -243,5 +265,64 @@ test('every core character survives export and parse unchanged', function () {
         assertEquals([], $read['warnings'], "{$id}: warnings");
         $set = $read['set'] ?? fail("{$id}: nothing read");
         assertEquals([$id, $name, $description, $decisions, $look, $composition], [$set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition']], "{$id} after the round trip");
+    }
+});
+
+// D-169: a set's starter sections, the one place a set carries words — per language, with the
+// English for a language the set has none in.
+test('a set\'s patterns are read with their words per language, and only what a pattern may carry', function () {
+    $raw = sampleSet();
+    $raw['patterns'] = [
+        ['id' => 'welcome', 'name' => ['en' => 'Welcome', 'hr' => 'Dobrodošlica'],
+            'section' => ['layout' => 'halves', 'style' => ['surface' => 'tinted', 'pad_top' => '112', 'image' => 4]],
+            'blocks' => [
+                ['type' => 'hero', 'layout' => 'center', 'options' => ['height' => 'tall'], 'content' => [
+                    'heading' => ['en' => 'Hello', 'hr' => 'Bok'],
+                    'image' => 7,
+                    'cta' => ['label' => 'More', 'url' => 'javascript:alert(1)'],
+                ]],
+                ['type' => 'text', 'column' => 1, 'content' => ['body' => ['en' => '<p>Words <script>x</script></p>']]],
+            ]],
+        ['id' => 'elsewhere', 'name' => ['en' => 'A block this site has not got'], 'blocks' => [['type' => 'carousel', 'content' => []]]],
+    ];
+    $read = parseSet($raw);
+    assertEquals([], $read['errors'], 'errors');
+    $patterns = $read['set']['patterns'] ?? [];
+    assertEquals(['welcome'], array_column($patterns, 'id'), 'the pattern of a block this site lacks is left out');
+    $welcome = $patterns[0];
+    assertEquals('halves', $welcome['section']['layout'], 'its layout');
+    assertEquals(null, $welcome['section']['style']['image'], 'a picture it cannot have');
+    assertEquals('112', $welcome['section']['style']['pad_top'], 'its spacing');
+    assertEquals(['height' => 'tall'], $welcome['blocks'][0]['options'], 'its options');
+    assertTrue(!isset($welcome['blocks'][0]['content']['image']), 'a picture in a pattern');
+    assertTrue(!isset($welcome['blocks'][0]['content']['cta']), 'a link no link field accepts');
+    assertEquals(['en' => '<p>Words </p>'], $welcome['blocks'][1]['content']['body'], 'rich text through the sanitiser');
+    assertEquals(1, $welcome['blocks'][1]['column'], 'the column it stands in');
+    $warnings = implode(' | ', $read['warnings']);
+    assertContains('patterns.0.blocks.0.content.image', $warnings, 'the picture, named');
+    assertContains('patterns.1.blocks.0', $warnings, 'the unknown block, named');
+
+    assertEquals('Bok', App\Modules\Design\DesignSetPatterns::in($welcome['blocks'][0]['content'], 'hr')['heading'], 'in Croatian');
+    assertEquals('Hello', App\Modules\Design\DesignSetPatterns::in($welcome['blocks'][0]['content'], 'de')['heading'], 'in English where the set has no German');
+
+    // And they travel: what export writes, parse reads back the same.
+    $set = $read['set'] ?? fail('nothing was read');
+    $again = DesignSet::parse(DesignSet::export($set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], '', $set['patterns']), blockRegistry());
+    assertEquals($set['patterns'], $again['set']['patterns'] ?? null, 'patterns after a round trip');
+});
+
+test('a pattern without an id of its own or without a block is refused', function () {
+    $raw = sampleSet();
+    $raw['patterns'] = [['id' => 'Not A Slug', 'name' => ['en' => 'x'], 'blocks' => [['type' => 'text', 'content' => []]]]];
+    assertContains('patterns.0.id', implode(' ', parseSet($raw)['errors']), 'a bad id');
+    $raw['patterns'] = [['id' => 'empty', 'name' => ['en' => 'x'], 'blocks' => []]];
+    assertContains('patterns.0.blocks', implode(' ', parseSet($raw)['errors']), 'no blocks');
+});
+
+test('every core character offers the mockup\'s four starter sections, in Croatian and English', function () {
+    foreach (App\Modules\Design\Characters::CORE as $id) {
+        $patterns = App\Modules\Design\Characters::patterns($id);
+        assertEquals(['hero-button', 'three-cards', 'text-quote', 'call-to-action'], array_column($patterns, 'id'), "{$id}'s patterns");
+        assertEquals('Spremni za početak?', App\Modules\Design\DesignSetPatterns::in($patterns[3]['blocks'][0]['content'], 'hr')['heading'], "{$id} in Croatian");
     }
 });

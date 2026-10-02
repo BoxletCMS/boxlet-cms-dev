@@ -9,8 +9,10 @@
  * NOTHING IS SAVED: the block is added in the editor and left, so the site is as it was.
  * That a saved block renders is asserted by tests/columns_test.php on the served HTML.
  */
-import { BASE, ADMIN } from '../config.mjs';
-import { login, SLOW } from '../harness.mjs';
+// The copy, which holds the photographs 25-columns-look uploads: the development site was
+// reinstalled with nothing in its library (D-167), and this needs a picture to choose.
+import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
+import { login, retype, SLOW } from '../harness.mjs';
 import { openPicker, posted } from '../media-helpers.mjs';
 
 const PAGE = 1;
@@ -24,21 +26,25 @@ const columnsOnCanvas = (page, index) => page.evaluate((i) => {
     ? frame.contentDocument.querySelector(`[data-bx-index="${i}"]`)
     : null;
   if (!section) return null;
-  const items = Array.from(section.querySelectorAll('.columns-item'));
+  const items = Array.from(section.querySelectorAll('.cards-item'));
   return {
     layout: (section.className.match(/layout-(\w+)/) || [])[1] || '',
+    // How many stand in a row is an option since D-166, a class on the cards.
+    perRow: ((section.querySelector('.cards') || { className: '' }).className.match(/per-row-(\d)/) || [])[1] || '',
     count: items.length,
     empty: items.filter((item) => item.classList.contains('is-empty')).length,
     outline: items[0] ? frame.contentWindow.getComputedStyle(items[0]).outlineStyle : '',
     height: items[0] ? Math.round(items[0].getBoundingClientRect().height) : 0,
     rows: new Set(items.map((item) => Math.round(item.getBoundingClientRect().top))).size,
     firstHeading: ((items[0] || {}).querySelector ? (items[0].querySelector('h3') || {}).textContent : '') || '',
-    firstPicture: items[0] ? items[0].querySelector('.columns-media img') !== null : false,
+    firstPicture: items[0] ? items[0].querySelector('.cards-media img') !== null : false,
   };
 }, index);
 
 export default {
   name: 'columns',
+  // Runs against the throwaway copy (config.mjs). Nothing is saved.
+  copy: true,
 
   async run({ page, report }) {
     if (!await login(page, BASE, ADMIN.email, ADMIN.password)) {
@@ -68,7 +74,7 @@ export default {
       slots[slots.length - 1].click();
     });
     await wait(600);
-    await page.click('[data-add-type="columns"]');
+    await page.click('[data-add-type="cards"]');
     const added = await page.waitForFunction((n) => document.querySelectorAll('[data-block-group]').length === n,
       { timeout: 10000 }, before + 1).then(() => true).catch(() => false);
     report.verdict('Columns can be added from the library', added, `${before} blocks before`);
@@ -88,7 +94,7 @@ export default {
     }, index);
     await wait(300);
     await report.shot(page, '01-new-columns', { fullPage: false });
-    report.verdict('a new Columns block starts with three columns, in the inspector and on the canvas',
+    report.verdict('a new Cards block starts with three cards, in the inspector and on the canvas',
       items === 3 && fresh !== null && fresh.count === 3, `${items} items in the inspector; canvas ${JSON.stringify(fresh)}`);
     report.verdict('its empty columns are outlined and given height, not an empty band',
       fresh !== null && fresh.empty === 3 && fresh.outline === 'dashed' && fresh.height >= 100,
@@ -101,31 +107,27 @@ export default {
     report.verdict('a column\'s heading is drawn as it is typed, and the column stops being empty',
       typed !== null && typed.firstHeading === 'Design' && typed.empty === 2, JSON.stringify(typed));
 
-    // ---- a fourth column, four in a row --------------------------------------------------------
-    // This used to press Add and THEN choose the row size, which is the manual way round.
-    // Choosing four in a row now asks for the fourth column itself (D-091), reported by the
-    // owner as the control not working: three columns, an empty cell, and no field to type
-    // into. So the Add is gone from this check and what it proves has changed with it.
+    // ---- four in a row, then two ---------------------------------------------------------------
+    // How many cards stand in a row is an option since D-166, typed as a number. It no longer
+    // adds cards to fill the row (D-091's top-up stays with the Gallery): a row of three cards
+    // set four across is three cards and a space, which is what the owner chose.
     const itemFields = () => page.$$eval(`${group} [data-repeater-item]`, (els) => els.length);
-    const beforeRowSize = await itemFields();
-    await page.select(`${group} select[name$="[layout]"]`, 'four');
-    await wait(SETTLE);
+    const perRow = `${group} input[name$="[options][per_row]"]`;
+    const setRow = async (value) => {
+      await retype(page, perRow, value);
+      await page.$eval(perRow, (el) => el.dispatchEvent(new Event('change', { bubbles: true })));
+      await wait(SETTLE);
+    };
+    await setRow('4');
     const four = await columnsOnCanvas(page, index);
-    const afterRowSize = await itemFields();
-    report.verdict('choosing four in a row adds the fourth column, in the panel and on the page',
-      four !== null && four.count === 4 && four.layout === 'four' && four.rows === 1
-        && beforeRowSize === 3 && afterRowSize === 4,
-      `${beforeRowSize} fields -> ${afterRowSize}; canvas ${JSON.stringify(four)}`);
-
-    // A narrower row is a choice about arrangement, not an instruction to delete a column.
-    await page.select(`${group} select[name$="[layout]"]`, 'two');
-    await wait(SETTLE);
+    report.verdict('four in a row draws the cards four across, and adds none',
+      four !== null && four.perRow === '4' && four.count === 3 && four.rows === 1 && await itemFields() === 3,
+      `canvas ${JSON.stringify(four)}, ${await itemFields()} fields`);
+    await setRow('2');
     const narrowed = await columnsOnCanvas(page, index);
-    report.verdict('going back to two in a row keeps every column',
-      narrowed !== null && narrowed.count === 4 && narrowed.layout === 'two' && await itemFields() === 4,
-      `canvas ${JSON.stringify(narrowed)}, ${await itemFields()} fields`);
-    await page.select(`${group} select[name$="[layout]"]`, 'four');
-    await wait(SETTLE);
+    report.verdict('two in a row folds them into two rows and keeps every card',
+      narrowed !== null && narrowed.perRow === '2' && narrowed.count === 3 && narrowed.rows === 2,
+      `canvas ${JSON.stringify(narrowed)}`);
 
     // ---- a picture in the first column --------------------------------------------------------
     // A photograph by name, never merely the first card: that is the site's logo.

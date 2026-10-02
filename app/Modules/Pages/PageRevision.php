@@ -101,7 +101,7 @@ final class PageRevision
      * this one. The shape is checked too — a row written by an older version of this file,
      * or edited by hand, is refused rather than half-applied.
      *
-     * @return array{title: string, slug: string, parent_id: int|null, status: string, seo_json: string, blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>}|null
+     * @return array{title: string, slug: string, parent_id: int|null, status: string, seo_json: string, blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section: string, column: int}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>}|null
      */
     public static function find(Db $db, Blocks $registry, int $pageId, int $revisionId): ?array
     {
@@ -162,6 +162,7 @@ final class PageRevision
                 'type' => $block['type'],
                 'content' => $registry->normalize($block['type'], is_array($block['content'] ?? null) ? $block['content'] : []),
                 'style' => \App\Modules\Design\SectionStyle::normalize($block['style'] ?? null),
+                'options' => \App\Core\BlockOptions::normalize($registry->get($block['type'])['options'], $block['options'] ?? null),
                 'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
                 // Which band it stood in and which of its columns; a block naming no band is
                 // given one of its own on the way in.

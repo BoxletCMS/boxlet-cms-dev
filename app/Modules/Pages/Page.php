@@ -12,7 +12,7 @@ use App\Modules\Redirects\Redirects;
 /**
  * Pages and their blocks. All SQL is portable between MySQL and SQLite (SPEC §5.0).
  *
- * @phpstan-type BlockRow array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}
+ * @phpstan-type BlockRow array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}
  */
 final class Page
 {
@@ -87,7 +87,7 @@ final class Page
      * Stored blocks in order, exactly as stored: callers validate layout and style
      * against the registry when they use them.
      *
-     * @return list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, layout: string, section: int, column: int}>
+     * @return list<array{id: int, type: string, content: array<mixed>, style: array<mixed>, options: array<mixed>, layout: string, section: int, column: int}>
      */
     public static function blocks(Db $db, int $pageId): array
     {
@@ -104,7 +104,7 @@ final class Page
          */
         $blocks = [];
         $rows = $db->all(
-            'SELECT b.id, b.block_type, b.content_json, s.style_json, b.layout, b.section_id, b.column_index
+            'SELECT b.id, b.block_type, b.content_json, b.options_json, s.style_json, b.layout, b.section_id, b.column_index
              FROM page_blocks b LEFT JOIN page_sections s ON s.id = b.section_id
              WHERE b.page_id = ? ORDER BY s.sort, b.column_index, b.sort, b.id',
             [$pageId],
@@ -112,11 +112,14 @@ final class Page
         foreach ($rows as $row) {
             $content = json_decode((string) $row['content_json'], true);
             $style = json_decode((string) ($row['style_json'] ?? ''), true);
+            $options = json_decode((string) ($row['options_json'] ?? ''), true);
             $blocks[] = [
                 'id' => (int) $row['id'],
                 'type' => (string) $row['block_type'],
                 'content' => is_array($content) ? $content : [],
                 'style' => is_array($style) ? $style : [],
+                // The owner's options, '' following the character (D-166).
+                'options' => is_array($options) ? $options : [],
                 'layout' => (string) $row['layout'],
                 // Which section, and which of its columns (D-093 step 3). The order above
                 // reads column before sort for the reason a newspaper is read that way: a
@@ -147,7 +150,7 @@ final class Page
      * step: every screen in the editor reads it off the block, and moving that read is the
      * next commit. Both come from the same section row, so they cannot disagree.
      *
-     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section: string, column: int}>
      */
     public static function editable(Db $db, Blocks $registry, int $pageId): array
     {
@@ -162,6 +165,7 @@ final class Page
                 'type' => $block['type'],
                 'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
                 'style' => SectionStyle::normalize($block['style']),
+                'options' => $known ? \App\Core\BlockOptions::normalize($registry->get($block['type'])['options'], $block['options']) : [],
                 'layout' => $known ? $registry->layout($block['type'], $block['layout']) : '',
                 'section' => SectionForm::key($block['section'] > 0 ? $block['section'] : null, 0),
                 'column' => $block['column'],
@@ -231,7 +235,7 @@ final class Page
                     'id' => null,
                     'type' => $type,
                     'content' => $registry->fresh($type),
-                    'style' => Composition::style($character, $type),
+                    'style' => \App\Modules\Design\SectionStyle::normalize([]), // every key '' — the character's (D-165)
                     'layout' => Composition::layout($registry, $character, $type),
                 ];
                 // One block, one section, in its only column — a new page has no
@@ -370,13 +374,14 @@ final class Page
                         );
                     } else {
                         $db->query(
-                            'UPDATE page_blocks SET section_id = ?, column_index = ?, sort = ?, content_json = ?, layout = ?, updated_at = ?
+                            'UPDATE page_blocks SET section_id = ?, column_index = ?, sort = ?, content_json = ?, options_json = ?, layout = ?, updated_at = ?
                              WHERE id = ? AND page_id = ?',
                             [
                                 $target['id'],
                                 $column,
                                 $at,
                                 self::json(MediaReference::resolve($db, $registry, $block['type'], $block['content'])),
+                                self::json(self::options($registry, $block)),
                                 $block['layout'],
                                 $now,
                                 $block['id'],
@@ -456,12 +461,29 @@ final class Page
         // in place because a committed migration is not edited, and a test refuses to find
         // it read anywhere.
         $db->query(
-            'INSERT INTO page_blocks (page_id, section_id, column_index, block_type, sort, content_json, style_json, layout, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, \'{}\', ?, ?, ?)',
-            [$pageId, $section, $column, $block['type'], $sort, self::json($content), $block['layout'], $now, $now],
+            'INSERT INTO page_blocks (page_id, section_id, column_index, block_type, sort, content_json, options_json, style_json, layout, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, \'{}\', ?, ?, ?)',
+            [$pageId, $section, $column, $block['type'], $sort, self::json($content), self::json(self::options($registry, $block)), $block['layout'], $now, $now],
         );
         $blockId = (int) $db->lastInsertId();
         $db->query('UPDATE page_blocks SET block_group_id = id WHERE id = ?', [$blockId]);
+    }
+
+    /**
+     * A block's options as stored: only those the owner set (D-166). A type this install no
+     * longer has keeps none.
+     *
+     * @param array<string, mixed> $block
+     * @return array<string, string>
+     */
+    private static function options(Blocks $registry, array $block): array
+    {
+        $type = (string) ($block['type'] ?? '');
+        if (!$registry->has($type)) {
+            return [];
+        }
+
+        return array_filter(\App\Core\BlockOptions::normalize($registry->get($type)['options'], $block['options'] ?? []), static fn (string $value): bool => $value !== '');
     }
 
     /**

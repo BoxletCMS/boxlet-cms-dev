@@ -200,17 +200,17 @@ export default {
         pictureAtTop: Math.round(stage.top) <= Math.round(document.querySelector('.appearance-bar').getBoundingClientRect().bottom) + 1,
         answers: panel.querySelectorAll('button[value="save_design"], button[value="save_composition"]').length,
         cancel: (panel.querySelector('a[data-apply-cancel]') || {}).getAttribute?.('href') ?? null,
-        replaces: /of your changes/.test(panel.textContent),
+        restyled: (panel.querySelector('[data-restyled]') || {}).textContent || '',
         warns: getComputedStyle(panel).backgroundColor !== getComputedStyle(document.querySelector('.appearance-inspector')).backgroundColor,
       } : null;
     });
     await shot(report, page, '06-apply-question');
     report.verdict('Publish after a character asks at the top of the inspector, and the picture stays where it is',
       asked !== null && asked.inInspector && asked.pictureAtTop && asked.answers === 2 && asked.warns, JSON.stringify(asked));
-    // The development site holds the owner's own changes over its character, so the question
-    // has a loss to name (D-161) — measured at seventeen over Bold when it said nothing.
-    report.verdict('it says how many of the site\'s own changes it replaces, and offers Cancel',
-      asked !== null && asked.replaces && asked.cancel !== null && /\/admin\/appearance$/.test(asked.cancel), JSON.stringify(asked));
+    // Since D-165 a load keeps the owner's values, so what Apply would take is the sections
+    // styled by hand — the demo's home has several — and the question says how many.
+    report.verdict('it says how many sections styled by hand Apply hands back, and offers Cancel',
+      asked !== null && /styled by hand/.test(asked.restyled) && asked.cancel !== null && /\/admin\/appearance$/.test(asked.cancel), JSON.stringify(asked));
     // Not answered: leaving the screen publishes nothing.
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
   },

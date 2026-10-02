@@ -43,14 +43,14 @@ function aBlock(string $type, int $column = 0, string $heading = 'Hi'): array
 
 test('one column holding one block draws exactly what a block has always drawn', function () {
     $registry = blockRegistry();
-    $style = SectionStyle::normalize(['surface' => 'tinted', 'rhythm' => 'airy']);
+    $style = SectionStyle::normalize(['surface' => 'tinted', 'pad_top' => '120']);
     $block = aBlock('hero', 0, 'Unchanged');
 
     // The comparison is against the renderer itself, not against a string written out here:
     // an expectation typed by hand proves that the output matches what I believed on the day
     // I typed it, and this has to prove it matches what the site actually did.
     $before = $registry->render('hero', $block['content'], $style, '', [], true, 'section', [], 'en');
-    $after = SectionRender::draw($registry, aSection('one', 'stack', $style), [$block], [], true, [], 'en');
+    $after = SectionRender::draw($registry, '', aSection('one', 'stack', $style), [$block], [], true, [], 'en');
 
     assertEquals($before, $after, 'the one-block section is the block');
     assertTrue(!str_contains($after, 'section-cols'), 'a column container appeared where there is one column');
@@ -60,6 +60,7 @@ test('a second block in the section gives every block a wrapper and nothing else
     $registry = blockRegistry();
     $html = SectionRender::draw(
         $registry,
+        '',
         aSection('halves', 'stack', ['surface' => 'tinted']),
         [aBlock('hero', 0, 'Left'), aBlock('text', 1, 'Right')],
         [],
@@ -82,7 +83,7 @@ test('an empty column is still drawn, and a block past the end lands in the last
     $registry = blockRegistry();
     // One block in a section shaped for three: the other two are a shape somebody chose and
     // the editor has to have somewhere to drop the next block.
-    $thirds = SectionRender::draw($registry, aSection('thirds'), [aBlock('hero', 1)], [], false, [], 'en');
+    $thirds = SectionRender::draw($registry, '', aSection('thirds'), [aBlock('hero', 1)], [], false, [], 'en');
     assertEquals(3, substr_count($thirds, '<div class="section-column">'), 'three columns');
     assertEquals(1, substr_count($thirds, 'block-hero'), 'the block drawn once');
 
@@ -91,6 +92,7 @@ test('an empty column is still drawn, and a block past the end lands in the last
     // so widening the section again puts them back.
     $narrowed = SectionRender::draw(
         $registry,
+        '',
         aSection('halves'),
         [aBlock('hero', 0, 'A'), aBlock('text', 3, 'B')],
         [],
@@ -238,7 +240,7 @@ test('a character composes a section from the type its blocks agree on', functio
     // it: no surface from one of them and no divider from the other (D-096).
     $mixed = Composition::section('soft', ['hero', 'form']);
     assertEquals(
-        SectionStyle::normalize(App\Modules\Design\Characters::composition('soft')['section']),
+        App\Modules\Design\Characters::composition('soft')['section'],
         $mixed,
         'a mixed section is the character speaking about sections',
     );
@@ -285,9 +287,12 @@ testBothDrivers('applying a character composes each section once, from what it h
 
     $sections = Sections::forPage($db, $id);
     assertEquals(1, count($sections), 'one section holding both');
+    // Handed back to the character since D-165: it stores nothing of its own, and is drawn
+    // as the character composes a section of a hero and a form.
+    assertEquals(SectionStyle::normalize([]), $sections[$first]['style'], 'the mixed section stores nothing of its own');
     assertEquals(
-        Composition::section('soft', ['hero', 'form']),
-        $sections[$first]['style'],
+        SectionStyle::effective(SectionStyle::normalize([]), Composition::section('soft', ['hero', 'form'])),
+        App\Modules\Pages\SectionRender::style('soft', $sections[$first]['style'], [['type' => 'hero'], ['type' => 'form']]),
         'the mixed section composed from the character',
     );
     // Counted in SECTIONS, because that is the word the message uses: "…:count sections
@@ -341,7 +346,7 @@ testBothDrivers('a save that names its sections puts two blocks in one, side by 
     );
 
     // And the page draws them as columns, which is the point of all of it.
-    $html = SectionRender::draw(blockRegistry(), $section, array_map(
+    $html = SectionRender::draw(blockRegistry(), '', $section, array_map(
         static fn (array $b): array => ['type' => $b['type'], 'content' => $b['content'], 'layout' => $b['layout'], 'column' => $b['column']],
         $blocks,
     ), [], true, [], 'en');
@@ -403,7 +408,7 @@ testBothDrivers('a block naming a section nobody sent is given one of its own, n
 testBothDrivers('a block whose type is gone keeps its section style through a save', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', false, [
-        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy']],
+        ['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['surface' => 'contrast', 'pad_top' => '120']],
     ]);
     [$hero] = blockIdsInOrder($db, $id);
     $db->query('UPDATE page_blocks SET block_type = ? WHERE id = ?', ['gone_away', $hero]);
@@ -418,7 +423,7 @@ testBothDrivers('a block whose type is gone keeps its section style through a sa
 
     $style = sectionStyleOf($db, $hero);
     assertEquals('contrast', $style['surface'] ?? null, 'the surface of a block nobody can draw');
-    assertEquals('airy', $style['rhythm'] ?? null, 'and its rhythm');
+    assertEquals('120', $style['pad_top'] ?? null, 'and its padding');
 });
 
 testBothDrivers('the form says where a block stands, and a save keeps the section it names', function (string $driver) {

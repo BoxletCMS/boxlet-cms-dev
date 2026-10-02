@@ -18,29 +18,27 @@
    narrower measure of its own, centred within the column (see .layout-center below). */
 .hero-text {
   display: grid;
-  gap: var(--space-m);
+  /* Heading, lead and actions, a fifth more than the space between lines apart (README 1.6). */
+  gap: calc(var(--space-m) * 1.25);
 }
 
 .hero-heading {
   margin: 0;
   font-size: var(--text-4xl);
-  /* A word longer than a phone is wide — "Northwind" at Bold's largest size — is broken
-     with a hyphen where the language allows and anywhere at all where it does not, rather
-     than pushing the page sideways. Measured on the demo's About page at 390 across.
-     anywhere, not break-word: only anywhere lets the word stop sizing the grid column the
-     heading sits in, and with break-word the column grew to 448 and took the page along. */
-  hyphens: auto;
+  /* A display line sits a little tighter than a heading's own leading. */
+  line-height: calc(var(--leading-heading) - 0.08);
+  text-wrap: balance;
+  /* Balanced rather than hyphenated (README 1.6): a display line broken mid-word reads as
+     a mistake. A word longer than the column still breaks rather than overflowing. */
   overflow-wrap: anywhere;
 }
 
 .hero-subheading {
   margin: 0;
-  color: var(--section-muted);
-  font-size: var(--text-lg);
 }
 
 .hero-action {
-  margin: var(--space-s) 0 0;
+  margin: var(--space-xs) 0 0;
 }
 
 .layout-center .hero,
@@ -51,13 +49,16 @@
 
 /* A centred hero reads better on a shorter line than the full column gives it. */
 .layout-center .hero-text {
-  max-width: var(--container-narrow);
+  /* The heading runs as wide as the section (README 1.6: two lines, not three); the lead
+     keeps its own measure. */
   margin-inline: auto;
 }
 
 
 .layout-split .hero {
-  grid-template-columns: 1fr 1fr;
+  /* The words a little wider than the picture (README 1.6). */
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: var(--space-columns);
 }
 
 /* A split hero always has a media element now, whether or not a picture has been chosen,
@@ -239,7 +240,7 @@
     background-image: linear-gradient(270deg, var(--color-contrast) 0%, var(--color-contrast) 55%, transparent 100%);
   }
 
-  .layout-cover-low .hero.is-cover:not(.height-content) .hero-cover-picture::after {
+  .layout-cover-low .hero.is-cover:not(.height-auto) .hero-cover-picture::after {
     background: none;
     background-image: linear-gradient(0deg, var(--color-contrast) 0%, var(--color-contrast) 50%, transparent 100%);
   }
@@ -247,14 +248,15 @@
 
 /* ---- how tall ------------------------------------------------------------------------------ */
 
-/* 56svh: 70 was a fifth too tall, the owner's measure (2026-09-25, "Tall je malo previsok,
+/* Every arrangement since D-166, when the height became an option; it was the cover's only.
+   56svh: 70 was a fifth too tall, the owner's measure (2026-09-25, "Tall je malo previsok,
    treba ga smanjiti za 20%"). */
-.hero.is-cover.height-tall {
+.hero.height-tall {
   min-block-size: 56svh;
 }
 
 /* The whole window, less the band's own padding above and below, which the picture covers
    and the words do not. */
-.hero.is-cover.height-screen {
-  min-block-size: calc(100svh - 2 * var(--section-rhythm));
+.hero.height-screen {
+  min-block-size: calc(100svh - var(--section-pad-top) - var(--section-pad-bottom));
 }

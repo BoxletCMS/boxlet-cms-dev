@@ -207,7 +207,10 @@ export default {
       });
       await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
       const notices = await page.evaluate(() => Array.from(document.querySelectorAll('.alert, [role="alert"], .field-error'))
-        .map((a) => a.textContent.trim().slice(0, 120)));
+        .map((a) => a.textContent.trim().slice(0, 120))
+    // An empty live region is not a message: every picture field carries one, waiting for a
+    // failure to announce, and the demo's pages have more of them since D-167.
+    .filter((text) => text !== ''));
       report.verdict('a page of all nine saves once what is required is filled in',
         notices.length === 0, JSON.stringify(notices));
 

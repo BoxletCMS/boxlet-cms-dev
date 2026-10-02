@@ -122,17 +122,16 @@ testBothDrivers('the pages list shows how many blocks of a translation changed i
 });
 
 test('the original\'s words are shown as text, with their fields named', function () {
-    $words = TranslationStatus::words(blockRegistry(), 'columns', [
+    $words = TranslationStatus::words(blockRegistry(), 'cards', [
         'heading' => 'Naslov',
         'intro' => '',
         'items' => [['heading' => 'Prvi', 'body' => '<p>Jedan <strong>dva</strong></p>', 'image' => 4, 'link' => ['label' => 'Više', 'url' => '/x']]],
-        'image_shape' => 'wide',
     ]);
 
     assertEquals([
-        ['label' => t('block.columns.heading'), 'text' => 'Naslov'],
-        ['label' => t('pages.field.repeater_item', ['number' => '1']) . ' · ' . t('block.columns.items.heading'), 'text' => 'Prvi'],
-        ['label' => t('pages.field.repeater_item', ['number' => '1']) . ' · ' . t('block.columns.items.body'), 'text' => 'Jedan dva'],
-        ['label' => t('pages.field.repeater_item', ['number' => '1']) . ' · ' . t('block.columns.items.link'), 'text' => 'Više'],
+        ['label' => t('block.cards.heading'), 'text' => 'Naslov'],
+        ['label' => t('pages.field.repeater_item', ['number' => '1']) . ' · ' . t('block.cards.items.heading'), 'text' => 'Prvi'],
+        ['label' => t('pages.field.repeater_item', ['number' => '1']) . ' · ' . t('block.cards.items.body'), 'text' => 'Jedan dva'],
+        ['label' => t('pages.field.repeater_item', ['number' => '1']) . ' · ' . t('block.cards.items.link'), 'text' => 'Više'],
     ], $words, 'the words');
 });

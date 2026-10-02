@@ -4,29 +4,33 @@ namespace App\Modules\Demo;
 
 use App\Core\Blocks;
 use App\Core\Db;
-use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Forms\Form;
+use App\Modules\Languages\Locales;
 use App\Modules\Menus\Menu;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageLinks;
+use App\Modules\Pages\SectionForm;
+use App\Modules\Pages\Translations;
 use App\Modules\Settings\SiteChrome;
 use App\Support\RichText;
 use RuntimeException;
 
 /**
- * The demo ("golden") site: published pages that between them use every block type,
- * every layout and every section style value. A new install can start from it, and
- * `php migrations/seed.php` adds it to an empty site, so any change to blocks or design
- * can be checked visually in seconds.
+ * The demo site (PLAN.md D-167, README 1.6): Atelier Lumen, an interior studio. Its home page
+ * is the page the builder's mockup shows; four pages behind it, a menu over them, and the
+ * home page translated, so a translation is always there to look at. One more page, not in
+ * the menu, shows every block in every layout: the visual regression fixture.
+ *
+ * A new install can start from it, and `php migrations/seed.php` adds it to an empty site.
  */
 final class DemoSite
 {
     /**
-     * Creates the demo pages in $locale. Refuses a site that already has pages rather
-     * than mixing demo content into real content.
+     * Creates the demo in $locale: Croatian words for a Croatian site, English for any other.
+     * Refuses a site that already has pages rather than mixing demo content into real content.
      *
-     * @return int the number of pages created
+     * @return int the number of pages created in $locale (the translation not counted)
      */
     public static function seed(Db $db, Blocks $registry, string $locale): int
     {
@@ -34,28 +38,49 @@ final class DemoSite
             throw new RuntimeException('The site already has pages. The demo is only added to a site without any.');
         }
 
-        // What a person using the editor would get. A seed that stored only the keys it
-        // names left every other key at the CLOSED-SET DEFAULT — normal, left, none — which
-        // is not what the active character composes, so every demo section counted as
-        // hand-tuned and announced itself: measured at 21 of 21 panels open, with rhythm
-        // differing in 16 and align in 13 purely from defaults nobody chose.
-        $character = Composition::active($db);
-
-        $pages = self::pages();
-        // Every page first, so a link can refer to one seeded after it (PLAN.md D-034). A
-        // new page's group is its own id.
+        $lang = $locale === 'hr' ? 'hr' : 'en';
+        $pages = self::pages($lang);
+        // Every page first, so a link can refer to one seeded after it (PLAN.md D-034).
         $ids = [];
         foreach ($pages as $page) {
-            $ids[$page['slug']] = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, []);
+            $ids[$page['key']] = Page::create($db, $registry, $locale, $page['title'], $page['slug'], null, []);
         }
-        $reference = static fn (array $match): string => isset($ids[$match[1]]) ? PageLinks::to($ids[$match[1]]) : $match[0];
         // One contact form, in the demo's language, for every Form block the seed holds.
-        $form = Form::create($db, $locale, 'Contact');
+        $form = Form::create($db, $locale, $lang === 'hr' ? 'Kontakt' : 'Contact');
 
         foreach ($pages as $page) {
-            $id = $ids[$page['slug']];
-            $blocks = [];
-            foreach ($page['blocks'] as [$type, $content, $style, $layout]) {
+            self::fill($db, $registry, $ids[$page['key']], $page, $ids, $form);
+            Page::setStatus($db, $ids[$page['key']], true);
+        }
+        self::menu($db, $locale, $pages, $ids);
+        self::translateHome($db, $registry, $ids, $lang === 'hr' ? 'en' : 'hr');
+
+        return count($pages);
+    }
+
+    /**
+     * One page's sections and blocks, written as the builder writes them.
+     *
+     * @param array{key: string, slug: string, title: string, description: string, menu: bool, sections: list<array{style: array<string, string>, layout: string, blocks: list<array{string, array<string, mixed>, string, array<string, string>, int}>}>} $page
+     * @param array<string, int> $ids page key => id
+     */
+    private static function fill(Db $db, Blocks $registry, int $id, array $page, array $ids, int $form): void
+    {
+        $reference = static fn (array $match): string => isset($ids[$match[1]]) ? PageLinks::to($ids[$match[1]]) : $match[0];
+        $sections = [];
+        $blocks = [];
+        foreach ($page['sections'] as $at => $section) {
+            $key = SectionForm::key(null, $at);
+            $sections[] = [
+                'key' => $key,
+                'id' => null,
+                'layout' => $section['layout'],
+                'stack' => null,
+                // The keys the page names, and nothing else: every other is '' and so the
+                // character's, as it is for a section made in the editor (D-165).
+                'style' => SectionStyle::normalize($section['style']),
+            ];
+            foreach ($section['blocks'] as [$type, $content, $layout, $options, $column]) {
                 $content = self::link($registry->get($type)['fields'], $content, $reference);
                 if (($content['form'] ?? null) === 'demo:form') {
                     $content['form'] = $form;
@@ -66,52 +91,104 @@ final class DemoSite
                     'id' => null,
                     'type' => $type,
                     'content' => $registry->normalize($type, $content),
-                    // The keys the seed names win; every other key comes from the character's
-                    // composition for this block type. `+` keeps the left-hand value, which
-                    // is exactly that rule.
-                    'style' => SectionStyle::normalize($style + Composition::style($character, $type)),
+                    'style' => SectionStyle::normalize([]),
+                    'options' => $options,
                     'layout' => $registry->layout($type, $layout),
+                    'section' => $key,
+                    'column' => $column,
                 ];
             }
-            Page::update($db, $registry, $id, [
-                'title' => $page['title'],
-                'slug' => $page['slug'],
-                'parent_id' => null,
-                'status' => 'draft',
-                // The demo pages give no meta of their own: each falls back to its title.
-                'seo_json' => '{}',
-            ], $blocks);
-            Page::setStatus($db, $id, true);
         }
-
-        self::menu($db, $locale, $ids);
-
-        return count($pages);
+        Page::update($db, $registry, $id, [
+            'title' => $page['title'],
+            'slug' => $page['slug'],
+            'parent_id' => null,
+            'status' => 'draft',
+            'seo_json' => Page::seoJson(['title' => '', 'description' => $page['description']]),
+        ], $blocks, $sections);
     }
 
     /**
-     * A navigation menu over the demo pages, and the chrome pointed at it.
+     * A navigation menu over the demo's pages, the services on the home page first — by
+     * its anchor, `/#usluge`, which is what an anchor is for — and the chrome pointed at it.
      *
      * WITHOUT THIS THE DEMO HAS NO HEADER AT ALL. An empty header is deliberately not drawn
-     * (PLAN.md D-032), and a fresh install had no menu, no logo and no button — so the one
-     * thing a new owner sees first was a site with no navigation, and the Appearance screen
-     * had no header to show them. The demo exists to be a site worth looking at; a site
-     * without navigation is not one.
+     * (PLAN.md D-032); the demo exists to be a site worth looking at, and a site without
+     * navigation is not one.
      *
-     * Every demo page but the home page, whose name is the logo's job, in the order they are
-     * seeded.
-     *
-     * @param array<string, int> $ids slug => page id
+     * @param list<array{key: string, slug: string, title: string, description: string, menu: bool, sections: list<array{style: array<string, string>, layout: string, blocks: list<array{string, array<string, mixed>, string, array<string, string>, int}>}>}> $pages
+     * @param array<string, int> $ids page key => id
      */
-    private static function menu(Db $db, string $locale, array $ids): void
+    private static function menu(Db $db, string $locale, array $pages, array $ids): void
     {
         $menu = Menu::create($db, $locale, 'Main');
-        foreach ($ids as $slug => $id) {
-            if ($slug !== '') {
-                Menu::addItem($db, $menu, null, $id, null, null);
+        $anchor = (string) ($pages[0]['sections'][1]['style']['anchor'] ?? '');
+        if ($anchor !== '') {
+            Menu::addItem($db, $menu, null, null, '/#' . $anchor, $locale === 'hr' ? 'Što radimo' : 'What we do');
+        }
+        foreach ($pages as $page) {
+            if ($page['menu']) {
+                Menu::addItem($db, $menu, null, $ids[$page['key']], null, null);
             }
         }
         SiteChrome::saveShared($db, 'Main');
+    }
+
+    /**
+     * The home page in the other of the demo's two languages (README 1.6), so the site always
+     * has a translation to show: the language added, the page translated as the owner would,
+     * and its words replaced with that language's. Its menu leads to its own page's services.
+     */
+    /**
+     * @param array<string, int> $ids page key => id, in the site's own language
+     */
+    private static function translateHome(Db $db, Blocks $registry, array $ids, string $other): void
+    {
+        $homeId = $ids['home'];
+        if ($db->one('SELECT code FROM locales WHERE code = ?', [$other]) === null) {
+            Locales::add($db, $other);
+        }
+        $translated = Translations::create($db, $registry, $homeId, $other);
+        if (!is_int($translated)) {
+            return;
+        }
+        $home = self::pages($other)[0];
+        // The translation holds the same sections and blocks in the same order; only the
+        // words differ, so each block takes the other language's content by position.
+        $words = [];
+        foreach ($home['sections'] as $section) {
+            foreach ($section['blocks'] as [$type, $content]) {
+                $words[] = [$type, $content];
+            }
+        }
+        $blocks = Page::editable($db, $registry, $translated);
+        // Its links lead to the site's own pages: only the home page is translated.
+        $reference = static fn (array $match): string => isset($ids[$match[1]]) ? PageLinks::to($ids[$match[1]]) : $match[0];
+        foreach ($blocks as $at => $block) {
+            [$type, $content] = $words[$at] ?? [$block['type'], []];
+            if ($type === $block['type']) {
+                $blocks[$at]['content'] = $registry->normalize($type, self::link($registry->get($type)['fields'], $content, $reference));
+            }
+        }
+        // And each section's name and anchor in that language: the copy kept the source's.
+        $sections = Page::editableSections($db, $translated);
+        foreach ($sections as $at => $section) {
+            foreach (['name', 'anchor'] as $own) {
+                $sections[$at]['style'][$own] = (string) ($home['sections'][$at]['style'][$own] ?? '');
+            }
+        }
+        Page::update($db, $registry, $translated, [
+            'title' => $home['title'],
+            'slug' => '',
+            'parent_id' => null,
+            'status' => 'published',
+            'seo_json' => Page::seoJson(['title' => '', 'description' => $home['description']]),
+        ], $blocks, $sections);
+        $menu = Menu::create($db, $other, 'Main');
+        Menu::addItem($db, $menu, null, $translated, null, null);
+        // The home page of a language that is not the site's first is under its code. Written
+        // out: Url::page() answers from the request, and a seed has none.
+        Menu::addItem($db, $menu, null, null, '/' . $other . '/#' . (string) ($home['sections'][1]['style']['anchor'] ?? ''), $other === 'hr' ? 'Što radimo' : 'What we do');
     }
 
     /**
@@ -146,10 +223,12 @@ final class DemoSite
     }
 
     /**
-     * @return list<array{slug: string, title: string, blocks: list<array{string, array<string, mixed>, array<string, string>, string}>}>
+     * The demo's pages in one of its two languages.
+     *
+     * @return list<array{key: string, slug: string, title: string, description: string, menu: bool, sections: list<array{style: array<string, string>, layout: string, blocks: list<array{string, array<string, mixed>, string, array<string, string>, int}>}>}>
      */
-    public static function pages(): array
+    public static function pages(string $lang = 'en'): array
     {
-        return require __DIR__ . '/pages.php';
+        return (require __DIR__ . '/pages.php')($lang === 'hr' ? 'hr' : 'en');
     }
 }

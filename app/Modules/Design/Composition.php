@@ -10,10 +10,10 @@ use App\Modules\Admin\Activity;
 /**
  * Layer 0 reaching layers 2 and 3: the composition a character gives a site.
  *
- * The character a site last applied is remembered in settings, because new blocks have
- * to start from it. That is all it is used for: the saved design is still only the
- * layer-1 decisions in design_tokens, and existing blocks keep the section styles their
- * author chose until the author asks for them to be reset (SPEC §5.4).
+ * The character a site is composed with is remembered in settings. Every section reads it
+ * as it is drawn (D-165): a section style holds only what its owner set, and every key
+ * left '' is this character's answer for the blocks the section holds. Changing character
+ * re-dresses every section nobody touched; apply() hands back the ones somebody did.
  */
 final class Composition
 {
@@ -63,9 +63,11 @@ final class Composition
     }
 
     /**
-     * The section style a block of this type starts from under this character.
+     * What this character composes for a section holding one block of this type: every
+     * composed key answered (SectionStyle::DEFAULTS' shape), the padding '' where it is the
+     * design's section gap.
      *
-     * @return array<string, string|int|null>
+     * @return array<string, string>
      */
     public static function style(?string $character, string $blockType): array
     {
@@ -87,28 +89,24 @@ final class Composition
             $style['divider'] = $divider;
         }
 
-        return SectionStyle::normalize($style);
+        return self::answered($style);
     }
 
     /**
-     * The section style a SECTION starts from under this character (PLAN.md D-096).
+     * What this character composes for a SECTION (PLAN.md D-096): the type its blocks agree
+     * on, or the character's own section language when they do not.
      *
-     * A character says what it does to a block TYPE — "Editorial gives a hero a tinted
-     * surface, a form a plain one". A section holding a hero and a form has no type, so
-     * the sentence has no answer, and the rule the owner chose is: compose from the type
-     * the section's blocks AGREE on, and fall back to the character's own section
-     * defaults when they do not.
+     * WHY THIS AND NOT THE FIRST BLOCK'S TYPE. A band of three text blocks composes as text,
+     * which is what made bands of several blocks possible at all; only two different kinds
+     * of block side by side fall back, and they fall back to something the character states
+     * about sections rather than to a guess. An empty section composes here too — it has no
+     * type to agree on.
      *
-     * WHY THIS AND NOT THE FIRST BLOCK'S TYPE. Every page that exists is made of sections
-     * holding one block, so "the type they agree on" is that block's type and not a single
-     * page composes differently — the rhythm of tinted and plain bands that makes a
-     * character feel designed survives untouched. A band of three text blocks still
-     * composes as text, which is the arrangement this whole step exists to make possible.
-     * Only two different kinds of block side by side fall back, and they fall back to
-     * something the character states about sections rather than to a guess.
+     * Since D-165 this is what a section IS wherever its owner has said nothing, at the
+     * moment it is drawn — not a value copied into it when it was made.
      *
      * @param list<string> $types the block types the section holds, in any order
-     * @return array<string, string|int|null>
+     * @return array<string, string>
      */
     public static function section(?string $character, array $types): array
     {
@@ -120,11 +118,23 @@ final class Composition
             return SectionStyle::DEFAULTS;
         }
 
-        // Nothing laid over the character's section language: no surface from one of the
-        // types and no divider from another, because choosing between them is the guess
-        // this rule exists to refuse. An empty section composes here too — it has no type
-        // to agree on, and the character's own defaults are the only honest answer.
-        return SectionStyle::normalize(Characters::composition($character)['section']);
+        return self::answered(Characters::composition($character)['section']);
+    }
+
+    /**
+     * What this character answers for a block type's options (D-166): its composition's
+     * `options` for that type, empty where it says nothing. BlockOptions::effective() takes
+     * the owner's over these, and the option's default where neither says.
+     *
+     * @return array<string, string>
+     */
+    public static function options(?string $character, string $blockType): array
+    {
+        if ($character === null || !Characters::exists($character)) {
+            return [];
+        }
+
+        return Characters::composition($character)['options'][$blockType] ?? [];
     }
 
     /**
@@ -138,79 +148,122 @@ final class Composition
     }
 
     /**
-     * Rewrites the section style and layout of every block on the site to this
-     * character's composition. Destructive: it discards per-section choices, so it only
-     * ever runs when the user picked it explicitly over saving the design alone.
+     * Hands every section on the site back to the character: each composed key the owner set
+     * goes back to '' (SectionStyle::reset), every block's options too (D-166), and every
+     * block's layout to the character's.
+     * The picture, a section's name, its anchor and where it is hidden stay — they are not
+     * the character's to have an opinion on.
      *
-     * @return int the number of SECTIONS restyled, which is what the message reports
+     * Destructive, so it only ever runs when the owner picked it over publishing the design
+     * alone. It is no longer what changing character needs: a section nobody touched follows
+     * the character already (D-165). It is the way to undo the touching.
+     *
+     * @return int the number of SECTIONS that had anything of the owner's to give back, or
+     *         a layout that was not the character's: what the message reports
      */
     public static function apply(Db $db, Blocks $registry, string $character): int
     {
         $now = gmdate('Y-m-d H:i:s');
         $changed = 0;
 
-        /*
-         * SECTION BY SECTION, COMPOSED FROM THE TYPES IT HOLDS (D-095, D-096).
-         *
-         * This used to be one UPDATE per block type, site-wide. The style now lives on the
-         * section, and a character composes layer 2 from a BLOCK TYPE, so the two meet only
-         * through the blocks a section holds: one type, or several of the same type, compose
-         * as that type; a section of mixed types composes from the character's own section
-         * language and takes no surface or divider from either (D-096).
-         *
-         * A block this installation cannot draw is left out of the reckoning AND left alone.
-         * Its stored style is the only record of what it was, and a type nobody can render
-         * is not evidence about what the section should look like — so a section holding one
-         * uninstalled block is skipped entirely, exactly as the per-type loop skipped it.
-         */
+        // A block this installation cannot draw is left alone: its stored layout is the
+        // only record of what it was.
         $sections = [];
         foreach ($db->all(
-            'SELECT s.id, b.block_type FROM page_sections s
+            'SELECT s.id, s.style_json, b.block_type, b.layout, b.options_json FROM page_sections s
              LEFT JOIN page_blocks b ON b.section_id = s.id
              ORDER BY s.id, b.column_index, b.sort, b.id',
         ) as $row) {
             $id = (int) $row['id'];
-            $sections[$id] ??= [];
+            $sections[$id] ??= ['style' => (string) $row['style_json'], 'blocks' => [], 'options' => false];
             $type = (string) ($row['block_type'] ?? '');
             if ($registry->has($type)) {
-                $sections[$id][] = $type;
+                $sections[$id]['blocks'][] = ['type' => $type, 'layout' => (string) $row['layout']];
+                $options = json_decode((string) ($row['options_json'] ?? ''), true);
+                $sections[$id]['options'] = $sections[$id]['options'] || (is_array($options) && $options !== []);
             }
         }
 
-        foreach ($sections as $id => $types) {
-            if ($types === []) {
-                continue;
+        foreach ($sections as $id => $section) {
+            $stored = json_decode($section['style'], true);
+            $style = SectionStyle::normalize(is_array($stored) ? $stored : []);
+            $restyled = SectionStyle::overridden($style);
+            if ($restyled) {
+                $db->query(
+                    'UPDATE page_sections SET style_json = ?, updated_at = ? WHERE id = ?',
+                    [json_encode(SectionStyle::reset($style), JSON_THROW_ON_ERROR), $now, $id],
+                );
             }
-            // SECTIONS, because that is the word the message uses: "…:count sections were
-            // reset to the Editorial composition" (lang/en/design.php). While a section held
-            // one block the two counts were the same number and nothing said which it was.
-            // They stop being the same the moment a section holds two, and a number that
-            // quietly means something else than the sentence around it is worse than no
-            // number.
-            $changed += 1;
-            $db->query(
-                'UPDATE page_sections SET style_json = ?, updated_at = ? WHERE id = ?',
-                [json_encode(self::section($character, $types), JSON_THROW_ON_ERROR), $now, $id],
-            );
-            // The layout is the block's own layer 3 and stays on the block row, so it is
-            // composed per type however many types the section turned out to hold.
-            //
             // A COVER HERO KEEPS ITS COVER (PLAN.md D-120). Its arrangement says what its
             // picture IS — the thing behind the words — and that is content, which a character
-            // does not own. Reset with the rest, it went to the character's `center` and the
-            // picture chosen to stand behind the words dropped under them; the owner met
-            // exactly that applying Minimal. Every other arrangement is still reset, as the
-            // button says.
-            foreach (array_unique($types) as $type) {
+            // does not own.
+            foreach ($section['blocks'] as $block) {
+                if ($block['type'] === 'hero' && str_starts_with($block['layout'], 'cover-')) {
+                    continue;
+                }
+                $layout = self::layout($registry, $character, $block['type']);
+                if ($block['layout'] !== $layout) {
+                    $restyled = true;
+                }
+            }
+            // Every option the owner set goes back to the character too (D-166).
+            if ($section['options']) {
+                $restyled = true;
+            }
+            foreach (array_unique(array_column($section['blocks'], 'type')) as $type) {
                 $db->query(
-                    'UPDATE page_blocks SET layout = ?, updated_at = ? WHERE section_id = ? AND block_type = ?'
+                    'UPDATE page_blocks SET layout = ?, options_json = \'{}\', updated_at = ? WHERE section_id = ? AND block_type = ?'
                     . ($type === 'hero' ? " AND layout NOT LIKE 'cover-%'" : ''),
                     [self::layout($registry, $character, $type), $now, $id, $type],
                 );
             }
+            if ($restyled) {
+                $changed += 1;
+            }
         }
 
         return $changed;
+    }
+
+    /**
+     * A composition's section style with every composed key answered, in DEFAULTS' order.
+     *
+     * @param array<string, string> $style
+     * @return array<string, string>
+     */
+    private static function answered(array $style): array
+    {
+        $answered = [];
+        foreach (SectionStyle::DEFAULTS as $key => $default) {
+            $answered[$key] = $style[$key] ?? $default;
+        }
+
+        return $answered;
+    }
+
+    /**
+     * How many sections on the site hold something their owner set over the character: what
+     * applying a character's composition would hand back, said in the question that offers
+     * it (the successor of D-161's "replaces N of your changes", D-165).
+     */
+    public static function styledByHand(Db $db): int
+    {
+        $styled = [];
+        foreach ($db->all('SELECT id, style_json FROM page_sections') as $row) {
+            $style = json_decode((string) $row['style_json'], true);
+            if (SectionStyle::overridden(SectionStyle::normalize(is_array($style) ? $style : []))) {
+                $styled[(int) $row['id']] = true;
+            }
+        }
+        // A section is styled by hand too when a block in it has an option of the owner's.
+        foreach ($db->all('SELECT section_id, options_json FROM page_blocks') as $row) {
+            $options = json_decode((string) ($row['options_json'] ?? ''), true);
+            if (is_array($options) && $options !== [] && $row['section_id'] !== null) {
+                $styled[(int) $row['section_id']] = true;
+            }
+        }
+
+        return count($styled);
     }
 
     /**

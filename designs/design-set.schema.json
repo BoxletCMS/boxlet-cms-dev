@@ -521,6 +521,57 @@
                 }
             }
         },
+        "patterns": {
+            "type": "array",
+            "description": "Starter sections, the one place a set carries words: per language ({\"en\": …, \"hr\": …}, or one string), English the fallback. No pictures, files or forms.",
+            "maxItems": 12,
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "name",
+                    "blocks"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                    },
+                    "name": {
+                        "type": "object",
+                        "minProperties": 1,
+                        "propertyNames": {
+                            "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+                        },
+                        "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 80
+                        }
+                    },
+                    "section": {
+                        "type": "object",
+                        "properties": {
+                            "layout": {
+                                "type": "string"
+                            },
+                            "style": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "blocks": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "required": [
+                                "type"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "composition": {
             "type": "object",
             "description": "Present: the set can be a character. Block types this site does not have, and layouts a block does not offer, are left out with a warning.",
@@ -539,13 +590,6 @@
                                 "tinted",
                                 "contrast",
                                 "gradient"
-                            ]
-                        },
-                        "rhythm": {
-                            "enum": [
-                                "tight",
-                                "normal",
-                                "airy"
                             ]
                         },
                         "width": {
@@ -569,6 +613,42 @@
                                 "slant",
                                 "curve"
                             ]
+                        },
+                        "v_align": {
+                            "enum": [
+                                "top",
+                                "center",
+                                "bottom"
+                            ]
+                        },
+                        "animation": {
+                            "enum": [
+                                "none",
+                                "fade",
+                                "up",
+                                "zoom"
+                            ]
+                        },
+                        "pad_top": {
+                            "type": [
+                                "string",
+                                "number"
+                            ],
+                            "description": "number px, 0 – 200, step 4; '' is the section gap"
+                        },
+                        "pad_bottom": {
+                            "type": [
+                                "string",
+                                "number"
+                            ],
+                            "description": "number px, 0 – 200, step 4; '' is the section gap"
+                        },
+                        "min_height": {
+                            "type": [
+                                "string",
+                                "number"
+                            ],
+                            "description": "number px (% of the window), 0 – 100, step 5"
                         }
                     }
                 },
@@ -603,11 +683,10 @@
                                 "cards"
                             ]
                         },
-                        "columns": {
+                        "cards": {
                             "enum": [
-                                "two",
-                                "three",
-                                "four"
+                                "grid",
+                                "list"
                             ]
                         },
                         "cta": {
@@ -679,6 +758,7 @@
                         "quote": {
                             "enum": [
                                 "plain",
+                                "big",
                                 "card"
                             ]
                         },
@@ -697,6 +777,83 @@
                     },
                     "additionalProperties": {
                         "type": "string"
+                    }
+                },
+                "options": {
+                    "type": "object",
+                    "properties": {
+                        "cards": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "per_row": {
+                                    "type": [
+                                        "string",
+                                        "number"
+                                    ],
+                                    "description": "number, 2 – 4, step 1"
+                                },
+                                "image_shape": {
+                                    "enum": [
+                                        "wide",
+                                        "square",
+                                        "round",
+                                        "none"
+                                    ]
+                                }
+                            }
+                        },
+                        "gallery": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "shape": {
+                                    "enum": [
+                                        "square",
+                                        "wide",
+                                        "natural",
+                                        "round"
+                                    ]
+                                }
+                            }
+                        },
+                        "hero": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "height": {
+                                    "enum": [
+                                        "auto",
+                                        "tall",
+                                        "screen"
+                                    ]
+                                },
+                                "veil": {
+                                    "enum": [
+                                        "light",
+                                        "medium",
+                                        "strong"
+                                    ]
+                                }
+                            }
+                        },
+                        "picture": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "shape": {
+                                    "enum": [
+                                        "natural",
+                                        "wide",
+                                        "square",
+                                        "round"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": {
+                        "type": "object"
                     }
                 }
             }

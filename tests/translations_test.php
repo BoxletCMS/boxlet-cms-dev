@@ -92,9 +92,9 @@ test('what a translation was made from is its words, not its pictures', function
     assertTrue($hash !== Translations::blockHash($registry, 'hero', ['heading' => 'Hi'] + $hero), 'a heading did not');
 
     $columns = ['items' => [['heading' => 'One', 'body' => '', 'image' => null, 'link' => ['label' => '', 'url' => '']]]];
-    $before = Translations::blockHash($registry, 'columns', $columns);
+    $before = Translations::blockHash($registry, 'cards', $columns);
     $columns['items'][0]['heading'] = 'Uno';
-    assertTrue($before !== Translations::blockHash($registry, 'columns', $columns), 'a word inside a column did not');
+    assertTrue($before !== Translations::blockHash($registry, 'cards', $columns), 'a word inside a card did not');
 });
 
 testBothDrivers('the builder offers the other language, and the menu makes and then opens its version', function (string $driver) {

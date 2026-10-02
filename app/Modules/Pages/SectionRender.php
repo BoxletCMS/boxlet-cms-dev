@@ -3,6 +3,7 @@
 namespace App\Modules\Pages;
 
 use App\Core\Blocks;
+use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Media\MediaPicture;
 
@@ -51,11 +52,18 @@ final class SectionRender
      * wrapper element, which is why the page — where it can be PROVEN nothing moved — keeps
      * the shape it has always had.
      *
+     * THE STYLE IS COMPOSED HERE, AS IT IS DRAWN (D-165). What a section stores is what its
+     * owner set; every key left '' is the character's answer for the blocks it holds, asked
+     * now rather than copied in when the section was made — so a section nobody touched
+     * follows the character it is drawn under.
+     *
+     * @param string $character the character the page is drawn under
      * @param bool  $eager whether this is the first section drawn on the page
      * @param array<string, mixed> $resolved what the renderer resolved for these templates
      */
     public static function draw(
         Blocks $registry,
+        string $character,
         array $section,
         array $blocks,
         array $media,
@@ -65,7 +73,7 @@ final class SectionRender
         bool $asColumns = false,
     ): string {
         $layout = SectionLayout::normalize($section['layout']);
-        $style = SectionStyle::normalize($section['style']);
+        $style = self::style($character, $section['style'], $blocks);
 
         if (!$asColumns && $layout === SectionLayout::ONE && count($blocks) === 1) {
             $block = $blocks[0];
@@ -80,6 +88,8 @@ final class SectionRender
                 'section',
                 $resolved,
                 $locale,
+                [],
+                self::options($registry, $character, $block),
             );
         }
 
@@ -101,6 +111,8 @@ final class SectionRender
                 'none',
                 $resolved,
                 $locale,
+                [],
+                self::options($registry, $character, $block),
             );
             /* THE EDITOR'S NAME FOR THE BLOCK, on the block (PLAN.md D-117). The panel holds
                the same block's fields under the same key, and the key is the only thing the
@@ -122,11 +134,39 @@ final class SectionRender
         $classes = implode(' ', array_merge(['block'], SectionStyle::classes($style)));
         $cols = implode(' ', SectionLayout::classes($layout, $section['stack']));
 
-        return '<section class="' . e($classes) . "\">\n"
+        return '<section class="' . e($classes) . '"' . SectionStyle::attributes($style) . ">\n"
             . Blocks::sectionPicture($style, $media, $eager)
             . "<div class=\"container\">\n"
             . '<div class="' . e($cols) . "\">\n" . $inner . "</div>\n"
             . "</div>\n</section>\n";
     }
 
+    /**
+     * A block's options as it is drawn: the owner's over its character's (D-166).
+     *
+     * @param array<string, mixed> $block
+     * @return array<string, string>
+     */
+    private static function options(Blocks $registry, string $character, array $block): array
+    {
+        $type = (string) $block['type'];
+        $specs = $registry->get($type)['options'];
+
+        return \App\Core\BlockOptions::effective($specs, \App\Core\BlockOptions::normalize($specs, $block['options'] ?? []), Composition::options($character, $type));
+    }
+
+    /**
+     * A section's style as it is drawn: the owner's values over what the character composes
+     * for the block types it holds.
+     *
+     * @param array<string, string|int|null> $stored
+     * @param list<array<string, mixed>> $blocks
+     * @return array<string, string|int|null>
+     */
+    public static function style(string $character, array $stored, array $blocks): array
+    {
+        $types = array_map(static fn (array $block): string => (string) $block['type'], $blocks);
+
+        return SectionStyle::effective(SectionStyle::normalize($stored), Composition::section($character, $types));
+    }
 }

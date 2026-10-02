@@ -6,6 +6,7 @@
  * @var array<string, mixed> $content
  * @var array<string, mixed> $style
  * @var string $layout
+ * @var array<string, string> $options the block's options, every one answered (D-166)
  * The picture shape is restated rather than imported: @phpstan-import-type resolves in a
  * class docblock, and a template has no class.
  *
@@ -27,7 +28,7 @@ if ($cover) {
     $coverTag = \App\Modules\Media\MediaPicture::tag($coverPicture, ['wide', 'hero', 'full'], '100vw', $eager);
 }
 ?>
-<div class="hero<?= $cover ? ' is-cover height-' . e($content['height']) . ' veil-' . e($content['veil']) : '' ?>">
+<div class="hero height-<?= e($options['height']) ?><?= $cover ? ' is-cover veil-' . e($options['veil']) : '' ?>">
 <?php if ($cover): ?>
     <div class="hero-cover-picture"<?= $coverTag === '' && $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?>>
 <?php if ($coverTag !== ''): ?>

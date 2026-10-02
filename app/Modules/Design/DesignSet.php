@@ -26,8 +26,9 @@ use App\Modules\Design\Vocabulary\Decisions;
  * is left out with a warning, because a set may come from a site with more blocks than
  * this one.
  *
- * @phpstan-type SetComposition array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>}
- * @phpstan-type ParsedSet array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: SetComposition|null}
+ * @phpstan-type SetComposition array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>, options: array<string, array<string, string>>}
+ * @phpstan-type ParsedSet array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: SetComposition|null, patterns: list<Pattern>}
+ * @phpstan-import-type Pattern from DesignSetPatterns
  */
 final class DesignSet
 {
@@ -36,11 +37,12 @@ final class DesignSet
     public const VERSION = 2;
     /** Larger than any honest design by two orders of magnitude. */
     public const MAX_BYTES = 65536;
-    public const MAX_DEPTH = 8;
+    /** Deep enough for a pattern's words in a card of a block of a pattern (D-169). */
+    public const MAX_DEPTH = 12;
     public const ID_PATTERN = '~^[a-z0-9][a-z0-9-]{0,31}$~';
 
     /** Every top-level key, in the order export() writes them. */
-    private const KEYS = ['$schema', 'format', 'version', 'id', 'name', 'description', 'author', 'tags', 'decisions', 'look', 'composition'];
+    private const KEYS = ['$schema', 'format', 'version', 'id', 'name', 'description', 'author', 'tags', 'decisions', 'look', 'composition', 'patterns'];
 
 
     /**
@@ -82,8 +84,9 @@ final class DesignSet
      * @param array<string, string> $decisions validated decisions
      * @param array<string, string> $look choice => value, '' following the character
      * @param array<string, mixed>|null $composition section, surfaces, dividers, layouts
+     * @param list<array<string, mixed>> $patterns the set's starter sections (D-169)
      */
-    public static function export(string $id, array $name, array $description, array $decisions, array $look, ?array $composition, string $author = ''): string
+    public static function export(string $id, array $name, array $description, array $decisions, array $look, ?array $composition, string $author = '', array $patterns = []): string
     {
         $neutral = Decisions::neutral();
         $kept = [];
@@ -113,12 +116,37 @@ final class DesignSet
         $set['look'] = $ordered;
         if ($composition !== null) {
             $set['composition'] = [
-                'section' => array_intersect_key($composition['section'] ?? [], SectionStyle::OPTIONS),
+                // Every key a character composes, in SectionStyle's order (D-165).
+                'section' => array_intersect_key(array_replace(SectionStyle::DEFAULTS, $composition['section'] ?? []), SectionStyle::DEFAULTS),
                 // Objects even when empty: [] would be read back as a list.
                 'surfaces' => (object) ($composition['surfaces'] ?? []),
                 'dividers' => (object) ($composition['dividers'] ?? []),
                 'layouts' => (object) ($composition['layouts'] ?? []),
+                // Each block type's options the character answers (D-166), when it answers any.
+                'options' => (object) array_map(static fn (array $options): object => (object) $options, $composition['options'] ?? []),
             ];
+        }
+
+        if ($patterns !== []) {
+            $set['patterns'] = array_map(static fn (array $pattern): array => [
+                'id' => $pattern['id'],
+                'name' => $pattern['name'],
+                'section' => [
+                    'layout' => $pattern['section']['layout'],
+                    // Only what the pattern sets: the rest is the character's.
+                    'style' => (object) array_filter(
+                        $pattern['section']['style'],
+                        static fn (mixed $v): bool => $v !== '' && $v !== null,
+                    ),
+                ],
+                'blocks' => array_map(static fn (array $block): array => [
+                    'type' => $block['type'],
+                    'layout' => $block['layout'],
+                    'column' => $block['column'],
+                    'options' => (object) $block['options'],
+                    'content' => (object) $block['content'],
+                ], $pattern['blocks']),
+            ], $patterns);
         }
 
         return json_encode($set, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
@@ -159,6 +187,7 @@ final class DesignSet
         if (array_key_exists('composition', $raw)) {
             $composition = DesignSetParts::composition($raw['composition'], $registry, $errors, $warnings);
         }
+        $patterns = DesignSetPatterns::read($raw['patterns'] ?? null, $registry, $errors, $warnings);
         $decisions = DesignSetParts::decisions($raw['decisions'] ?? null, $errors);
         $look = DesignSetParts::look($raw['look'] ?? null, $errors);
 
@@ -176,6 +205,7 @@ final class DesignSet
                 'decisions' => $decisions,
                 'look' => $look,
                 'composition' => $composition,
+                'patterns' => $patterns,
             ],
             'errors' => [],
             'warnings' => $warnings,

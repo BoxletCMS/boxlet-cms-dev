@@ -29,10 +29,18 @@ return [
                 'caption' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.gallery.caption'],
             ],
         ],
-        // One shape for all of them: pictures taken on different days in different
-        // proportions make a ragged grid, and cropping them to agree is the whole point.
-        'shape' => ['type' => 'select', 'options' => ['square', 'wide', 'natural', 'round']],
     ],
-    'layouts' => ['two', 'three', 'four'],
+    // Each layout with its drawing (D-166): part => [x, y, width, height] on 48 × 24.
+    'layouts' => [
+        'two' => ['image' => [[4, 4, 19, 16], [25, 4, 19, 16]]],
+        'three' => ['image' => [[4, 6, 12, 12], [18, 6, 12, 12], [32, 6, 12, 12]]],
+        'four' => ['image' => [[4, 7, 9, 10], [14, 7, 9, 10], [25, 7, 9, 10], [35, 7, 9, 10]]],
+    ],
     'defaults' => ['layout' => 'three'],
+    'options' => [
+        // One shape for all of them: pictures taken on different days in different
+        // proportions make a ragged grid, and cropping them to agree is the whole point. An
+        // option since D-166, so a character may have its own.
+        'shape' => ['values' => ['square', 'wide', 'natural', 'round'], 'default' => 'square'],
+    ],
 ];

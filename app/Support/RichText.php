@@ -74,6 +74,39 @@ final class RichText
     ];
 
     /**
+     * What a block's rich text field may hold, by name (D-163, D-166): the list a field
+     * declares as `allow`, read by the sanitiser on save and by the canvas toolbar, so a
+     * button is never offered for what the save would strip. A paragraph and a line break
+     * are always there.
+     */
+    public const FEATURES = ['bold', 'italic', 'link', 'heading', 'list', 'quote'];
+
+    private const FEATURE_TAGS = [
+        'bold' => ['strong' => [], 'b' => []],
+        'italic' => ['em' => [], 'i' => []],
+        'link' => ['a' => ['href']],
+        'heading' => ['h2' => [], 'h3' => [], 'h4' => []],
+        'list' => ['ul' => [], 'ol' => [], 'li' => []],
+        'quote' => ['blockquote' => []],
+    ];
+
+    /**
+     * The elements a list of features allows, in sanitize()'s shape.
+     *
+     * @param list<string> $features
+     * @return array<string, list<string>>
+     */
+    public static function allowedFor(array $features): array
+    {
+        $allowed = ['p' => [], 'br' => []];
+        foreach ($features as $feature) {
+            $allowed += self::FEATURE_TAGS[$feature] ?? [];
+        }
+
+        return $allowed;
+    }
+
+    /**
      * @param array<string, list<string>> $allowed tag => attributes it may keep; ALLOWED
      *        for a page's rich text, INLINE for the footer's (D-113)
      */

@@ -36,7 +36,7 @@ const SET = {
     header_button: 'outline', footer_columns: '3', footer_links: 'auto',
   },
   composition: {
-    section: { surface: 'plain', rhythm: 'normal', width: 'normal', align: 'left', divider: 'none' },
+    section: { surface: 'plain', pad_top: '', pad_bottom: '', min_height: '0', v_align: 'top', width: 'normal', align: 'left', divider: 'none', animation: 'none' },
     surfaces: { image_text: 'tinted' },
     dividers: { text: 'line' },
     layouts: { hero: 'split', carousel: 'big' },

@@ -173,7 +173,7 @@ test('a block field opens the crop with the shape its block draws the picture in
     $picture = MediaReference::pickerAttributes('block.picture.image');
     assertContains('data-picker-crop-field="shape"', $picture, 'the picture block reads its shape field');
     assertContains('&quot;wide&quot;:&quot;hero&quot;', $picture, 'wide is drawn 16:9');
-    assertContains('data-picker-crop-field="image_shape"', MediaReference::pickerAttributes('block.columns.items.image'), 'a column\'s picture');
+    assertContains('data-picker-crop-field="image_shape"', MediaReference::pickerAttributes('block.cards.items.image'), 'a card\'s picture');
     // Anything else opens with Free: no hint at all.
     assertTrue(!str_contains(MediaReference::pickerAttributes(), 'data-picker-crop'), 'a picture that is not a block\'s');
     assertTrue(!str_contains(MediaReference::pickerAttributes('block.image_text.image'), 'data-picker-crop'), 'a block with no fixed shape');

@@ -17,4 +17,9 @@ return [
     'designset.unknown_key' => 'Left out :key, which a Boxlet design does not have.',
     'designset.block_unknown' => 'Left out :field: this site has no such block.',
     'designset.layout_unknown' => 'Left out :field: that block does not offer this layout.',
+    'designset.patterns_list' => 'must be a list of patterns.',
+    'designset.pattern_id' => 'a pattern needs an id of its own: lower-case letters, digits and hyphens.',
+    'designset.pattern_blocks' => 'a pattern needs at least one block this site has.',
+    'designset.pattern_field' => 'Left out :field: a pattern carries words and links, not pictures, files or forms.',
+    'designset.option_unknown' => 'Left out :field: that block has no such option, or not that value.',
 ];

@@ -30,6 +30,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-embed.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-downloads.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas.css')) ?>">
     <?php /* Reordering happens here, inside the canvas, because drag events do not cross
              a document boundary. See SPEC 3 for the vendored front-end asset rule. */ ?>

@@ -117,13 +117,16 @@ function field_hint(string $key, string $id = ''): string
  * @param string $form the form the radios belong to, when it is not the one they stand in:
  *        the Appearance screen's Quick start repeats a few questions for a script to mirror,
  *        and two groups of one name in one form are one group (D-157)
+ * @param string $emptyId what the radio for '' is called in its id: `none` where '' means
+ *        none, `auto` where it means the character's answer and `none` is a value of its own
+ *        (a section's edge, D-165)
  */
-function segmented_group(string $name, array $labels, string $current, string $labelledBy, string $idPrefix, string $form = ''): string
+function segmented_group(string $name, array $labels, string $current, string $labelledBy, string $idPrefix, string $form = '', string $emptyId = 'none'): string
 {
     $html = '<div class="segmented-choice" role="radiogroup" aria-labelledby="' . e($labelledBy) . '">';
     foreach ($labels as $value => $label) {
         $value = (string) $value;
-        $html .= '<label class="segment"><input type="radio" id="' . e($idPrefix . ($value === '' ? 'none' : $value)) . '"'
+        $html .= '<label class="segment"><input type="radio" id="' . e($idPrefix . ($value === '' ? $emptyId : $value)) . '"'
             . ' name="' . e($name) . '" value="' . e($value) . '"' . ($form !== '' ? ' form="' . e($form) . '"' : '') . ($value === $current ? ' checked' : '') . '>'
             . '<span>' . e($label) . '</span></label>';
     }

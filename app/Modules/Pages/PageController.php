@@ -6,8 +6,7 @@ use App\Core\Container;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
-use App\Modules\Forms\FormBlocks;
-use App\Modules\Media\MediaPicture;
+use App\Modules\Design\Composition;
 use App\Modules\Redirects\Redirects;
 use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
@@ -53,56 +52,19 @@ final class PageController
             return Response::redirect(Url::withQuery(Url::page($locale, $slug), self::query($request)), 301);
         }
 
-        $registry = $this->container->get('blocks');
-        $blocks = Page::blocks($db, (int) $page['id']);
-        // Every picture this page refers to, in one query rather than one per block, and
-        // before anything renders: a template is handed what it needs and never queries.
-        $media = MediaPicture::forBlocks($db, $registry, $locale, $blocks);
-        // Links to pages, followed in one query in the visitor's language (PLAN.md D-034).
-        $links = PageLinks::targets($db, $registry, $locale, $blocks);
         // Forms, with what the visitor just did to one (D-046): ?sent=id after a send.
         $sent = $request->query['sent'] ?? null;
-        $forms = FormBlocks::resolve(
+        $body = PageBody::draw(
             $db,
-            $blocks,
-            $locale,
+            $this->container->get('blocks'),
             (int) $page['id'],
+            $locale,
+            Composition::active($db),
             (string) $this->container->get('config')->get('app.key'),
             is_string($sent) && ctype_digit($sent) ? (int) $sent : null,
         );
-        // The files the page's Downloads blocks offer (D-127), in one query.
-        $files = \App\Modules\Media\MediaFiles::forBlocks($db, $registry, $blocks);
-
-        $html = '';
-        $first = true;
-        // What the first section stands on, for a header laid over it: the ink on such a
-        // header is that section's, and so is the choice between the two logos (D-112).
-        $firstSurface = '';
-        foreach (Sections::group(Sections::forPage($db, (int) $page['id']), $blocks) as $group) {
-            $drawable = [];
-            foreach ($group['blocks'] as $block) {
-                // A block whose type was removed from app/Blocks cannot render; skip it.
-                if (!$registry->has($block['type'])) {
-                    continue;
-                }
-                $block['content'] = PageLinks::content($registry, $block['type'], $block['content'], $links);
-                $drawable[] = $block;
-            }
-            // A section whose every block is of a type this install no longer has would be
-            // an empty band of surface and rhythm — the same thing prune() refuses to leave
-            // behind on save, refused here on the way out for the rows it cannot see.
-            if ($drawable === []) {
-                continue;
-            }
-            // Only the first section that actually draws is eager. Everything below the
-            // fold is lazy, which is the whole point of loading="lazy" — and the first
-            // picture is usually the one a visitor is waiting to see.
-            $html .= SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms, 'files' => $files], $locale);
-            if ($first) {
-                $firstSurface = (string) ($group['section']['style']['surface'] ?? '');
-            }
-            $first = false;
-        }
+        $html = $body['html'];
+        $firstSurface = $body['firstSurface'];
 
         // D-004. THE ONLY PLACE THE TITLE FALLS BACK. An empty <title> is worse than one
         // repeating the page's own, so the page title stands in; an empty description is

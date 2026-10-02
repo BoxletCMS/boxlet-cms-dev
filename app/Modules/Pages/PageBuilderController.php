@@ -106,6 +106,7 @@ final class PageBuilderController
          */
         $html = '';
         $first = true;
+        $character = Composition::active($this->db());
         foreach (Sections::group($this->sectionsByKey($sections), $blocks, true) as $group) {
             $drawable = [];
             $isStale = false;
@@ -127,7 +128,7 @@ final class PageBuilderController
             }
             // ALWAYS AS COLUMNS HERE (D-103): a column is what a block is dragged into and
             // what the + in it adds to, and a band that draws none has neither.
-            $drawn = SectionRender::draw($registry, $group['section'], $drawable, $media, $first, ['forms' => $forms, 'files' => $files], (string) $page['locale'], true);
+            $drawn = SectionRender::draw($registry, $character, $group['section'], $drawable, $media, $first, ['forms' => $forms, 'files' => $files], (string) $page['locale'], true);
             /* THE BAND SAYS WHICH BAND IT IS, for the editor only (D-099). The canvas draws
                the visitor's markup and this is the one thing added to it: without a name on
                the band, the + in an empty column has no way to say which column of which
@@ -178,7 +179,7 @@ final class PageBuilderController
      * below, without the error posture — nothing here failed.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
     public function again(array $page, string $title, string $slug, array $blocks, ?array $sections = null): Response
@@ -201,7 +202,7 @@ final class PageBuilderController
      * and storage it runs first are the same for both editors.
      *
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      */
@@ -227,7 +228,7 @@ final class PageBuilderController
      * for the blocks and then for the sections would get the arrangement of the stored page
      * with the blocks of the refused save — every block homeless, every band gone.
      *
-     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section: string, column: int}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>}
+     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section: string, column: int}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>}
      */
     private function canvasState(int $pageId): array
     {
@@ -335,7 +336,7 @@ final class PageBuilderController
 
     /**
      * @param array<string, mixed> $page
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      * @param bool $fromStorage whether $blocks are the page as STORED. It defaults to

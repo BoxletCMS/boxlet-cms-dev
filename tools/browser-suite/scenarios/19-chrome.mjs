@@ -32,6 +32,12 @@ const readChrome = (page) => page.evaluate(() => {
   };
 });
 
+/**
+ * Every language's words open: on a site whose first language is not English the English
+ * panel is folded, and a field in a folded <details> cannot be typed into.
+ */
+const openWords = (page) => page.$$eval('details.words', (all) => all.forEach((d) => { d.open = true; }));
+
 export default {
   name: 'chrome',
 
@@ -86,6 +92,7 @@ export default {
     await controlsOnPanels(page, report, 'header section');
     await report.shot(page, '01-chrome-screen');
     await openSection(page, 'footer');
+    await openWords(page);
     await controlsOnPanels(page, report, 'footer section');
 
     const before = await readChrome(page);
@@ -97,7 +104,10 @@ export default {
       // text since D-113: typed into the editor, with the whole of it selected first, the
       // way a person replaces a line — and with a link in it, which is what rich text is for.
       await openSection(page, 'footer');
-      const footerEditor = '[data-view="footer"] .ProseMirror';
+      await openWords(page);
+      // The English column's editor: the first in the section is the site's first language. Found
+      // by the field's name, which the editor moves to a hidden input inside its container.
+      const footerEditor = '[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) .ProseMirror';
       await page.waitForSelector(footerEditor, { timeout: 10000 });
       await page.click(footerEditor);
       await page.keyboard.down('Control');
@@ -111,10 +121,11 @@ export default {
         await page.keyboard.press('ArrowLeft');
         await page.keyboard.up('Shift');
       }
-      await page.click('[data-view="footer"] [data-rt="link"]');
-      await page.type('[data-view="footer"] .rt-link-input', 'hello@example.com', { delay: 10 });
-      await page.click('[data-view="footer"] [data-rt-link="apply"]');
+      await page.click('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) [data-rt="link"]');
+      await page.type('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) .rt-link-input', 'hello@example.com', { delay: 10 });
+      await page.click('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) [data-rt-link="apply"]');
       await openSection(page, 'header');
+      await openWords(page);
       await retype(page, '[name="header_button_label_en"]', `${MARKER} button`);
       // An address of its own, so the page chooser first goes back to "another address".
       await page.select('[name="header_button_page_en"]', '');
@@ -122,6 +133,7 @@ export default {
       await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
       await openSection(page, 'header');
+      await openWords(page);
       const after = await readChrome(page);
       report.verdict('what was typed is saved and comes back',
         after.text.includes(`${MARKER} footer`) && after.text.includes('mailto:hello@example.com') && after.label === `${MARKER} button`,
@@ -129,6 +141,13 @@ export default {
 
       // ---- what the visitor gets -----------------------------------------------------------
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
+      // The English page, where the words typed above are: through the language switcher when
+      // the site's first language is another (the demo's is Croatian, D-167).
+      const english = await page.evaluate(() => (document.documentElement.lang === 'en' ? null
+        : (document.querySelector('.locale-switcher a[hreflang="en"]') || {}).href || null));
+      if (english !== null) {
+        await page.goto(english, { waitUntil: 'networkidle2' });
+      }
       const site = await page.evaluate(() => {
         const inFooter = (el) => !!el.closest('footer.block-footer');
         const switchers = Array.from(document.querySelectorAll('.locale-switcher'));
@@ -173,14 +192,16 @@ export default {
       // Put every word back, whatever happened above.
       await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
       await openSection(page, 'footer');
+      await openWords(page);
       // Put the stored HTML back through the plain view of the editor, which is the
       // textarea underneath; its value reaches the field that carries the name.
-      await page.click('[data-view="footer"] [data-richtext-toggle]');
-      await page.$eval('[data-view="footer"] textarea[data-richtext-source]', (el, value) => {
+      await page.click('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) [data-richtext-toggle]');
+      await page.$eval('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) textarea[data-richtext-source]', (el, value) => {
         el.value = value;
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }, before.text);
       await openSection(page, 'header');
+      await openWords(page);
       // A page the button pointed at is put back as that page, not as its address. The
       // label goes last: choosing a page may offer its title in place of the text.
       await page.select('[name="header_button_page_en"]', before.page);
@@ -191,6 +212,7 @@ export default {
       await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
 
       await openSection(page, 'header');
+      await openWords(page);
       const restored = await readChrome(page);
       report.verdict('the scenario puts the chrome back',
         restored.text === before.text && restored.label === before.label,

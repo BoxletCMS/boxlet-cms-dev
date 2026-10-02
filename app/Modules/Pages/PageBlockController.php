@@ -77,6 +77,7 @@ final class PageBlockController
                 'key' => $block['key'],
                 'type' => $block['type'],
                 'content' => $block['content'],
+                'options' => $block['options'] ?? [],
                 'layout' => $block['layout'],
                 'column' => $block['column'] ?? 0,
             ];
@@ -110,6 +111,7 @@ final class PageBlockController
             'registry' => $registry,
             'bandHtml' => SectionRender::draw(
                 $registry,
+                Composition::active($this->db()),
                 $section,
                 $blocks,
                 MediaPicture::forBlocks($this->db(), $registry, $locale, $blocks),
@@ -158,7 +160,7 @@ final class PageBlockController
             'id' => null,
             'type' => $type,
             'content' => $registry->fresh($type),
-            'style' => Composition::style($character, $type),
+            'style' => \App\Modules\Design\SectionStyle::normalize([]), // every key '' — the character's (D-165)
             'layout' => Composition::layout($registry, $character, $type),
         ];
 
@@ -179,6 +181,7 @@ final class PageBlockController
                     'type' => $first['type'],
                     'content' => $first['content'],
                     'style' => $first['style'],
+                    'options' => $first['options'] ?? [],
                     'layout' => $first['layout'],
                 ];
             }
@@ -215,7 +218,7 @@ final class PageBlockController
                 MediaPicture::forBlocks($this->db(), $registry, $locale, [$block]),
                 false,
                 /* A BLOCK IS NEVER A BAND HERE (PLAN.md D-099, D-103). The band around it
-                   draws the surface, the rhythm and the container, so what comes back is
+                   draws the surface, the spacing and the container, so what comes back is
                    the block's own wrapper and nothing else — exactly what
                    SectionRender::draw() renders inside a column, which is the only shape
                    the editor's canvas has since D-103. A block always lands in a column:
@@ -227,6 +230,13 @@ final class PageBlockController
                     // The files a Downloads block names (D-127), as the page gets them.
                     'files' => \App\Modules\Media\MediaFiles::forBlocks($this->db(), $registry, [$block])],
                 (string) $page['locale'],
+                [],
+                // Its options as the page will draw them: the owner's over the character's (D-166).
+                \App\Core\BlockOptions::effective(
+                    $registry->get($type)['options'],
+                    \App\Core\BlockOptions::normalize($registry->get($type)['options'], $block['options'] ?? []),
+                    Composition::options($character, $type),
+                ),
             ),
         ], null);
 

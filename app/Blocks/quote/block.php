@@ -22,6 +22,11 @@ return [
         'role' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.quote.role'],
         'portrait' => ['type' => 'media'],
     ],
-    'layouts' => ['plain', 'card'],
+    // Each layout with its drawing (D-166): part => [x, y, width, height] on 48 × 24.
+    'layouts' => [
+        'plain' => ['logo' => [[8, 5, 1, 12]], 'line' => [[11, 5, 26, 2], [11, 9, 22, 2], [11, 15, 10, 1]]],
+        'big' => ['line' => [[6, 4, 36, 3], [6, 9, 30, 3], [6, 16, 10, 1]]],
+        'card' => ['image' => [[6, 3, 36, 18]], 'line' => [[10, 7, 26, 2], [10, 11, 22, 2], [10, 16, 10, 1]]],
+    ],
     'defaults' => ['layout' => 'plain'],
 ];

@@ -70,7 +70,7 @@ test('the five core files pass validation and the format\'s own reader, changing
         assertEquals(Characters::composition($id), $read['set']['composition'] ?? null, "{$id}: composition");
         // What export writes is the file, byte for byte: the core files are in canonical form.
         $set = $read['set'] ?? fail("{$id}: nothing was read");
-        assertEquals($file, DesignSet::export($id, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author']), "{$id}: not in canonical form");
+        assertEquals($file, DesignSet::export($id, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns']), "{$id}: not in canonical form");
 
         // A character Boxlet ships makes none of the owner's exceptions (D-063, D-066, D-076).
         $exceptions = array_merge(
@@ -249,7 +249,7 @@ function withImports(App\Core\Db $db, Closure $body, array $files = []): void
  * A set as DesignSet::parse() hands it to addImported().
  *
  * @param array<string, mixed> $changes
- * @return array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>}|null}
+ * @return array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>, options: array<string, array<string, string>>}|null, patterns: list<array{id: string, name: array<string, string>, section: array{layout: string, style: array<string, string|int|null>}, blocks: list<array{type: string, layout: string, column: int, options: array<string, string>, content: array<string, mixed>}>}>}
  */
 function parsedSet(string $id, array $changes = []): array
 {

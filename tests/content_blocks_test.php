@@ -17,14 +17,15 @@ use App\Core\Blocks;
 /**
  * @param array<string, mixed> $content
  * @param array<int, array<string, mixed>> $media
+ * @param array<string, string> $options the block's options (D-166)
  * @return string the block, rendered bare, with no section wrapper around it.
  */
-function drawBlock(string $type, array $content, string $layout = '', array $media = []): string
+function drawBlock(string $type, array $content, string $layout = '', array $media = [], array $options = []): string
 {
     static $registry = null;
     $registry ??= Blocks::discover(dirname(__DIR__) . '/app/Blocks');
 
-    return $registry->render($type, $content, [], $layout, $media, false, 'none', [], 'en');
+    return $registry->render($type, $content, [], $layout, $media, false, 'none', [], 'en', [], $options);
 }
 
 test('a quote marks up a quotation and its source, not three paragraphs', function (): void {
@@ -68,8 +69,7 @@ test('a gallery draws every cell, including the ones nobody has filled', functio
     $html = drawBlock('gallery', [
         'heading' => 'Three of them',
         'items' => [['caption' => 'One'], [], ['caption' => 'Three']],
-        'shape' => 'square',
-    ], 'three');
+    ], 'three', [], ['shape' => 'square']);
     assertEquals(3, substr_count($html, 'gallery-item'), 'cells drawn');
     // The empty one is marked, so canvas.css can outline it while editing: a hole that
     // appears only after publishing is the thing this avoids.
@@ -146,15 +146,16 @@ test('a logo, and a picture in its natural shape, are drawn from the presets tha
     assertContains('/m/natural/9-wordmark', $logos, 'the logo is not drawn from natural');
     assertTrue(!$cut($logos), 'the logo can still be drawn from a cropped preset');
 
-    $natural = drawBlock('picture', ['image' => 9, 'shape' => 'natural'], 'full', $media);
+    // The shape is an option since D-166.
+    $natural = drawBlock('picture', ['image' => 9], 'full', $media, ['shape' => 'natural']);
     assertContains('/m/natural/9-wordmark', $natural, 'a natural picture is not drawn from natural');
     assertTrue(!$cut($natural), 'a natural picture can still be drawn from a cropped preset');
 
     // The other shapes are drawn by the stylesheet over a crop, and keep asking for one.
-    $square = drawBlock('picture', ['image' => 9, 'shape' => 'square'], 'full', $media);
+    $square = drawBlock('picture', ['image' => 9], 'full', $media, ['shape' => 'square']);
     assertContains('/m/card/9-wordmark', $square, 'a square picture stopped asking for a crop');
 
-    $gallery = drawBlock('gallery', ['items' => [['image' => 9]], 'shape' => 'natural'], 'three', $media);
+    $gallery = drawBlock('gallery', ['items' => [['image' => 9]]], 'three', $media, ['shape' => 'natural']);
     assertContains('/m/natural/9-wordmark', $gallery, 'a natural gallery is not drawn from natural');
     assertTrue(!$cut($gallery), 'a natural gallery can still be drawn from a cropped preset');
 });

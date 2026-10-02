@@ -12,13 +12,14 @@ use App\Modules\Design\Presets;
 /**
  * @param array<string, mixed> $content
  * @param array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}> $media
+ * @param array<string, string> $options the block's options (D-166)
  */
-function coverHero(array $content, string $layout, array $media = []): string
+function coverHero(array $content, string $layout, array $media = [], array $options = []): string
 {
     static $registry = null;
     $registry ??= Blocks::discover(dirname(__DIR__) . '/app/Blocks');
 
-    return $registry->render('hero', $registry->normalize('hero', $content), [], $layout, $media, false, 'none', [], 'en');
+    return $registry->render('hero', $registry->normalize('hero', $content), [], $layout, $media, false, 'none', [], 'en', [], $options);
 }
 
 /** One sRGB colour laid over another at an opacity, as a browser composites a veil. */
@@ -71,10 +72,12 @@ test('a cover arrangement draws the picture behind the words, and the others dra
         'id' => 7, 'filename' => 'harbour', 'width' => 2400, 'height' => 1600, 'focalX' => 50, 'focalY' => 50,
         'variants' => $variants, 'alt' => 'The harbour at dusk', 'version' => '',
     ]];
-    $content = ['heading' => 'Welcome', 'image' => 7, 'height' => 'tall', 'veil' => 'strong'];
+    $content = ['heading' => 'Welcome', 'image' => 7];
+    // Options since D-166: how it is presented, apart from what it says.
+    $options = ['height' => 'tall', 'veil' => 'strong'];
 
-    $cover = coverHero($content, 'cover-low', $media);
-    assertContains('class="hero is-cover height-tall veil-strong"', $cover, 'the choices reach the markup as classes');
+    $cover = coverHero($content, 'cover-low', $media, $options);
+    assertContains('class="hero height-tall is-cover veil-strong"', $cover, 'the choices reach the markup as classes');
     assertContains('<div class="hero-cover-picture">', $cover, 'the picture layer');
     assertContains('/m/hero/7-harbour', $cover, 'the picture, from the full-width presets');
     assertContains('alt="The harbour at dusk"', $cover, 'it is content, so it keeps its alt');
@@ -82,7 +85,7 @@ test('a cover arrangement draws the picture behind the words, and the others dra
 
     // Every cover arrangement is one: the fourth, on the right, came after the first three.
     foreach (['cover-center', 'cover-left', 'cover-right', 'cover-low'] as $arrangement) {
-        assertContains('hero is-cover', coverHero($content, $arrangement, $media), "{$arrangement} is not a cover");
+        assertContains('is-cover', coverHero($content, $arrangement, $media, $options), "{$arrangement} is not a cover");
     }
 
     // No picture yet: the layer is still drawn, because its colour is what the words are
@@ -90,16 +93,16 @@ test('a cover arrangement draws the picture behind the words, and the others dra
     $empty = coverHero(['heading' => 'Welcome'], 'cover-center');
     assertContains('<div class="hero-cover-picture">', $empty, 'an empty cover hero lost its surface');
 
-    // The arrangements that were there before are untouched by the two new choices.
-    $left = coverHero($content, 'left', $media);
+    // The other arrangements draw no cover and no veil. THE HEIGHT CHANGED DELIBERATELY with
+    // D-166: it is every hero's option now (README 1.6), so a left hero stands tall too.
+    $left = coverHero($content, 'left', $media, $options);
     assertTrue(!str_contains($left, 'is-cover') && !str_contains($left, 'hero-cover-picture'), 'a left hero became a cover');
-    assertTrue(!str_contains($left, 'height-') && !str_contains($left, 'veil-'), 'a left hero carries the cover choices');
+    assertTrue(!str_contains($left, 'veil-'), 'a left hero carries the veil');
+    assertContains('class="hero height-tall"', $left, 'and its height is its own');
 });
 
-test('a hero stored before the cover arrangements reads its new choices as the first of each', function (): void {
-    $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
-    $old = $registry->normalize('hero', ['heading' => 'Welcome', 'subheading' => '', 'image' => null]);
-
-    assertEquals('content', $old['height'] ?? null, 'height');
-    assertEquals('light', $old['veil'] ?? null, 'veil');
+// Options with nothing said are their defaults (D-166): as tall as the words, the lightest veil.
+test('a hero whose options nobody set is drawn with their defaults', function (): void {
+    assertContains('class="hero height-auto is-cover veil-light"', coverHero(['heading' => 'Welcome'], 'cover-center'), 'the defaults');
+    assertContains('class="hero height-screen is-cover veil-light"', coverHero(['heading' => 'Welcome'], 'cover-center', [], ['height' => 'screen', 'veil' => 'neon']), 'a value no option holds is its default');
 });

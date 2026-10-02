@@ -22,6 +22,7 @@ use App\Support\Url;
  * @var list<string> $importErrors
  * @var array{set: array<string, mixed>, warnings: list<string>}|null $import
  * @var bool $confirm
+ * @var int $restyled how many sections hold something set by hand, which Apply hands back (D-165)
  * @var string $character
  * @var Closure(array<string, string>, string, string, string): string $card
  */
@@ -56,6 +57,9 @@ use App\Support\Url;
                             <span>
                                 <button type="submit" form="design-form" name="action" value="save_composition" class="button"><?= e(t('design.apply.with_composition')) ?></button>
                                 <span class="hint hint-always"><?= e(t('design.apply.with_composition_hint')) ?></span>
+<?php if ($restyled > 0): ?>
+                                <span class="hint hint-always" data-restyled><?= e(t($restyled === 1 ? 'inspector.apply.restyles_one' : 'inspector.apply.restyles_many', ['count' => (string) $restyled])) ?></span>
+<?php endif; ?>
                             </span>
                             <?php /* A WAY OUT (D-161): the screen as the site is published, which is
                                      the state before the character was loaded. A link, so it

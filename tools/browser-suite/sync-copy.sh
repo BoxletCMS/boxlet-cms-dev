@@ -34,13 +34,16 @@ if [ "$(cd "$target" && pwd)" = "$checkout" ]; then
   exit 1
 fi
 
+# --delete: a file the checkout no longer has is gone from the copy too. Without it a block
+# removed or renamed (Columns became Cards, D-166) stayed in the copy's app/Blocks, and the
+# registry refused the whole site over a definition the checkout had not had for a day.
 for part in app config lang public/assets migrations; do
-  rsync -a "$checkout/$part/" "$target/$part/"
+  rsync -a --delete "$checkout/$part/" "$target/$part/"
 done
 # The design sets Boxlet ships (PLAN.md D-152): without them the copy has no characters at
 # all. Never designs/custom/, which is the copy's own, as it is any site's (D-155).
 mkdir -p "$target/designs"
-rsync -a --exclude custom/ "$checkout/designs/" "$target/designs/"
+rsync -a --delete --exclude custom/ "$checkout/designs/" "$target/designs/"
 # The front controller too, since statistics (D-051) put code after send(): without it the
 # copy recorded HEAD while running an older index.php. Not install.php, which the copy's
 # own install deletes.

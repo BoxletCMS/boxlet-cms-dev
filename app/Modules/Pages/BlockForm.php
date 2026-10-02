@@ -48,9 +48,9 @@ final class BlockForm
      * would have returned had the browser sent every field, so nothing downstream — the
      * canvas, a rejected save, the write — needs to know which blocks did that.
      *
-     * @param array<int, array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $stored
+     * @param array<int, array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $stored
      *        block id => the block as stored, for this page's blocks
-     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string, section?: string, column?: int}>, errors: array<string, string>}
+     * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}>, errors: array<string, string>}
      */
     public static function parse(Blocks $registry, mixed $posted, array $stored): array
     {
@@ -128,6 +128,9 @@ final class BlockForm
                 'type' => $type,
                 'content' => self::fillRows($registry, $type, $content, $layout),
                 'style' => SectionStyle::normalize($raw['style'] ?? null),
+                // How it is presented, typed at blocks[key][options][name]; '' or a missing
+                // one is the character's (D-166).
+                'options' => \App\Core\BlockOptions::normalize($registry->get($type)['options'], $raw['options'] ?? null),
                 'layout' => $layout,
             ];
         }
@@ -178,7 +181,7 @@ final class BlockForm
      * that slot since. A key that names nothing does nothing, which is the honest answer to
      * a stale button.
      *
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $blocks
      */
     private static function at(array $blocks, string $key): ?int
     {
@@ -192,8 +195,8 @@ final class BlockForm
     }
 
     /**
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
-     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $blocks
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}>
      */
     public static function move(array $blocks, string $key, string $direction): array
     {
@@ -213,8 +216,8 @@ final class BlockForm
      * One repeater item moved within its block — D-011's pattern one level down, where the
      * same route serves the drag and the buttons a browser without JavaScript uses.
      *
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
-     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $blocks
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}>
      */
     public static function moveItem(Blocks $registry, array $blocks, string $key, string $field, int $item, string $direction): array
     {
@@ -247,8 +250,8 @@ final class BlockForm
      * it: the button that cannot do anything should do nothing, not hand back an error
      * for something the editor itself just did.
      *
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
-     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}>
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $blocks
+     * @return list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}>
      */
     public static function addItem(Blocks $registry, array $blocks, string $key, string $field): array
     {
@@ -279,7 +282,7 @@ final class BlockForm
      * one. An action naming a field the block does not declare moves nothing rather than
      * reaching into stored content with whatever was posted.
      *
-     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, layout: string}> $blocks
+     * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $blocks
      * @return array{0: array<string, mixed>|null, 1: array<string, mixed>|null}
      */
     private static function repeaterAt(Blocks $registry, array $blocks, int $position, string $field): array
@@ -403,7 +406,8 @@ final class BlockForm
                 return [$options[0], t('pages.field.select')];
 
             case 'richtext':
-                $html = RichText::sanitize(is_string($raw) ? $raw : '');
+                // What this field allows, from its definition (D-166): the same list its toolbar offers.
+                $html = RichText::sanitize(is_string($raw) ? $raw : '', RichText::allowedFor($field['allow'] ?? RichText::FEATURES));
                 $empty = trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8')) === '';
 
                 return [$empty ? '' : $html, $empty && $required ? t('pages.field.required') : null];

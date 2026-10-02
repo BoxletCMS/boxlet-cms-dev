@@ -84,7 +84,7 @@ testBothDrivers('the endpoint renders exactly what the canvas renders', function
 testBothDrivers('a redraw returns the block alone, and never the band around it', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', true, [
-        ['type' => 'text', 'content' => ['body' => '<p>Stored</p>'], 'style' => ['surface' => 'contrast', 'rhythm' => 'airy']],
+        ['type' => 'text', 'content' => ['body' => '<p>Stored</p>'], 'style' => ['surface' => 'contrast', 'pad_top' => '120']],
     ]);
 
     /* WHAT THE EDITOR SENDS WHILE SOMEBODY TYPES: the block's fields, and nothing else.
@@ -105,7 +105,7 @@ testBothDrivers('a redraw returns the block alone, and never the band around it'
     }
     assertContains('block-text', $drawn[1], 'the block itself');
     assertTrue(!str_contains($drawn[1], '<section'), 'the endpoint wrapped the block in a band');
-    foreach (['surface-', 'rhythm-', 'width-', 'align-', 'divider-'] as $ofTheBand) {
+    foreach (['surface-', 'pad-t-', 'width-', 'align-', 'divider-'] as $ofTheBand) {
         assertTrue(!str_contains($drawn[1], $ofTheBand), "the block carries the band's {$ofTheBand} class");
     }
 
@@ -342,7 +342,7 @@ testBothDrivers('the band endpoint draws a whole section and writes nothing', fu
         'section' => [
             'layout' => 'halves',
             'stack' => 'reverse',
-            'style' => ['surface' => 'tinted', 'rhythm' => 'airy', 'width' => 'normal', 'align' => 'left', 'divider' => 'none'],
+            'style' => ['surface' => 'tinted', 'pad_top' => '120', 'width' => 'normal', 'align' => 'left', 'divider' => 'none'],
         ],
         'blocks' => ['b1' => ['type' => 'text', 'body' => '<p>Left</p>', 'column' => '0']],
     ]);

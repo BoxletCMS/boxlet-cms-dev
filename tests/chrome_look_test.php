@@ -521,7 +521,7 @@ test('the footer\'s stylesheet rules can match what the footer draws', function 
     // a unitless 0 in a calc with a length, which the browser throws out whole, and a
     // compound selector for two classes that sit on two different elements.
     $sections = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections.css');
-    assertTrue(preg_match('~\.block-footer\s*\{[^}]*--section-rhythm:\s*0rem;~', $sections) === 1, 'the chrome\'s rhythm is a length');
+    assertTrue(preg_match('~\.block-footer\s*\{[^}]*--section-pad-top:\s*0rem;\s*--section-pad-bottom:\s*0rem;~', $sections) === 1, 'the chrome\'s padding is a length');
     $chrome = (string) file_get_contents(dirname(__DIR__) . '/public/assets/chrome.css');
     assertTrue(preg_match('~\.layout-[a-z_]+\.footer-cols-~', $chrome) !== 1, 'a layout class and a footer-cols class written as one element');
 });

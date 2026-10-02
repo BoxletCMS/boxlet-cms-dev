@@ -172,7 +172,8 @@ final class Translations
      */
     public static function pageHash(array $page): string
     {
-        $seo = Page::seo($page);
+        // Its words only: whether search engines may list it is not something to translate.
+        $seo = array_intersect_key(Page::seo($page), ['title' => true, 'description' => true]);
 
         return hash('sha256', json_encode([(string) $page['title'], $seo], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
     }

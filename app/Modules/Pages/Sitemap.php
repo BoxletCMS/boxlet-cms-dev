@@ -27,11 +27,13 @@ final class Sitemap
     public static function xml(Db $db): string
     {
         $rows = $db->all(
-            "SELECT p.id, p.content_group_id, p.locale, p.slug, p.updated_at
+            "SELECT p.id, p.content_group_id, p.locale, p.slug, p.updated_at, p.seo_json
              FROM pages p JOIN locales l ON l.code = p.locale
              WHERE p.status = 'published' AND l.enabled = 1
              ORDER BY l.is_primary DESC, l.sort, p.locale, p.sort, p.id"
         );
+        // A page kept out of search engines is kept out of the map of the site (D-170).
+        $rows = array_values(array_filter($rows, static fn (array $row): bool => !Page::seo($row)['noindex']));
         $groups = [];
         foreach ($rows as $row) {
             $groups[(int) ($row['content_group_id'] ?? $row['id'])][(string) $row['locale']] = (string) $row['slug'];

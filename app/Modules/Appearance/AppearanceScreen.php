@@ -169,7 +169,7 @@ final class AppearanceScreen
             'host' => (string) parse_url(Url::withOrigin(''), PHP_URL_HOST),
             'pageName' => self::previewedPage($db, $shownLocale),
             'previewPages' => self::previewPages($db, $shownLocale),
-            'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shownLocale, $character)),
+            'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shownLocale, $character, $basis)),
             // Design files (D-152): one brought in and waiting, why one was refused, the custom
             // files left out, and a character the site was composed with that is gone (D-156).
             'import' => $extra['import'] ?? null,

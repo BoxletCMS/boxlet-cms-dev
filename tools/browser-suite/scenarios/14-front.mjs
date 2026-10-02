@@ -80,6 +80,15 @@ const onPage = (page) => page.evaluate(() => {
   };
 });
 
+/** A section's surface pressed, as a row of radios is: O-29 was this written for a select. */
+const setSurface = (page, name, value) => page.evaluate((n, v) => {
+  const radio = document.querySelector(`input[name="${n}"][value="${v}"]`);
+  if (radio) {
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}, name, value);
+
 export default {
   name: 'front-pictures',
   // Runs against the throwaway copy: it applies characters, which rewrites the whole design.
@@ -161,8 +170,9 @@ export default {
       // and draws nothing — correct, and it would leave every check below judging a page
       // with no backdrop on it while reporting that the backdrop is fine.
       surfaceSelect = surfaceField.replace('[image]', '[surface]');
-      originalSurface = await page.$eval(`select[name="${surfaceSelect}"]`, (el) => el.value).catch(() => null);
-      await page.select(`select[name="${surfaceSelect}"]`, 'image');
+      // Radios since D-107, '' (Auto, the character's) among them since D-165: the one pressed.
+      originalSurface = await page.$eval(`input[name="${surfaceSelect}"]:checked`, (el) => el.value).catch(() => null);
+      await setSurface(page, surfaceSelect, 'image');
 
       backdrop = await pick(page, `select[name="${surfaceField}"]`, 1);
     }
@@ -278,7 +288,7 @@ export default {
     // section the seed never had.
     if (surfaceSelect !== null && originalSurface !== null) {
       await page.$$eval('details.block-style', (els) => els.forEach((el) => { el.open = true; }));
-      await page.select(`select[name="${surfaceSelect}"]`, originalSurface);
+      await setSurface(page, surfaceSelect, originalSurface);
     }
     await save(page);
 

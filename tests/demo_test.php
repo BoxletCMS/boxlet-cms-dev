@@ -68,14 +68,15 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
 });
 
 // The home page is the mockup's, and a section stores what the page names and nothing else.
+// In English, which Boxlet ships in (README 1.6), word for word.
 testBothDrivers('the home page is the mockup page, its sections holding only what they set', function (string $driver) {
-    $db = installedSite(['hr' => 'Hrvatski'], $driver);
+    $db = installedSite(['en' => 'English'], $driver);
     $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
-    DemoSite::seed($db, $registry, 'hr');
+    DemoSite::seed($db, $registry, 'en');
 
-    $home = (int) ($db->one("SELECT id FROM pages WHERE slug = '' AND locale = 'hr'")['id'] ?? 0);
+    $home = (int) ($db->one("SELECT id FROM pages WHERE slug = '' AND locale = 'en'")['id'] ?? 0);
     $sections = array_values(Sections::forPage($db, $home));
-    $seeded = DemoSite::pages('hr')[0]['sections'];
+    $seeded = DemoSite::pages('en')[0]['sections'];
     assertEquals(count($seeded), count($sections), 'sections');
     foreach ($seeded as $at => $section) {
         assertEquals(SectionStyle::normalize($section['style']), $sections[$at]['style'], "section {$at} stored more than it set");
@@ -83,12 +84,14 @@ testBothDrivers('the home page is the mockup page, its sections holding only wha
     }
 
     $body = dispatch('/')->body;
-    assertContains('Prostori koji izgledaju kao da ste ih oduvijek imali', $body, 'the mockup\'s heading, word for word');
-    assertTrue(preg_match('~<section class="[^"]*surface-tinted[^"]*pad-t-120 pad-b-120"[^>]*data-anim="fade"~', $body) === 1, 'Uvod: tinted, 120 px, fading in');
-    assertContains('id="usluge"', $body, 'Usluge answers to its anchor');
-    assertContains('<a href="/#usluge">Što radimo</a>', $body, 'and the menu leads to it');
-    assertContains('class="section-cols cols-wide-left', $body, 'Iskustvo: two columns, the wide one left');
-    assertContains('surface-contrast', $body, 'Kontakt on the contrast surface');
+    foreach (['Spaces that feel like they were always yours', 'From a single room to the whole flat.', 'Windows, shelving and the customer\'s path.', 'Fifteen years and more than two hundred spaces. We take on only a few projects at a time, so each one gets our full attention.', 'Get in touch and we&#039;ll plan the first step.'] as $words) {
+        assertContains($words, $body, 'README 1.6, verbatim');
+    }
+    assertTrue(preg_match('~<section class="[^"]*surface-tinted[^"]*pad-t-120 pad-b-120"[^>]*data-anim="fade"~', $body) === 1, 'Intro: tinted, 120 px, fading in');
+    assertContains('id="services"', $body, 'What we do answers to its anchor');
+    assertContains('<a href="/#services">What we do</a>', $body, 'and the menu leads to it');
+    assertContains('class="section-cols cols-wide-left', $body, 'Experience: two columns, the wide one left');
+    assertContains('surface-contrast', $body, 'Contact on the contrast surface');
 });
 
 // The demo links to its own pages the way an owner's site does: by reference, so renaming
@@ -107,17 +110,17 @@ testBothDrivers('the demo links its pages by reference, and the links lead there
     assertContains('href="/write-to-us"', dispatch('/')->body, 'the home page does not follow the renamed page');
 });
 
-// README 1.6: the home page in the other language, so a translation is always there.
+// README 1.6: the home page in Croatian, the mockup's own words, so a translation is always there.
 testBothDrivers('the demo\'s home page is translated, with its own words and its own anchor', function (string $driver) {
-    $db = installedSite(['hr' => 'Hrvatski'], $driver);
-    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'hr');
+    $db = installedSite(['en' => 'English'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
 
-    $translation = $db->one("SELECT id, translation_status FROM pages WHERE locale = 'en' AND slug = ''");
-    assertTrue($translation !== null, 'no English home page');
-    $body = dispatch('/en/')->body;
-    assertContains('Spaces that feel as if they had always been yours', $body, 'its words are English');
-    assertContains('id="services"', $body, 'its anchor is its own');
-    assertContains('href="/en/#services"', $body, 'and its menu leads to it');
+    $translation = $db->one("SELECT id FROM pages WHERE locale = 'hr' AND slug = ''");
+    assertTrue($translation !== null, 'no Croatian home page');
+    $body = dispatch('/hr/')->body;
+    assertContains('Prostori koji izgledaju kao da ste ih oduvijek imali', $body, 'its words are the mockup\'s');
+    assertContains('id="usluge"', $body, 'its anchor is its own');
+    assertContains('href="/hr/#usluge"', $body, 'and its menu leads to it');
 });
 
 test('the demo is never added to a site that already has pages', function () {

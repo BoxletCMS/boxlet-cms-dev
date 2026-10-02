@@ -5,9 +5,9 @@
  * is the page the builder's mockup shows, with the mockup's words where it has them; four
  * short pages behind it; and one more, unlisted, that shows every block in every layout.
  *
- * In the site's language: Croatian, or English for any other. A function of the language
- * rather than a list, so the same seed makes the Croatian site and the English translation of
- * its home page from one definition — the two can only differ in their words.
+ * In English, which Boxlet ships in, with the home page translated into Croatian (README 1.6);
+ * a site whose first language is Croatian gets the two the other way round. A function of the
+ * language rather than a list, so one definition makes both — they can only differ in words.
  *
  * Each page is SECTIONS, as the builder makes them: a section's own style (only the keys the
  * page sets; every other is the character's, D-165), its layout, and its blocks with the column
@@ -33,7 +33,7 @@ return static function (string $lang): array {
             'sections' => [
                 ['style' => ['name' => $t('Uvod', 'Intro'), 'surface' => 'tinted', 'pad_top' => '120', 'pad_bottom' => '120', 'animation' => 'fade'], 'layout' => 'one', 'blocks' => [
                     ['hero', [
-                        'heading' => $t('Prostori koji izgledaju kao da ste ih oduvijek imali', 'Spaces that feel as if they had always been yours'),
+                        'heading' => $t('Prostori koji izgledaju kao da ste ih oduvijek imali', 'Spaces that feel like they were always yours'),
                         'subheading' => $t('Projektiramo stanove, urede i male trgovine — od prve skice do zadnje police.', 'We design flats, offices and small shops — from the first sketch to the last shelf.'),
                         'cta' => ['label' => $t('Dogovorite konzultacije', 'Book a consultation'), 'url' => 'demo:contact'],
                     ], 'center', [], 0],
@@ -42,9 +42,9 @@ return static function (string $lang): array {
                     ['cards', [
                         'heading' => $t('Što radimo', 'What we do'),
                         'items' => [
-                            ['heading' => $t('Stanovi', 'Flats'), 'body' => $p('Preuređenje od jedne sobe do cijelog stana.', 'Makeovers from a single room to a whole flat.')],
+                            ['heading' => $t('Stanovi', 'Homes'), 'body' => $p('Preuređenje od jedne sobe do cijelog stana.', 'From a single room to the whole flat.')],
                             ['heading' => $t('Uredi', 'Offices'), 'body' => $p('Radni prostori za male timove.', 'Workspaces for small teams.')],
-                            ['heading' => $t('Trgovine', 'Shops'), 'body' => $p('Izlozi, police i put kupca.', 'Shop windows, shelving and the customer’s path.')],
+                            ['heading' => $t('Trgovine', 'Shops'), 'body' => $p('Izlozi, police i put kupca.', 'Windows, shelving and the customer\'s path.')],
                         ],
                     ], 'grid', [], 0],
                 ]],
@@ -58,17 +58,17 @@ return static function (string $lang): array {
                 ['style' => ['name' => $t('Iskustvo', 'Experience')], 'layout' => 'wide-left', 'blocks' => [
                     ['text', [
                         'heading' => $t('Zašto mi', 'Why us'),
-                        'body' => $p('Petnaest godina iskustva i preko dvjesto prostora. Radimo malo projekata odjednom, pa svaki dobije punu pažnju.', 'Fifteen years of experience and more than two hundred spaces. We take on few projects at a time, so each one gets our full attention.'),
+                        'body' => $p('Petnaest godina iskustva i preko dvjesto prostora. Radimo malo projekata odjednom, pa svaki dobije punu pažnju.', 'Fifteen years and more than two hundred spaces. We take on only a few projects at a time, so each one gets our full attention.'),
                     ], 'single', [], 0],
                     ['quote', [
-                        'quote' => $t('„Stan je postao dom u šest tjedana, bez ijednog dana kašnjenja.”', '“The flat became a home in six weeks, without a single day’s delay.”'),
+                        'quote' => $t('„Stan je postao dom u šest tjedana, bez ijednog dana kašnjenja.”', '“Our flat became a home in six weeks, without a single day\'s delay.”'),
                         'attribution' => 'Marija K., Zagreb',
                     ], 'plain', [], 1],
                 ]],
                 ['style' => ['name' => $t('Kontakt', 'Contact'), 'surface' => 'contrast'], 'layout' => 'one', 'blocks' => [
                     ['cta', [
                         'heading' => $t('Spremni za početak?', 'Ready to start?'),
-                        'body' => $t('Javite se i dogovorimo prvi korak.', 'Get in touch and we’ll agree the first step.'),
+                        'body' => $t('Javite se i dogovorimo prvi korak.', 'Get in touch and we\'ll plan the first step.'),
                         'action' => ['label' => $t('Kontakt', 'Contact'), 'url' => 'demo:contact'],
                     ], 'banner', [], 0],
                 ]],
@@ -109,7 +109,7 @@ return static function (string $lang): array {
             'key' => 'services',
             'slug' => $t('usluge', 'services'),
             'title' => $t('Usluge', 'Services'),
-            'description' => $t('Stanovi, uredi i trgovine: što radimo i kako se dogovaramo.', 'Flats, offices and shops: what we do and how we agree it.'),
+            'description' => $t('Stanovi, uredi i trgovine: što radimo i kako se dogovaramo.', 'Homes, offices and shops: what we do and how we agree it.'),
             'menu' => true,
             'sections' => [
                 ['style' => [], 'layout' => 'one', 'blocks' => [
@@ -121,7 +121,7 @@ return static function (string $lang): array {
                 ['style' => [], 'layout' => 'one', 'blocks' => [
                     ['cards', [
                         'items' => [
-                            ['heading' => $t('Stanovi', 'Flats'), 'body' => $p('Od jedne sobe do cijelog stana, s nadzorom radova.', 'From one room to a whole flat, with the works overseen.')],
+                            ['heading' => $t('Stanovi', 'Homes'), 'body' => $p('Od jedne sobe do cijelog stana, s nadzorom radova.', 'From one room to a whole flat, with the works overseen.')],
                             ['heading' => $t('Uredi', 'Offices'), 'body' => $p('Radna mjesta, sobe za sastanke i mjesto za kavu.', 'Desks, meeting rooms and somewhere for coffee.')],
                             ['heading' => $t('Trgovine', 'Shops'), 'body' => $p('Izlog, police, rasvjeta i put kupca kroz prostor.', 'Window, shelving, light and the customer’s path through the room.')],
                         ],

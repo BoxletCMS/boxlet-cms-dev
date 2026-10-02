@@ -77,13 +77,18 @@ final class AppearanceForm
      * language; the other languages' words are on the screen but not in the picture.
      *
      * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
+     * @param string $basis the character the screen measures against: the loaded one, else
+     *        the site's
      * @return array<string, string>
      */
-    public static function query(array $state, string $locale, string $character = ''): array
+    public static function query(array $state, string $locale, string $character = '', string $basis = ''): array
     {
         // What the screen SHOWS, every key answered: the picture is of the design as drawn,
-        // so a key that follows the character is sent as the character's value.
-        $resolved = Tokens::resolve($state['decisions'] + $state['look'], $character);
+        // so a key that follows the character is sent as the character's value — the loaded
+        // one's, else the site's own ($basis). Resolved against the default character
+        // (Minimal) when none was loaded, the picture showed Minimal's values over a site on
+        // any other character (found reviewing phase 1).
+        $resolved = Tokens::resolve($state['decisions'] + $state['look'], $character !== '' ? $character : $basis);
         $query = [];
         foreach ($resolved as $key => $value) {
             $query[in_array($key, ChromeLook::keys(), true) ? ChromeLook::field($key) : $key] = $value;

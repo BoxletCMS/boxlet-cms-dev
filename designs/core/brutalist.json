@@ -44,7 +44,7 @@
         "footer_columns": "3",
         "footer_links": "auto",
         "small_print_row": "left",
-        "footer_surface": "contrast",
+        "footer_surface": "gradient",
         "footer_edge": "slant"
     },
     "composition": {

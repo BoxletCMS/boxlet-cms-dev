@@ -147,3 +147,30 @@ test('a description with quotes and diacritics survives storage and is escaped i
         'escaped in the page',
     );
 });
+
+// D-170: a page its owner keeps out of search engines says so, and is left out of the sitemap
+// and llms.txt, while it stays published.
+testBothDrivers('a page kept out of search engines says so, and the sitemap and llms.txt leave it out', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'showroom', 'Showroom', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
+    createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>y</p>']]]);
+    $form = static fn (bool $hidden): array => ['title' => 'Showroom', 'slug' => 'showroom', 'seo_title' => '', 'seo_description' => '', 'action' => 'save', '_end' => '1']
+        + ($hidden ? ['seo_noindex' => '1'] : []);
+
+    adminPost("/admin/pages/{$id}", $form(true));
+    assertEquals(true, App\Modules\Pages\Page::seo($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'stored');
+    $page = dispatch('/showroom');
+    assertEquals(200, $page->status, 'still published');
+    assertContains('<meta name="robots" content="noindex">', $page->body, 'the page asks not to be listed');
+    assertTrue(!str_contains(dispatch('/about')->body, 'name="robots"'), 'another page asks the same');
+    $sitemap = App\Modules\Pages\Sitemap::xml($db);
+    assertTrue(!str_contains($sitemap, '/showroom'), 'in the sitemap');
+    assertContains('/about', $sitemap, 'the other page left out of the sitemap');
+    assertTrue(!str_contains(App\Modules\Pages\LlmsTxt::text($db), 'Showroom'), 'in llms.txt');
+
+    // A form that draws no SEO fields says nothing about it; one that does, and is unticked, clears it.
+    adminPost("/admin/pages/{$id}", ['title' => 'Showroom', 'slug' => 'showroom', 'action' => 'save', '_end' => '1']);
+    assertEquals(true, App\Modules\Pages\Page::seo($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'a form without the fields kept it');
+    adminPost("/admin/pages/{$id}", $form(false));
+    assertEquals(false, App\Modules\Pages\Page::seo($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'unticked');
+});

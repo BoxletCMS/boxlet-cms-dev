@@ -172,9 +172,6 @@
 }
 
 .cards-item .richtext {
-  /* Small text, fourteen pixels under the default set (README 1.6): a share of the body size rather
-     than a step of the scale, which on a wide scale is too small to read. */
-  --text-small: calc(var(--text-base) * 0.875);
   font-size: var(--text-small);
   line-height: 1.6;
 }

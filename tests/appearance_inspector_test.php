@@ -212,6 +212,7 @@ test('the shared controls know nothing of designs and print what a script reads'
     assertContains('<text x="38.46%" y="11" text-anchor="middle">Normal</text>', $slider, 'a mark where its value is');
     assertTrue(!str_contains($slider, 'Off the end'), 'a mark outside the range');
 
+
     $group = Controls::group('g', 'Group', 'body', ['open' => false]);
     assertContains('<details class="control-group" id="g" data-group="g">', $group, 'closed, and no changes');
     assertContains('<details class="control-group has-changes" id="g" data-group="g" open>', Controls::group('g', 'Group', 'body', ['changed' => 2]), 'open, with its count');
@@ -267,4 +268,19 @@ test('the hints are an icon whose words are its label, not a row of their own', 
     $body = dispatch('/admin/appearance')->body;
     assertContains('class="icon-button hints-icon" data-hints-toggle hidden', $body, 'the icon');
     assertContains('data-hints-label>' . e(t('hints.show')) . '</span>', $body, 'its words');
+});
+
+// Found reviewing phase 1: with no character loaded, the picture's query resolved what the
+// owner left to the character against the DEFAULT character, so a Soft site was previewed in
+// Minimal's typeface and colour. It resolves against the site's own.
+testBothDrivers('the preview is drawn with the site\'s own character when none is loaded', function (string $driver) {
+    $db = adminSite($driver);
+    App\Modules\Design\Composition::remember($db, 'soft');
+    $body = dispatch('/admin/appearance')->body;
+    preg_match('~<iframe name="design-preview" src="([^"]+)"~', $body, $frame);
+    assertTrue(isset($frame[1]), 'the preview frame');
+    $src = html_entity_decode($frame[1] ?? '');
+    parse_str((string) parse_url($src, PHP_URL_QUERY), $query);
+    assertEquals(App\Modules\Design\Characters::decisions('soft')['typography'], $query['typography'] ?? null, 'Soft\'s typeface in the picture');
+    assertEquals(App\Modules\Design\Characters::decisions('soft')['seed'], $query['seed'] ?? null, 'and its colour');
 });

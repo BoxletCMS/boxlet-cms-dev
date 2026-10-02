@@ -26,9 +26,9 @@ function expectedProperties(): array
     return array_merge(
         array_map(static fn (string $c): string => "color-{$c}", $colors),
         ['font-heading', 'font-body', 'heading-weight', 'heading-tracking', 'heading-transform', 'body-weight', 'leading-body', 'leading-heading'],
-        array_map(static fn (string $s): string => "text-{$s}", ['sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl']),
+        array_map(static fn (string $s): string => "text-{$s}", ['sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', 'small']),
         array_map(static fn (string $s): string => "space-{$s}", ['xs', 's', 'm', 'l', 'xl', '2xl', '3xl']),
-        ['radius-s', 'radius-m', 'radius-l', 'radius-button', 'shadow-s', 'shadow-m', 'shadow-l', 'border-width', 'border-card', 'container-width', 'container-narrow', 'container-wide'],
+        ['radius-s', 'radius-m', 'radius-l', 'radius-button', 'shadow-s', 'shadow-m', 'shadow-l', 'shadow-edge', 'border-width', 'border-card', 'container-width', 'container-narrow', 'container-wide'],
     );
 }
 
@@ -74,6 +74,16 @@ foreach (Presets::names() as $name) {
         }
     });
 }
+
+// A band's shadow falls straight down in every style: a hard one thrown to the right left a
+// notch of the page at the left end of an edge-to-edge header (Brutalist, D-170).
+test('a band\'s edge shadow has no sideways offset', function () {
+    foreach (['soft', 'hard', 'layered', 'none'] as $style) {
+        $edge = Derived::shadows($style, 40, '#111111')['edge'];
+        assertTrue($edge === 'none' || str_starts_with($edge, '0 '), "{$style}: {$edge}");
+    }
+    assertEquals('0 4.8px 0 #111111', Derived::shadows('hard', 40, '#111111')['edge'], 'hard: its middle drop, straight down');
+});
 
 test('the five presets differ in structure, not only in colour', function () {
     $structural = ['typography', 'scale', 'spacing', 'radius', 'shadow', 'container', 'surface_contrast'];

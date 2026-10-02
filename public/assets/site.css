@@ -196,7 +196,9 @@ code {
    glyph then takes the colour of whatever surface it lands on, which is the rule the whole
    front end follows. One declaration serves the page, the canvas and the library preview,
    because all three render the same block through this same class. */
-.media-placeholder::before {
+/* The picture glyph, only where someone is editing: the builder's canvas, the block library
+   and the Appearance preview. A visitor sees the wash alone (owner's review of phase 1). */
+:is(.bx-canvas, .bx-preview, .bx-design-preview) .media-placeholder::before {
   content: "";
   position: absolute;
   inset: 50% auto auto 50%;

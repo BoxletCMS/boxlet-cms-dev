@@ -78,7 +78,8 @@
   gap: var(--space-s);
   align-items: baseline;
   color: var(--section-muted);
-  font-size: var(--text-sm);
+  /* Small (README 1.6): fourteen pixels under the default set, whatever the scale. */
+  font-size: var(--text-small);
 }
 
 .quote-who {

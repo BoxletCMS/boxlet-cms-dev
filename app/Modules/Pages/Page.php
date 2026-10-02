@@ -52,7 +52,7 @@ final class Page
      * write the column — has NULL rather than '{}', so both have to decode to nothing.
      *
      * @param array<string, mixed> $page a row from find() or published()
-     * @return array{title: string, description: string}
+     * @return array{title: string, description: string, noindex: bool}
      */
     public static function seo(array $page): array
     {
@@ -62,6 +62,8 @@ final class Page
         return [
             'title' => is_string($stored['title'] ?? null) ? trim($stored['title']) : '',
             'description' => is_string($stored['description'] ?? null) ? trim($stored['description']) : '',
+            // Kept out of search engines, the sitemap and llms.txt (D-170).
+            'noindex' => ($stored['noindex'] ?? false) === true,
         ];
     }
 
@@ -73,14 +75,19 @@ final class Page
      * An empty field is dropped rather than stored as an empty string, so a page with no
      * SEO of its own holds {} however it arrived there.
      *
-     * @param array{title: string, description: string} $seo
+     * @param array{title: string, description: string, noindex?: bool} $seo
      */
     public static function seoJson(array $seo): string
     {
-        return self::json(array_filter(
+        $stored = array_filter(
             ['title' => trim($seo['title']), 'description' => trim($seo['description'])],
             static fn (string $value): bool => $value !== '',
-        ));
+        );
+        if (($seo['noindex'] ?? false) === true) {
+            $stored['noindex'] = true;
+        }
+
+        return self::json($stored);
     }
 
     /**

@@ -2,7 +2,7 @@
  * Slices 4 and 4.5: the design layer.
  *
  *   - apply each of the five characters; screenshot the home page under each
- *   - change one section's surface and rhythm: only that section changes
+ *   - change one section's surface and spacing: only that section changes
  *   - a colour pair that fails contrast is refused, and the message names the pair
  *   - with pages present, "design only" leaves section styles alone and
  *     "save and reset section styles" rewrites them
@@ -20,9 +20,11 @@
  */
 import { readFileSync } from 'node:fs';
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN, CHECKOUT } from '../config.mjs';
-import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openSection, retype } from '../harness.mjs';
+import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openSection, resetDesign, retype } from '../harness.mjs';
 
+/** How we work: two sections, a text and a quotation (the demo of D-167). */
 const STYLE_GUIDE = 4;
+const STYLE_GUIDE_PATH = '/how-we-work';
 
 /** The inspector's views (D-157): the home, and its seven sections (buttons since D-164). */
 const SECTIONS = ['home', 'colours', 'typography', 'space', 'layout', 'header', 'footer'];
@@ -41,6 +43,9 @@ export default {
       report.fail('design: log in', `could not log in; at ${page.url()}`);
       return;
     }
+    // From the characters as they are: values an earlier run left behind would be measured
+    // as this one's (a page colour, a boxed page).
+    await resetDesign(page, BASE);
     // The header's width is measured below, and a fresh copy has no header to measure.
     if (await ensureHeaderMenu(page, BASE) === '') {
       report.fail('design: its test data', 'no menu could be put in the header, so there is no header to measure');
@@ -980,58 +985,57 @@ export default {
 
     await applyCharacter(page, BASE, presets[0], 'save');
 
-    // ---- one section's surface and rhythm ----------------------------------------------
-    await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
+    // ---- one section's surface and spacing ---------------------------------------------
+    await page.goto(`${BASE}${STYLE_GUIDE_PATH}`, { waitUntil: 'networkidle2' });
     const before = await sectionClasses(page);
 
     await page.goto(`${BASE}/admin/pages/${STYLE_GUIDE}/form`, { waitUntil: 'networkidle2' });
-    // The SECOND section on the page. Its field name is blocks[<key>][style][surface] and
-    // the key is a name, not a number, since D-094 — so it is read off the form in document
-    // order rather than guessed. This line said blocks[1] and had matched nothing since that
-    // day: the scenario failed itself, which is why the whole browser suite is run at the end
-    // of a slice and not only the scenarios a change looks like it touches.
+    // The SECOND section on the page, by its key read off the form in document order: its
+    // fields are sections[<key>][style][…] since D-095, radios for the closed sets (D-107)
+    // and a number for the padding (D-165). O-29 was this looking for the selects of before.
     const target = 1;
-    const key = await page.$$eval('select[name$="[style][surface]"]', (els, at) => {
-      const el = els[at];
-      return el ? (el.name.match(/^blocks\[([^\]]+)\]/) || [])[1] : null;
+    const key = await page.$$eval('input[name$="[style][surface]"]', (els, at) => {
+      const keys = [...new Set(els.map((el) => (el.name.match(/^sections\[([^\]]+)\]/) || [])[1]).filter(Boolean))];
+      return keys[at] ?? null;
     }, target);
-    /*
-     * O-29 IS STILL OPEN: the plain editor's section style is radios under sections[...]
-     * now, so this finds nothing. It is reported and SKIPPED rather than ending the scenario,
-     * which it did on every run since 2026-09-24 — and with it every check below, all of
-     * them about the Appearance screen and none about the editor (found again for D-157).
-     */
     if (!key) {
-      report.fail('the scenario itself', `the form has no section ${target} to restyle (O-29)`);
+      report.fail('the scenario itself', `the form has no section ${target} to restyle`);
     } else {
-      await page.select(`select[name="blocks[${key}][style][surface]"]`, 'contrast');
-      await page.select(`select[name="blocks[${key}][style][rhythm]"]`, 'airy');
+      await page.evaluate((k) => {
+        const radio = document.querySelector(`input[name="sections[${k}][style][surface]"][value="contrast"]`);
+        radio.closest('details') && (radio.closest('details').open = true);
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
+      }, key);
+      await retype(page, `input[name="sections[${key}][style][pad_top]"]`, '120');
       await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
 
-      await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}${STYLE_GUIDE_PATH}`, { waitUntil: 'networkidle2' });
       const after = await sectionClasses(page);
       await report.shot(page, 'section-style-changed');
 
       const changed = before.map((cls, i) => cls !== after[i] ? i : null).filter((i) => i !== null);
-      report.verdict('changing one section\'s surface and rhythm changes only that section',
-        changed.length === 1 && changed[0] === target,
+      report.verdict('changing one section\'s surface and spacing changes only that section',
+        changed.length === 1 && changed[0] === target && /surface-contrast/.test(after[target]) && /pad-t-120/.test(after[target]),
         `sections that changed: ${JSON.stringify(changed)}; section ${target} is now "${after[target]}"`);
 
       // ---- design only, then reset sections ------------------------------------------------
       const handTuned = after[target];
       await applyCharacter(page, BASE, presets[0], 'save');
-      await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}${STYLE_GUIDE_PATH}`, { waitUntil: 'networkidle2' });
       const afterDesignOnly = await sectionClasses(page);
+      // What the owner set stays; what they left to the character follows the new one (D-165).
       report.verdict('"design only" leaves section styles alone',
-        afterDesignOnly[target] === handTuned,
+        /surface-contrast/.test(afterDesignOnly[target]) && /pad-t-120/.test(afterDesignOnly[target]),
         `section ${target}: "${handTuned}" -> "${afterDesignOnly[target]}"`);
 
       await applyCharacter(page, BASE, presets[0], 'save_composition');
-      await page.goto(`${BASE}/style-guide`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}${STYLE_GUIDE_PATH}`, { waitUntil: 'networkidle2' });
       const afterReset = await sectionClasses(page);
       await report.shot(page, 'after-reset-sections');
+      // Handed back to the character since D-165: what the owner set is gone.
       report.verdict('"save and reset section styles" rewrites them',
-        afterReset[target] !== handTuned,
+        afterReset[target] !== handTuned && !/pad-t-120/.test(afterReset[target]),
         `section ${target}: "${handTuned}" -> "${afterReset[target]}"`);
     }
 
@@ -1220,5 +1224,8 @@ export default {
 
     // Leave the site on a sane design for the scenarios that follow.
     await applyCharacter(page, BASE, presets[0], 'save');
+    // And left as it was found: the values this run set — a page colour, a boxed page —
+    // would otherwise be the next scenario's.
+    await resetDesign(page, BASE);
   },
 };

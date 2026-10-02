@@ -74,6 +74,7 @@ final class PageController
         return $this->render('page', $locale, [
             'title' => $seo['title'] !== '' ? $seo['title'] : (string) $page['title'],
             'description' => $seo['description'],
+            'noindex' => $seo['noindex'],
             // An error page carries no link preview; a real page is where the site's
             // default sharing picture belongs (D-028).
             'shareImage' => SiteChrome::shareImage($db),
@@ -133,7 +134,7 @@ final class PageController
      * reads. Everything the LAYOUT reads comes from PageLayoutData, which is the one place
      * that knows the whole list (D-057).
      *
-     * @param array{title: string, description?: string, canonical?: string|null, shareImage?: string|null, first_surface?: string, breadcrumbs?: string} $head
+     * @param array{title: string, description?: string, canonical?: string|null, shareImage?: string|null, first_surface?: string, breadcrumbs?: string, noindex?: bool} $head
      * @param array<string, mixed> $view
      * @param array<string, mixed>|null $page the page being drawn; null on an error page
      */

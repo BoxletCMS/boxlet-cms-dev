@@ -343,6 +343,8 @@ return [
     // means, and the hint came out longer than the box it sat under — the same way of
     // making a screen unreadable that D-025 names on the picture screen.
     'pages.field.seo_description_hint' => 'The short summary search engines may show under the title. One or two sentences, about 160 characters. Leave it empty and they choose words from the page.',
+    'pages.field.seo_noindex' => 'Keep out of search engines',
+    'pages.field.seo_noindex_hint' => 'The page stays published for anyone with its address, but search engines are asked not to list it, and it is left out of the sitemap and llms.txt.',
 
     'pages.library' => 'Add a block',
     // WHERE A BLOCK LANDS IS CHOSEN FIRST (PLAN.md D-103, and the design artifact says the

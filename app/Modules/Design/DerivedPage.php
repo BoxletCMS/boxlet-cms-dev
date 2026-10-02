@@ -18,7 +18,7 @@ final class DerivedPage
      * @param array<string, string> $colors
      * @return array<string, string>
      */
-    public static function page(array $resolved, array $colors): array
+    public static function page(array $resolved, array $colors, string $sectionWidth = 'normal'): array
     {
         $boxed = $resolved['boxed'] === 'yes';
         $unit = (float) $resolved['spacing'];
@@ -40,8 +40,8 @@ final class DerivedPage
                 default => 'none',
             } : 'none',
             'sheet' => $colors['background'],
-            'header-width' => self::chromeWidth($resolved['header_width'], $resolved, $boxed),
-            'footer-width' => self::chromeWidth($resolved['footer_width'], $resolved, $boxed),
+            'header-width' => self::chromeWidth($resolved['header_width'], $resolved, $boxed, $sectionWidth),
+            'footer-width' => self::chromeWidth($resolved['footer_width'], $resolved, $boxed, $sectionWidth),
         ];
     }
 
@@ -82,13 +82,23 @@ final class DerivedPage
      *
      * @param array<string, string> $resolved
      */
-    private static function chromeWidth(string $choice, array $resolved, bool $boxed): string
+    private static function chromeWidth(string $choice, array $resolved, bool $boxed, string $sectionWidth): string
     {
         if ($choice === 'window') {
             return '100%';
         }
+        // To the content: the measure the character's sections run to, so the header's and the
+        // footer's contents start where the page's do — Bold composes its sections wide, and a
+        // footer at the plain content width stood 64px in from them (owner's review of phase 1).
         if ($choice !== 'sheet') {
-            return Derived::rem((float) $resolved['container']);
+            $container = (float) $resolved['container'];
+
+            return match ($sectionWidth) {
+                'narrow' => Derived::rem($container * 2 / 3),
+                'wide' => Derived::rem($container * 7 / 6),
+                'full' => '100%',
+                default => Derived::rem($container),
+            };
         }
 
         return $boxed ? 'calc(' . Derived::rem((float) $resolved['sheet_width']) . ' - 2 * var(--space-l))' : '100%';

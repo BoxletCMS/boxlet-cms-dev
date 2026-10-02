@@ -127,7 +127,7 @@ final class AppearancePreview
     {
         $decisions = $this->decisions($request->query);
         $fonts = Typography::fontFaces($decisions['typography'], Url::asset('assets/fonts'));
-        $css = (new TokenCompiler())->css(Derived::from($decisions), $fonts);
+        $css = (new TokenCompiler())->css(Derived::from($decisions, Composition::section($this->character($request->query), [])['width']), $fonts);
 
         return new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'no-store']);
     }

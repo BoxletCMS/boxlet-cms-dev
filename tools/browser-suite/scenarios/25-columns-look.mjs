@@ -12,6 +12,12 @@
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN, PHOTOS } from '../config.mjs';
 import { login, applyCharacter, clickAndWait } from '../harness.mjs';
+
+/** The character the copy has, so the scenario can leave it as it found it. */
+const currentCharacter = async (page) => {
+  await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+  return page.$eval('.character-tile.is-current [value^="preset:"]', (el) => el.value.slice('preset:'.length)).catch(() => null);
+};
 import { uploadPhoto } from '../media-helpers.mjs';
 
 const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
@@ -93,6 +99,8 @@ export default {
     }
 
     // ---- every character, desktop and phone ---------------------------------------------------
+    // Put back afterwards: the scenarios after this one measure the copy as they find it.
+    const was = await currentCharacter(page);
     for (const character of CHARACTERS) {
       await applyCharacter(page, BASE, character);
       for (const slug of ['', 'services']) {
@@ -123,6 +131,9 @@ export default {
             stacked && !found.overflow, JSON.stringify(found));
         }
       }
+    }
+    if (was !== null) {
+      await applyCharacter(page, BASE, was);
     }
   },
 };

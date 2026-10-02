@@ -43,6 +43,8 @@ final class LlmsTxt
              WHERE p.status = 'published' AND l.enabled = 1
              ORDER BY l.is_primary DESC, l.sort, p.locale, CASE WHEN p.slug = '' THEN 0 ELSE 1 END, p.sort, p.id"
         );
+        // And out of what AI tools are told the site holds (D-170).
+        $rows = array_values(array_filter($rows, static fn (array $row): bool => !Page::seo($row)['noindex']));
 
         $name = self::line(Settings::text($db, 'site_name'));
         $out = '# ' . ($name !== '' ? $name : self::line((string) parse_url(Url::withOrigin('/'), PHP_URL_HOST))) . "\n";

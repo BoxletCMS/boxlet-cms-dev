@@ -464,6 +464,33 @@ export async function openSectionOf(page, selector) {
  * what scenario 25 did on its first run, five times. run.mjs also refuses a scenario that
  * calls this without running against the copy.
  */
+/**
+ * The design back to its character, published: every value the owner set on the Appearance
+ * screen handed back. Since D-164 loading a character keeps those values, so a scenario that
+ * once cleaned up by applying one left its own behind — a page colour, a boxed page — and the
+ * next scenario measured them. Returns whether there was anything to hand back.
+ */
+export async function resetDesign(page, base) {
+  await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
+  const submit = (value) => Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 40000 }),
+    page.evaluate((v) => {
+      const form = document.querySelector('#design-form');
+      const button = document.querySelector(`button[form="design-form"][name="action"][value="${v}"]`);
+      form.requestSubmit(button);
+    }, value),
+  ]);
+  if (await page.$('button[form="design-form"][value="reset:all"]') === null) {
+    return false;
+  }
+  await submit('reset:all');
+  await submit('save');
+  if (await page.$('.publish-confirm') !== null) {
+    await submit('save_design');
+  }
+  return true;
+}
+
 export async function applyCharacter(page, base, preset, action = 'save') {
   await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
   await clickAndWait(page, `button[name="action"][value="preset:${preset}"]`);

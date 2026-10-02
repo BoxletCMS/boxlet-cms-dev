@@ -273,6 +273,11 @@ final class PageEditorController
                 $seo[$field] = trim($request->input('seo_' . $field));
             }
         }
+        // A checkbox sends nothing when it is off, so it is read only from a form that drew
+        // the SEO fields at all — the same rule as above, by the field beside it (D-170).
+        if (array_key_exists('seo_title', $request->body)) {
+            $seo['noindex'] = $request->input('seo_noindex') === '1';
+        }
 
         return Page::seoJson($seo);
     }

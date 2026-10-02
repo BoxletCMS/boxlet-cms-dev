@@ -31,8 +31,10 @@ final class Derived
      *
      * @param array<string, string> $resolved every key answered
      * @return array<string, array<string, string>>
+     * @param string $sectionWidth the width the character composes a section in: what a header
+     *        or footer that runs to the content lines up with (owner's review of phase 1)
      */
-    public static function from(array $resolved): array
+    public static function from(array $resolved, string $sectionWidth = 'normal'): array
     {
         $colors = Palette::forDecisions($resolved);
         $pairing = Typography::PAIRINGS[$resolved['typography']] ?? Typography::PAIRINGS['modern'];
@@ -83,7 +85,7 @@ final class Derived
                 'narrow' => self::rem((float) $resolved['container'] * 2 / 3),
                 'wide' => self::rem((float) $resolved['container'] * 7 / 6),
             ],
-            'page' => DerivedPage::page($resolved, $colors),
+            'page' => DerivedPage::page($resolved, $colors, $sectionWidth),
             'chrome' => DerivedPage::chrome($resolved, $colors),
         ];
     }
@@ -135,6 +137,9 @@ final class Derived
         }
         // The lead paragraph under a heading (README 1.6: 18px at a 16px body).
         $sizes['lead'] = self::rem(self::sizeOf($resolved, 'base') * 1.125);
+        // Small text, a share of the body size rather than a step of the scale: 14px under
+        // the default set (README 1.6), still readable on a wide scale where `sm` is not.
+        $sizes['small'] = self::rem(self::sizeOf($resolved, 'base') * 0.875);
 
         return $sizes;
     }
@@ -164,7 +169,8 @@ final class Derived
     }
 
     /**
-     * The three shadow sizes for a style, at a strength of 0–100 (40 is what soft always was).
+     * The three shadow sizes for a style, and a band's edge, at a strength of 0–100 (40 is what
+     * soft always was).
      *
      * @return array<string, string>
      */
@@ -174,7 +180,7 @@ final class Derived
         $alpha = static fn (float $at40): string => CssNumber::of($at40 * $strength / 40, 3);
         $offset = static fn (float $at50): string => CssNumber::of(max(0.0, $at50 * $strength / 50)) . 'px';
 
-        return match ($style) {
+        $sizes = match ($style) {
             'soft' => [
                 's' => "0 1px 3px rgb({$rgb} / {$alpha(0.08)})",
                 'm' => "0 6px 18px rgb({$rgb} / {$alpha(0.1)})",
@@ -188,6 +194,13 @@ final class Derived
             ],
             default => ['s' => 'none', 'm' => 'none', 'l' => 'none'],
         };
+        // THE EDGE OF A BAND (D-170): a header's shadow, thrown straight down. A hard shadow
+        // thrown down and to the right left a notch of the page at the left end of a header
+        // that runs from edge to edge (measured under Brutalist: 6px). The others have no
+        // sideways offset, so theirs is the middle size as it is.
+        $sizes['edge'] = $style === 'hard' ? "0 {$offset(6)} 0 {$ink}" : $sizes['m'];
+
+        return $sizes;
     }
 
     public static function rem(float $value): string

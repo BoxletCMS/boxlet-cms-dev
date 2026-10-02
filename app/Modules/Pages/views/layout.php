@@ -12,6 +12,10 @@ use App\Support\Url;
  * @var list<array{hreflang: string, href: string}> $hreflang this page's alternates in other languages
  * @var string $breadcrumbs BreadcrumbList JSON-LD for a page under a parent, '' otherwise (D-129)
  * @var string $description meta description; empty when the page gives none (D-004)
+ * @var bool $noindex keep this page out of search engines: the owner's choice, and always
+ *                   for a preview (D-170)
+ * @var bool $designPreview drawn inside the Appearance preview, where the editor-only marks
+ *                         show (D-170)
  * @var array{url: string, type: string}|null $icon the site's tab icon (D-028)
  * @var string|null $shareImage absolute URL of the default sharing picture (D-028)
  * @var string $headerHtml the site header, already rendered, or '' when there is none (5c)
@@ -33,6 +37,9 @@ use App\Support\Url;
          than none, which is why this field does not fall back to it (D-004). */ ?>
 <?php if ($description !== ''): ?>
     <meta name="description" content="<?= e($description) ?>">
+<?php endif; ?>
+<?php if ($noindex): ?>
+    <meta name="robots" content="noindex">
 <?php endif; ?>
 <?php if ($canonical !== null): ?>
     <link rel="canonical" href="<?= e($canonical) ?>">
@@ -66,6 +73,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-embed.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-downloads.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-footer.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-header.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
@@ -85,7 +93,7 @@ use App\Support\Url;
     <script src="<?= e(Url::versioned('assets/anim.js')) ?>" defer></script>
 <?php endif; ?>
 </head>
-<body>
+<body<?= $designPreview ? ' class="bx-design-preview"' : '' ?>>
 <?php /* THE SHEET (PLAN.md D-031). A boxed page needs something to be a page: <body> holds
          the colour around it and this element is the page itself. Without a wrapper there
          was nothing to inset, because body carried both the background and the content.

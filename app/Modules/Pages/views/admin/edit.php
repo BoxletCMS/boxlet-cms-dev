@@ -98,6 +98,10 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                         <textarea id="page-seo-description" name="seo_description" rows="2" aria-describedby="page-seo-description-hint"><?= e($seo['description']) ?></textarea>
                         <span class="hint" id="page-seo-description-hint"><?= e(t('pages.field.seo_description_hint')) ?></span>
                     </div>
+                    <div class="field">
+                        <label class="checkbox"><input type="checkbox" id="page-seo-noindex" name="seo_noindex" value="1" aria-describedby="page-seo-noindex-hint"<?= $seo['noindex'] ? ' checked' : '' ?>> <?= e(t('pages.field.seo_noindex')) ?></label>
+                        <span class="hint" id="page-seo-noindex-hint"><?= e(t('pages.field.seo_noindex_hint')) ?></span>
+                    </div>
                 </div>
             </div>
 

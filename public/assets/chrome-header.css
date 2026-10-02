@@ -4,8 +4,8 @@
    already had: chrome.css says what the header and footer LOOK like — surfaces, colours of
    their own, density, edges, the menu's words, the button — and this file says where the
    header's parts STAND, what the bar does as the page scrolls, and how its menu folds on a
-   phone. Linked right after chrome.css; the same rule as everywhere on the front end: only
-   custom properties, no literal colours, pixel values, fonts or shadows. */
+   phone. Linked after chrome.css and chrome-footer.css; the same rule as everywhere on the
+   front end: only custom properties, no literal colours, pixel values, fonts or shadows. */
 
 /* THE ARRANGEMENTS (D-112): where the name, the menu and the button stand. `left` is the
    flex row above — name left, menu and button right. */
@@ -35,6 +35,7 @@
 .layout-masthead .site-header {
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
 }
 
 .layout-masthead .site-header-action {
@@ -48,8 +49,21 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   grid-template-areas: "before brand after" "action action action";
-  align-items: center;
+  /* The name and the two halves of the menu on one baseline, and the rows in the middle of
+     the bar's height rather than at its top (owner's review of phase 1). */
+  align-items: baseline;
+  align-content: center;
   justify-items: center;
+}
+
+/* No button, no second row: an empty one held the first against the top of the bar. */
+.layout-split .site-header:not(:has(.site-header-action)) {
+  grid-template-areas: "before brand after";
+}
+
+/* A logo picture has no baseline worth meeting: its bottom edge would be one. */
+.layout-split .site-header:has(.site-logo img) {
+  align-items: center;
 }
 
 .layout-split .site-nav {

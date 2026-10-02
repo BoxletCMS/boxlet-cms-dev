@@ -97,7 +97,7 @@ final class Design
     {
         $resolved = self::resolved($db);
         $file = (new TokenCompiler())->compile(
-            Derived::from($resolved),
+            Derived::from($resolved, Composition::section(Composition::active($db), [])['width']),
             $cacheDirectory,
             Typography::fontFaces($resolved['typography'], self::FONTS_FROM_CACHE),
         );

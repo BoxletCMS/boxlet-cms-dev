@@ -23,10 +23,20 @@
 }
 
 .hero-heading {
-  margin: 0;
-  font-size: var(--text-4xl);
-  /* A display line sits a little tighter than a heading's own leading. */
-  line-height: calc(var(--leading-heading) - 0.08);
+  /* Room under a large heading so its descenders stand clear of the lead — at least 0.4em
+     (owner's review of phase 1). The stack's own gap is a fixed length, so the larger the
+     heading, the more it needs: nothing under the default set or on a phone, more for a
+     display size like Bold's. */
+  margin: 0 0 max(0em, calc(0.42em - 1.25 * var(--space-m)));
+  /* The character's display size is the ceiling; the window's width brings it down, so a
+     wide scale does not stand a heading in seven lines on a phone (owner's review of phase
+     1: at most five for the demo's, at 390). Under the default set it comes to README 1.6's
+     fifty-four and thirty-four pixels. */
+  --hero-size: min(var(--text-4xl), calc(1rem + 4.6vw));
+  font-size: var(--hero-size);
+  /* A display line sits a little tighter than a heading's own leading, never so tight that
+     its descenders reach the line under it. */
+  line-height: max(1.06, calc(var(--leading-heading) - 0.08));
   text-wrap: balance;
   /* Balanced rather than hyphenated (README 1.6): a display line broken mid-word reads as
      a mistake. A word longer than the column still breaks rather than overflowing. */

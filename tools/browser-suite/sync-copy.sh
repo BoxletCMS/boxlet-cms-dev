@@ -10,9 +10,9 @@
 # config/ was missing until 2026-09-29: it holds no site's settings (those are in .env), and a
 # copy with an old config/app.php had no public_path, which sent an SVG logo to /m/logo on the
 # root of the disk. Not storage, not the
-# database, not public/m or public/cache — those belong to the copy (D-013), and --delete is
-# never used for the same reason (08-update puts a migration of its own into the copy's
-# migrations/, which a --delete would remove under it). migrations/ was missing until the
+# database, not public/m or public/cache — those belong to the copy (D-013). 08-update puts a
+# migration of its own into the copy's migrations/ and removes it again in the same run, so
+# the --delete below never takes one from under it. migrations/ was missing until the
 # demo seed first needed a new table (0016, forms): the copy installed without it and the
 # install failed at the site step.
 #

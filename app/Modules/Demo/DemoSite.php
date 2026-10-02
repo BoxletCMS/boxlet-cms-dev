@@ -104,7 +104,8 @@ final class DemoSite
             'slug' => $page['slug'],
             'parent_id' => null,
             'status' => 'draft',
-            'seo_json' => Page::seoJson(['title' => '', 'description' => $page['description']]),
+            // The showroom is for looking at, not for finding (D-170).
+            'seo_json' => Page::seoJson(['title' => '', 'description' => $page['description'], 'noindex' => $page['key'] === 'blocks']),
         ], $blocks, $sections);
     }
 

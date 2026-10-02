@@ -76,11 +76,25 @@ function freshDatabase(string $driver): Db
     }
 
     $db = Db::fromConfig(mysqlTestConfig());
+    /*
+     * A DROP WAITS FOR ANY CONNECTION STILL HOLDING THE TABLE, and MySQL's default wait is a
+     * year. Twice a CI leg ran out of its 25 minutes right after a test's sqlite half, on
+     * different tests (PLAN.md D-178), and the log could only say where it stopped. Twenty
+     * seconds, then a failure that names who held on: the other connections and the open
+     * transactions, readable in the annotations without admin rights.
+     */
+    $db->pdo()->exec('SET SESSION lock_wait_timeout = 20');
     // Foreign keys would otherwise dictate the drop order.
     $db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 0');
-    foreach ($db->all('SHOW TABLES') as $row) {
-        $table = (string) array_values($row)[0];
-        $db->query('DROP TABLE `' . str_replace('`', '``', $table) . '`');
+    try {
+        foreach ($db->all('SHOW TABLES') as $row) {
+            $table = (string) array_values($row)[0];
+            $db->query('DROP TABLE `' . str_replace('`', '``', $table) . '`');
+        }
+    } catch (\PDOException $e) {
+        $others = $db->all('SELECT id, command, time, state, info FROM information_schema.processlist WHERE id <> CONNECTION_ID()');
+        $open = $db->all('SELECT trx_mysql_thread_id, trx_started, trx_state, trx_query FROM information_schema.innodb_trx');
+        throw new RuntimeException($e->getMessage() . ' — other connections: ' . json_encode($others) . ' — open transactions: ' . json_encode($open), 0, $e);
     }
     $db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 1');
 

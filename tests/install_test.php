@@ -120,10 +120,14 @@ testBothDrivers('a full install creates the admin, primary locale, settings, .en
     assertAdvanced(installPost($installer, $database), 'database step');
     $password = 'correct horse battery staple';
     assertAdvanced(installPost($installer, ['email' => 'Owner@Example.com', 'password' => $password, 'password_confirm' => $password]), 'admin step');
+    // A page kept by a site that stood here before: public/cache outlives a reinstall.
+    $dir = tmpPath('install');
+    mkdir($dir . '/cache/pages', 0777, true);
+    file_put_contents($dir . '/cache/pages/' . sha1('/') . '.html', 'the old site');
     $done = installPost($installer, ['name' => 'Test Site', 'locale' => 'hr', 'timezone' => 'Europe/Zagreb']);
     assertContains(e(t('install.done.title')), $done->body, 'done page');
+    assertEquals([], glob($dir . '/cache/pages/*.html'), 'the old site\'s kept pages');
 
-    $dir = tmpPath('install');
     assertTrue(is_file($dir . '/storage/install.lock'), 'install.lock written');
     assertTrue(!is_file($dir . '/storage/install-token.txt'), 'install token removed');
     assertTrue(!is_file($dir . '/install.php'), 'install.php deleted');

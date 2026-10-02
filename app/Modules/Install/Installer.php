@@ -8,6 +8,7 @@ use App\Core\Migrator;
 use App\Core\Settings;
 use App\Modules\Demo\DemoSite;
 use App\Modules\Design\Design;
+use App\Support\PageCache;
 use ErrorException;
 use RuntimeException;
 use Throwable;
@@ -68,6 +69,11 @@ final class Installer
         if ($demo) {
             DemoSite::seed($db, Blocks::discover($this->root . '/app/Blocks'), $site['locale']);
         }
+        // A site installed where another stood must not answer with that one's kept pages:
+        // public/cache outlives a reinstall, and the browser copy served the old demo home
+        // after one, measured.
+        PageCache::use($this->cacheDirectory);
+        PageCache::clear();
 
         $values = ['APP_DEBUG' => 'false', 'APP_KEY' => bin2hex(random_bytes(32))];
         foreach ($env as $key => $value) {

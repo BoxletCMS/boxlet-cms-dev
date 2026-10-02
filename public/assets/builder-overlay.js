@@ -126,6 +126,8 @@
     if (open) {
       layer.appendChild(open);
     }
+    // What typing on the page draws in the layer (its errors) is drawn again after this.
+    pb.emit('painted', layer);
   }
 
   function plus(index, top, main) {

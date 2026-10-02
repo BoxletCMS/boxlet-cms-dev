@@ -117,6 +117,7 @@ final class MediaVariants
                 $relative = MediaPresets::file($preset, $mediaId, (string) $media['filename'], $format);
 
                 $encoding = microtime(true);
+                self::breathe();
                 try {
                     $result = $this->writer->encode($source, $this->publicPath . '/' . $relative, $crop, $format, $orientation);
                 } catch (Throwable) {
@@ -177,6 +178,22 @@ final class MediaVariants
     public static function roomFor(float $started, float $slowest, ?float $budgetSeconds): bool
     {
         return $budgetSeconds === null || (microtime(true) - $started) + $slowest + self::RESERVE_SECONDS <= $budgetSeconds;
+    }
+
+    /**
+     * PHP's clock started again before an encode, where the host lets it be (D-178). The
+     * budget above still decides when a request stops taking on more; this keeps one slow
+     * encode from being killed half-way by the limit. Measured on the copy, under load: the
+     * remake's step died at 90 seconds inside MediaWriter even with the slowest-encode rule,
+     * one 3840-pixel picture's AVIF taking most of the request on its own. Where the host
+     * refuses (set_time_limit disabled), nothing changes. A limit of 0 is left as none.
+     */
+    public static function breathe(): void
+    {
+        $limit = (int) ini_get('max_execution_time');
+        if ($limit > 0) {
+            @set_time_limit($limit);
+        }
     }
 
     /**

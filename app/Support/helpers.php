@@ -180,3 +180,50 @@ function site_t(string $key, string $locale, string $file = 'site'): string
 
     return $key;
 }
+
+/**
+ * The builder's mark on the element that shows a field (PLAN.md D-178, README 1.4): nothing on
+ * a visitor's page; in the canvas `data-bx-field="heading"`, or for a repeater item's field
+ * `data-bx-field="items.2.heading"`, and the words a placeholder says while it is empty
+ * ("Add subheading"), which canvas-marks.css shows on an empty element only.
+ */
+function edit_attr(string $field, ?int $item = null, ?string $sub = null): string
+{
+    if (!\App\Support\Editing::on()) {
+        return '';
+    }
+    $path = $item === null ? $field : $field . '.' . $item . '.' . (string) $sub;
+    $label = t('block.' . \App\Support\Editing::type() . '.' . $field . ($sub === null ? '' : '.' . $sub));
+
+    return ' data-bx-field="' . e($path) . '" data-bx-placeholder="' . e(t('builder.inline.add', ['field' => mb_strtolower($label)])) . '"';
+}
+
+/**
+ * Whether to draw a field's element: when it has something to show, and in the canvas always,
+ * where an empty one is the place to type it (README 4.4: "+ Add subheading").
+ */
+function edit_show(bool $hasValue): bool
+{
+    return $hasValue || \App\Support\Editing::on();
+}
+
+/** A repeater item's wrapper, named for the canvas's item tools: `data-bx-item="items.2"`. */
+function edit_item(string $field, int $item): string
+{
+    return \App\Support\Editing::on() ? ' data-bx-item="' . e($field . '.' . $item) . '"' : '';
+}
+
+/**
+ * The canvas's "+" at the end of a repeater (README 4.4): a button standing where the next
+ * item would, drawn in the canvas only. $class is the item's own, so it takes an item's place
+ * in the grid.
+ */
+function edit_add(string $field, string $class, string $tag = 'div'): string
+{
+    if (!\App\Support\Editing::on()) {
+        return '';
+    }
+
+    return '<' . $tag . ' class="' . e($class) . ' bx-add-item-cell"><button type="button" class="bx-add-item" data-bx-add-item="' . e($field) . '">'
+        . e(t('builder.inline.add_item', ['item' => t('block.' . \App\Support\Editing::type() . '.' . $field . '.item')])) . '</button></' . $tag . '>';
+}

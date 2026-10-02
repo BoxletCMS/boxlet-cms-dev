@@ -20,6 +20,8 @@ const ICONS = [
     'arrow-down', 'arrow-up', 'chevron-down', 'cloud-upload', 'copy', 'crop', 'external-link',
     'grip-vertical', 'image-up', 'languages', 'log-out', 'menu', 'monitor', 'smartphone', 'tablet', 'pencil', 'plus', 'replace', 'search', 'settings',
     'trash-2', 'x',
+    // The rich text toolbar on the page (D-178).
+    'bold', 'italic', 'heading-2', 'heading-3', 'list-ordered', 'text-quote', 'link', 'unlink',
     // The rail and the Workbench screens (D-052).
     'chart-column', 'check', 'circle-alert', 'clock', 'ellipsis-vertical', 'file-text', 'gauge', 'history',
     'chevron-left', 'image', 'list', 'list-checks', 'palette', 'panels-top-left',

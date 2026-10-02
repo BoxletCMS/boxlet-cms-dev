@@ -36,6 +36,7 @@
   var LIMIT = 100;
 
   pb.on = function (event, fn) { (listeners[event] = listeners[event] || []).push(fn); };
+  pb.off = function (event, fn) { listeners[event] = (listeners[event] || []).filter(function (f) { return f !== fn; }); };
   pb.emit = function (event, detail) { (listeners[event] || []).forEach(function (fn) { fn(detail); }); };
 
   /** A word from the admin's language files, its :placeholders filled. */
@@ -58,6 +59,8 @@
   };
 
   pb.copy = function (value) { return JSON.parse(JSON.stringify(value)); };
+  /** What the server last said is wrong with a block, by key, then by field path (D-178). */
+  pb.errors = {};
 
   /** A key no section or block of the document answers to: `m…` for a band, `n…` for a block. */
   pb.mint = function (prefix) {

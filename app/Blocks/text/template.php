@@ -9,8 +9,8 @@
  */
 ?>
 <div class="text">
-<?php if ($content['heading'] !== ''): ?>
-    <h2 class="text-heading"><?= e($content['heading']) ?></h2>
+<?php if (edit_show($content['heading'] !== '')): ?>
+    <h2 class="text-heading"<?= edit_attr('heading') ?>><?= e($content['heading']) ?></h2>
 <?php endif; ?>
-    <div class="richtext"><?= $content['body'] ?></div>
+    <div class="richtext"<?= edit_attr('body') ?>><?= $content['body'] ?></div>
 </div>

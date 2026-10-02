@@ -189,8 +189,21 @@
   });
   fit();
 
-  frame.addEventListener('load', function () { zoomControls(); pb.emit('canvas'); });
-  if (frame.contentDocument && frame.contentDocument.readyState === 'complete' && pb.canvas.main()) {
-    setTimeout(function () { pb.emit('canvas'); }, 0);
+  // THE CANVAS IS ANNOUNCED ONCE EVERY SCRIPT IS LISTENING (D-178). This file runs before the
+  // overlay and the rest; an announcement made from here — the frame's load, or a timer when
+  // it had loaded already — could land between two of them, and the overlay never heard it:
+  // a new page drew no "Add section at the end", in a whole run of the suite. Every deferred
+  // script has run by DOMContentLoaded, so nothing is said before that.
+  var listening = false;
+  function announce() {
+    zoomControls();
+    if (listening && frame.contentDocument && frame.contentDocument.readyState === 'complete' && pb.canvas.main()) {
+      pb.emit('canvas');
+    }
   }
+  frame.addEventListener('load', announce);
+  document.addEventListener('DOMContentLoaded', function () {
+    listening = true;
+    announce();
+  });
 })();

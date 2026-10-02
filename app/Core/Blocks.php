@@ -310,7 +310,8 @@ final class Blocks
         $style = SectionStyle::normalize($style);
         ob_start();
         try {
-            $include($template, $this->normalize($type, $content), $style, $layout, $media, $eager, $resolved, $locale, $locales, $options);
+            // Whose field labels the canvas's placeholders read (D-178).
+            \App\Support\Editing::block($type, fn () => $include($template, $this->normalize($type, $content), $style, $layout, $media, $eager, $resolved, $locale, $locales, $options));
         } catch (Throwable $e) {
             ob_end_clean();
             throw $e;

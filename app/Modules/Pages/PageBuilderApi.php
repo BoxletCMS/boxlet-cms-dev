@@ -106,6 +106,16 @@ final class PageBuilderApi
     public function fields(Request $request, string $locale, array $params): Response
     {
         $posted = is_array($request->body['blocks'] ?? null) ? $request->body['blocks'] : [];
+        // Or the block as the document holds it (D-178), from typing on the page: put in the
+        // form's shape, so the same parser cleans it and names the same errors.
+        $sent = $request->body['block'] ?? null;
+        if (is_array($sent) && is_string($sent['key'] ?? null) && is_string($sent['type'] ?? null) && $this->registry()->has($sent['type']) && is_array($sent['content'] ?? null)) {
+            $raw = ['type' => $sent['type'], 'layout' => is_string($sent['layout'] ?? null) ? $sent['layout'] : '', 'options' => is_array($sent['options'] ?? null) ? $sent['options'] : []];
+            foreach ($this->registry()->get($sent['type'])['fields'] as $name => $field) {
+                $raw[$name] = BlockValues::asSent($field, $sent['content'][$name] ?? null);
+            }
+            $posted = [$sent['key'] => $raw];
+        }
         $key = array_key_first($posted);
         if (!is_string($key) || count($posted) !== 1) {
             return Response::json(['error' => t('pages.draft.unreadable')], 422);

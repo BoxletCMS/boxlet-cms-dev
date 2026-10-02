@@ -94,3 +94,93 @@
 .bx-canvas [data-bx-stale] {
   box-shadow: inset 6px 0 0 #f0a020, inset 8px 0 0 #101a33;
 }
+
+/* ---- typing on the page (PLAN.md D-178) ---------------------------------------------------- */
+
+/* A FIELD THAT IS EMPTY, said where it would be: "+ Add subheading", in the page's own type.
+   Drawn in the canvas only (edit_show()); a visitor's page has no such element. Shown in the
+   selected block, not across the whole page, where a "+ Add link" on every card read as
+   clutter on the demo's home page (D-178); and not on pointing, which would move the page
+   under the pointer as it passed over a block. */
+.bx-canvas [data-bx-key]:not([data-bx-selected], :has([contenteditable], .ProseMirror)) [data-bx-placeholder]:empty {
+  display: none;
+}
+
+.bx-canvas [data-bx-placeholder]:empty::before {
+  content: attr(data-bx-placeholder);
+  font-style: normal;
+}
+
+.bx-canvas [data-bx-placeholder]:empty {
+  display: block;
+  min-inline-size: 6em;
+  outline: 1px dashed var(--bx-hover);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+  cursor: text;
+}
+
+/* A link's words stay a button or a link while empty, the placeholder as their words. */
+.bx-canvas a[data-bx-placeholder]:empty {
+  display: inline-block;
+}
+
+/* What is being typed in: a quiet edge of the selection's colour, the caret its own. */
+.bx-canvas [data-bx-field][contenteditable],
+.bx-canvas [data-bx-field]:has(> .ProseMirror) {
+  outline: 2px solid var(--bx-hover);
+  outline-offset: 3px;
+  border-radius: 0.125rem;
+}
+
+.bx-canvas [data-bx-field] .ProseMirror {
+  outline: none;
+}
+
+.bx-canvas [data-bx-field]:not([contenteditable]) {
+  cursor: text;
+}
+
+/* A picture is pressed to choose one, so it says it is a control. */
+.bx-canvas .hero-media[data-bx-field],
+.bx-canvas .image-text-media[data-bx-field],
+.bx-canvas .picture-frame[data-bx-field],
+.bx-canvas .cards-media[data-bx-field],
+.bx-canvas .gallery-frame[data-bx-field],
+.bx-canvas .hero-cover-picture[data-bx-field] {
+  cursor: pointer;
+}
+
+/* An error on the element it is about, at rest: the danger colour's edge in two tones. */
+.bx-canvas [data-bx-error] {
+  outline: 2px solid #c62828;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px #ffffff;
+}
+
+/* THE REPEATER'S "+", standing where the next item would. */
+.bx-canvas .bx-add-item-cell {
+  display: grid;
+  place-items: center;
+  min-block-size: 4rem;
+  border: 2px dashed var(--bx-hover);
+  border-radius: 0.5rem;
+  background: none;
+  list-style: none;
+}
+
+.bx-add-item {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--bx-paper);
+  border-radius: 999px;
+  background: var(--bx-ink);
+  color: var(--bx-paper);
+  font: 500 calc(0.8125rem * var(--bx-z, 1))/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  cursor: pointer;
+}
+
+.bx-add-item:hover,
+.bx-add-item:focus-visible {
+  background: var(--bx-select);
+  box-shadow: 0 0 0 2px var(--bx-ink);
+}

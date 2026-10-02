@@ -20,16 +20,16 @@ $says = trim((string) $content['attribution']) !== '' || trim((string) $content[
 ?>
 <figure class="quote">
 <?php if ($tag !== ''): ?>
-    <div class="quote-portrait"><?= $tag ?></div>
+    <div class="quote-portrait"<?= edit_attr('portrait') ?>><?= $tag ?></div>
 <?php endif; ?>
-    <blockquote class="quote-words"><?= nl2br(e($content['quote'])) ?></blockquote>
-<?php if ($says): ?>
+    <blockquote class="quote-words"<?= edit_attr('quote') ?>><?= nl2br(e($content['quote'])) ?></blockquote>
+<?php if (edit_show($says)): ?>
     <figcaption class="quote-said">
-<?php if ($content['attribution'] !== ''): ?>
-        <cite class="quote-who"><?= e($content['attribution']) ?></cite>
+<?php if (edit_show($content['attribution'] !== '')): ?>
+        <cite class="quote-who"<?= edit_attr('attribution') ?>><?= e($content['attribution']) ?></cite>
 <?php endif; ?>
-<?php if ($content['role'] !== ''): ?>
-        <span class="quote-role"><?= e($content['role']) ?></span>
+<?php if (edit_show($content['role'] !== '')): ?>
+        <span class="quote-role"<?= edit_attr('role') ?>><?= e($content['role']) ?></span>
 <?php endif; ?>
     </figcaption>
 <?php endif; ?>

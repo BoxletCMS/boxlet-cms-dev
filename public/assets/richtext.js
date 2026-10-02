@@ -286,8 +286,10 @@
   }
 
   // Blocks added to the canvas arrive as HTML from the server and need the same
-  // treatment; builder-inspector.js calls this after drawing a block's fields.
-  window.boxletRichText = { scan: scan };
+  // treatment; builder-inspector.js calls this after drawing a block's fields. The schema and
+  // the commands go with it: typing on the page (builder-inline-rich.js, D-178) is the same
+  // editor on the same whitelist, never a second one.
+  window.boxletRichText = { scan: scan, extensions: extensions, commands: COMMANDS };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { scan(document); });

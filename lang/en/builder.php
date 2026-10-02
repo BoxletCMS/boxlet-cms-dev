@@ -56,7 +56,7 @@ return [
     // The canvas
     // Under 800px only (D-176): the builder works there, and the plain form is easier.
     'builder.small_screen' => 'On a small screen the plain editor is easier →',
-    'builder.canvas.hint' => 'Click a block for its options · the background of a section for its layout',
+    'builder.canvas.hint' => 'Click text to type · a block for its options · a section\'s background for its layout',
     'builder.canvas.add_here' => 'Add a section here',
     'builder.canvas.add_end' => 'Add section at the end',
     'builder.canvas.insert_title' => 'Add here — a block or a pattern',
@@ -69,11 +69,32 @@ return [
     'builder.canvas.layout' => 'Layout',
     'builder.canvas.page' => 'Page',
     'builder.canvas.empty' => 'Empty — fill it in on the right',
+
+    // Typing on the page (D-178, README 4.4).
+    'builder.inline.add' => '+ Add :field',
+    'builder.inline.add_item' => '+ :item',
+    'builder.inline.remove_item' => 'Remove this one',
+    'builder.inline.item_before' => 'Move it before the one before',
+    'builder.inline.item_after' => 'Move it after the one after',
+    'builder.inline.link_title' => 'Where it leads',
+    'builder.inline.link_page' => 'A page',
+    'builder.inline.link_other' => 'Another address…',
+    'builder.inline.link_url' => 'Address',
+    'builder.inline.link_done' => 'Done',
+    'builder.inline.link_remove' => 'Remove the link',
+    'builder.inline.picture' => 'Choose a picture',
+    // What one item of each repeater is called, for its "+".
+    'block.cards.items.item' => 'Card',
+    'block.gallery.items.item' => 'Picture',
+    'block.accordion.items.item' => 'Question',
+    'block.stats.items.item' => 'Number',
+    'block.logos.items.item' => 'Logo',
+    'block.downloads.items.item' => 'File',
     // The inspector
     'builder.nothing.title' => 'Page',
     'builder.nothing.context' => 'Nothing selected',
     'builder.nothing.lead' => 'Nothing selected.',
-    'builder.nothing.words' => 'Text is edited in the inspector for now: select its block, then “All content”.',
+    'builder.nothing.words' => 'Click any text on the page and type.',
     'builder.nothing.block' => 'Click a block for its options, and the background of a section for its layout, spacing and background.',
     'builder.nothing.plus' => '“+” between sections adds a block or a pattern exactly there.',
     'builder.nothing.publish' => 'Visitors see the changes only when you press Publish.',

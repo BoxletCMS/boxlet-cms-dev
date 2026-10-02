@@ -1,0 +1,111 @@
+/* What typing on the page draws in the canvas's layer (PLAN.md D-178): a repeater item's tools,
+ * an error's words, the rich text toolbar and the link popover. canvas.css's rule holds here:
+ * literals and --bx- values, never a site token; every size in em of the layer's, which keeps
+ * it its size on screen at any scale. Dark faces in a white edge, as every control in there. */
+
+.bx-item-tools,
+.bx-rich-tools {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 0.5em;
+  background: var(--bx-ink);
+  color: var(--bx-paper);
+  box-shadow: 0 0 0 1px var(--bx-paper), 0 6px 18px rgb(0 0 0 / 0.22);
+}
+
+/* At the item's top right, inside it. */
+.bx-item-tools {
+  transform: translateX(-100%);
+}
+
+/* Over the words being written. */
+.bx-rich-tools {
+  transform: translateY(-100%);
+}
+
+.bx-rich-tools .bx-tool[aria-pressed="true"] {
+  background: var(--bx-select);
+}
+
+.bx-error {
+  max-inline-size: 28em;
+  margin: 0;
+  padding: 0.35em 0.7em;
+  border-radius: 0.375em;
+  background: #c62828;
+  color: var(--bx-paper);
+  box-shadow: 0 0 0 1px var(--bx-paper);
+  font: 500 0.8125em/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  pointer-events: none;
+}
+
+/* ---- where a link leads ------------------------------------------------------------------- */
+
+.bx-link {
+  display: grid;
+  gap: 0.5em;
+  inline-size: 20em;
+  padding: 0.75em;
+  border-radius: 0.75em;
+  background: var(--bx-ink);
+  color: var(--bx-paper);
+  box-shadow: 0 0 0 1px var(--bx-paper), 0 16px 40px rgb(0 0 0 / 0.3);
+  font: 500 0.8125em/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.bx-link-title {
+  margin: 0;
+  color: var(--bx-muted);
+}
+
+.bx-link-page,
+.bx-link-url {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 2.25em;
+  padding: 0 0.6em;
+  border: 1px solid var(--bx-muted);
+  border-radius: 0.375em;
+  background: var(--bx-ink-raised);
+  color: var(--bx-paper);
+  font: inherit;
+}
+
+.bx-link-url[hidden] {
+  display: none;
+}
+
+.bx-link-page:focus-visible,
+.bx-link-url:focus-visible,
+.bx-link-done:focus-visible,
+.bx-link-remove:focus-visible {
+  outline: 2px solid var(--bx-paper);
+  outline-offset: 1px;
+}
+
+.bx-link-actions {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+
+.bx-link-done {
+  padding: 0.45em 1em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bx-paper);
+  color: var(--bx-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.bx-link-remove {
+  padding: 0.45em 0;
+  border: 0;
+  background: none;
+  color: var(--bx-paper);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

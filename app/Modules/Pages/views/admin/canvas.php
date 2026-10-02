@@ -35,6 +35,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas-inserter.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas-inline.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas-marks.css')) ?>">
     <?php /* No script of its own: the builder draws over this document from the parent, which
              it can reach because both are this site's (builder-overlay.js, D-175). */ ?>

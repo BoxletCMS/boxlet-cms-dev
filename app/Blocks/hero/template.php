@@ -30,19 +30,19 @@ if ($cover) {
 ?>
 <div class="hero height-<?= e($options['height']) ?><?= $cover ? ' is-cover veil-' . e($options['veil']) : '' ?>">
 <?php if ($cover): ?>
-    <div class="hero-cover-picture"<?= $coverTag === '' && $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?>>
+    <div class="hero-cover-picture"<?= edit_attr('image') ?><?= $coverTag === '' && $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?>>
 <?php if ($coverTag !== ''): ?>
         <?= $coverTag ?>
 <?php endif; ?>
     </div>
 <?php endif; ?>
     <div class="hero-text">
-        <h1 class="hero-heading"><?= e($content['heading']) ?></h1>
-<?php if ($content['subheading'] !== ''): ?>
-        <p class="hero-subheading"><?= nl2br(e($content['subheading'])) ?></p>
+        <h1 class="hero-heading"<?= edit_attr('heading') ?>><?= e($content['heading']) ?></h1>
+<?php if (edit_show($content['subheading'] !== '')): ?>
+        <p class="hero-subheading"<?= edit_attr('subheading') ?>><?= nl2br(e($content['subheading'])) ?></p>
 <?php endif; ?>
-<?php if ($content['cta']['url'] !== '' && $content['cta']['label'] !== ''): ?>
-        <p class="hero-action"><a class="button" href="<?= e($content['cta']['url']) ?>"><?= e($content['cta']['label']) ?></a></p>
+<?php if (edit_show($content['cta']['url'] !== '' && $content['cta']['label'] !== '')): ?>
+        <p class="hero-action"><a class="button" href="<?= e($content['cta']['url']) ?>"<?= edit_attr('cta') ?>><?= e($content['cta']['label']) ?></a></p>
 <?php endif; ?>
     </div>
 <?php
@@ -62,7 +62,7 @@ $picture = is_int($content['image'] ?? null) ? ($media[$content['image']] ?? nul
 $tag = \App\Modules\Media\MediaPicture::tag($picture, ['hero', 'full'], '(max-width: 40rem) 100vw, 50vw', $eager);
 ?>
 <?php if (!$cover && ($reservesPictureArea || $content['image'] !== null)): ?>
-    <div class="hero-media">
+    <div class="hero-media"<?= edit_attr('image') ?>>
 <?php if ($tag !== ''): ?>
         <?= $tag ?>
 <?php else: ?>

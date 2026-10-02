@@ -441,9 +441,9 @@ test('every colour in the admin comes from the admin palette', function () {
         // is the user's design, not a surface this palette knows. Its colours are literals
         // on purpose and their legibility cannot be computed from the admin's tokens —
         // .bx-insert carries two tones so that one edge contrasts whatever is behind it.
-        // canvas-inserter.css and canvas-marks.css are the same document's, split from it
-        // (D-175), for the same reason.
-        if (in_array($file, ['canvas.css', 'canvas-inserter.css', 'canvas-marks.css'], true)) {
+        // canvas-inserter.css, canvas-inline.css and canvas-marks.css are the same document's,
+        // split from it (D-175, D-178), for the same reason.
+        if (in_array($file, ['canvas.css', 'canvas-inserter.css', 'canvas-inline.css', 'canvas-marks.css'], true)) {
             continue;
         }
 

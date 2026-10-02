@@ -85,7 +85,8 @@ final class PageRender
             // In the editor ALWAYS AS COLUMNS (D-103): a column is what a block is dragged
             // into and what the + in it adds to, and a band that draws none has neither.
             // Only the first section drawn is eager: its picture is the one a visitor waits for.
-            $drawn = SectionRender::draw($registry, $character, $group['section'], $shown, $media, $first, ['forms' => $forms, 'files' => $files], $locale, $editor);
+            // The canvas's drawing carries the editor's marks on each field (D-178); no other does.
+            $drawn = \App\Support\Editing::during($editor, static fn (): string => SectionRender::draw($registry, $character, $group['section'], $shown, $media, $first, ['forms' => $forms, 'files' => $files], $locale, $editor));
             if ($editor) {
                 $drawn = self::marked($drawn, (string) $group['id'], $isStale);
             }

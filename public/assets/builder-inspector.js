@@ -49,6 +49,10 @@
       panel.innerHTML = answer.json.html;
       if (window.boxletRichText) { window.boxletRichText.scan(panel); }
       if (window.boxletPicker) { window.boxletPicker.scan(panel); }
+      // An error found while typing on the page is said here too (README 4.4).
+      var form = panel.querySelector('[data-block-fields]');
+      if (form && pb.errors[sel.key]) { errors(form, pb.errors[sel.key]); }
+      pb.emit('inspected', sel);
     });
   }
 
@@ -103,6 +107,8 @@
           }, { coalesce: 'fields:' + key, quiet: true });
           redraw(block.section, true);
           errors(form, json.errors || {});
+          pb.errors[key] = json.errors || {};
+          pb.emit('errors', key);
           if (rethink) { inspect(); }
         });
     }, rethink ? 0 : 400);
@@ -120,6 +126,9 @@
         p.setAttribute('data-pb-error', '');
         p.textContent = found[name];
         holder.appendChild(p);
+        // Never behind a fold: All content opens on an error in it.
+        var fold = holder.closest('details');
+        if (fold) { fold.open = true; }
       }
     });
   }

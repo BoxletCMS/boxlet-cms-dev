@@ -147,6 +147,7 @@ final class MediaRemake
                     return false;
                 }
                 $encoding = microtime(true);
+                MediaVariants::breathe();
                 $crop = MediaPresets::crop($preset, (int) $media['width'], (int) $media['height'], (int) $media['focal_x'], (int) $media['focal_y']);
                 $relative = MediaPresets::file($preset, $id, (string) $media['filename'], $format);
                 $working = $relative . '.remake';

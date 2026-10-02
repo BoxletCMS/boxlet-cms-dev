@@ -23,14 +23,14 @@ $presets = $options['shape'] === 'natural' ? ['natural', 'full'] : ['card', 'wid
 $tag = \App\Modules\Media\MediaPicture::tag($picture, $presets, '(max-width: 40rem) 100vw, 50vw', $eager);
 ?>
 <figure class="picture shape-<?= e($options['shape']) ?>">
-    <div class="picture-frame">
+    <div class="picture-frame"<?= edit_attr('image') ?>>
 <?php if ($tag !== ''): ?>
         <?= $tag ?>
 <?php else: ?>
         <div class="media-placeholder"<?= $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?> aria-hidden="true"></div>
 <?php endif; ?>
     </div>
-<?php if ($content['caption'] !== ''): ?>
-    <figcaption class="picture-caption"><?= e($content['caption']) ?></figcaption>
+<?php if (edit_show($content['caption'] !== '')): ?>
+    <figcaption class="picture-caption"<?= edit_attr('caption') ?>><?= e($content['caption']) ?></figcaption>
 <?php endif; ?>
 </figure>

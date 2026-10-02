@@ -90,6 +90,8 @@ final class PageBuilderController
                 'layouts' => $this->layouts(),
                 'setPatterns' => PagePattern::fromSet($character, (string) $page['locale']),
                 'setName' => Characters::label($character),
+                // Typing on the page (D-178): what each field is, a repeater's new item, the pages.
+                'inline' => InlineFields::of($this->db(), $this->registry(), (string) $page['locale']),
                 'endpoints' => [
                     'draft' => Url::admin('pages', $id, 'draft'),
                     'render' => Url::admin('pages', $id, 'render'),
@@ -165,11 +167,16 @@ final class PageBuilderController
             'discard_confirm', 'structure.sections', 'structure.sections_one', 'structure.blocks', 'structure.blocks_one', 'structure.column', 'structure.empty', 'add.where_end', 'add.where_after', 'add.none_found',
             'canvas.add_here', 'canvas.add_end', 'canvas.insert_title', 'canvas.close', 'canvas.hidden_here', 'canvas.move_up', 'canvas.move_down',
             'canvas.copy', 'canvas.delete', 'canvas.layout', 'canvas.page', 'canvas.empty', 'section_n', 'pattern_name', 'pattern_saved', 'delete_confirm',
-            'page.restored', 'device.desktop', 'device.tablet', 'device.phone', 'add.mine', 'add.none_mine', 'add.from_set',
+            'page.restored', 'device.desktop', 'device.tablet', 'device.phone', 'add.mine', 'add.none_mine', 'add.from_set', 'inline.remove_item', 'inline.item_before', 'inline.item_after', 'inline.link_title', 'inline.link_page', 'inline.link_other', 'inline.link_url', 'inline.link_done', 'inline.link_remove',
         ];
         $strings = [];
         foreach ($keys as $key) {
             $strings[$key] = t('builder.' . $key);
+        }
+        // The rich text editor's own words, for its toolbar on the page (D-178): the same
+        // words the inspector's toolbar says.
+        foreach (['bold', 'italic', 'link', 'unlink', 'heading_2', 'heading_3', 'quote', 'bullets', 'numbers', 'toolbar'] as $key) {
+            $strings['rt.' . $key] = t('richtext.' . $key);
         }
         foreach (['published', 'changes', 'draft'] as $state) {
             $strings['state.' . $state] = t('pages.state.' . $state);

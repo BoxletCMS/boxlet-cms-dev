@@ -101,3 +101,11 @@ test('another variant is started only if the slowest one so far would still fit'
     assertTrue(!App\Modules\Media\MediaVariants::roomFor($started, 6.0, 87.0), 'eighty seconds in, after one that took six: no room');
     assertTrue(App\Modules\Media\MediaVariants::roomFor($started, 600.0, null), 'no limit at all');
 });
+
+// The clock is started again before an encode only where there is one (D-178): a command line
+// with no limit must not be given one, as the demo's import once gave the whole suite.
+test('starting the clock again before an encode never sets a limit where there is none', function () {
+    $was = ini_get('max_execution_time');
+    App\Modules\Media\MediaVariants::breathe();
+    assertEquals($was, ini_get('max_execution_time'), 'the limit as it was');
+});

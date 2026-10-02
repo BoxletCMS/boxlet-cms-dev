@@ -79,9 +79,22 @@ testBothDrivers('the home page is the mockup page, its sections holding only wha
     $seeded = DemoSite::pages('en')[0]['sections'];
     assertEquals(count($seeded), count($sections), 'sections');
     foreach ($seeded as $at => $section) {
-        assertEquals(SectionStyle::normalize($section['style']), $sections[$at]['style'], "section {$at} stored more than it set");
+        // What the page names, less what the demo's character composes anyway (the owner's
+        // review of D-170): such a value stored would be one more section "styled by hand".
+        $named = SectionStyle::normalize($section['style']);
+        $composed = Composition::section(DemoSite::CHARACTER, array_column($section['blocks'], 0));
+        foreach ($sections[$at]['style'] as $key => $value) {
+            $character = array_key_exists($key, $composed) ? (string) $composed[$key] : null;
+            if ($value === '') {
+                assertTrue($named[$key] === '' || (string) $named[$key] === $character, "section {$at} lost its {$key}");
+            } else {
+                assertEquals($named[$key], $value, "section {$at} stored a {$key} it did not name");
+                assertTrue((string) $value !== $character, "section {$at} stored the character's own {$key}");
+            }
+        }
         assertEquals($section['layout'], $sections[$at]['layout'], "section {$at}'s layout");
     }
+    assertEquals(DemoSite::CHARACTER, Composition::active($db), 'the demo is drawn with its character');
 
     $body = dispatch('/')->body;
     foreach (['Spaces that feel like they were always yours', 'From a single room to the whole flat.', 'Windows, shelving and the customer\'s path.', 'Fifteen years and more than two hundred spaces. We take on only a few projects at a time, so each one gets our full attention.', 'Get in touch and we&#039;ll plan the first step.'] as $words) {
@@ -92,6 +105,49 @@ testBothDrivers('the home page is the mockup page, its sections holding only wha
     assertContains('<a href="/#services">What we do</a>', $body, 'and the menu leads to it');
     assertContains('class="section-cols cols-wide-left', $body, 'Experience: two columns, the wide one left');
     assertContains('surface-contrast', $body, 'Contact on the contrast surface');
+});
+
+// A fresh demo is not "styled by hand" (the owner's review of D-170): loading a character
+// asked about thirty sections. What stays stored is only where a page means to differ from
+// Soft, and each is named here — the mockup's home in both languages, and the showroom's
+// sections, which exist to show a value no character composes.
+testBothDrivers('the demo styles by hand only the sections that mean to differ from its character', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
+
+    $deliberate = [
+        'en /#0' => 'Intro: 120 px above and below, fading in (README 1.6)',
+        'en /#4' => 'Contact: the contrast surface (README 1.6)',
+        'en /blocks#0' => 'a hero centred, rising in, tall',
+        'en /blocks#1' => 'the gradient surface, half a window high, content in the middle',
+        'en /blocks#2' => 'a picture behind, the slant edge',
+        'en /blocks#3' => 'the wide width',
+        'en /blocks#4' => 'the full width, zooming in, a screen high',
+        'en /blocks#5' => 'the line edge',
+        'en /blocks#6' => 'the contrast surface, the curve edge',
+        'en /blocks#7' => 'a band taller than its content, content at the top',
+        'en /blocks#9' => 'the same, content at the bottom',
+        'en /blocks#16' => 'a gallery as the pictures are',
+        'en /blocks#18' => 'a gallery of circles',
+        'en /blocks#21' => 'a picture, wide',
+        'en /blocks#22' => 'a picture, wide, inset',
+        'en /blocks#25' => 'the narrow width',
+        'hr /#0' => 'Intro, translated',
+        'hr /#4' => 'Contact, translated',
+    ];
+    $styled = [];
+    $at = [];
+    foreach ($db->all('SELECT s.id, s.style_json, p.locale, p.slug FROM page_sections s JOIN pages p ON p.id = s.page_id ORDER BY p.id, s.sort') as $row) {
+        $page = $row['locale'] . ' /' . $row['slug'];
+        $at[$page] = ($at[$page] ?? -1) + 1;
+        $style = SectionStyle::normalize(json_decode((string) $row['style_json'], true));
+        $options = array_filter(array_map(static fn (array $b): string => (string) $b['options_json'], $db->all('SELECT options_json FROM page_blocks WHERE section_id = ?', [$row['id']])), static fn (string $o): bool => $o !== '' && $o !== '[]' && $o !== '{}');
+        if (SectionStyle::overridden($style) || $options !== []) {
+            $styled[] = $page . '#' . $at[$page];
+        }
+    }
+    assertEquals(array_keys($deliberate), $styled, 'styled by hand');
+    assertEquals(count($deliberate), Composition::styledByHand($db), 'and what the Apply question counts');
 });
 
 // The demo links to its own pages the way an owner's site does: by reference, so renaming

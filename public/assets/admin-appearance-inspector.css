@@ -130,6 +130,16 @@
   white-space: nowrap;
 }
 
+/* THE HEADINGS WRAP, NEVER CUT (the owner's review of D-170): "A site that loo…" showed a
+   heading as a fragment. Two lines at most: appearance-readouts.js shrinks a heading that
+   would need a third, that heading alone, and the readout beside it keeps its real size. */
+.specimen-4xl span,
+.specimen-2xl span {
+  white-space: normal;
+  text-wrap: balance;
+  line-height: 1.15;
+}
+
 .specimen-line em {
   margin-inline-start: auto;
   color: var(--ui-ink-faint);

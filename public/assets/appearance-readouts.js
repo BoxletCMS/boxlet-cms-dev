@@ -159,6 +159,26 @@
         line.style.fontSize = Math.max(5, Math.round(sizes[at] * factor)) + 'px';
       }
     });
+    /*
+     * TWO LINES AT MOST FOR A HEADING (the stylesheet lets them wrap; the owner's review of
+     * D-171). One that needs a third — monospaced capitals do — gives way ALONE, a step at a
+     * time: shrinking every line with it put Brutalist's body text at 5px, measured, which
+     * shows nothing. Its real size is in the readout beside it. Not measured while the panel
+     * is hidden, when every height is 0.
+     */
+    lines.forEach(function (line) {
+      var words = line.querySelector('span');
+      if (!words || !/specimen-(4xl|2xl)/.test(line.className)) {
+        return;
+      }
+      for (var step = 0; step < 12; step++) {
+        var height = parseFloat(window.getComputedStyle(words).lineHeight) || 0;
+        if (height <= 0 || words.offsetHeight <= height * 2.5) {
+          break;
+        }
+        line.style.fontSize = Math.max(5, Math.round(parseFloat(line.style.fontSize) * 0.9)) + 'px';
+      }
+    });
   }
 
   /** And in the face being chosen: a pairing is two faces, and the specimen shows both. */
@@ -249,4 +269,14 @@
 
   // What the server already said, drawn: the readouts are in the markup before any change.
   drawSpecimen();
+  // And measured again where measuring means something: once the section is shown (hidden,
+  // every height is 0) and once its faces have loaded (a fallback face wraps differently).
+  document.addEventListener('appearance:section', function (event) {
+    if ((event.detail || {}).section === 'typography') {
+      drawSpecimen();
+    }
+  });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(drawSpecimen);
+  }
 })();

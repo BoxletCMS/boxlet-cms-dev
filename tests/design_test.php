@@ -948,14 +948,20 @@ testBothDrivers('a colour neither ink can be read on is refused, naming the cont
     assertEquals('#7a7a7a', $result['decisions']['header_colour'], 'the colour that was refused');
 });
 
-testBothDrivers('no character gives a place a colour of its own', function (string $driver) {
+// A place's own colour is the owner's, and a character leaves it to the palette — except
+// where the owner decided otherwise: Brutalist's footer is near-black (D-172), because its
+// contrast surface is the yellow of its call to action and a gradient is not brutalist.
+// Whatever a character sets passes the same contrast check as the owner's would.
+testBothDrivers('a character gives a place a colour of its own only where the owner decided it', function (string $driver) {
     $db = adminSite($driver);
+    $decided = ['brutalist' => ['footer_colour' => '#111318']];
     foreach (['editorial', 'minimal', 'bold', 'soft', 'brutalist'] as $name) {
         $decisions = Presets::get($name);
         foreach (App\Modules\Design\Vocabulary\Decisions::OWN_COLOURS as $field) {
             assertTrue(array_key_exists($field, $decisions), $name . ' carries ' . $field);
-            assertEquals('', $decisions[$field], $name . ' leaves ' . $field . ' to the palette');
+            assertEquals($decided[$name][$field] ?? '', $decisions[$field], $name . '\'s ' . $field);
         }
+        assertEquals([], Tokens::validate($decisions)['errors'], $name . ' passes its own contrast check');
     }
 });
 

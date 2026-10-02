@@ -65,22 +65,22 @@ return static function (Closure $t, Closure $p): array {
                 ['title' => $t('Cjenik', 'Price list'), 'description' => $t('Sve usluge i njihove cijene.', 'Every service and what it costs.')],
                 ['title' => $t('Upitnik', 'Questionnaire'), 'description' => $t('Ispunite ga prije sastanka.', 'Fill it in before we meet.')],
             ]], 'list', [], 0]),
-            $one(['surface' => 'tinted'], ['downloads', ['heading' => $t('Brošure', 'Brochures'), 'items' => [
+            $one([], ['downloads', ['heading' => $t('Brošure', 'Brochures'), 'items' => [
                 ['title' => $t('Studio', 'The studio'), 'description' => $t('Tko smo, na četiri stranice.', 'Who we are, in four pages.')],
                 ['title' => $t('Proces', 'Our process'), 'description' => $t('Od prvog razgovora do ključa.', 'From the first talk to the keys.')],
             ]], 'cards', [], 0]),
             $one([], ['embed', ['url' => 'https://www.youtube.com/watch?v=aqz-KE-bpKQ', 'caption' => $t('Video preko cijele širine', 'A video, full width'), 'ratio' => 'wide'], 'full', [], 0]),
             $one([], ['embed', ['url' => 'https://www.youtube.com/watch?v=aqz-KE-bpKQ', 'caption' => $t('Video, uvučen', 'A video, inset'), 'ratio' => 'wide'], 'inset', [], 0]),
-            $one(['surface' => 'tinted'], ['form', ['heading' => $t('Obrazac jedan ispod drugog', 'A form, stacked'), 'form' => 'demo:form'], 'stacked', [], 0]),
+            $one([], ['form', ['heading' => $t('Obrazac jedan ispod drugog', 'A form, stacked'), 'form' => 'demo:form'], 'stacked', [], 0]),
             $one([], ['gallery', ['heading' => $t('Dvije, kakve jesu', 'Two, as they are'), 'items' => [['caption' => $t('Radionica', 'The workshop')], ['caption' => $t('Uzorci', 'Samples')]]], 'two', ['shape' => 'natural'], 0]),
-            $one(['surface' => 'tinted'], ['gallery', ['heading' => $t('Tri, kvadratne', 'Three, square'), 'items' => [['caption' => 'A'], ['caption' => 'B'], ['caption' => 'C']]], 'three', ['shape' => 'square'], 0]),
+            $one([], ['gallery', ['heading' => $t('Tri, kvadratne', 'Three, square'), 'items' => [['caption' => 'A'], ['caption' => 'B'], ['caption' => 'C']]], 'three', ['shape' => 'square'], 0]),
             $one([], ['gallery', ['heading' => $t('Četiri, okrugle', 'Four, round'), 'items' => [['caption' => 'Ana'], ['caption' => 'Marko'], ['caption' => 'Petra'], ['caption' => 'Ivan']]], 'four', ['shape' => 'round'], 0]),
             $one([], ['logos', ['heading' => $t('Klijenti u redu', 'Clients in a row'), 'items' => [['name' => 'Marić'], ['name' => 'Sjever'], ['name' => 'Ilica'], ['name' => 'Kovač']]], 'row', [], 0]),
-            $one(['surface' => 'tinted', 'align' => 'center'], ['logos', ['heading' => $t('Klijenti u mreži', 'Clients in a grid'), 'items' => [['name' => 'Marić'], ['name' => 'Sjever'], ['name' => 'Ilica'], ['name' => 'Kovač'], ['name' => 'Babić'], ['name' => 'Lumen']]], 'grid', [], 0]),
+            $one([], ['logos', ['heading' => $t('Klijenti u mreži', 'Clients in a grid'), 'items' => [['name' => 'Marić'], ['name' => 'Sjever'], ['name' => 'Ilica'], ['name' => 'Kovač'], ['name' => 'Babić'], ['name' => 'Lumen']]], 'grid', [], 0]),
             $one([], ['picture', ['caption' => $t('Slika preko stupca', 'A picture filling the column')], 'full', ['shape' => 'wide'], 0]),
-            $one(['surface' => 'tinted'], ['picture', ['caption' => $t('Slika s prostorom oko sebe', 'A picture with room around it')], 'inset', ['shape' => 'wide'], 0]),
+            $one([], ['picture', ['caption' => $t('Slika s prostorom oko sebe', 'A picture with room around it')], 'inset', ['shape' => 'wide'], 0]),
             $one([], ['quote', ['quote' => $t('„Citat na kartici.”', '“A quotation on a card.”'), 'attribution' => 'Ana M.'], 'card', [], 0]),
-            $one(['surface' => 'contrast'], ['stats', ['heading' => $t('Četiri broja', 'Four numbers'), 'items' => [
+            $one([], ['stats', ['heading' => $t('Četiri broja', 'Four numbers'), 'items' => [
                 ['value' => '15', 'label' => $t('godina', 'years')],
                 ['value' => '200+', 'label' => $t('prostora', 'spaces')],
                 ['value' => '3', 'label' => $t('arhitekta', 'architects')],

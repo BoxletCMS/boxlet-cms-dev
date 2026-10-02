@@ -109,14 +109,14 @@
   color: var(--ui-ink);
 }
 
-.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-home > .control-group:first-of-type > .control-group-head {
-  padding-inline-end: 2.25rem;
-}
-
-/* A QUESTION STANDS BELOW THE ICON, NOT BEHIND IT (README 4.6, D-171): a panel is a box, and
-   room kept for the icon inside it still left the icon on the box's corner, measured over
-   Publish's question. With a question shown, the icon has the row above it to itself. */
-.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-panels:has(> *) {
+/* THE ICON HAS THE TOP ROW TO ITSELF wherever its corner is taken. A question is a box, and
+   room kept for the icon inside it still left the icon on the box's corner (README 4.6,
+   D-171); Quick start's head kept room for it too, which put its − short of the right edge
+   where every other group has it (the owner's review of D-171). So the question, or else the
+   home's first group, starts below the icon. A section's first row is its back link, short,
+   and leaves the corner free. */
+.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-panels:has(> *),
+.appearance-inspector:has(> .hints-icon:not([hidden])):not(:has(.inspector-panels > *)) .inspector-home > .control-group:first-of-type {
   margin-block-start: calc(1.5rem + var(--ui-2));
 }
 

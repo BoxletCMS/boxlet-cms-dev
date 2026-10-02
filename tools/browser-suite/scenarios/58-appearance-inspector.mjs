@@ -4,11 +4,13 @@
  * in both directions, the layout diagram following a slider, and the question Publish asks
  * after a character is loaded — at the top of the inspector, not across the screen.
  *
- * ON THE DEVELOPMENT SITE, and it publishes nothing: every change here is made on the screen
- * and left there, and the one question Publish asks is photographed and not answered. The
- * page is left by navigating away.
+ * ON THE COPY since D-172. It publishes nothing — every change here is made on the screen and
+ * left there, and the one question Publish asks is photographed and not answered — but that
+ * question is reached by pressing Save after loading a character, which the activity log
+ * records as a design saved, on a site the owner works in while the suite runs (the owner's
+ * rule of 2026-10-02: checks on the copy, never on the owner's site).
  */
-import { BASE, ADMIN } from '../config.mjs';
+import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
 import { login, openSection } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -16,6 +18,7 @@ const shot = (report, page, name) => report.shot(page, name, { fullPage: false }
 
 export default {
   name: 'appearance-inspector',
+  copy: true,
 
   async run({ page, report }) {
     if (!await login(page, BASE, ADMIN.email, ADMIN.password)) {
@@ -48,18 +51,32 @@ export default {
     const styled = await page.evaluate(async () => ((await (await fetch(window.location.pathname, { credentials: 'same-origin' })).text()).match(/\sstyle="/g) || []).length);
     report.verdict('the screen\'s markup carries no style attribute', styled === 0, `${styled} found`);
 
-    // ---- the hints as an icon in the top row (D-161) ---------------------------------------
+    // ---- the hints as an icon, above the first group (D-161, changed by D-172) -------------
+    // D-161 put the icon in Quick start's own row, with room kept for it, which left that
+    // group's − short of the right edge every other group's stands at. The owner asked for
+    // the − in line; the icon has the row above the group to itself, as above a question.
     const hints = await page.evaluate(() => {
       const icon = document.querySelector('.hints-icon');
       const first = document.querySelector('[data-view="home"] .control-group-head');
       const a = icon.getBoundingClientRect();
       const b = first.getBoundingClientRect();
-      // Clear of what the row already holds at its end: the count and the fold's − sign.
-      const toggle = first.querySelector('.control-group-toggle').getBoundingClientRect();
-      return { shown: !icon.hidden, sameRow: a.top < b.bottom && a.bottom > b.top, clear: toggle.right <= a.left, title: icon.title };
+      const toggles = [...document.querySelectorAll('[data-view="home"] .control-group-toggle')].map((t) => Math.round(t.getBoundingClientRect().right));
+      return { shown: !icon.hidden, above: a.bottom <= b.top, toggles, title: icon.title };
     });
-    report.verdict('the hints are an icon in the inspector\'s first row, not a row of their own',
-      hints.shown && hints.sameRow && hints.clear && hints.title.length > 0, JSON.stringify(hints));
+    report.verdict('the hints are an icon above the first group, and every group\'s − stands at the same right edge',
+      hints.shown && hints.above && hints.toggles.length >= 2 && new Set(hints.toggles).size === 1 && hints.title.length > 0, JSON.stringify(hints));
+
+    // ---- the specimen's headings wrap, never cut (D-172) -----------------------------------
+    await openSection(page, 'typography');
+    await wait(500);
+    const specimen = await page.evaluate(() => [...document.querySelectorAll('.specimen-4xl span, .specimen-2xl span')].map((words) => {
+      const height = parseFloat(getComputedStyle(words).lineHeight);
+      return { lines: Math.round(words.offsetHeight / height), cut: words.scrollWidth > words.clientWidth };
+    }));
+    report.verdict('the specimen\'s headings take two lines at most, and none is cut short',
+      specimen.length === 2 && specimen.every((h) => h.lines >= 1 && h.lines <= 2 && !h.cut), JSON.stringify(specimen));
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    await wait(500);
 
     // ---- a section, and Back --------------------------------------------------------------
     await openSection(page, 'header');

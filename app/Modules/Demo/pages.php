@@ -81,7 +81,7 @@ return static function (string $lang): array {
             'description' => $t('Mali studio, petnaest godina, preko dvjesto prostora.', 'A small studio, fifteen years, more than two hundred spaces.'),
             'menu' => true,
             'sections' => [
-                ['style' => ['surface' => 'tinted'], 'layout' => 'one', 'blocks' => [
+                ['style' => [], 'layout' => 'one', 'blocks' => [
                     ['hero', [
                         'heading' => $t('Mali studio, velika pažnja', 'A small studio, close attention'),
                         'subheading' => $t('Troje arhitekata i jedna radionica u Zagrebu.', 'Three architects and a workshop in Zagreb.'),
@@ -93,7 +93,7 @@ return static function (string $lang): array {
                         'body' => $p('Studio je nastao 2010. iz jedne narudžbe: kuhinje za prijatelje kojoj nitko nije znao naći mjesto. Od tada radimo isto, samo više puta.', 'The studio began in 2010 with one job: a kitchen for friends that nobody could find room for. We have been doing the same ever since, only more often.'),
                     ], 'image-right', [], 0],
                 ]],
-                ['style' => ['surface' => 'tinted'], 'layout' => 'one', 'blocks' => [
+                ['style' => [], 'layout' => 'one', 'blocks' => [
                     ['stats', [
                         'heading' => $t('U brojkama', 'In numbers'),
                         'items' => [
@@ -125,9 +125,9 @@ return static function (string $lang): array {
                             ['heading' => $t('Uredi', 'Offices'), 'body' => $p('Radna mjesta, sobe za sastanke i mjesto za kavu.', 'Desks, meeting rooms and somewhere for coffee.')],
                             ['heading' => $t('Trgovine', 'Shops'), 'body' => $p('Izlog, police, rasvjeta i put kupca kroz prostor.', 'Window, shelving, light and the customer’s path through the room.')],
                         ],
-                    ], 'list', ['image_shape' => 'square'], 0],
+                    ], 'list', [], 0],
                 ]],
-                ['style' => ['surface' => 'tinted'], 'layout' => 'one', 'blocks' => [
+                ['style' => [], 'layout' => 'one', 'blocks' => [
                     ['accordion', [
                         'heading' => $t('Česta pitanja', 'Questions'),
                         'items' => [
@@ -146,7 +146,7 @@ return static function (string $lang): array {
             'description' => $t('Od prvog razgovora do ključa, korak po korak.', 'From the first talk to the keys, step by step.'),
             'menu' => true,
             'sections' => [
-                ['style' => ['width' => 'narrow'], 'layout' => 'one', 'blocks' => [
+                ['style' => [], 'layout' => 'one', 'blocks' => [
                     ['text', [
                         'heading' => $t('Kako radimo', 'How we work'),
                         'body' => '<p>' . $t('Svaki prostor prolazi isti put. Nije brz, ali nitko na njemu ne čeka.', 'Every space goes the same way. It is not fast, but nobody on it waits.') . '</p>'
@@ -155,7 +155,7 @@ return static function (string $lang): array {
                             . '<h2>' . $t('Izvedba', 'Building') . '</h2>' . $p('Biramo izvođače s kojima radimo godinama i dolazimo na gradilište svaki tjedan.', 'We choose builders we have worked with for years and visit the site every week.'),
                     ], 'single', [], 0],
                 ]],
-                ['style' => ['surface' => 'tinted'], 'layout' => 'one', 'blocks' => [
+                ['style' => [], 'layout' => 'one', 'blocks' => [
                     ['quote', [
                         'quote' => $t('„Znali smo svaki tjedan što se radi i zašto.”', '“Every week we knew what was being done and why.”'),
                         'attribution' => 'Tomislav B.',
@@ -178,7 +178,7 @@ return static function (string $lang): array {
                         'form' => 'demo:form',
                     ], 'beside', [], 0],
                 ]],
-                ['style' => ['surface' => 'tinted'], 'layout' => 'halves', 'blocks' => [
+                ['style' => [], 'layout' => 'halves', 'blocks' => [
                     ['text', ['heading' => $t('Studio', 'The studio'), 'body' => $p('Ilica 42, Zagreb', 'Ilica 42, Zagreb')], 'single', [], 0],
                     ['text', ['heading' => $t('Radno vrijeme', 'Hours'), 'body' => $p('Pon–pet, 9–17 h', 'Mon–Fri, 9 am–5 pm')], 'single', [], 1],
                 ]],

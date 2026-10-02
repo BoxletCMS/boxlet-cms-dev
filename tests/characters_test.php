@@ -72,14 +72,15 @@ test('the five core files pass validation and the format\'s own reader, changing
         $set = $read['set'] ?? fail("{$id}: nothing was read");
         assertEquals($file, DesignSet::export($id, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns']), "{$id}: not in canonical form");
 
-        // A character Boxlet ships makes none of the owner's exceptions (D-063, D-066, D-076).
+        // A character Boxlet ships makes none of the owner's exceptions (D-063, D-066, D-076) —
+        // but the one the owner made for it: Brutalist's near-black footer (D-172).
         $exceptions = array_merge(
             array_map(static fn (string $role): string => 'color_' . $role, App\Modules\Design\Vocabulary\Decisions::BY_HAND),
             App\Modules\Design\Vocabulary\Decisions::OWN_COLOURS,
             array_keys(Tokens::NUDGES),
         );
         $own = array_intersect_key((array) json_decode($file, true)['decisions'], array_flip($exceptions));
-        assertEquals([], $own, "{$id} ships a decision that is the owner's to make");
+        assertEquals($id === 'brutalist' ? ['footer_colour' => '#111318'] : [], $own, "{$id} ships a decision that is the owner's to make");
         assertEquals('core', Characters::source($id), "{$id}: source");
     }
     assertTrue(Characters::exists(Presets::DEFAULT), 'the default character');

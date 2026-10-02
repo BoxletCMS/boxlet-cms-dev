@@ -2,8 +2,10 @@
 
 namespace App\Modules\Demo;
 
+use App\Core\BlockOptions;
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Forms\Form;
 use App\Modules\Languages\Locales;
@@ -26,6 +28,12 @@ use RuntimeException;
  */
 final class DemoSite
 {
+    /**
+     * The character the demo is written for (README 1.6: the mockup at its Soft-like set). A
+     * section or block stores only where it differs from this one's composition.
+     */
+    public const CHARACTER = 'soft';
+
     /**
      * Creates the demo in $locale: Croatian words for a Croatian site, English for any other.
      * Refuses a site that already has pages rather than mixing demo content into real content.
@@ -54,6 +62,9 @@ final class DemoSite
         }
         self::menu($db, $locale, $pages, $ids);
         self::translateHome($db, $registry, $ids, $lang === 'hr' ? 'en' : 'hr');
+        // Its sections store only what differs from this character, so they are drawn with it
+        // (the owner's review of D-170). The caller compiles the design: Installer does.
+        Composition::remember($db, self::CHARACTER);
 
         return count($pages);
     }
@@ -76,9 +87,7 @@ final class DemoSite
                 'id' => null,
                 'layout' => $section['layout'],
                 'stack' => null,
-                // The keys the page names, and nothing else: every other is '' and so the
-                // character's, as it is for a section made in the editor (D-165).
-                'style' => SectionStyle::normalize($section['style']),
+                'style' => self::ownStyle($section['style'], array_column($section['blocks'], 0)),
             ];
             foreach ($section['blocks'] as [$type, $content, $layout, $options, $column]) {
                 $content = self::link($registry->get($type)['fields'], $content, $reference);
@@ -92,7 +101,7 @@ final class DemoSite
                     'type' => $type,
                     'content' => $registry->normalize($type, $content),
                     'style' => SectionStyle::normalize([]),
-                    'options' => $options,
+                    'options' => self::ownOptions($registry, $type, $options),
                     'layout' => $registry->layout($type, $layout),
                     'section' => $key,
                     'column' => $column,
@@ -107,6 +116,51 @@ final class DemoSite
             // The showroom is for looking at, not for finding (D-170).
             'seo_json' => Page::seoJson(['title' => '', 'description' => $page['description'], 'noindex' => $page['key'] === 'blocks']),
         ], $blocks, $sections);
+    }
+
+    /**
+     * A section's style as an owner who means it would leave it (D-165, the owner's review of
+     * D-170): the keys the page names, less every one that only says what the demo's character
+     * composes anyway. Stored, such a value is "styled by hand" — loading another character
+     * asked about thirty sections on a fresh install, and kept them looking like Soft.
+     *
+     * @param array<string, string> $style
+     * @param list<string> $types the section's block types
+     * @return array<string, string|int|null>
+     */
+    private static function ownStyle(array $style, array $types): array
+    {
+        $own = SectionStyle::normalize($style);
+        $composed = Composition::section(self::CHARACTER, $types);
+        foreach ($composed as $name => $value) {
+            if (array_key_exists($name, $own) && $own[$name] !== '' && (string) $own[$name] === (string) $value) {
+                $own[$name] = '';
+            }
+        }
+
+        return $own;
+    }
+
+    /**
+     * A block's options the same way: only those the character would not answer so already,
+     * its composition's for the type or else the option's own default.
+     *
+     * @param array<string, string> $options
+     * @return array<string, string>
+     */
+    private static function ownOptions(Blocks $registry, string $type, array $options): array
+    {
+        $specs = $registry->get($type)['options'];
+        $composed = Composition::options(self::CHARACTER, $type);
+        $own = [];
+        foreach (BlockOptions::normalize($specs, $options) as $name => $value) {
+            $answer = BlockOptions::clean($specs[$name], $composed[$name] ?? '');
+            if ($value !== '' && $value !== ($answer !== '' ? $answer : $specs[$name]['default'])) {
+                $own[$name] = $value;
+            }
+        }
+
+        return $own;
     }
 
     /**

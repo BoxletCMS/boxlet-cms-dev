@@ -63,12 +63,14 @@ final class Installer
             throw $e;
         }
 
-        // A new site starts with nothing of the owner's: the default character, compiled so
-        // its first page is styled (D-164).
-        Design::save($db, [], $this->cacheDirectory);
+        // The demo is written for its own character (DemoSite::CHARACTER) and sets it, so it
+        // is seeded before the design is compiled.
         if ($demo) {
             DemoSite::seed($db, Blocks::discover($this->root . '/app/Blocks'), $site['locale']);
         }
+        // A new site starts with nothing of the owner's: its character, the default one
+        // without the demo, compiled so its first page is styled (D-164).
+        Design::save($db, [], $this->cacheDirectory);
         // A site installed where another stood must not answer with that one's kept pages:
         // public/cache outlives a reinstall, and the browser copy served the old demo home
         // after one, measured.

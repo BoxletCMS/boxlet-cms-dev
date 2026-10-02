@@ -12,6 +12,7 @@ use App\Core\Blocks;
 use App\Core\Config;
 use App\Core\Db;
 use App\Modules\Demo\DemoSite;
+use App\Modules\Design\Design;
 use Dotenv\Dotenv;
 
 if (PHP_SAPI !== 'cli') {
@@ -38,4 +39,7 @@ try {
     exit(1);
 }
 
-echo "Added {$count} demo pages in locale {$primary['code']}.\n";
+// The demo sets the character it is written for; the stylesheet follows it (DemoSite::seed).
+Design::publish($db, (string) $config->get('app.cache_path'));
+
+echo "Added {$count} demo pages in locale {$primary['code']}, drawn with " . DemoSite::CHARACTER . ".\n";

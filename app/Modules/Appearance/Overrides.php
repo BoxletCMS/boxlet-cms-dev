@@ -25,7 +25,7 @@ final class Overrides
      * The sections in the order the home lists them, each a list of groups and each group the
      * keys it holds. Every global decision is in exactly one place (appearance_inspector_test).
      * A group with no keys holds something that is not a decision: the contrast check, the
-     * diagram, a menu, the words.
+     * diagram.
      */
     public const SECTIONS = [
         'colours' => [
@@ -55,13 +55,10 @@ final class Overrides
             'behaviour' => ['header_behaviour', 'header_opacity', 'header_blur'],
             'background' => ['header_surface', 'header_colour', 'header_edge'],
             'menu' => ['nav_style', 'nav_ink', 'header_button'],
-            'words' => [],
         ],
         'footer' => [
             'arrangement' => ['footer_layout', 'footer_columns', 'footer_links', 'small_print_row'],
-            'menus' => [],
             'background' => ['footer_surface', 'footer_colour', 'footer_edge'],
-            'words' => [],
         ],
         'buttons' => [
             'style' => ['button_style', 'button_radius', 'button_height', 'button_caps'],

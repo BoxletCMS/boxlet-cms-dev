@@ -28,12 +28,13 @@ export default {
 
     // ---- reachable from the navigation -----------------------------------------------------
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    const link = await page.$('.rail-nav a[href$="/admin/menus"]');
-    report.verdict('the navigation offers Menus', link !== null,
-      link === null ? 'no link to /admin/menus in the admin bar' : 'the admin bar links to it');
+    // Navigation since D-180: what the header and footer say, and the menus under it.
+    const link = await page.$('.rail-nav a[href$="/admin/navigation"]');
+    report.verdict('the navigation offers Navigation, with the menus', link !== null,
+      link === null ? 'no link to /admin/navigation in the admin bar' : 'the admin bar links to it');
     if (link === null) { return; }
 
-    await clickAndWait(page, '.rail-nav a[href$="/admin/menus"]');
+    await clickAndWait(page, '.rail-nav a[href$="/admin/navigation"]');
 
     // ---- create one --------------------------------------------------------------------
     const name = `Zz Menu ${Date.now().toString(36).slice(-5)}`;
@@ -130,7 +131,7 @@ export default {
     } finally {
       // By exact id, captured at creation. A menu left behind would make the next run's
       // "created a menu" count wrong and its name collide.
-      await page.goto(`${BASE}/admin/menus`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/navigation`, { waitUntil: 'networkidle2' });
       const removed = await page.evaluate((id) => {
         const form = document.querySelector(`form[action$="/admin/menus/${id}/delete"]`);
         if (!form) { return false; }

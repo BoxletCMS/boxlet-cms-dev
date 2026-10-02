@@ -56,8 +56,15 @@
   white-space: nowrap;
 }
 
-.appearance-title strong {
+/* The screen's heading (D-181: a page has one h1), at the size the bar's name always had —
+   over `.admin h1`, which is a page's heading. */
+.admin .appearance-title .appearance-name {
+  margin: 0;
+  font-family: inherit;
   font-size: var(--ui-text-base);
+  font-weight: 700;
+  line-height: inherit;
+  letter-spacing: normal;
 }
 
 /* The subhead says what the screen is for, and goes first when there is no room for it. */
@@ -186,6 +193,28 @@
   color: var(--ui-ink);
   font: inherit;
   font-size: var(--ui-text-xs);
+}
+
+/* What pressing the picture does (D-181): said once, quietly, between the page and the size. */
+.stage-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-1);
+  min-inline-size: 0;
+  margin-inline-start: auto;
+  overflow: hidden;
+  color: var(--ui-ink-muted);
+  white-space: nowrap;
+}
+
+.stage-hint[hidden] {
+  display: none;
+}
+
+.stage-hint .icon {
+  flex: none;
+  inline-size: 0.9rem;
+  block-size: 0.9rem;
 }
 
 /* The one thing in this strip that is a warning rather than a fact, so it is the one that

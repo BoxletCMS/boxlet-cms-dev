@@ -31,7 +31,7 @@ const SCREENS = [
   ['/admin/media', 'media'],
   ['first:/admin/media', 'media-item'],
   ['/admin/appearance', 'appearance'],
-  ['/admin/menus', 'menus'],
+  ['/admin/navigation', 'navigation'],
   ['first:/admin/menus', 'menu'],
   ['/admin/settings', 'settings'],
   ['/admin/update', 'update'],

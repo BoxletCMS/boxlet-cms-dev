@@ -148,6 +148,16 @@
     });
   }
 
+  /** For the search (appearance-search.js): the view the address says, or a section opened. */
+  window.boxletAppearanceViews = {
+    restore: function () { show(current || 'home'); },
+    open: function (name) {
+      window.history.pushState(null, '', address(name));
+      pushedFromHome = current === 'home';
+      show(name);
+    },
+  };
+
   inspector.classList.add('views-ready');
   var first = viewWithAProblem() || fromHash() || returning();
   if (!views[first]) {

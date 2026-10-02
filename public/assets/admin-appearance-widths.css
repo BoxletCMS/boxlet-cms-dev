@@ -33,8 +33,9 @@
   }
 }
 
-/* The subhead explains the screen; it is the first thing to go when the bar is crowded. */
-@container appearance (max-width: 68rem) {
+/* The subhead explains the screen; it is the first thing to go when the bar is crowded — and
+   since undo, redo and the count joined the bar (D-181), it is crowded under 96rem. */
+@container appearance (max-width: 96rem) {
   .appearance-subhead {
     display: none;
   }

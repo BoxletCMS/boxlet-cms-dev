@@ -22,9 +22,13 @@ return [
     'chrome.logo_where' => 'The logo is set with the site’s other pictures, under',
     'chrome.logo_where_link' => 'Settings → Branding.',
     'chrome.menu' => 'Menu',
-    'chrome.menu_hint' => 'Which menu the header and footer show. Menus are built under Menus; a menu with the same name in each language gives every translation its own words.',
+    'chrome.menu_hint' => 'Which menu the header shows. Menus are built at the foot of this page; a menu with the same name in each language gives every translation its own words.',
     'chrome.menu_none' => 'No menu',
-    'chrome.no_menus' => 'There are no menus yet. Build one under Menus and it will be offered here.',
+    'chrome.no_menus' => 'There are no menus yet. Build one at the foot of this page and it will be offered here.',
+    // Where the words went (D-180): Appearance keeps how they look.
+    'chrome.header_words_where' => 'Which menu the header shows, and the button’s words and address, are set in',
+    'chrome.footer_words_where' => 'The columns’ titles, words and menus and the small print are set in',
+    'chrome.navigation_link' => 'Navigation →',
     'chrome.menu_gone' => 'The menu you had chosen no longer exists, so it was cleared.',
 
     // "Button" alone read as a toggle or a section heading on the rendered screen, with
@@ -63,8 +67,8 @@ return [
     'chrome.footer_column_title' => 'Title',
     'chrome.footer_column_menu' => 'Column :n menu',
     'chrome.footer_menu_same' => 'The header’s menu',
-    'chrome.footer_menu_hint' => 'None, the header’s menu again, or a menu of this column’s own — Privacy, Imprint, Terms. Built under Menus, chosen by name, so each language’s menu of that name is the column’s. Its title and words are under the footer’s words below.',
-    'chrome.footer_column_menu_hint' => 'Drawn only when the arrangement shows this column. Its title and words are under the footer’s words below.',
+    'chrome.footer_menu_hint' => 'None, the header’s menu again, or a menu of this column’s own — Privacy, Imprint, Terms. Built at the foot of this page, chosen by name, so each language’s menu of that name is the column’s. Its title and words are under Footer words below.',
+    'chrome.footer_column_menu_hint' => 'Drawn only when Appearance’s footer arrangement shows this column. Its title and words are under Footer words below.',
     'chrome.look.footer_layout' => 'Footer arrangement',
     'chrome.look.footer_layout.simple' => 'One column',
     'chrome.look.footer_layout.centred' => 'Centred',

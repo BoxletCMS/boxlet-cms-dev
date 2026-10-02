@@ -340,37 +340,6 @@ test('Publish stands in the screen\'s own bar and still submits the form', funct
 
 // ---- Round 3: one screen (PLAN.md D-059) ----------------------------------------------
 
-testBothDrivers('loading a character keeps the header and footer the owner has typed', function (string $driver) {
-    $db = adminSite($driver);
-    Menu::create($db, 'en', 'Main');
-
-    // What the owner has on the screen: a menu, a footer line, and their own words.
-    adminPost('/admin/appearance', appearanceFields([
-        'header_menu' => 'Main',
-        'footer_text_en' => '<p>Made in Zagreb</p>',
-        'header_button_label_en' => 'Write to us',
-        'action' => 'save',
-    ]));
-
-    // Now they try a character. The whole screen is posted, because the card's button names
-    // the one form — it used to be a form of its own carrying only the character's name,
-    // which read back as "every chrome field is empty" and cleared them.
-    $loaded = adminPost('/admin/appearance', appearanceFields([
-        'header_menu' => 'Main',
-        'footer_text_en' => '<p>Made in Zagreb</p>',
-        'header_button_label_en' => 'Write to us',
-        'action' => 'preset:bold',
-    ]));
-
-    assertEquals(200, $loaded->status, 'the character loads');
-    // In the textarea it was typed into, not merely somewhere on the page.
-    assertContains(e('<p>Made in Zagreb</p>') . '</textarea>', $loaded->body, 'the footer line is still on the screen');
-    assertContains('value="Write to us"', $loaded->body, 'the button label is still on the screen');
-    assertContains('<option value="Main" selected>', $loaded->body, 'the menu is still chosen');
-    assertEquals('Main', SiteChrome::menuName($db), 'and nothing was written');
-    assertEquals('<p>Made in Zagreb</p>', SiteChrome::footer($db, 'en')['columns'][0]['text'], 'the stored footer line');
-});
-
 test('the merged screen carries both halves, and the old addresses lead to it', function () {
     $db = adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
@@ -381,8 +350,11 @@ test('the merged screen carries both halves, and the old addresses lead to it', 
     }
     assertTrue(!str_contains($body, 'data-panel='), 'a tab of the old screen');
     assertContains('name="seed"', $body, 'the design half');
-    assertContains('name="header_menu"', $body, 'the chrome half');
-    assertContains('name="footer_text_en"', $body, 'the words');
+    assertContains('name="look_header_arrangement"', $body, 'the chrome\'s look');
+    // The rule changed deliberately (D-180): the header's and footer's words and menus are
+    // Navigation's, and this screen only links there (appearance_navigation_test).
+    assertTrue(!str_contains($body, 'name="header_menu"'), 'the header\'s menu is Navigation\'s');
+    assertTrue(!str_contains($body, 'name="footer_text_en"'), 'and the words');
 
     /*
      * AND THE TWO OLD ADDRESSES ARE GONE (PLAN.md O-22).
@@ -396,42 +368,6 @@ test('the merged screen carries both halves, and the old addresses lead to it', 
     foreach (['/admin/design', '/admin/chrome'] as $old) {
         assertEquals(404, dispatch($old)->status, $old . ' is not an address any more');
     }
-});
-
-testBothDrivers('one publish writes the design and the header together', function (string $driver) {
-    $db = adminSite($driver);
-    Menu::create($db, 'en', 'Main');
-
-    $response = adminPost('/admin/appearance', appearanceFields([
-        'seed' => '#1f1fd1',
-        'header_menu' => 'Main',
-        'look_header_surface' => 'contrast',
-        'footer_small_print_en' => '© Northwind',
-        'action' => 'save',
-    ]));
-
-    assertRedirectedTo('/admin/appearance', $response);
-    assertEquals('#1f1fd1', Design::load($db)['seed'], 'the design');
-    assertEquals('Main', SiteChrome::menuName($db), 'the menu');
-    assertEquals('contrast', App\Modules\Settings\ChromeLook::stored($db)['header_surface'], 'the look');
-    assertEquals('© Northwind', SiteChrome::footer($db, 'en')['small_print'], 'the words');
-});
-
-test('the preview draws the words being typed, before anything is published', function () {
-    $db = adminSite('sqlite');
-    lookSite($db);
-
-    $query = http_build_query(appearanceFields([
-        'header_menu' => 'Main',
-        'footer_text_en' => 'A line nobody has published',
-        'header_button_label_en' => 'Press me',
-        'header_button_url_en' => '/about',
-    ]));
-    $body = dispatch('/admin/appearance/preview?' . $query)->body;
-
-    assertContains('A line nobody has published', $body, 'the footer line being typed');
-    assertContains('Press me', $body, 'the button label being typed');
-    assertEquals('', SiteChrome::footer($db, 'en')['columns'][0]['text'], 'and nothing was written');
 });
 
 test('the picture has a toolbar, and it is not there for anyone without a script', function () {
@@ -859,12 +795,12 @@ testBothDrivers('the footer menu runs in as many columns as the chrome says', fu
 
     // The menu goes with it: one screen is one form, so a post that omits a field clears
     // it — the same rule that cost the site its header when a character card posted alone.
-    adminPost('/admin/appearance', appearanceFields([
+    saveChrome([
         'header_menu' => 'Main',
         'look_footer_layout' => 'columns',
         'look_footer_columns' => '4',
         'action' => 'save',
-    ]));
+    ]);
 
     assertEquals('4', App\Modules\Settings\ChromeLook::stored($db)['footer_columns'], 'the choice');
     assertContains('footer-cols-4', dispatch('/')->body, 'and the class the footer draws with');
@@ -1072,12 +1008,9 @@ test('every decision and chrome choice is in exactly one section', function () {
     foreach (App\Modules\Settings\ChromeLook::keys() as $choice) {
         $expected[] = App\Modules\Settings\ChromeLook::field($choice);
     }
-    $expected[] = 'header_menu';
-    foreach (App\Modules\Appearance\AppearanceForm::footerMenuFields() as $menuField) {
-        $expected[] = $menuField;
-    }
-    foreach (['button_page', 'button_url', 'button_label', 'title', 'text', 'col2_title', 'col2_text', 'col3_title', 'col3_text', 'small_print'] as $word) {
-        $expected[] = App\Modules\Settings\ChromeWords::field($word, 'en');
+    // The menus and the words are Navigation's since D-180, and no section carries them.
+    foreach (['header_menu', 'footer_menu_1', App\Modules\Settings\ChromeWords::field('small_print', 'en')] as $gone) {
+        assertTrue(!isset($onTab[$gone]), $gone . ' is Navigation\'s, and drawn here');
     }
     $missing = [];
     $twice = [];

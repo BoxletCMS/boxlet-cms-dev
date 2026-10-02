@@ -24,7 +24,7 @@ function adminStylesheets(): array
     // The editor's chrome. canvas.css matters most: it is the one admin stylesheet loaded
     // into a document full of the site's tokens, so a selection outline that borrowed one
     // would be unreadable on the designs that need it most.
-    return array_merge(['admin.css'], $sheets, ['builder.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css', 'canvas.css', 'canvas-inserter.css', 'canvas-inline.css', 'canvas-marks.css']);
+    return array_merge(['admin.css'], $sheets, ['builder.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css', 'canvas.css', 'canvas-inserter.css', 'canvas-inline.css', 'canvas-marks.css', 'canvas-regions.css']);
 }
 
 test('every admin stylesheet on disk is one this file checks', function () {
@@ -149,7 +149,7 @@ testBothDrivers('every admin screen draws', function (string $driver) {
 
     foreach ([
         '/admin', '/admin/pages', '/admin/pages/new', '/admin/pages/' . $page, '/admin/pages/' . $page . '/form',
-        '/admin/media', '/admin/media/' . $picture, '/admin/appearance', '/admin/menus', '/admin/menus/' . $menu,
+        '/admin/media', '/admin/media/' . $picture, '/admin/appearance', '/admin/navigation', '/admin/menus/' . $menu,
         '/admin/appearance', '/admin/settings',
     ] as $path) {
         $response = dispatch($path);

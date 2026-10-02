@@ -26,6 +26,9 @@ export default {
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     await openBuilder(page, BASE, PAGE);
+    // What selected and deselected, kept for a failure to say (a full run lost the selection
+    // after an error once, and the screen could not be asked afterwards).
+    await page.evaluate(() => { window.__selections = []; window.pb.on('select', (sel) => window.__selections.push(JSON.stringify(sel || null) + '@' + Math.round(performance.now()))); window.pb.on('replace', () => window.__selections.push('replace@' + Math.round(performance.now()))); });
     const hero = await blockKey(page, 'hero');
     const cards = await blockKey(page, 'cards');
     const imageText = await blockKey(page, 'image_text');
@@ -146,7 +149,7 @@ export default {
       await wait(500);
       const error = await page.evaluate(() => {
         const doc = document.querySelector('[data-pb-canvas]').contentDocument;
-        return { marked: doc.querySelector('[data-bx-error]') !== null, note: (doc.querySelector('[data-bx-note]') || {}).textContent || '', inspector: (document.querySelector('[data-pb-inspector] .field-error') || {}).textContent || '' };
+        return { marked: doc.querySelector('[data-bx-error]') !== null, note: (doc.querySelector('[data-bx-note]') || {}).textContent || '', inspector: (document.querySelector('[data-pb-inspector] .field-error') || {}).textContent || '', selection: JSON.stringify(window.pb.selection), lately: (window.__selections || []).slice(-6) };
       });
       await shot(report, page, '06-error');
       report.verdict('an error is shown on the element and in the inspector', error.marked && /required/.test(error.note) && /required/.test(error.inspector), JSON.stringify(error));

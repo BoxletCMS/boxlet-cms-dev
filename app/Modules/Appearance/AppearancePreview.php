@@ -118,15 +118,28 @@ final class AppearancePreview
         // between the two logos (D-112): the same facts a visitor's page hands the layout.
         $trying['decisions'] = $decisions;
         $trying['first_surface'] = $firstSurface ?? '';
+        $layout = PageLayoutData::forPreview($this->container, $shown, t('design.preview'), $trying);
+        $layout['headerHtml'] = self::region($layout['headerHtml'], 'header', 'header', 1);
+        $layout['footerHtml'] = self::region($layout['footerHtml'], 'footer', 'footer', 1);
         $body = (new View(dirname(__DIR__) . '/Pages/views'))->render('page', $shown, [
-            'blocksHtml' => $html,
-        ] + PageLayoutData::forPreview($this->container, $shown, t('design.preview'), $trying));
+            'blocksHtml' => self::region($html, 'section class="block', 'section', -1),
+        ] + $layout);
         $response = Response::admin($body);
         // The one admin page that may be framed, and only by the admin itself.
         $response->headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data:; form-action 'none'; frame-ancestors 'self'; base-uri 'none'";
         $response->headers['X-Frame-Options'] = 'SAMEORIGIN';
 
         return $response;
+    }
+
+    /**
+     * PRESSING A PART OF THE PICTURE OPENS ITS SETTINGS (D-181, README 5.7): the wrappers say
+     * what they are — the header, each band (`<section class="block`), the footer — here, in
+     * the preview alone, at the end of their opening tag (appearance-regions.js reads them).
+     */
+    private static function region(string $html, string $opening, string $name, int $limit): string
+    {
+        return preg_replace('~(<' . preg_quote($opening, '~') . '\b[^>]*)>~', '$1 data-bx-region="' . $name . '">', $html, $limit) ?? $html;
     }
 
     /**

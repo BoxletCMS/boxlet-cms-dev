@@ -42,7 +42,7 @@ $rail = [
     'content' => [
         ['nav' => 'pages', 'href' => Url::admin('pages'), 'icon' => 'file-text', 'label' => t('admin.nav.pages'), 'count' => $counts['pages']],
         ['nav' => 'media', 'href' => Url::admin('media'), 'icon' => 'image', 'label' => t('admin.nav.media'), 'count' => $counts['media']],
-        ['nav' => 'menus', 'href' => Url::admin('menus'), 'icon' => 'list', 'label' => t('admin.nav.menus'), 'count' => $counts['menus']],
+        ['nav' => 'menus', 'href' => Url::admin('navigation'), 'icon' => 'list', 'label' => t('admin.nav.menus'), 'count' => $counts['menus']],
         ['nav' => 'forms', 'href' => Url::admin('forms'), 'icon' => 'list-checks', 'label' => t('admin.nav.forms'), 'count' => $counts['forms']],
     ],
     'presentation' => [

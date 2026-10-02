@@ -442,8 +442,9 @@ test('every colour in the admin comes from the admin palette', function () {
         // on purpose and their legibility cannot be computed from the admin's tokens —
         // .bx-insert carries two tones so that one edge contrasts whatever is behind it.
         // canvas-inserter.css, canvas-inline.css and canvas-marks.css are the same document's,
-        // split from it (D-175, D-178), for the same reason.
-        if (in_array($file, ['canvas.css', 'canvas-inserter.css', 'canvas-inline.css', 'canvas-marks.css'], true)) {
+        // split from it (D-175, D-178), for the same reason; canvas-regions.css is the same
+        // thing in Appearance's preview (D-181).
+        if (in_array($file, ['canvas.css', 'canvas-inserter.css', 'canvas-inline.css', 'canvas-marks.css', 'canvas-regions.css'], true)) {
             continue;
         }
 

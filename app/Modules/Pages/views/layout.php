@@ -93,6 +93,11 @@ use App\Support\Url;
 <?php if (str_contains($content, 'data-anim=')): ?>
     <script src="<?= e(Url::versioned('assets/anim.js')) ?>" defer></script>
 <?php endif; ?>
+<?php if ($designPreview): ?>
+    <?php /* PRESSING A PART OF THE PICTURE OPENS ITS SETTINGS (D-181, README 5.7): the parts
+             the preview marks (AppearancePreview::region()) and their outlines. */ ?>
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas-regions.css')) ?>">
+<?php endif; ?>
 </head>
 <body<?= $designPreview ? ' class="bx-design-preview"' : '' ?>>
 <?php /* THE SHEET (PLAN.md D-031). A boxed page needs something to be a page: <body> holds

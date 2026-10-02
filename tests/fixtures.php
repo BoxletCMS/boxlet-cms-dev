@@ -3,6 +3,7 @@
 use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Migrator;
+use App\Core\Response;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\Page;
 use Dotenv\Dotenv;
@@ -260,12 +261,36 @@ function appearanceFields(array $fields = []): array
     return $fields + [
         'use_secondary' => $decisions['secondary'] !== '' ? '1' : '0',
         'secondary' => $decisions['secondary'] !== '' ? $decisions['secondary'] : '#000000',
-        // What the screen offers for the footer's first column until something else is
-        // chosen (D-115): the header's menu. A post without it would clear it, and a footer
-        // with no menu and no words is not drawn — which is right, and not what most tests
-        // posting the screen are about.
-        'footer_menu_1' => App\Modules\Settings\SiteChrome::FOOTER_MENU_HEADER,
     ] + $decisions;
+}
+
+/**
+ * The header and footer set as the owner sets them since D-180: what they say and which menus
+ * they show on Navigation, how they look on Appearance. The fields are split by name and each
+ * half posted to its own screen; Appearance's answer is returned.
+ *
+ * Navigation is one form, so a post of it without a field clears that field, as the screen's
+ * own Save would. What the screen offers for the footer's first column until something else is
+ * chosen (D-115), the header's menu, is sent unless the test names another.
+ *
+ * @param array<string, mixed> $fields
+ */
+function saveChrome(array $fields): Response
+{
+    $navigation = ['footer_menu_1' => App\Modules\Settings\SiteChrome::FOOTER_MENU_HEADER];
+    $look = [];
+    foreach ($fields as $name => $value) {
+        $words = '~^(header_menu|footer_menu_\d|header_button_(label|url|page)_[a-z]{2,3}|footer_(title|text|col[23]_(title|text)|small_print)_[a-z]{2,3})$~';
+        if (preg_match($words, (string) $name) === 1) {
+            $navigation[$name] = $value;
+        } else {
+            $look[$name] = $value;
+        }
+    }
+    $saved = adminPost('/admin/navigation', $navigation);
+    assertEquals(302, $saved->status, 'Navigation saved: ' . substr(strip_tags($saved->body), 0, 300));
+
+    return adminPost('/admin/appearance', appearanceFields($look + ['action' => 'save']));
 }
 
 function removeTree(string $path): void

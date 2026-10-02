@@ -12,8 +12,6 @@ use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\Presets;
 use App\Modules\Settings\ChromeLook;
-use App\Modules\Settings\ChromeWords;
-use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
 
 /**
@@ -75,7 +73,7 @@ final class AppearanceController
             $state,
             $character,
             /**
-             * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
+             * @param array{decisions: array<string, string>, look: array<string, string>} $state
              * @param array<string, string> $errors
              */
             fn (array $state, array $errors, ?string $notice, int $status, string $character): Response => $this->screen->render($state, $errors, $notice, $status, $character),
@@ -105,20 +103,6 @@ final class AppearanceController
             return $this->screen->render($state, [], null, 200, $character, ['confirm' => true, 'restyled' => Composition::styledByHand($db)]);
         }
         $composing = $action === 'save_composition';
-        // A menu is chosen by name, and a name no menu carries any more is cleared rather
-        // than stored: the header would render nothing for it, and a setting that silently
-        // means nothing is worse than an empty one the owner can see.
-        $menus = AppearanceScreen::menuNames($db);
-        $goneMenu = $state['menu'] !== '' && !in_array($state['menu'], $menus, true);
-        // Each footer column's menu likewise (D-115); `header` and `none` are choices, not
-        // names, and a name no menu carries is stored as none.
-        $footerMenus = [];
-        $goneFooterMenu = false;
-        foreach ($state['footer_menus'] as $n => $name) {
-            $gone = $name !== '' && $name !== SiteChrome::FOOTER_MENU_HEADER && $name !== SiteChrome::FOOTER_MENU_NONE && !in_array($name, $menus, true);
-            $goneFooterMenu = $goneFooterMenu || $gone;
-            $footerMenus[$n] = $gone ? SiteChrome::FOOTER_MENU_NONE : $name;
-        }
 
         // The character first: what the owner's values are drawn over is the one now chosen,
         // and the stylesheet is compiled once, for both halves of the design (D-164).
@@ -126,8 +110,8 @@ final class AppearanceController
             Composition::remember($db, $character);
         }
         Design::save($db, $state['decisions'] + $state['look'], (string) $this->container->get('config')->get('app.cache_path'));
-        SiteChrome::saveShared($db, $goneMenu ? '' : $state['menu'], $footerMenus);
-        ChromeWords::save($db, $state['words']);
+        // The header's and footer's words and menus are Navigation's (D-180): nothing here
+        // writes them, so publishing a design never takes them away (appearance_navigation_test).
 
         $message = t('appearance.published');
         if ($character !== '') {
@@ -139,13 +123,10 @@ final class AppearanceController
                 ]);
             }
         }
-        if ($goneMenu || $goneFooterMenu) {
-            $message .= ' ' . t('chrome.menu_gone');
-        }
         Activity::record($db, 'design', 'saved', null, $character !== '' ? Characters::label($character) : '');
         $session = $this->container->get('session');
         $session->set('flash', $message);
-        $session->set('flash_kind', $goneMenu ? 'warning' : 'success');
+        $session->set('flash_kind', 'success');
 
         return Response::redirect(Url::admin('appearance'));
     }

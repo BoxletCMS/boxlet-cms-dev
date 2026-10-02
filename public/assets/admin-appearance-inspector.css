@@ -245,31 +245,3 @@
   overflow-wrap: anywhere;
 }
 
-/* ---- one language's words, folded (PLAN.md D-111) ------------------------------------ */
-
-/* With several languages each one's words are a <details>, and the language the picture is
-   drawn in stands open. The summary is drawn like a group's legend, and it is a control at
-   rest: a chevron the browser gives it, and a name. */
-.words > summary {
-  cursor: pointer;
-  padding-block: var(--ui-1);
-  color: var(--ui-ink);
-  font-size: var(--ui-text-sm);
-  font-weight: 600;
-}
-
-.words > summary:hover {
-  color: var(--ui-accent);
-}
-
-.words-previewed {
-  color: var(--ui-ink-faint);
-  font-size: var(--ui-text-xs);
-  font-weight: 400;
-}
-
-.words-inside {
-  display: grid;
-  gap: var(--ui-3);
-  padding-block-start: var(--ui-2);
-}

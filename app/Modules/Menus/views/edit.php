@@ -41,7 +41,7 @@ $parents = array_values(array_filter($items, static fn (array $item): bool => $i
         <div class="page-header">
             <h1><?= e($title) ?></h1>
             <span class="status"><?= e($menu['locale']) ?></span>
-            <a class="button button-secondary" href="<?= e(Url::admin('menus')) ?>"><?= e(t('menus.title')) ?></a>
+            <a class="button button-secondary" href="<?= e(Url::admin('navigation')) ?>"><?= e(t('admin.nav.menus')) ?></a>
         </div>
 
         <div class="panel">

@@ -142,3 +142,77 @@
   display: grid;
   gap: var(--ui-4);
 }
+
+/* ---- search (appearance-search.js, D-181) --------------------------------------------- */
+
+/* At the top of every view, clear of the hints icon in the corner. */
+.appearance-search {
+  position: relative;
+  display: grid;
+  gap: var(--ui-2);
+  margin: var(--ui-3) calc(var(--ui-3) + 2.25rem) var(--ui-2) var(--ui-3);
+}
+
+.appearance-search[hidden] {
+  display: none;
+}
+
+.appearance-search > .icon {
+  position: absolute;
+  inset-block-start: 0.7rem;
+  inset-inline-start: var(--ui-3);
+  inline-size: 1rem;
+  block-size: 1rem;
+  color: var(--ui-ink-faint);
+  pointer-events: none;
+}
+
+.appearance-search input {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 2.25rem;
+  padding: var(--ui-2) var(--ui-3) var(--ui-2) calc(var(--ui-3) + 1.5rem);
+  border: var(--ui-border) solid var(--ui-control-soft);
+  border-bottom-color: var(--ui-control-line);
+  border-radius: var(--ui-radius-m);
+  background: var(--ui-panel-sunken);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+}
+
+.appearance-search input::placeholder {
+  color: var(--ui-ink-faint);
+}
+
+.appearance-search input:focus {
+  border-color: var(--ui-accent);
+  box-shadow: var(--ui-ring);
+  outline: none;
+}
+
+.appearance-search-none {
+  margin: 0;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+}
+
+.appearance-search-none[hidden],
+.is-searching [data-search-miss] {
+  display: none;
+}
+
+/* Searching, each section is a heading over what matched in it: its title opens it, and its
+   way back and its reset wait until it is open. */
+.is-searching .section-back,
+.is-searching .section-reset {
+  display: none;
+}
+
+.is-searching .section-title {
+  cursor: pointer;
+}
+
+.is-searching .section-title:hover {
+  color: var(--ui-accent);
+}

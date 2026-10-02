@@ -11,6 +11,8 @@
  * asserted here by counting elements, because I mistook a downscaled screenshot for a
  * second switcher and only the DOM settled it.
  *
+ * The words and menus are on Navigation since D-180; Appearance keeps how they look.
+ *
  * IT PUTS THE CHROME BACK. These settings are site-wide, so every later scenario and every
  * screenshot would otherwise carry this one's words.
  */
@@ -19,7 +21,7 @@ import { login, clickAndWait, controlsOnPanels, retype, openSection } from '../h
 
 const MARKER = 'Zz chrome';
 
-/** What the chrome screen currently holds, so the scenario can put it back. */
+/** What Navigation currently holds, so the scenario can put it back. */
 const readChrome = (page) => page.evaluate(() => {
   const value = (name) => (document.querySelector(`[name="${name}"]`) || {}).value ?? '';
   return {
@@ -47,53 +49,45 @@ export default {
       return;
     }
 
-    // ---- reachable from the navigation -------------------------------------------------
-    await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
-    const link = await page.$('.rail-nav a[href$="/admin/appearance"]');
-    report.verdict('the navigation offers the header and footer screen', link !== null,
-      link === null ? 'no link to /admin/appearance in the admin bar' : 'the admin bar links to it');
-    if (link === null) { return; }
-
-    // One entry in the rail's Presentation group since the screens merged (D-059); it was
-    // two, and the header and footer are now the fifth tab of this one.
-    await clickAndWait(page, '.rail-nav a[href$="/admin/appearance"]');
-
-    // ---- the two sections that used to be a screen of their own (D-059, D-111, D-157) ----
+    // ---- where it is: the look on Appearance, the words and menus on Navigation (D-180) ----
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     if (!await openSection(page, 'header')) {
       report.fail('chrome: the header section', 'the Appearance screen has no sections');
       return;
     }
-    const shape = await page.evaluate(() => ({
-      // Groups for the choices, then the words: one group, with a <details> per language
-      // when there are several.
+    const look = await page.evaluate(() => ({
       panels: document.querySelectorAll('[data-view="header"] .control-group').length,
-      headings: Array.from(document.querySelectorAll('[data-view="header"] .control-group-title, [data-view="header"] details.words > summary')).map((h) => h.textContent.trim()),
       footerPanels: document.querySelectorAll('[data-view="footer"] .control-group').length,
       logoNote: !!document.querySelector('[data-view="header"] a[href$="/admin/settings"]'),
-      menuSelect: !!document.querySelector('[data-view="header"] [name="header_menu"]'),
-      footerText: !!document.querySelector('[data-view="footer"] [name="footer_text_en"]'),
-      bareKeys: (document.body.textContent.match(/chrome\.[a-z_]+/g) || []).slice(0, 3),
+      toNavigation: document.querySelectorAll('.navigation-where a[href$="/admin/navigation"]').length,
+      words: !!document.querySelector('[name="header_menu"], [name="footer_text_en"]'),
     }));
+    report.verdict('Appearance keeps the header\'s and footer\'s look, and points to Navigation for their words',
+      look.panels >= 3 && look.footerPanels >= 2 && look.logoNote && look.toNavigation === 2 && !look.words, JSON.stringify(look));
+    await controlsOnPanels(page, report, 'header section');
+    await report.shot(page, '01-appearance-header');
 
-    // Groups for the choices, then one for the words — in each section.
-    report.verdict('each section groups its choices and then its words',
-      shape.panels >= 2 && shape.headings.length >= 1 && shape.footerPanels >= 2 && shape.footerText,
-      `header: ${shape.panels} panels ${JSON.stringify(shape.headings)}; footer: ${shape.footerPanels} panels, footer text ${shape.footerText}`);
-    // The logo moved to Settings → Branding (D-038); this screen says where it went.
-    report.verdict('the menu control is there, and the screen points to where the logo is set',
-      shape.logoNote && shape.menuSelect,
-      `link to Branding=${shape.logoNote}, menu select=${shape.menuSelect}`);
-
+    await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
+    const link = await page.$('.rail-nav a[href$="/admin/navigation"]');
+    report.verdict('the rail offers Navigation', link !== null, link === null ? 'no link to /admin/navigation' : 'the rail links to it');
+    if (link === null) { return; }
+    await clickAndWait(page, '.rail-nav a[href$="/admin/navigation"]');
+    await openWords(page);
+    const shape = await page.evaluate(() => ({
+      menuSelect: !!document.querySelector('#navigation-form [name="header_menu"]'),
+      footerMenus: document.querySelectorAll('#navigation-form [name^="footer_menu_"]').length,
+      footerText: !!document.querySelector('#navigation-form [name="footer_text_en"]'),
+      menus: !!document.querySelector('.navigation-menus'),
+      bareKeys: (document.body.textContent.match(/(chrome|navigation)\.[a-z_]+/g) || []).slice(0, 3),
+    }));
+    report.verdict('Navigation holds the header\'s menu and button, the footer\'s columns and words, and the menus',
+      shape.menuSelect && shape.footerMenus === 3 && shape.footerText && shape.menus, JSON.stringify(shape));
     // A key that does not exist renders as the key itself. That has happened twice: once on
     // the settings screen, once in an aria-label on the front end.
     report.verdict('no untranslated key is showing', shape.bareKeys.length === 0,
       shape.bareKeys.length === 0 ? 'every string came from a language file' : JSON.stringify(shape.bareKeys));
-
-    await controlsOnPanels(page, report, 'header section');
+    await controlsOnPanels(page, report, 'navigation');
     await report.shot(page, '01-chrome-screen');
-    await openSection(page, 'footer');
-    await openWords(page);
-    await controlsOnPanels(page, report, 'footer section');
 
     const before = await readChrome(page);
 
@@ -103,11 +97,10 @@ export default {
       // field on a tab that is not open has no box to type into. The footer's text is rich
       // text since D-113: typed into the editor, with the whole of it selected first, the
       // way a person replaces a line — and with a link in it, which is what rich text is for.
-      await openSection(page, 'footer');
       await openWords(page);
       // The English column's editor: the first in the section is the site's first language. Found
       // by the field's name, which the editor moves to a hidden input inside its container.
-      const footerEditor = '[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) .ProseMirror';
+      const footerEditor = '#navigation-form [data-richtext]:has([name="footer_text_en"]) .ProseMirror';
       await page.waitForSelector(footerEditor, { timeout: 10000 });
       await page.click(footerEditor);
       await page.keyboard.down('Control');
@@ -121,18 +114,15 @@ export default {
         await page.keyboard.press('ArrowLeft');
         await page.keyboard.up('Shift');
       }
-      await page.click('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) [data-rt="link"]');
-      await page.type('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) .rt-link-input', 'hello@example.com', { delay: 10 });
-      await page.click('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) [data-rt-link="apply"]');
-      await openSection(page, 'header');
-      await openWords(page);
+      await page.click('#navigation-form [data-richtext]:has([name="footer_text_en"]) [data-rt="link"]');
+      await page.type('#navigation-form [data-richtext]:has([name="footer_text_en"]) .rt-link-input', 'hello@example.com', { delay: 10 });
+      await page.click('#navigation-form [data-richtext]:has([name="footer_text_en"]) [data-rt-link="apply"]');
       await retype(page, '[name="header_button_label_en"]', `${MARKER} button`);
       // An address of its own, so the page chooser first goes back to "another address".
       await page.select('[name="header_button_page_en"]', '');
       await retype(page, '[name="header_button_url_en"]', '/contact');
-      await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
+      await clickAndWait(page, '#navigation-form button[type="submit"]', 40000);
 
-      await openSection(page, 'header');
       await openWords(page);
       const after = await readChrome(page);
       report.verdict('what was typed is saved and comes back',
@@ -190,18 +180,15 @@ export default {
       await report.shot(page, '02-site-with-chrome');
     } finally {
       // Put every word back, whatever happened above.
-      await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
-      await openSection(page, 'footer');
+      await page.goto(`${BASE}/admin/navigation`, { waitUntil: 'networkidle2' });
       await openWords(page);
       // Put the stored HTML back through the plain view of the editor, which is the
       // textarea underneath; its value reaches the field that carries the name.
-      await page.click('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) [data-richtext-toggle]');
-      await page.$eval('[data-view="footer"] [data-richtext]:has([name="footer_text_en"]) textarea[data-richtext-source]', (el, value) => {
+      await page.click('#navigation-form [data-richtext]:has([name="footer_text_en"]) [data-richtext-toggle]');
+      await page.$eval('#navigation-form [data-richtext]:has([name="footer_text_en"]) textarea[data-richtext-source]', (el, value) => {
         el.value = value;
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }, before.text);
-      await openSection(page, 'header');
-      await openWords(page);
       // A page the button pointed at is put back as that page, not as its address. The
       // label goes last: choosing a page may offer its title in place of the text.
       await page.select('[name="header_button_page_en"]', before.page);
@@ -209,9 +196,8 @@ export default {
         await retype(page, '[name="header_button_url_en"]', before.url);
       }
       await retype(page, '[name="header_button_label_en"]', before.label);
-      await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
+      await clickAndWait(page, '#navigation-form button[type="submit"]', 40000);
 
-      await openSection(page, 'header');
       await openWords(page);
       const restored = await readChrome(page);
       report.verdict('the scenario puts the chrome back',

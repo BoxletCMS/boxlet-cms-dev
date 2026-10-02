@@ -24,12 +24,13 @@ use App\Support\Url;
  * @var string $basis the character the screen measures against
  * @var string $character character loaded into the form, '' when none
  * @var \App\Core\Blocks $chromeBlocks the header and footer blocks, whose layouts draw their arrangements (D-166)
+ * @var array<string, string> $publishedFields what the published site's controls show, by field (D-181)
+ * @var array<string, string> $keywords more words each control is found by, by key (D-181)
  * @var string $title
  * @var string $csrf
  */
 
 require __DIR__ . '/parts/controls.php';
-require __DIR__ . '/parts/words.php';
 require __DIR__ . '/cards.php';
 $icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'layout' => 'panels-top-left', 'header' => 'arrow-up', 'footer' => 'arrow-down', 'buttons' => 'square-play'];
 ?>
@@ -42,7 +43,8 @@ $icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'lay
                      character load from clearing the header (D-059) — so the form IS the layout. */ ?>
             <form id="design-form" method="post" action="<?= e(Url::admin('appearance')) ?>" class="appearance-body design-form" data-design-form
                   data-check-url="<?= e(Url::admin('appearance', 'check')) ?>" data-preview-url="<?= e(Url::admin('appearance', 'preview')) ?>"
-                  data-stylesheet-url="<?= e(Url::admin('appearance', 'stylesheet')) ?>">
+                  data-stylesheet-url="<?= e(Url::admin('appearance', 'stylesheet')) ?>"
+                  data-published-fields="<?= e((string) json_encode($publishedFields, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="character" value="<?= e($character) ?>">
 
@@ -60,6 +62,18 @@ $icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'lay
                             aria-pressed="false" title="<?= e(t('hints.show')) ?>"
                             data-show="<?= e(t('hints.show')) ?>"
                             data-hide="<?= e(t('hints.hide')) ?>"><?= icon('circle-help') ?><span class="visually-hidden" data-hints-label><?= e(t('hints.show')) ?></span></button>
+                    <?php /* SEARCH (D-181): every control, by its name, its section's and its
+                             group's, the words of its choices and a few more ("dark", "sticky").
+                             With a script only: without one every control is already on the one
+                             column, where the browser's own find reaches it. */ ?>
+                    <div class="appearance-search" data-search hidden>
+                        <label class="visually-hidden" for="appearance-search"><?= e(t('appearance.search')) ?></label>
+                        <?= icon('search') ?>
+                        <input type="search" id="appearance-search" form="appearance-quick" autocomplete="off"
+                               placeholder="<?= e(t('appearance.search_placeholder')) ?>"
+                               data-keywords="<?= e((string) json_encode($keywords, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>">
+                        <p class="appearance-search-none" data-search-none hidden><?= e(t('appearance.search_none')) ?></p>
+                    </div>
 <?php require __DIR__ . '/inspector/home.php'; ?>
 <?php foreach (array_keys(Overrides::SECTIONS) as $section): ?>
 <?php $count = Overrides::count($changed, $section); ?>
@@ -94,5 +108,9 @@ $icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'lay
         <script src="<?= e(Url::versioned('assets/appearance-overrides.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-quick.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-sections.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-search.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-regions.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/hints.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-changes.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-history.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-stage.js')) ?>" defer></script>

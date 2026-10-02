@@ -12,12 +12,8 @@ use App\Modules\Design\Design;
 use App\Modules\Design\Palette;
 use App\Modules\Design\Vocabulary\Decisions;
 use App\Modules\Design\Tokens;
-use App\Modules\Menus\Menu;
-use App\Modules\Pages\PageLinks;
 use App\Modules\Pages\PageTree;
 use App\Modules\Settings\ChromeLook;
-use App\Modules\Settings\ChromeWords;
-use App\Modules\Settings\SiteChrome;
 use App\Support\Url;
 
 /**
@@ -39,7 +35,7 @@ final class AppearanceScreen
     /**
      * What the site is published with: the state the screen opens on.
      *
-     * @return array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>}
+     * @return array{decisions: array<string, string>, look: array<string, string>}
      */
     public function published(): array
     {
@@ -51,9 +47,6 @@ final class AppearanceScreen
         return [
             'decisions' => array_diff_key($values, $look),
             'look' => $look,
-            'menu' => SiteChrome::menuName($db),
-            'footer_menus' => SiteChrome::footerMenus($db),
-            'words' => ChromeWords::stored($db, $this->locales()),
         ];
     }
 
@@ -70,7 +63,7 @@ final class AppearanceScreen
     }
 
     /**
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
      * @param array{confirm?: bool, restyled?: int, import?: array{set: array<string, mixed>, warnings: list<string>}|null, importErrors?: list<string>} $extra
@@ -85,17 +78,8 @@ final class AppearanceScreen
         // the site was composed with. Every dot, count and reset on the screen reads this one.
         $basis = $character !== '' ? $character : $active;
         $values = $state['decisions'] + $state['look'];
-        // What every control SHOWS (D-164): the design as drawn, and for a key that follows
-        // the typeface the pairing's own value, so a slider nobody moved stands where the
-        // page is.
-        $resolved = Tokens::resolve($values, $basis);
-        $defaults = Overrides::defaults($basis, $resolved['typography']);
-        $shown = $resolved;
-        foreach ($shown as $key => $value) {
-            if ($value === '' && Decisions::follows($key) === 'pairing') {
-                $shown[$key] = $defaults[$key];
-            }
-        }
+        [$resolved, $defaults, $shown] = self::shown($values, $basis);
+        $published = Design::load($db);
         $colors = Palette::forDecisions($resolved);
         $pairs = Palette::pairs($colors, $resolved['secondary'] !== '', Tokens::byHand($resolved), Tokens::ownChrome($resolved));
         $shownLocale = Url::primaryLocale() !== '' ? Url::primaryLocale() : ($this->locales()[0] ?? 'en');
@@ -109,8 +93,6 @@ final class AppearanceScreen
             // which this screen rearranges, and several of those override a base rule of the
             // same specificity in the files before it, so the cascade is decided here (D-072).
             'styles' => [
-                // The rich text editor's own, first: the footer's text is rich text (D-113).
-                'admin-richtext.css',
                 'admin-appearance.css',
                 'admin-appearance-home.css',
                 'admin-appearance-tiles.css',
@@ -122,9 +104,9 @@ final class AppearanceScreen
                 'admin-appearance-layout.css',
                 'admin-appearance-widths.css',
             ],
-            // TipTap and the field script that binds it, the same pair the page editor loads.
-            // A design file is sent when it is chosen (file-sends.js, D-152).
-            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'file-sends.js'],
+            // A design file is sent when it is chosen (file-sends.js, D-152). The footer's rich
+            // text, and TipTap with it, went to Navigation (D-180).
+            'scripts' => ['file-sends.js'],
             // The screen IS the window, as the page editor's canvas is: the admin's rail
             // folds to its icons beside it (D-064).
             'bare' => true,
@@ -152,23 +134,17 @@ final class AppearanceScreen
             'changed' => Overrides::changed($values, $basis),
             // The chrome half of the screen, as shown.
             'look' => array_intersect_key($shown, $lookKeys),
-            'menu' => $state['menu'],
-            'footerMenus' => $state['footer_menus'] ?? SiteChrome::footerMenus($db),
-            'menus' => self::menuNames($db),
-            'words' => $state['words'],
             'locales' => $this->container->get('locales'),
             'shownLocale' => $shownLocale,
             'characterLook' => $characterLook,
-            // What the button may point at, per language: a Croatian header links to
-            // Croatian pages (D-034).
-            'linkPages' => array_combine($this->locales(), array_map(
-                static fn (string $code): array => PageLinks::choices($db, $code),
-                $this->locales(),
-            )),
             // What the strip over the picture says is in the frame.
             'host' => (string) parse_url(Url::withOrigin(''), PHP_URL_HOST),
             'pageName' => self::previewedPage($db, $shownLocale),
             'previewPages' => self::previewPages($db, $shownLocale),
+            // What the published site's controls show, by field (D-181): the bar counts
+            // the keys the screen differs on, a character loaded included.
+            'keywords' => self::keywords(),
+            'publishedFields' => AppearanceForm::fields(self::shown($published, $active)[2]),
             'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shownLocale, $character, $basis)),
             // Design files (D-152): one brought in and waiting, why one was refused, the custom
             // files left out, and a character the site was composed with that is gone (D-156).
@@ -177,6 +153,50 @@ final class AppearanceScreen
             'skipped' => Characters::skipped(),
             'missingCharacter' => Composition::missing($db),
         ], $status);
+    }
+
+    /**
+     * The words a control is found by besides its own (D-181): `appearance.keywords.<key>`,
+     * where there are any.
+     *
+     * @return array<string, string>
+     */
+    private static function keywords(): array
+    {
+        $words = [];
+        foreach (Overrides::SECTIONS as $groups) {
+            foreach ($groups as $keys) {
+                foreach ($keys as $key) {
+                    $said = t('appearance.keywords.' . $key);
+                    if ($said !== 'appearance.keywords.' . $key) {
+                        $words[$key] = $said;
+                    }
+                }
+            }
+        }
+
+        return $words;
+    }
+
+    /**
+     * What every control SHOWS (D-164): the design as drawn, and for a key that follows the
+     * typeface the pairing's own value, so a slider nobody moved stands where the page is.
+     *
+     * @param array<string, string> $values
+     * @return array{0: array<string, string>, 1: array<string, string>, 2: array<string, string>} resolved, defaults, shown
+     */
+    private static function shown(array $values, string $basis): array
+    {
+        $resolved = Tokens::resolve($values, $basis);
+        $defaults = Overrides::defaults($basis, $resolved['typography']);
+        $shown = $resolved;
+        foreach ($shown as $key => $value) {
+            if ($value === '' && Decisions::follows($key) === 'pairing') {
+                $shown[$key] = $defaults[$key];
+            }
+        }
+
+        return [$resolved, $defaults, $shown];
     }
 
     /**
@@ -191,22 +211,6 @@ final class AppearanceScreen
             static fn (array $locale): string => (string) $locale['code'],
             $this->container->get('locales'),
         ));
-    }
-
-    /**
-     * The menu names on offer, each once. The same name in two languages is one choice:
-     * that is the point of storing a name rather than an id.
-     *
-     * @return list<string>
-     */
-    public static function menuNames(Db $db): array
-    {
-        $names = [];
-        foreach (Menu::all($db) as $menu) {
-            $names[$menu['name']] = true;
-        }
-
-        return array_keys($names);
     }
 
     /**

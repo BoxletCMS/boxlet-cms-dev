@@ -1,0 +1,38 @@
+<?php
+
+use App\Support\Url;
+
+/**
+ * NAVIGATION (PLAN.md D-180): what the header and footer say and where they lead, saved by
+ * one Save; the menus under it, each edited on its own page. Provided by AdminView::render().
+ *
+ * @var string $title
+ * @var string $csrf
+ * @var ?string $notice
+ * @var array<string, string> $errors the words', keyed by the field at fault
+ */
+$error = static fn (string $key): string => isset($errors[$key])
+    ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>'
+    : '';
+require __DIR__ . '/parts/words.php';
+?>
+        <div class="page-header">
+            <h1><?= e($title) ?></h1>
+        </div>
+        <p class="page-subtitle"><?= e(t('navigation.intro')) ?> <a href="<?= e(Url::admin('appearance')) ?>"><?= e(t('navigation.look_where')) ?></a></p>
+<?php if ($notice !== null): ?>
+        <p class="notice notice-error" role="alert"><?= e($notice) ?></p>
+<?php endif; ?>
+
+        <form method="post" action="<?= e(Url::admin('navigation')) ?>" class="navigation stack" id="navigation-form">
+            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+            <div class="navigation-parts">
+<?php require __DIR__ . '/parts/header-words.php'; ?>
+<?php require __DIR__ . '/parts/footer-words.php'; ?>
+            </div>
+            <div class="navigation-save">
+                <button type="submit" class="button"><?= e(t('navigation.save')) ?></button>
+            </div>
+        </form>
+
+<?php require __DIR__ . '/parts/menus-list.php'; ?>

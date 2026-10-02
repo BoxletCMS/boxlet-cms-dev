@@ -158,8 +158,8 @@ final class DesignTransferController
      * screen, load the waiting import into it, or delete an imported character. Null for any
      * other action, which the form's controller answers itself.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
-     * @param Closure(array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus?: array<int, string>, words: array<string, array<string, mixed>>}, array<string, string>, ?string, int, string): Response $screen
+     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
+     * @param Closure(array{decisions: array<string, string>, look: array<string, string>}, array<string, string>, ?string, int, string): Response $screen
      */
     public function fromScreen(string $action, array $state, string $character, Closure $screen): ?Response
     {

@@ -150,6 +150,25 @@
   display: none;
 }
 
+/* Each part in its own column, by name: the folded rail is display: none, and placed by
+   order the stage then fell into the rail's empty column and the inspector into the
+   stage's — under 1200px, where the rail starts folded, there was no canvas at all (D-181). */
+.pb-body > .pb-tabs {
+  grid-column: 1;
+}
+
+.pb-body > .pb-rail {
+  grid-column: 2;
+}
+
+.pb-body > .pb-stage {
+  grid-column: 3;
+}
+
+.pb-body > .pb-inspector {
+  grid-column: 4;
+}
+
 .pb-stage {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

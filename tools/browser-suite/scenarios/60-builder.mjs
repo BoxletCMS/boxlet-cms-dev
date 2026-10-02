@@ -242,9 +242,16 @@ export default {
       await page.setViewport({ width: 1100, height: 900, deviceScaleFactor: 1 });
       await page.reload({ waitUntil: 'networkidle2' });
       await wait(1200);
-      const folded = await page.evaluate(() => document.querySelector('[data-pb-body]').classList.contains('pb-folded'));
+      const folded = await page.evaluate(() => {
+        const box = (s) => document.querySelector(s).getBoundingClientRect();
+        const stage = box('.pb-stage');
+        const inspector = box('[data-pb-inspector]');
+        return { folded: document.querySelector('[data-pb-body]').classList.contains('pb-folded'), stage: Math.round(stage.width), canvas: Math.round(box('[data-pb-canvas]').width), inspectorRight: inspector.left >= stage.right - 1 };
+      });
       await shot(report, page, '05-narrow');
-      report.verdict('under 1200px the rail starts folded', folded, String(folded));
+      // The rail folded, and the canvas still there beside the inspector: placed by order, the
+      // folded rail's column swallowed the stage (D-181), and only the class was checked.
+      report.verdict('under 1200px the rail starts folded, the canvas beside the inspector', folded.folded && folded.stage > 400 && folded.canvas > 300 && folded.inspectorRight, JSON.stringify(folded));
     } finally {
       await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
       if (pageId !== null) {

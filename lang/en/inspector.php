@@ -42,11 +42,8 @@ return [
     'inspector.group.header.behaviour' => 'Behaviour',
     'inspector.group.header.background' => 'Background',
     'inspector.group.header.menu' => 'Menu & button',
-    'inspector.group.header.words' => 'Button words',
     'inspector.group.footer.arrangement' => 'Arrangement',
-    'inspector.group.footer.menus' => 'Menus',
     'inspector.group.footer.background' => 'Background',
-    'inspector.group.footer.words' => 'Words',
 
     // The line under each section's name, built from the values on the screen.
     'inspector.summary.colours' => ':seed · :passing/:total readable',

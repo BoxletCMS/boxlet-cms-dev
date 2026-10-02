@@ -61,7 +61,8 @@
    * a class on the bar now, so flipping the switch changes the markup. The colour itself
    * still does not — it is a token — and 03-design's guard is what said so.
    */
-  var RELOADS = /^(look_(?!header_height|logo_size|header_opacity|header_blur)|header_button_|footer_title|footer_text|footer_col|footer_small_print|footer_menu_|(header_menu|header_bleed|footer_bleed|header_colour_on|footer_colour_on|character|page)$)/;
+  // The header's and footer's words and menus left with D-180: they are Navigation's.
+  var RELOADS = /^(look_(?!header_height|logo_size|header_opacity|header_blur)|(header_bleed|footer_bleed|header_colour_on|footer_colour_on|character|page)$)/;
   var mustReload = false;
 
   /**

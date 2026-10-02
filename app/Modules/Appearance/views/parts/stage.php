@@ -38,6 +38,8 @@
                         <?php /* Said, not silently acted on: when the column cannot carry the
                                  chosen width the screen says so here and leaves the width
                                  alone. */ ?>
+                        <?php /* With a script, pressing the picture opens settings (D-181). */ ?>
+                        <span class="stage-hint" data-regions-hint hidden><?= icon('mouse-pointer-click') ?> <?= e(t('appearance.regions_hint')) ?></span>
                         <span class="stage-tight" data-stage-tight role="status" hidden><?= e(t('appearance.stage.tight')) ?></span>
                         <span class="stage-size" data-stage-size></span>
                     </div>

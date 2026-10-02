@@ -167,7 +167,9 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
     }
 ?>
                     <div class="choice-head"><span class="choice-name" id="<?= e($optionLabel) ?>"><?= e(t($optionKey)) ?></span></div>
-                    <?= segmented_group($prefix . '[options][' . $optionName . ']', $optionLabels, $optionsStored[$optionName], $optionLabel, $idPrefix . 'option-' . $optionName . '-', '', 'auto') ?>
+                    <?php /* The character's choice by the id `-follow`: `-auto` was also the hero
+                             height's own "auto", and the page carried that id twice (D-181). */ ?>
+                    <?= segmented_group($prefix . '[options][' . $optionName . ']', $optionLabels, $optionsStored[$optionName], $optionLabel, $idPrefix . 'option-' . $optionName . '-', '', 'follow') ?>
 <?php else: ?>
                     <label for="<?= e($idPrefix . 'option-' . $optionName) ?>"><?= e(t($optionKey)) ?></label>
                     <input type="number" id="<?= e($idPrefix . 'option-' . $optionName) ?>" name="<?= e($prefix) ?>[options][<?= e($optionName) ?>]" value="<?= e($optionsStored[$optionName]) ?>" min="<?= e((string) $optionSpec['min']) ?>" max="<?= e((string) $optionSpec['max']) ?>" step="<?= e((string) $optionSpec['step']) ?>" placeholder="<?= e(t('style.auto', ['value' => $optionsShown[$optionName]])) ?>" inputmode="numeric">

@@ -525,7 +525,8 @@ export async function applyCharacter(page, base, preset, action = 'save') {
  * Returns the menu's name, or '' when it could not be set up.
  */
 export async function ensureHeaderMenu(page, base) {
-  await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
+  // On Navigation since D-180, with the menus under it.
+  await page.goto(`${base}/admin/navigation`, { waitUntil: 'networkidle2' });
   const current = await page.$eval('#header_menu', (select) => select.value).catch(() => null);
   if (current === null) {
     return '';
@@ -535,7 +536,6 @@ export async function ensureHeaderMenu(page, base) {
   }
 
   const name = 'Suite menu';
-  await page.goto(`${base}/admin/menus`, { waitUntil: 'networkidle2' });
   const exists = await page.$$eval('.row-title a', (links, wanted) => links.some((a) => a.textContent.trim() === wanted), name);
   if (!exists) {
     await page.type('input[name="name"]', name, { delay: SLOW });
@@ -551,13 +551,10 @@ export async function ensureHeaderMenu(page, base) {
     }
   }
 
-  await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
-  // The menu lives in the Header tab (D-111), and page.select refuses a control with no box.
-  await openSection(page, 'header');
+  await page.goto(`${base}/admin/navigation`, { waitUntil: 'networkidle2' });
   await page.select('#header_menu', name);
-  await clickAndWait(page, 'button[form="design-form"][name="action"][value="save"]', 40000);
+  await clickAndWait(page, '#navigation-form button[type="submit"]', 40000);
 
-  await openSection(page, 'header');
   return page.$eval('#header_menu', (select) => select.value).catch(() => '');
 }
 
@@ -648,4 +645,85 @@ export async function publish(page) {
   await settle(page);
   await page.click('[data-pb-publish]');
   await page.waitForFunction(() => document.querySelector('[data-pb-state]').className.includes('status-published'), { timeout: 15000 });
+}
+
+/**
+ * AN ACCESSIBILITY PASS OF ONE SCREEN (PLAN.md D-181), without a library: what a screen reader
+ * and a keyboard need first, measured on the page as drawn.
+ *
+ *   - every visible control (button, link, field, anything with a control's role) has a name
+ *     it is read by: its words, a label, aria-label or aria-labelledby, a title;
+ *   - no id is used twice, and every aria-labelledby / aria-describedby / label[for] names an
+ *     element that exists;
+ *   - every visible picture has an alt, empty for one that only decorates;
+ *   - a page has one h1.
+ *
+ * Returns the problems found, each said in a line; [] is a pass. `scope` limits it to part of
+ * the page; `frame` reads an iframe's document instead (the builder's canvas).
+ */
+export async function a11yProblems(page, { scope = 'body', frame = null } = {}) {
+  return page.evaluate((scopeSelector, frameSelector) => {
+    const doc = frameSelector ? document.querySelector(frameSelector).contentDocument : document;
+    const root = doc.querySelector(scopeSelector);
+    if (!root) {
+      return [`nothing matches ${scopeSelector}`];
+    }
+    const problems = [];
+    const shown = (el) => {
+      if (el.closest('[hidden], template')) { return false; }
+      const style = doc.defaultView.getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && (r.width > 0 || r.height > 0);
+    };
+    const describe = (el) => `${el.tagName.toLowerCase()}${el.getAttribute('id') ? '#' + el.getAttribute('id') : ''}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}${el.name ? '[name=' + el.name + ']' : ''}`;
+    const name = (el) => {
+      const by = el.getAttribute('aria-labelledby');
+      if (by) {
+        const words = by.split(/\s+/).map((id) => (doc.getElementById(id) || {}).textContent || '').join(' ').trim();
+        if (words) { return words; }
+      }
+      const label = (el.getAttribute('aria-label') || '').trim();
+      if (label) { return label; }
+      if (el.labels && el.labels.length) {
+        const words = Array.from(el.labels).map((l) => l.textContent).join(' ').trim();
+        if (words) { return words; }
+      }
+      if (!/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) {
+        const words = (el.textContent || '').trim();
+        if (words) { return words; }
+        const img = el.querySelector('img[alt]:not([alt=""]), svg[aria-label]');
+        if (img) { return img.getAttribute('alt') || img.getAttribute('aria-label'); }
+      }
+      if (el.tagName === 'INPUT' && /^(submit|button|reset)$/.test(el.type) && el.value) { return el.value; }
+      return (el.getAttribute('title') || el.getAttribute('placeholder') || '').trim();
+    };
+    const controls = root.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=menuitem], [role=switch], [role=checkbox], [role=radio], [contenteditable=true]');
+    controls.forEach((el) => {
+      // What is aria-hidden is not offered to a screen reader at all, so it needs no name.
+      if (el.closest('[aria-hidden="true"]')) { return; }
+      if (!shown(el) && !(el.tagName === 'INPUT' && /^(radio|checkbox)$/.test(el.type) && shown(el.parentElement))) { return; }
+      if (name(el) === '') { problems.push(`no name: ${describe(el)}`); }
+    });
+    const ids = {};
+    // getAttribute, not .id: a form holding an input named "id" answers .id with the input.
+    doc.querySelectorAll('[id]').forEach((el) => { const id = el.getAttribute('id'); ids[id] = (ids[id] || 0) + 1; });
+    Object.keys(ids).filter((id) => ids[id] > 1).slice(0, 10).forEach((id) => problems.push(`id used ${ids[id]} times: ${id}`));
+    root.querySelectorAll('[aria-labelledby], [aria-describedby]').forEach((el) => {
+      ['aria-labelledby', 'aria-describedby'].forEach((attr) => {
+        (el.getAttribute(attr) || '').split(/\s+/).filter(Boolean).forEach((id) => {
+          if (!doc.getElementById(id)) { problems.push(`${attr} names no element: ${id} on ${describe(el)}`); }
+        });
+      });
+    });
+    root.querySelectorAll('label[for]').forEach((l) => {
+      if (!doc.getElementById(l.htmlFor)) { problems.push(`label for names no element: ${l.htmlFor}`); }
+    });
+    root.querySelectorAll('img').forEach((img) => {
+      if (shown(img) && !img.hasAttribute('alt')) { problems.push(`picture with no alt: ${img.getAttribute('src')}`); }
+    });
+    if (!frameSelector && scopeSelector === 'body' && doc.querySelectorAll('h1').length !== 1) {
+      problems.push(`${doc.querySelectorAll('h1').length} h1 on the page`);
+    }
+    return problems;
+  }, scope, frame);
 }

@@ -23,6 +23,22 @@ final class Menu
     public const MAX_DEPTH = 1;
 
     /**
+     * The menu names on offer, each once. The same name in two languages is one choice: that
+     * is the point of the header storing a name rather than an id (D-030).
+     *
+     * @return list<string>
+     */
+    public static function names(Db $db): array
+    {
+        $names = [];
+        foreach ($db->all('SELECT name FROM menus ORDER BY name') as $row) {
+            $names[(string) $row['name']] = true;
+        }
+
+        return array_map('strval', array_keys($names));
+    }
+
+    /**
      * Every menu, ordered for the admin list.
      *
      * @return list<array{id: int, locale: string, name: string, items: int}>

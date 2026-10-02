@@ -78,6 +78,7 @@ export default {
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     await openBuilder(page, BASE, HOME);
+    await page.evaluate(() => { window.__selections = []; window.pb.on('select', (sel) => window.__selections.push(JSON.stringify(sel || null) + '@' + Math.round(performance.now()))); window.pb.on('replace', () => window.__selections.push('replace@' + Math.round(performance.now()))); });
     try {
       // ---- every selection, on every device -------------------------------------------------------
       for (const device of ['desktop', 'tablet', 'phone']) {
@@ -144,7 +145,7 @@ export default {
         const field = document.querySelector('[data-pb-inspector] [aria-invalid="true"]');
         const panel = document.querySelector('[data-pb-inspector]').getBoundingClientRect();
         const f = field ? field.getBoundingClientRect() : null;
-        return { over, under: n.top >= host.querySelector('[data-bx-field="heading"]').getBoundingClientRect().bottom - 1, field: field ? field.name : null, open: field ? field.closest('details').open : false, inView: f ? f.top >= panel.top && f.bottom <= panel.bottom : false };
+        return { over, under: n.top >= host.querySelector('[data-bx-field="heading"]').getBoundingClientRect().bottom - 1, field: field ? field.name : null, open: field ? field.closest('details').open : false, inView: f ? f.top >= panel.top && f.bottom <= panel.bottom : false, selection: JSON.stringify(window.pb.selection), lately: (window.__selections || []).slice(-6) };
       }, cta);
       await shot(report, page, '03-error');
       report.verdict('an error\'s words stand under their field and over no other', error !== null && error.over.length === 0 && error.under, JSON.stringify(error));

@@ -41,7 +41,7 @@ return [
     'admin.nav.pages' => 'Pages',
     'admin.nav.media' => 'Media',
     'admin.nav.appearance' => 'Appearance',
-    'admin.nav.menus' => 'Menus',
+    'admin.nav.menus' => 'Navigation',
     'admin.nav.forms' => 'Forms',
     'admin.nav.statistics' => 'Statistics',
     'admin.nav.design_style' => 'Character and colours',

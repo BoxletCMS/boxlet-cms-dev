@@ -34,7 +34,7 @@ final class AppearanceActions
     /**
      * The screen after one of these actions, or null for an action that is not one of them.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
      * @param string $character the character loaded into the form, '' when none
      * @param string $basis what the screen measures against: that character, else the active one
      */
@@ -78,7 +78,7 @@ final class AppearanceActions
      * value the owner set stays; only what follows the character changes, with it. Their words
      * and menus are not the character's either. Publish is still the confirmation.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
      */
     private function load(string $name, array $state): Response
     {
@@ -111,7 +111,7 @@ final class AppearanceActions
      * a person. RE-VALIDATED, NOT TRUSTED: the palette's own colour can fail a pair the
      * owner's colour passed, and the screen must keep saying so (D-063).
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
      */
     private function free(string $action, array $state, string $character, string $basis): Response
     {
@@ -170,7 +170,7 @@ final class AppearanceActions
     /**
      * The library (D-061): keep what is on the screen, bring one back, throw one away.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, menu: string, footer_menus: array<int, string>, words: array<string, array<string, mixed>>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
      */
     private function library(Request $request, string $action, array $state, string $character): Response
     {

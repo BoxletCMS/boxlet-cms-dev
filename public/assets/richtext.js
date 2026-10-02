@@ -71,6 +71,15 @@
     redo: { run: function (c) { return c.redo(); } },
   };
 
+  /** What the editor is called: the label the textarea had, its words, as a multi-line box. */
+  function named(textarea) {
+    var label = textarea.id ? document.querySelector('label[for="' + textarea.id + '"]') : null;
+    var words = (label ? label.textContent : textarea.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+    var attributes = { role: 'textbox', 'aria-multiline': 'true' };
+    if (words) { attributes['aria-label'] = words; }
+    return attributes;
+  }
+
   function setup(textarea) {
     var tiptap = window.BoxletTipTap;
     if (textarea.hasAttribute('data-richtext-ready') || !tiptap) {
@@ -99,6 +108,9 @@
       extensions: extensions(tiptap),
       injectCSS: false,
       content: textarea.value,
+      // Read by the field's own label, as the textarea it stands for was (D-181): the
+      // editable element is the control a screen reader meets, and it had no name.
+      editorProps: { attributes: named(textarea) },
       onUpdate: function () {
         hidden.value = editor.getHTML();
         // Say so out loud. The builder redraws the canvas from an `input` event on the

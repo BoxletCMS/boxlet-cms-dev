@@ -191,12 +191,12 @@ testBothDrivers('a colour of the owner\'s own is a class on the bar, and only th
 
     // The menu too: the screen is one form, and a field it does not send is one the owner
     // cleared (D-059) — without it the header would have nothing left to draw.
-    adminPost('/admin/appearance', appearanceFields([
+    saveChrome([
         'header_menu' => 'Main',
         'header_colour' => '#1b3a2f', 'header_colour_on' => '1',
         'footer_colour' => '#f3e9d2', 'footer_colour_on' => '1',
         'action' => 'save',
-    ]));
+    ]);
     $coloured = dispatch('/')->body;
     assertContains('site-header behaviour-', $coloured, 'the header');
     assertTrue(preg_match('~class="site-header [^"]*own-colour~', $coloured) === 1, 'the header wears its own colour');
@@ -339,7 +339,7 @@ testBothDrivers('the dark-surface logo is drawn where the ink on the header is l
 
     // A colour of the owner's own: the ink derived for it decides.
     ChromeLook::save($db, ['header_surface' => 'plain', 'header_behaviour' => 'static']);
-    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'header_colour' => '#111111', 'header_colour_on' => '1', 'action' => 'save']));
+    saveChrome(['header_menu' => 'Main', 'header_colour' => '#111111', 'header_colour_on' => '1', 'action' => 'save']);
     assertEquals('dark', $drawn(), 'a near-black header of the owner\'s own');
 
     // Without a second logo there is nothing to choose: the site's logo, on every surface.
@@ -397,7 +397,7 @@ testBothDrivers('a footer column shows no menu, the header\'s, or one of its own
     assertEquals(1, count($navs), 'one menu, in column 1');
     assertContains('>About<', $navs[0], 'the header\'s menu, before anything is saved');
 
-    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu_1' => 'Legal', 'action' => 'save']));
+    saveChrome(['header_menu' => 'Main', 'footer_menu_1' => 'Legal', 'action' => 'save']);
     assertEquals([1 => 'Legal', 2 => 'none', 3 => 'none'], SiteChrome::footerMenus($db), 'stored by name, per column');
     $body = dispatch('/')->body;
     $navs = $footerNavs($body);
@@ -406,23 +406,23 @@ testBothDrivers('a footer column shows no menu, the header\'s, or one of its own
     assertContains('<a href="/about"', $body, 'the header still has its own');
 
     // Two columns drawn, the second with the header's menu.
-    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu_1' => 'Legal', 'footer_menu_2' => SiteChrome::FOOTER_MENU_HEADER, 'look_footer_layout' => 'columns', 'action' => 'save']));
+    saveChrome(['header_menu' => 'Main', 'footer_menu_1' => 'Legal', 'footer_menu_2' => SiteChrome::FOOTER_MENU_HEADER, 'look_footer_layout' => 'columns', 'action' => 'save']);
     $navs = $footerNavs(dispatch('/')->body);
     assertEquals(2, count($navs), 'two columns, a menu in each');
     assertContains('>About<', $navs[1], 'the header\'s in the second');
 
     // Saved as none: no menu, and the footer itself still drawn.
-    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu_1' => SiteChrome::FOOTER_MENU_NONE, 'action' => 'save']));
+    saveChrome(['header_menu' => 'Main', 'footer_menu_1' => SiteChrome::FOOTER_MENU_NONE, 'action' => 'save']);
     $body = dispatch('/')->body;
     assertEquals([], $footerNavs($body), 'no menu in the footer');
     assertContains('<footer class="', $body, 'the footer itself still drawn');
 
     // A menu that is not there any more is cleared rather than stored (as the header's).
-    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu_1' => 'Gone', 'action' => 'save']));
+    saveChrome(['header_menu' => 'Main', 'footer_menu_1' => 'Gone', 'action' => 'save']);
     assertEquals(SiteChrome::FOOTER_MENU_NONE, SiteChrome::footerMenus($db)[1], 'a name no menu carries');
 
     // A rename is followed in a column as in the header.
-    adminPost('/admin/appearance', appearanceFields(['header_menu' => 'Main', 'footer_menu_1' => 'Legal', 'action' => 'save']));
+    saveChrome(['header_menu' => 'Main', 'footer_menu_1' => 'Legal', 'action' => 'save']);
     adminPost("/admin/menus/{$legal}/rename", ['name' => 'Small print']);
     assertEquals('Small print', SiteChrome::footerMenus($db)[1], 'the column followed the rename');
     assertContains('>Privacy<', $footerNavs(dispatch('/')->body)[0] ?? '', 'and still draws it');
@@ -433,9 +433,10 @@ testBothDrivers('a footer column shows no menu, the header\'s, or one of its own
     assertContains('>About<', $footerNavs(dispatch('/')->body)[0] ?? '', 'and draws it');
     Settings::set($db, 'chrome_footer_col1_menu', 'Small print');
 
-    // The preview draws the menu being tried, and writes nothing.
+    // The preview draws the menus as Navigation saved them: a menu in its query is not the
+    // design's to try (D-180; it drew the one tried until then).
     $tried = dispatch('/admin/appearance/preview?footer_menu_1=' . SiteChrome::FOOTER_MENU_NONE)->body;
-    assertEquals([], $footerNavs($tried), 'the preview with no menu in column 1');
+    assertContains('>Privacy<', $footerNavs($tried)[0] ?? '', 'the preview with the stored menu in column 1');
     assertEquals('Small print', SiteChrome::footerMenus($db)[1], 'nothing written');
 });
 
@@ -447,14 +448,14 @@ testBothDrivers('the footer draws the columns that have content, up to the arran
     $db = adminSite($driver);
     lookSite($db);
 
-    adminPost('/admin/appearance', appearanceFields([
+    saveChrome([
         'header_menu' => 'Main',
         'look_footer_layout' => 'three',
         'footer_title_en' => 'Studio', 'footer_text_en' => '<p>Ilica 1, Zagreb</p>',
         'footer_col2_title_en' => 'Hours', 'footer_col2_text_en' => '<p>Mon–Fri 9–17</p>',
         'footer_col3_title_en' => 'Legal', 'footer_menu_3' => 'Main',
         'action' => 'save',
-    ]));
+    ]);
     $body = dispatch('/')->body;
     assertEquals(3, substr_count($body, 'class="site-footer-col"'), 'three columns');
     assertContains('<h2 class="site-footer-title">Studio</h2>', $body, 'a title is a heading');
@@ -463,14 +464,14 @@ testBothDrivers('the footer draws the columns that have content, up to the arran
     assertContains('Mon–Fri 9–17', $body, 'words in the second');
 
     // One column drawn: the rest kept, not shown.
-    adminPost('/admin/appearance', appearanceFields([
+    saveChrome([
         'header_menu' => 'Main',
         'look_footer_layout' => 'simple',
         'footer_title_en' => 'Studio', 'footer_text_en' => '<p>Ilica 1, Zagreb</p>',
         'footer_col2_title_en' => 'Hours', 'footer_col2_text_en' => '<p>Mon–Fri 9–17</p>',
         'footer_col3_title_en' => 'Legal', 'footer_menu_3' => 'Main',
         'action' => 'save',
-    ]));
+    ]);
     $body = dispatch('/')->body;
     assertEquals(1, substr_count($body, 'class="site-footer-col"'), 'one column');
     assertTrue(!str_contains($body, 'Hours'), 'the second not drawn');
@@ -486,11 +487,11 @@ testBothDrivers('the footer\'s text keeps a link and loses a heading', function 
     $db = adminSite($driver);
     lookSite($db);
 
-    adminPost('/admin/appearance', appearanceFields([
+    saveChrome([
         'header_menu' => 'Main',
         'footer_text_en' => '<h2>Studio</h2><p>Write to <a href="hello@example.com">us</a> or <b>call</b> <script>x()</script>+385 91 234 5678</p><ul><li>one</li></ul>',
         'action' => 'save',
-    ]));
+    ]);
     $stored = SiteChrome::footer($db, 'en')['columns'][0]['text'];
     assertTrue(!str_contains($stored, '<h2>'), 'a heading is not a footer\'s: ' . $stored);
     assertTrue(!str_contains($stored, '<ul>') && !str_contains($stored, '<script'), 'nor a list or a script: ' . $stored);

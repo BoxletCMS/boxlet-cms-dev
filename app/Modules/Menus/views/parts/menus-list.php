@@ -3,21 +3,20 @@
 use App\Support\Url;
 
 /**
- * The list of menus, and the form that starts another. Provided by AdminView::render().
+ * The list of menus, and the form that starts another: the foot of Navigation (D-180).
+ * Required by navigation.php, in its scope.
  *
  * @var list<array{id: int, locale: string, name: string, items: int}> $menus
  * @var list<array<string, mixed>> $locales
- * @var array<string, string> $errors
- * @var string $title
+ * @var array<string, string> $menuErrors
  * @var string $csrf
  */
-$error = static fn (string $key): string => isset($errors[$key])
-    ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>'
+$menuError = static fn (string $key): string => isset($menuErrors[$key])
+    ? '<p class="field-error" role="alert">' . e($menuErrors[$key]) . '</p>'
     : '';
 ?>
-        <div class="page-header">
-            <h1><?= e($title) ?></h1>
-        </div>
+        <section class="stack navigation-menus" aria-labelledby="navigation-menus-title">
+        <h2 id="navigation-menus-title"><?= e(t('menus.title')) ?></h2>
         <p class="page-subtitle"><?= e(t('menus.intro')) ?></p>
 
 <?php if ($menus === []): ?>
@@ -58,7 +57,7 @@ $error = static fn (string $key): string => isset($errors[$key])
 <?php endif; ?>
 
         <div class="panel stack">
-            <h2><?= e(t('menus.new')) ?></h2>
+            <h3><?= e(t('menus.new')) ?></h3>
             <form method="post" action="<?= e(Url::admin('menus')) ?>" class="stack">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
@@ -66,7 +65,7 @@ $error = static fn (string $key): string => isset($errors[$key])
                     <input type="text" id="menu-name" name="name" maxlength="190" required
                            aria-describedby="menu-name-hint">
                     <span class="hint" id="menu-name-hint"><?= e(t('menus.name_hint')) ?></span>
-                    <?= $error('name') ?>
+                    <?= $menuError('name') ?>
                 </div>
                 <div class="field">
                     <label for="menu-locale"><?= e(t('menus.locale')) ?></label>
@@ -76,8 +75,9 @@ $error = static fn (string $key): string => isset($errors[$key])
 <?php endforeach; ?>
                     </select>
                     <?= field_hint('hint.menus.locale') ?>
-                    <?= $error('locale') ?>
+                    <?= $menuError('locale') ?>
                 </div>
                 <button type="submit" class="button"><?= e(t('menus.create')) ?></button>
             </form>
         </div>
+        </section>

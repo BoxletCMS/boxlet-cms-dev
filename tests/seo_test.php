@@ -1,7 +1,7 @@
 <?php
 
 use App\Core\Db;
-use App\Modules\Pages\Page;
+use App\Modules\Pages\PageSeo;
 
 // What a page says about itself in <head>: a meta title and a description (PLAN.md
 // D-004). Two fields and no more — no sharing image, no robots directive, no sitemap.
@@ -20,7 +20,7 @@ function savePageWith(int $id, array $fields): void
     assertRedirectedTo('/admin/pages/' . $id, adminPost("/admin/pages/{$id}", $fields + [
         'title' => 'About',
         'slug' => 'about',
-        'status' => 'published',
+        'action' => 'publish',
         '_end' => '1',
     ]));
 }
@@ -88,7 +88,7 @@ testBothDrivers('a save from a form that does not carry the two fields keeps wha
     ]);
     savePageWith($id, []);
 
-    $seo = Page::seo($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? []);
+    $seo = PageSeo::of($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? []);
     assertEquals('About our workshop', $seo['title'], 'the meta title survived a save without the field');
     assertEquals('Who we are and what we make.', $seo['description'], 'the description survived a save without the field');
 });
@@ -154,11 +154,11 @@ testBothDrivers('a page kept out of search engines says so, and the sitemap and 
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'showroom', 'Showroom', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
     createPage($db, 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['body' => '<p>y</p>']]]);
-    $form = static fn (bool $hidden): array => ['title' => 'Showroom', 'slug' => 'showroom', 'seo_title' => '', 'seo_description' => '', 'action' => 'save', '_end' => '1']
+    $form = static fn (bool $hidden): array => ['title' => 'Showroom', 'slug' => 'showroom', 'seo_title' => '', 'seo_description' => '', 'action' => 'publish', '_end' => '1']
         + ($hidden ? ['seo_noindex' => '1'] : []);
 
     adminPost("/admin/pages/{$id}", $form(true));
-    assertEquals(true, App\Modules\Pages\Page::seo($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'stored');
+    assertEquals(true, App\Modules\Pages\PageSeo::of($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'stored');
     $page = dispatch('/showroom');
     assertEquals(200, $page->status, 'still published');
     assertContains('<meta name="robots" content="noindex">', $page->body, 'the page asks not to be listed');
@@ -169,8 +169,8 @@ testBothDrivers('a page kept out of search engines says so, and the sitemap and 
     assertTrue(!str_contains(App\Modules\Pages\LlmsTxt::text($db), 'Showroom'), 'in llms.txt');
 
     // A form that draws no SEO fields says nothing about it; one that does, and is unticked, clears it.
-    adminPost("/admin/pages/{$id}", ['title' => 'Showroom', 'slug' => 'showroom', 'action' => 'save', '_end' => '1']);
-    assertEquals(true, App\Modules\Pages\Page::seo($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'a form without the fields kept it');
+    adminPost("/admin/pages/{$id}", ['title' => 'Showroom', 'slug' => 'showroom', 'action' => 'publish', '_end' => '1']);
+    assertEquals(true, App\Modules\Pages\PageSeo::of($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'a form without the fields kept it');
     adminPost("/admin/pages/{$id}", $form(false));
-    assertEquals(false, App\Modules\Pages\Page::seo($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'unticked');
+    assertEquals(false, App\Modules\Pages\PageSeo::of($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'unticked');
 });

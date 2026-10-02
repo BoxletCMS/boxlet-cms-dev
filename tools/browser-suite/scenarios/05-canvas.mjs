@@ -56,7 +56,7 @@ export default {
       radio.checked = true;
       radio.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
+    await clickAndWait(page, 'div.editor-actions button[name="action"][value="publish"]');
 
     const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',

@@ -103,10 +103,29 @@ final class SectionForm
      */
     private static function anchors(array $sections): array
     {
-        $taken = [];
+        $styles = self::uniqueAnchors(array_column($sections, 'style'));
+        $anchored = [];
         foreach ($sections as $at => $section) {
-            $anchor = $section['style'][SectionStyle::ANCHOR] ?? '';
-            if (!is_string($anchor) || $anchor === '' || $section['style'] === null) {
+            $section['style'] = $styles[$at] ?? $section['style'];
+            $anchored[] = $section;
+        }
+
+        return $anchored;
+    }
+
+    /**
+     * The same rule over a page's section styles in order, a form's or a document's
+     * (PageDocument::read): each anchor kept, a repeated one numbered.
+     *
+     * @param list<array<string, string|int|null>|null> $styles
+     * @return list<array<string, string|int|null>|null>
+     */
+    public static function uniqueAnchors(array $styles): array
+    {
+        $taken = [];
+        foreach ($styles as $at => $style) {
+            $anchor = $style[SectionStyle::ANCHOR] ?? '';
+            if (!is_string($anchor) || $anchor === '' || $style === null) {
                 continue;
             }
             $unique = $anchor;
@@ -115,10 +134,10 @@ final class SectionForm
                 $unique = rtrim(substr($anchor, 0, SectionStyle::ANCHOR_LENGTH - strlen('-' . $n)), '-') . '-' . $n;
             }
             $taken[$unique] = true;
-            $sections[$at]['style'][SectionStyle::ANCHOR] = $unique;
+            $styles[$at][SectionStyle::ANCHOR] = $unique;
         }
 
-        return $sections;
+        return array_values($styles);
     }
 
     /**

@@ -160,7 +160,7 @@ test('choosing no picture stores null; a dangling id is nulled, a malformed one 
 
     // The empty option posts an empty string, which is what "no picture" means.
     $cleared = [['id' => (string) $blockId, 'type' => 'hero', 'heading' => 'H', 'image' => '']];
-    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $cleared, 'action' => 'save', '_end' => '1']);
+    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $cleared, 'action' => 'publish', '_end' => '1']);
     assertRedirectedTo("/admin/pages/{$id}", $response);
     // array_key_exists, never ??. The null coalescing operator reports a key whose value
     // IS null as missing, so `?? 'missing'` can never observe the null this asserts. That
@@ -175,7 +175,7 @@ test('choosing no picture stores null; a dangling id is nulled, a malformed one 
     // rule MediaReference applies everywhere. That is what makes a picture deleted between
     // opening the form and saving it harmless rather than an error the author cannot fix.
     $dangling = [['id' => (string) $blockId, 'type' => 'hero', 'heading' => 'H', 'image' => '4242']];
-    $saved = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $dangling, 'action' => 'save', '_end' => '1']);
+    $saved = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $dangling, 'action' => 'publish', '_end' => '1']);
     assertRedirectedTo("/admin/pages/{$id}", $saved);
     $after = storedContent($db, $blockId);
     $after = is_array($after) ? $after : [];
@@ -185,7 +185,7 @@ test('choosing no picture stores null; a dangling id is nulled, a malformed one 
     // A value that is not a number at all was never a choice the form offered, so it is
     // refused rather than discarded: silently dropping it would hide a broken submission.
     $malformed = [['id' => (string) $blockId, 'type' => 'hero', 'heading' => 'H', 'image' => 'not-a-number']];
-    $refused = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $malformed, 'action' => 'save', '_end' => '1']);
+    $refused = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $malformed, 'action' => 'publish', '_end' => '1']);
     assertEquals(422, $refused->status, 'status');
     assertContains(e(t('pages.field.media')), $refused->body, 'the refusal names what is wrong');
 });
@@ -197,7 +197,7 @@ test('a save that lost its last field to max_input_vars is refused, not truncate
 
     // What PHP hands over after cutting input off at the limit: the fields before it, no _end.
     $blocks = [['id' => (string) $blockId, 'type' => 'text', 'body' => '<p>Partial</p>']];
-    $response = adminPost("/admin/pages/{$id}", ['title' => 'Truncated', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'save']);
+    $response = adminPost("/admin/pages/{$id}", ['title' => 'Truncated', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'publish']);
 
     assertEquals(422, $response->status, 'status');
     assertContains(e(t('pages.editor.truncated', ['limit' => (int) ini_get('max_input_vars')])), $response->body, 'message');
@@ -209,7 +209,7 @@ test('a save with as many fields as max_input_vars is refused, even with _end pr
     $db = adminSite('sqlite');
     $id = createPage($db, 'en', 'about', 'About', false);
     $limit = (int) ini_get('max_input_vars');
-    $body = ['title' => 'Too big', 'slug' => 'about', 'padding' => array_fill(0, $limit, 'x'), 'action' => 'save', '_end' => '1'];
+    $body = ['title' => 'Too big', 'slug' => 'about', 'padding' => array_fill(0, $limit, 'x'), 'action' => 'publish', '_end' => '1'];
 
     assertEquals(422, adminPost("/admin/pages/{$id}", $body)->status, 'status');
     assertEquals('About', $db->one('SELECT title FROM pages')['title'] ?? null, 'stored title');
@@ -238,7 +238,7 @@ test('a block that sends only its skeleton keeps its content and takes its new p
             ['id' => (string) $ids[1], 'type' => 'text', 'heading' => 'Second', 'body' => '<p>Two</p>'],
             ['id' => (string) $ids[0], '_unchanged' => '1'],
         ],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -266,7 +266,7 @@ test('a skeleton naming a block of some other page adds nothing', function () {
             ['id' => (string) $theirs, '_unchanged' => '1'],
             ['_unchanged' => '1'],
         ],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -304,7 +304,7 @@ test('a skeleton save is worth having: the same page costs a fraction of the fie
     assertEquals(count($ids) * 2, $count($skeletons), 'a skeleton is an id and a marker, nothing else');
     assertTrue($count($whole) > $count($skeletons), "whole blocks cost {$count($whole)} fields, skeletons {$count($skeletons)}");
 
-    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $skeletons, 'action' => 'save', '_end' => '1']);
+    $response = adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $skeletons, 'action' => 'publish', '_end' => '1']);
     assertEquals(302, $response->status, 'status');
     assertEquals(array_fill(0, 6, 'text'), blockTypes($db, $id), 'every block is still there');
     assertEquals('H', storedContent($db, $ids[3])['heading'] ?? null, 'and still has its content');

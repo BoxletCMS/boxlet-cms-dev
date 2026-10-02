@@ -35,7 +35,7 @@ export default {
     const before = await titleNow();
     const marker = `History ${Date.now()}`;
     await retype(page, 'input[name="title"]', marker);
-    await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]', 30000);
+    await clickAndWait(page, 'div.editor-actions button[name="action"][value="publish"]', 30000);
     report.verdict('the save went through', await titleNow() === marker,
       `title is now ${JSON.stringify(await titleNow())}`);
 

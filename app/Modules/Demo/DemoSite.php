@@ -11,6 +11,7 @@ use App\Modules\Forms\Form;
 use App\Modules\Languages\Locales;
 use App\Modules\Menus\Menu;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageSeo;
 use App\Modules\Pages\PageLinks;
 use App\Modules\Pages\SectionForm;
 use App\Modules\Pages\Translations;
@@ -114,7 +115,7 @@ final class DemoSite
             'parent_id' => null,
             'status' => 'draft',
             // The showroom is for looking at, not for finding (D-170).
-            'seo_json' => Page::seoJson(['title' => '', 'description' => $page['description'], 'noindex' => $page['key'] === 'blocks']),
+            'seo_json' => PageSeo::json(['title' => '', 'description' => $page['description'], 'noindex' => $page['key'] === 'blocks']),
         ], $blocks, $sections);
     }
 
@@ -237,7 +238,7 @@ final class DemoSite
             'slug' => '',
             'parent_id' => null,
             'status' => 'published',
-            'seo_json' => Page::seoJson(['title' => '', 'description' => $home['description']]),
+            'seo_json' => PageSeo::json(['title' => '', 'description' => $home['description']]),
         ], $blocks, $sections);
         $menu = Menu::create($db, $other, 'Main');
         Menu::addItem($db, $menu, null, $translated, null, null);

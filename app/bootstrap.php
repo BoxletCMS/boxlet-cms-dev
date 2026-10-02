@@ -44,6 +44,7 @@ use App\Modules\Menus\MenusController;
 use App\Modules\Pages\PageBlockController;
 use App\Modules\Pages\PageBuilderController;
 use App\Modules\Pages\PageController;
+use App\Modules\Pages\PageDraftController;
 use App\Modules\Pages\PageEditorController;
 use App\Modules\Pages\PagePaths;
 use App\Modules\Pages\PagesController;
@@ -259,6 +260,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // And one band, for the choices a block cannot show: the number of columns is the
     // markup AROUND the blocks, so redrawing one of them can never put a column there.
     $router->post('/admin/pages/{id:\d+}/section', [PageBlockController::class, 'band'], $requireAdmin);
+    // The page's draft as one JSON document: what the builder autosaves and reads (D-173).
+    $router->get('/admin/pages/{id:\d+}/draft', [PageDraftController::class, 'show'], $requireAdmin);
+    $router->post('/admin/pages/{id:\d+}/draft', [PageDraftController::class, 'save'], $requireAdmin);
     $router->get('/admin/pages/{id:\d+}/form', [PageEditorController::class, 'edit'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}', [PageEditorController::class, 'update'], $requireAdmin);
     $router->post('/admin/pages/order', [PagesController::class, 'reorder'], $requireAdmin);

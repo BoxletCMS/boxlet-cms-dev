@@ -44,7 +44,7 @@ final class LlmsTxt
              ORDER BY l.is_primary DESC, l.sort, p.locale, CASE WHEN p.slug = '' THEN 0 ELSE 1 END, p.sort, p.id"
         );
         // And out of what AI tools are told the site holds (D-170).
-        $rows = array_values(array_filter($rows, static fn (array $row): bool => !Page::seo($row)['noindex']));
+        $rows = array_values(array_filter($rows, static fn (array $row): bool => !PageSeo::of($row)['noindex']));
 
         $name = self::line(Settings::text($db, 'site_name'));
         $out = '# ' . ($name !== '' ? $name : self::line((string) parse_url(Url::withOrigin('/'), PHP_URL_HOST))) . "\n";
@@ -52,7 +52,7 @@ final class LlmsTxt
         // The summary is the main language's home page description, when it has one.
         foreach ($rows as $row) {
             if ((int) $row['is_primary'] === 1 && (string) $row['slug'] === '') {
-                $summary = self::line(Page::seo($row)['description']);
+                $summary = self::line(PageSeo::of($row)['description']);
                 if ($summary !== '') {
                     $out .= "\n> " . $summary . "\n";
                 }
@@ -88,7 +88,7 @@ final class LlmsTxt
     {
         $out = '';
         foreach ($children[$parent] ?? [] as $page) {
-            $description = self::line(Page::seo($page)['description']);
+            $description = self::line(PageSeo::of($page)['description']);
             $out .= str_repeat('  ', $depth) . '- [' . self::link((string) $page['title']) . '](' . Url::canonical($locale, (string) $page['slug']) . ')'
                 . ($description !== '' ? ': ' . $description : '') . "\n";
             // Ten deep at most: the tree has no cycles, and this makes sure of it.

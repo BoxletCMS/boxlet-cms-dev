@@ -94,7 +94,7 @@ export default {
         });
         return selects.slice(0, names.length).filter((s) => s.value !== '').length;
       }, pictures);
-      await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]', 30000);
+      await clickAndWait(page, 'div.editor-actions button[name="action"][value="publish"]', 30000);
       report.verdict(`${slug}: every column given its picture`, set === pictures.length, `${set} of ${pictures.length}`);
     }
 

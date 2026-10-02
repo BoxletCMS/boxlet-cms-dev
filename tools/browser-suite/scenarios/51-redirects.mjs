@@ -113,7 +113,7 @@ async function nested(page, report) {
     await page.select('form.editor-form #page-parent', parentId);
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'networkidle2' }),
-      page.$eval('form.editor-form', (form) => form.requestSubmit(form.querySelector('button[value="save"]'))),
+      page.$eval('form.editor-form', (form) => form.requestSubmit(form.querySelector('button[value="publish"]'))),
     ]);
   };
 

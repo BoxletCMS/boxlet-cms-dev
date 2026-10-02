@@ -4,8 +4,6 @@ namespace App\Modules\Pages;
 
 use App\Core\Blocks;
 use App\Modules\Design\SectionStyle;
-use App\Support\RichText;
-use App\Support\SafeUrl;
 
 /**
  * Reads the page editor's blocks[n][field] input. All validation lives here, on the
@@ -113,7 +111,7 @@ final class BlockForm
             $name = $key ?? self::key($id, $ordinal++);
             $content = [];
             foreach ($registry->get($type)['fields'] as $field => $declared) {
-                [$value, $error] = self::field($declared, $raw[$field] ?? null);
+                [$value, $error] = BlockValues::field($declared, $raw[$field] ?? null);
                 $content[$field] = $value;
                 if ($error !== null) {
                     // Keyed by the BLOCK, not by where it sits: a position cannot name a
@@ -171,6 +169,29 @@ final class BlockForm
         }
 
         return $content;
+    }
+
+    /**
+     * A block's content from a DOCUMENT (PLAN.md D-173) — a draft's JSON, the autosave's body —
+     * through the very checks a form's fields pass: rich text sanitised to its field's list,
+     * a line kept to one printable line, a choice to its options. The store is the security
+     * boundary; templates trust what it holds, so a document must not be a way around it.
+     *
+     * A document may be unfinished, so nothing is refused: an address that is no link is
+     * emptied rather than kept, and a required field may be empty until Publish asks.
+     *
+     * @param array<string, mixed> $content
+     * @return array<string, mixed>
+     */
+    public static function clean(Blocks $registry, string $type, array $content, string $layout): array
+    {
+        $clean = [];
+        foreach ($registry->get($type)['fields'] as $name => $declared) {
+            [$value] = BlockValues::field($declared, BlockValues::asSent($declared, $content[$name] ?? null));
+            $clean[$name] = BlockValues::linked($declared, $value);
+        }
+
+        return self::fillRows($registry, $type, $clean, $layout);
     }
 
     /**
@@ -297,143 +318,5 @@ final class BlockForm
         }
 
         return [$block['content'], $declared];
-    }
-
-    /**
-     * @param array<string, mixed> $field
-     * @return array{0: mixed, 1: string|null} the cleaned value and an error, if any
-     */
-    private static function field(array $field, mixed $raw): array
-    {
-        $required = $field['required'] === true;
-
-        /*
-         * A REPEATER IS THE SAME QUESTION, ONCE PER ITEM (PLAN.md O-11).
-         *
-         * Each item's fields go through this very method, so a media field inside an item
-         * is validated as a media field and a richtext field is sanitised per item — no
-         * special case, and nothing here has to know which types exist.
-         *
-         * Over the maximum is REFUSED rather than trimmed, unlike on render: here somebody
-         * typed those items, and silently dropping the last one is how an owner loses work
-         * without being told. Blocks::normalize() trims instead, because a page must still
-         * draw when a definition's maximum shrinks under it.
-         */
-        if ($field['type'] === 'repeater') {
-            $rows = is_array($raw) ? array_values($raw) : [];
-            $items = [];
-            $itemError = null;
-            foreach ($rows as $row) {
-                if (($row['_delete'] ?? '') === '1') {
-                    continue;
-                }
-                $item = [];
-                foreach ($field['fields'] as $itemName => $itemField) {
-                    [$value, $error] = self::field($itemField, is_array($row) ? ($row[$itemName] ?? null) : null);
-                    $item[$itemName] = $value;
-                    // The first thing wrong, named once: a message per item per field would
-                    // bury the block's own errors under a list nobody reads.
-                    $itemError ??= $error;
-                }
-                $items[] = $item;
-            }
-
-            if (count($items) > $field['max']) {
-                return [array_slice($items, 0, $field['max']), t('pages.field.repeater_max', ['max' => $field['max']])];
-            }
-            if ($items === [] && $required) {
-                return [[], t('pages.field.required')];
-            }
-
-            return [$items, $itemError];
-        }
-
-        switch ($field['type']) {
-            case 'link':
-                $label = is_array($raw) ? self::line($raw['label'] ?? null) : '';
-                // A bare email or phone number becomes the link it was meant to be (D-039).
-                $url = SafeUrl::normalize(is_array($raw) ? self::line($raw['url'] ?? null) : '');
-                // A chosen page wins over a typed address (PLAN.md D-034): the address input
-                // is hidden while a page is chosen, so whatever it still holds is stale.
-                $page = is_array($raw) ? self::line($raw['page'] ?? null) : '';
-                if (preg_match('~^[1-9][0-9]{0,9}$~', $page) === 1) {
-                    $url = PageLinks::to((int) $page);
-                }
-                $value = ['label' => $label, 'url' => $url];
-                if ($label === '' && $url === '') {
-                    return [$value, $required ? t('pages.field.required') : null];
-                }
-                if ($url === '') {
-                    return [$value, t('pages.field.link_url_missing')];
-                }
-                if (!SafeUrl::isLink($url)) {
-                    return [$value, t('pages.field.link_url')];
-                }
-                // A page supplies its own title when the text is left empty; an address
-                // has nothing to say about itself.
-                if ($label === '' && PageLinks::reference($url) === null) {
-                    return [$value, t('pages.field.link_label')];
-                }
-
-                return [$value, null];
-
-            case 'media':
-            case 'file':
-            case 'form':
-                $text = self::line($raw);
-                if ($text === '') {
-                    return [null, $required ? t('pages.field.required') : null];
-                }
-
-                return ctype_digit($text) && (int) $text > 0 ? [(int) $text, null] : [null, t('pages.field.media')];
-
-            case 'select':
-                $options = $field['options'];
-                if (is_string($raw) && in_array($raw, $options, true)) {
-                    return [$raw, null];
-                }
-                /* NOT SENT IS NOT WRONG (PLAN.md D-118). A form that has never heard of a
-                   choice — an editor opened before the block gained it, a save written
-                   before it existed — says nothing about it, and the choice takes its first
-                   option, as a stored block without it does (Blocks::normalize). A value that
-                   IS sent and is not one of the options is still refused. Adding two choices
-                   to the hero failed every such save with "Choose one of the options" against
-                   fields the author could not see. */
-                if ($raw === null) {
-                    return [$options[0], null];
-                }
-
-                return [$options[0], t('pages.field.select')];
-
-            case 'richtext':
-                // What this field allows, from its definition (D-166): the same list its toolbar offers.
-                $html = RichText::sanitize(is_string($raw) ? $raw : '', RichText::allowedFor($field['allow'] ?? RichText::FEATURES));
-                $empty = trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8')) === '';
-
-                return [$empty ? '' : $html, $empty && $required ? t('pages.field.required') : null];
-
-            case 'textarea':
-                $text = is_string($raw) ? trim(self::printable(str_replace("\r\n", "\n", $raw))) : '';
-
-                return [$text, $text === '' && $required ? t('pages.field.required') : null];
-
-            default: // text
-                $text = self::line($raw);
-
-                return [$text, $text === '' && $required ? t('pages.field.required') : null];
-        }
-    }
-
-    /**
-     * A single-line string: valid UTF-8, no control characters, no line breaks.
-     */
-    private static function line(mixed $raw): string
-    {
-        return is_string($raw) ? trim(self::printable(str_replace(["\r", "\n"], ' ', $raw))) : '';
-    }
-
-    private static function printable(string $text): string
-    {
-        return (string) preg_replace('~[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]~', '', mb_scrub($text, 'UTF-8'));
     }
 }

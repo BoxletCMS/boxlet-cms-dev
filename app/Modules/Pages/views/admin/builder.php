@@ -1,6 +1,6 @@
 <?php
 
-use App\Modules\Pages\Page;
+use App\Modules\Pages\PageSeo;
 use App\Support\Url;
 
 /**
@@ -31,12 +31,14 @@ use App\Support\Url;
  * @var list<array{id: int, title: string, depth: int}> $parents
  * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
  * @var array{source: array<string, mixed>|null, stale: array<int, array{source: int, type: string, content: array<string, mixed>}>, missing: int, sourceLabel: string} $translation
+ * @var int $draftVersion the draft this form is made from; 0 when there is none (D-173)
+ * @var string $state published, changes (a published page with a draft) or draft
  * @var string $csrf
  */
 $pageId = (int) $page['id'];
 $published = $page['status'] === 'published';
 // What is stored, not what a visitor would see — see the note in the fallback editor.
-$seo = Page::seo($page);
+$seo = PageSeo::of($page);
 $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>' : '';
 
 // Errors belonging to a field this screen does not show. Block errors are keyed
@@ -68,10 +70,11 @@ foreach ($errors as $key => $message) {
                  controls, where the fields hold submitted work the database has never seen. */ ?>
         <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="builder" data-builder<?= $fromStorage ? ' data-blocks-stored' : '' ?>
                   data-text-band="<?= e(t('pages.panel.band')) ?>" data-text-column="<?= e(t('pages.panel.column')) ?>">
-            <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save')) ?></button>
+            <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save_draft')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <?php /* Tells the save endpoint which editor to re-render if validation fails. */ ?>
             <input type="hidden" name="editor" value="builder">
+            <input type="hidden" name="draft_version" value="<?= e($draftVersion) ?>">
 
             <div class="builder-bar">
                 <?php /* The name, not a second place to edit it: the page panel owns the
@@ -116,7 +119,15 @@ foreach ($errors as $key => $message) {
                          it to look at the published page would be a poor trade. */ ?>
                 <a class="button button-ghost button-icon" href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>" target="_blank" rel="noopener" title="<?= e(t('pages.view')) ?>"><?= icon('external-link') ?><span class="visually-hidden"><?= e(t('pages.view')) ?></span></a>
 <?php endif; ?>
-                <button type="submit" name="action" value="save" class="button"><?= e(t('pages.save')) ?></button>
+                <?php /* SAVE KEEPS A DRAFT, PUBLISH PUTS IT ON THE SITE (D-173), and the bar says
+                         which the page is. Discard only where there is a published page to go
+                         back to. The builder's own bar comes with phase 4; these are its words. */ ?>
+                <span class="status status-<?= e($state) ?>" data-page-state><?= e(t('pages.state.' . $state)) ?></span>
+<?php if ($state === 'changes'): ?>
+                <button type="submit" name="action" value="discard" class="button button-ghost" data-confirm="<?= e(t('pages.discard_confirm')) ?>"><?= e(t('pages.discard')) ?></button>
+<?php endif; ?>
+                <button type="submit" name="action" value="save" class="button button-secondary"><?= e(t('pages.save_draft')) ?></button>
+                <button type="submit" name="action" value="publish" class="button"><?= e(t('pages.publish')) ?></button>
             </div>
 
             <div class="builder-body">
@@ -205,16 +216,6 @@ foreach ($errors as $key => $message) {
                             </select>
                             <?= field_hint('hint.page.parent') ?>
                             <?= $error('parent') ?>
-                        </div>
-
-                        <div class="field">
-                            <label for="page-status"><?= e(t('pages.field.status')) ?></label>
-                            <select id="page-status" name="status" data-status-field>
-<?php foreach (['draft', 'published'] as $state): ?>
-                                <option value="<?= e($state) ?>"<?= (string) $page['status'] === $state ? ' selected' : '' ?>><?= e(t('pages.status.' . $state)) ?></option>
-<?php endforeach; ?>
-                            </select>
-                            <?= field_hint('hint.page.status') ?>
                         </div>
 
                         <?php /* D-004. Empty when unset, never pre-filled with the page

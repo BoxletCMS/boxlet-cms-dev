@@ -149,7 +149,7 @@ testBothDrivers('a save from the visual editor stores exactly what the plain for
         'slug' => 'about',
         'editor' => 'builder',
         'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'heading' => 'Now', 'body' => '<p>After</p>']],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -173,7 +173,7 @@ testBothDrivers('saving from the visual editor keeps the page\'s address', funct
         'slug' => 'about',
         'editor' => 'builder',
         'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>Kept</p>']],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -194,7 +194,7 @@ test('an error with no field on screen is still shown', function () {
         'slug' => '',
         'editor' => 'builder',
         'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>Kept</p>']],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -202,9 +202,10 @@ test('an error with no field on screen is still shown', function () {
     assertContains(e(t('pages.slug.home_taken')), $response->body, 'the reason is on screen');
 });
 
-// The page panel: title, address, parent and visibility travel with the save.
+// The page panel: title, address and parent travel with the save. Whether the page is on the
+// site is no longer a field of it: Publish is a button of the bar (D-173).
 
-testBothDrivers('the page panel saves the parent and the visibility', function (string $driver) {
+testBothDrivers('the page panel saves the parent, and Publish puts the page on the site', function (string $driver) {
     $db = adminSite($driver);
     $parent = createPage($db, 'en', 'about', 'About', true);
     $id = createPage($db, 'en', 'team', 'Team', false, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
@@ -215,9 +216,8 @@ testBothDrivers('the page panel saves the parent and the visibility', function (
         'slug' => 'team',
         'editor' => 'builder',
         'parent_id' => (string) $parent,
-        'status' => 'published',
         'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>x</p>']],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -242,9 +242,8 @@ test('a parent that would make a cycle is refused however the request arrives', 
         'slug' => 'about',
         'editor' => 'builder',
         'parent_id' => (string) $team,
-        'status' => 'published',
         'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>x</p>']],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -262,7 +261,9 @@ test('the page panel carries the address as a real field, not a hidden one', fun
     assertContains('name="slug" value="about"', $body, 'the address');
     assertContains('data-slug-field', $body, 'the generator hook');
     assertContains('name="parent_id"', $body, 'the parent select');
-    assertContains('name="status"', $body, 'the visibility select');
+    // No visibility select since D-173: the bar's Publish button is how a page goes live.
+    assertTrue(!str_contains($body, 'name="status"'), 'no visibility select');
+    assertContains('name="action" value="publish"', $body, 'Publish in the bar');
     // Home is a valid parent for About; About must not be offered itself. Read inside the
     // parent select only: a link field elsewhere on the screen rightly offers every page,
     // About included, and the whole body stopped proving anything once the Columns block
@@ -286,7 +287,7 @@ test('a rejected save leaves the canvas showing the work, not the stored page', 
         'slug' => 'about',
         'editor' => 'builder',
         'blocks' => [['id' => $blockId, 'type' => 'text', 'heading' => '', 'body' => '<p>Being written</p>']],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
     assertEquals(422, $rejected->status, 'status');
@@ -304,7 +305,7 @@ test('a rejected save comes back in the editor it was sent from', function () {
     $id = createPage($db, 'en', 'about', 'About', false, [['type' => 'text', 'content' => ['body' => '<p>Kept</p>']]]);
     $blockId = (string) ($db->one('SELECT id FROM page_blocks')['id'] ?? '');
     $blocks = [['id' => $blockId, 'type' => 'text', 'body' => '']];
-    $body = ['title' => '', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'save', '_end' => '1'];
+    $body = ['title' => '', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'publish', '_end' => '1'];
 
     $fromBuilder = adminPost("/admin/pages/{$id}", $body + ['editor' => 'builder']);
     assertEquals(422, $fromBuilder->status, 'status');
@@ -342,7 +343,7 @@ test('the builder offers the skeleton saving only while the form is the stored p
         'slug' => 'about',
         'editor' => 'builder',
         'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'heading' => 'Edited, never saved', 'body' => '<p>A</p>']],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
     assertEquals(422, $rejected->status, 'status');

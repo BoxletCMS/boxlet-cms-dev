@@ -17,8 +17,9 @@ use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
 use App\Modules\Design\Tokens;
 use App\Modules\Design\Typography;
-use App\Modules\Pages\PageBody;
+use App\Modules\Pages\PageDocument;
 use App\Modules\Pages\PageLayoutData;
+use App\Modules\Pages\PageRender;
 use App\Modules\Settings\ChromeLook;
 use App\Support\Url;
 
@@ -82,7 +83,15 @@ final class AppearancePreview
                     $layouts[$type] = Composition::layout($registry, $character, $type);
                 }
             }
-            $drawn = PageBody::draw($this->db(), $registry, (int) $home['id'], $shown, $basis, (string) $this->container->get('config')->get('app.key'), null, $layouts);
+            $drawn = PageRender::draw(
+                $this->db(),
+                $registry,
+                PageDocument::stored($this->db(), $registry, (int) $home['id']) ?? ['blocks' => [], 'sections' => []],
+                $shown,
+                $basis,
+                (string) $this->container->get('config')->get('app.key'),
+                ['pageId' => (int) $home['id'], 'layouts' => $layouts],
+            );
             $html = $drawn['html'];
             $firstSurface = $drawn['firstSurface'];
         } else {

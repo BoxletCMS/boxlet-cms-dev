@@ -166,7 +166,7 @@ export async function pick(page, selector, nth) {
   return { chosen: id, value: await posted(page, selector) };
 }
 
-export const save = (page) => clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]', 30000);
+export const save = (page) => clickAndWait(page, 'div.editor-actions button[name="action"][value="publish"]', 30000);
 
 /** The first page in the tree, as an id. */
 export const firstPageId = (page) => page.goto(`${here(page)}/admin/pages`, { waitUntil: 'networkidle2' })

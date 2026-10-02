@@ -6,18 +6,19 @@
  * and made seven requests to Google, as the page opened. Now a video is a link with the
  * site's own cover until a visitor presses it.
  *
- * AS A VISITOR, in a browser context of its own with no session: the home page is opened,
+ * AS A VISITOR, in a browser context of its own with no session: the demo's showroom is opened,
  * every request it makes is recorded, and nothing may go anywhere but this site. Then the
  * press, and the player must arrive. Then, as the admin, the cover is taken from the video
  * in the editor — never saved, and the picture it adds is deleted again by its id.
  *
- * ON THE DEVELOPMENT SITE. It needs a YouTube Embed block on the home page and page 1
- * holding it, which the demo has; without one this is a failure, not NOT CHECKABLE.
+ * ON THE DEVELOPMENT SITE. It needs a YouTube Embed block on the showroom page, /blocks, which
+ * the demo has since D-167 (the home page had one before); it finds that page's id in the page
+ * list. Without one this is a failure, not NOT CHECKABLE.
  */
 import { BASE, ADMIN } from '../config.mjs';
 import { login } from '../harness.mjs';
 
-const PAGE = 1;
+const SHOWROOM = '/blocks';
 const SETTLE = 1500;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const shot = (report, page, name) => report.shot(page, name, { fullPage: false });
@@ -47,10 +48,10 @@ export default {
       const host = new URL(request.url()).host;
       if (host !== site && !request.url().startsWith('data:')) elsewhere.add(host);
     });
-    await visitor.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
+    await visitor.goto(`${BASE}${SHOWROOM}`, { waitUntil: 'networkidle2' });
     const press = await visitor.$('a[data-embed-src]');
     if (press === null) {
-      report.fail('the home page has a video to press', 'no a[data-embed-src] on the home page (is the site in maintenance?)');
+      report.fail('the showroom has a video to press', `no a[data-embed-src] on ${SHOWROOM} (is the site in maintenance?)`);
       await visitorContext.close();
       return;
     }
@@ -93,6 +94,11 @@ export default {
 
     // ---- the admin: the cover from the video --------------------------------------------
     await page.setViewport({ width: 1500, height: 1000, deviceScaleFactor: 1 });
+    await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
+    const PAGE = await page.$$eval('a[href^="/admin/pages/"]', (links) => {
+      const link = links.find((a) => a.textContent.trim() === 'Every block' && /\/admin\/pages\/\d+$/.test(a.getAttribute('href')));
+      return link ? link.getAttribute('href').split('/').pop() : '';
+    });
     await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
     await page.waitForFunction(() => {
       const f = document.querySelector('iframe[data-canvas]');

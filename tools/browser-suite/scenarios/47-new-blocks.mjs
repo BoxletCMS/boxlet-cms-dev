@@ -203,7 +203,7 @@ export default {
       // ---- and the save keeps them, and a visitor gets them ---------------------------
       await page.evaluate(() => {
         const form = document.querySelector('form[data-builder]');
-        form.requestSubmit(form.querySelector('button[name="action"][value="save"]:not(.visually-hidden)'));
+        form.requestSubmit(form.querySelector('button[name="action"][value="publish"]'));
       });
       await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
       const notices = await page.evaluate(() => Array.from(document.querySelectorAll('.alert, [role="alert"], .field-error'))

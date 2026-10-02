@@ -86,6 +86,14 @@ span.builder-locale {
   display: none;
 }
 
+/* What a translation will not carry (D-173): said in the menu, before the choice. */
+.menu-popover-note {
+  max-inline-size: 16rem;
+  padding: var(--ui-1) var(--ui-2);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+}
+
 .menu-popover-list {
   position: absolute;
   top: calc(100% + var(--ui-1));

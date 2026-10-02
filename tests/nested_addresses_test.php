@@ -12,12 +12,13 @@ use App\Support\Url;
  */
 
 /** The editor's save, placing the page under $parent (null: the top level). */
-function placePage(int $id, string $title, string $slug, ?int $parent, string $status = 'published'): void
+function placePage(int $id, string $title, string $slug, ?int $parent): void
 {
+    // Published (D-173): a save keeps a draft, and a page moves when it is published.
     assertRedirectedTo('/admin/pages/' . $id, adminPost("/admin/pages/{$id}", [
         'title' => $title,
         'slug' => $slug,
-        'status' => $status,
+        'action' => 'publish',
         'parent_id' => $parent === null ? '' : (string) $parent,
         '_end' => '1',
     ]));

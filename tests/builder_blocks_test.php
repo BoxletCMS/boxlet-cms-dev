@@ -192,7 +192,7 @@ testBothDrivers('a block added in the middle is stored in that position', functi
             ['type' => 'image_text', 'heading' => 'Two', 'body' => '<p>Two</p>', 'image' => '', 'image_fit' => 'cover', 'link' => ['label' => '', 'url' => '']],
             ['id' => $text, 'type' => 'text', 'heading' => '', 'body' => '<p>Three</p>'],
         ],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 

@@ -324,7 +324,7 @@ const tidyUp = async (page, report) => {
     return;
   }
   await settle(1200);
-  await clickAndWait(page, 'form[data-builder] button[name="action"][value="save"]:not(.visually-hidden)');
+  await clickAndWait(page, 'form[data-builder] button[name="action"][value="publish"]');
   await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
   await settle(2500);
   const after = await groups(page);
@@ -436,7 +436,7 @@ export default {
     const heading = await page.$(`[data-block-group="${index}"] input[name$="[heading]"]`);
     if (heading) await heading.type('Checklist block', { delay: 20 });
 
-    await clickAndWait(page, 'form[data-builder] button[name="action"][value="save"]:not(.visually-hidden)');
+    await clickAndWait(page, 'form[data-builder] button[name="action"][value="publish"]');
     const saved = !page.url().includes('error');
     const stored = await page.evaluate(() => document.body.textContent.includes('Checklist line'));
     await report.shot(page, '03-saved');
@@ -487,7 +487,7 @@ export default {
       await page.click('.ProseMirror');
       await page.keyboard.type(' Fixed here.', { delay: SLOW });
     }
-    await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
+    await clickAndWait(page, 'div.editor-actions button[name="action"][value="publish"]');
     const fixedThrough = await page.evaluate(() => document.body.textContent.includes('Fixed here.'));
     await report.shot(page, '04-plain-editor');
 
@@ -512,10 +512,10 @@ export default {
       // mangling a save. The fix is not copied here: it is retype() in the harness, and
       // run.mjs refuses to start if any scenario reaches for the old way again (D-029).
       await retype(page, 'textarea[name="seo_description"]', marker);
-      await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
+      await clickAndWait(page, 'div.editor-actions button[name="action"][value="publish"]');
 
       await page.goto(`${BASE}/admin/pages/${PAGE}`, { waitUntil: 'networkidle2' });
-      await clickAndWait(page, 'form[data-builder] button[name="action"][value="save"]:not(.visually-hidden)');
+      await clickAndWait(page, 'form[data-builder] button[name="action"][value="publish"]');
 
       await page.goto(`${BASE}/admin/pages/${PAGE}/form`, { waitUntil: 'networkidle2' });
       const afterBuilderSave = await page.$eval('textarea[name="seo_description"]', (el) => el.value);

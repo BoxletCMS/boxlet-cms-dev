@@ -54,14 +54,16 @@ final class PageController
 
         // Forms, with what the visitor just did to one (D-046): ?sent=id after a send.
         $sent = $request->query['sent'] ?? null;
-        $body = PageBody::draw(
+        // The page as stored: what is published, never a draft (D-173).
+        $registry = $this->container->get('blocks');
+        $body = PageRender::draw(
             $db,
-            $this->container->get('blocks'),
-            (int) $page['id'],
+            $registry,
+            PageDocument::stored($db, $registry, (int) $page['id']) ?? ['blocks' => [], 'sections' => []],
             $locale,
             Composition::active($db),
             (string) $this->container->get('config')->get('app.key'),
-            is_string($sent) && ctype_digit($sent) ? (int) $sent : null,
+            ['pageId' => (int) $page['id'], 'sent' => is_string($sent) && ctype_digit($sent) ? (int) $sent : null],
         );
         $html = $body['html'];
         $firstSurface = $body['firstSurface'];
@@ -69,7 +71,7 @@ final class PageController
         // D-004. THE ONLY PLACE THE TITLE FALLS BACK. An empty <title> is worse than one
         // repeating the page's own, so the page title stands in; an empty description is
         // better than one repeating the title, so it stays empty and the tag is dropped.
-        $seo = Page::seo($page);
+        $seo = PageSeo::of($page);
 
         return $this->render('page', $locale, [
             'title' => $seo['title'] !== '' ? $seo['title'] : (string) $page['title'],

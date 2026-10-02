@@ -76,8 +76,13 @@ export default {
     // scenario worked exactly once: pages has UNIQUE (locale, slug), so every run after the
     // first died on the insert and reported "the scenario itself", which reads like the
     // product breaking. The same disease as the renamed photographs — state left behind.
+    //
+    // UNLESS THERE IS ONE: the demo has translated its home page into Croatian since D-167,
+    // and seeding a second died on that same constraint. Then that page is the one checked,
+    // and nothing is removed afterwards — it is the demo's, not this scenario's.
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const hrPageId = Number(sql(
+    const existing = Number(sql('echo (string) $pdo->query("SELECT id FROM pages WHERE locale = \'hr\' AND slug = \'\'")->fetchColumn();'));
+    const hrPageId = existing > 0 ? 0 : Number(sql(
       `$pdo->exec("INSERT INTO pages (content_group_id, locale, slug, title, status, sort, translation_status, created_at, updated_at) `
       + `VALUES (NULL, 'hr', '', 'Naslovnica', 'published', 0, 'source', '${now}', '${now}')"); `
       + 'echo $pdo->lastInsertId();',
@@ -109,9 +114,9 @@ export default {
           + `$pdo->exec("DELETE FROM pages WHERE id = ${hrPageId}");`);
       }
       report.verdict('the scenario removes the page it seeded',
-        Number.isInteger(hrPageId) && hrPageId > 0
-        && sql(`echo (string) $pdo->query("SELECT COUNT(*) FROM pages WHERE id = ${hrPageId}")->fetchColumn();`) === '0',
-        `seeded page id ${hrPageId}`);
+        existing > 0 || (Number.isInteger(hrPageId) && hrPageId > 0
+        && sql(`echo (string) $pdo->query("SELECT COUNT(*) FROM pages WHERE id = ${hrPageId}")->fetchColumn();`) === '0'),
+        existing > 0 ? `seeded none: the demo's own Croatian home, page ${existing}` : `seeded page id ${hrPageId}`);
     }
   },
 };

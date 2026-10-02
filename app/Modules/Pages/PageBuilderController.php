@@ -12,8 +12,6 @@ use App\Modules\Admin\AdminView;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\SectionStyle;
-use App\Modules\Forms\FormBlocks;
-use App\Modules\Media\MediaPicture;
 use App\Modules\Media\MediaReference;
 use App\Support\Url;
 
@@ -49,21 +47,16 @@ final class PageBuilderController
     public function edit(Request $request, string $locale, array $params): Response
     {
         $page = Page::find($this->db(), (int) $params['id']);
-        if ($page === null) {
+        $current = $page === null ? null : PageDraft::current($this->db(), $this->registry(), (int) $page['id']);
+        if ($page === null || $current === null) {
             return PagesController::missing();
         }
+        // The draft when there is one (D-173): what the editor shows is what Publish would put
+        // on the site, and the page's settings with it.
+        $document = $current['document'];
+        $shown = ['title' => $document['title'], 'slug' => $document['slug'], 'parent_id' => $document['parent_id'], 'seo_json' => $document['seo_json']] + $page;
 
-        return $this->shell(
-            $page,
-            (string) $page['title'],
-            (string) $page['slug'],
-            Page::editable($this->db(), $this->registry(), (int) $page['id']),
-            null,
-            [],
-            null,
-            200,
-            true,
-        );
+        return $this->shell($shown, $document['title'], $document['slug'], $document['blocks'], $document['sections'], $current['version'], [], null, 200, true);
     }
 
     /**
@@ -81,76 +74,27 @@ final class PageBuilderController
 
         $registry = $this->registry();
         ['blocks' => $blocks, 'sections' => $sections] = $this->canvasState((int) $page['id']);
-        // Every picture the page refers to, in one query, before any block draws: a
-        // template is handed what it needs and never touches a database.
-        $media = MediaPicture::forBlocks($this->db(), $registry, $locale, $blocks);
-        // Links to pages followed the way a visitor's page follows them (PLAN.md D-034), so
-        // a link to a draft is missing here exactly as it will be on the site.
-        $links = PageLinks::targets($this->db(), $registry, (string) $page['locale'], $blocks);
-        // Forms drawn as a visitor sees them (D-046); the canvas's CSP stops a send.
-        $forms = FormBlocks::resolve($this->db(), $blocks, (string) $page['locale'], null, (string) $this->container->get('config')->get('app.key'));
-        // And the files a Downloads block offers (D-127), as the page gets them.
-        $files = \App\Modules\Media\MediaFiles::forBlocks($this->db(), $registry, $blocks);
-
         // A translation's blocks that have fallen behind their source are marked on the
         // section itself (D-043, step 3); canvas.css draws the mark, builder-blocks.js keeps
         // it through a redraw. Only stored blocks can be stale, so a pending canvas has none.
         $stale = TranslationStatus::of($this->db(), $registry, (int) $page['id'])['stale'];
 
         /*
-         * THE SAME LOOP THE FRONT END RUNS (PageController::show), and deliberately so.
-         * Until D-098 this drew each block as its own band while the visitor's page drew
-         * sections of columns, and the two agreed only because every section held one
-         * block. The moment an author gives a section two columns they would part, and the
-         * editor would be showing a page that does not exist.
+         * THE SAME DRAWING THE FRONT END USES (PageRender), and deliberately so. Until D-098
+         * this drew each block as its own band while the visitor's page drew sections of
+         * columns, and the two agreed only because every section held one block. The moment
+         * an author gives a section two columns they would part, and the editor would be
+         * showing a page that does not exist.
          */
-        $html = '';
-        $first = true;
-        $character = Composition::active($this->db());
-        foreach (Sections::group($this->sectionsByKey($sections), $blocks, true) as $group) {
-            $drawable = [];
-            $isStale = false;
-            foreach ($group['blocks'] as $block) {
-                // A block whose type this installation no longer has keeps its stored
-                // content and simply does not draw.
-                if ($block['content'] === null || !$registry->has($block['type'])) {
-                    continue;
-                }
-                $block['content'] = PageLinks::content($registry, $block['type'], $block['content'], $links);
-                $drawable[] = $block;
-                $isStale = $isStale || ($block['id'] !== null && isset($stale[$block['id']]));
-            }
-            // A band whose every block is of a type this install no longer has draws as an
-            // empty one here rather than not at all: in the editor an empty band is a thing
-            // you are about to fill, and on the page it is nothing (Sections::group).
-            if ($drawable === [] && $group['blocks'] !== []) {
-                continue;
-            }
-            // ALWAYS AS COLUMNS HERE (D-103): a column is what a block is dragged into and
-            // what the + in it adds to, and a band that draws none has neither.
-            $drawn = SectionRender::draw($registry, $character, $group['section'], $drawable, $media, $first, ['forms' => $forms, 'files' => $files], (string) $page['locale'], true);
-            /* THE BAND SAYS WHICH BAND IT IS, for the editor only (D-099). The canvas draws
-               the visitor's markup and this is the one thing added to it: without a name on
-               the band, the + in an empty column has no way to say which column of which
-               section it is aiming at, and the editor would be back to counting positions —
-               which is what D-094 and D-098 took out of every other part of this. */
-            $drawn = (string) preg_replace(
-                '~^(\s*<section)\b~',
-                '$1 data-bx-section="' . e((string) $group['id']) . '"',
-                $drawn,
-                1,
-            );
-            // THE BAND IS MARKED, not the block inside it (D-043 step 3). While a section
-            // holds one block those are the same element and nothing changes; when it holds
-            // several, "this translation has fallen behind" is a thing to say about the band
-            // an author is looking at, and picking one of several identical-looking wrappers
-            // out of rendered markup by position is the kind of guess that goes wrong quietly.
-            if ($isStale) {
-                $drawn = (string) preg_replace('~^(\s*<section)\b~', '$1 data-bx-stale', $drawn, 1);
-            }
-            $html .= $drawn;
-            $first = false;
-        }
+        $html = PageRender::draw(
+            $this->db(),
+            $registry,
+            ['blocks' => $blocks, 'sections' => $sections],
+            (string) $page['locale'],
+            Composition::active($this->db()),
+            (string) $this->container->get('config')->get('app.key'),
+            ['editor' => true, 'stale' => $stale],
+        )['html'];
 
         $body = (new View(__DIR__ . '/views'))->render('admin/canvas', $locale, [
             'title' => (string) $page['title'],
@@ -182,7 +126,7 @@ final class PageBuilderController
      * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
-    public function again(array $page, string $title, string $slug, array $blocks, ?array $sections = null): Response
+    public function again(array $page, string $title, string $slug, array $blocks, ?array $sections, int $version): Response
     {
         $this->container->get('session')->set('pending_canvas', [
             'page' => (int) $page['id'],
@@ -193,7 +137,7 @@ final class PageBuilderController
             'sections' => $sections,
         ]);
 
-        return $this->shell($page, $title, $slug, $blocks, $sections);
+        return $this->shell($page, $title, $slug, $blocks, $sections, $version);
     }
 
     /**
@@ -206,7 +150,7 @@ final class PageBuilderController
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      * @param array<string, string> $errors
      */
-    public function rejected(array $page, string $title, string $slug, array $blocks, ?array $sections, array $errors, ?string $notice): Response
+    public function rejected(array $page, string $title, string $slug, array $blocks, ?array $sections, int $version, array $errors, ?string $notice): Response
     {
         // The canvas reloads when this renders, and it reads the database — which is
         // exactly what was NOT written. Without this, a rejected save appears to empty
@@ -217,7 +161,7 @@ final class PageBuilderController
             'sections' => $sections,
         ]);
 
-        return $this->shell($page, $title, $slug, $blocks, $sections, $errors, $notice, 422);
+        return $this->shell($page, $title, $slug, $blocks, $sections, $version, $errors, $notice, 422);
     }
 
     /**
@@ -237,10 +181,10 @@ final class PageBuilderController
         $session->remove('pending_canvas');
 
         if (!is_array($pending) || ($pending['page'] ?? null) !== $pageId || !is_array($pending['blocks'] ?? null)) {
-            return [
-                'blocks' => Page::editable($this->db(), $this->registry(), $pageId),
-                'sections' => Page::editableSections($this->db(), $pageId),
-            ];
+            // The draft when there is one, else the page as stored (D-173).
+            $document = PageDraft::current($this->db(), $this->registry(), $pageId)['document'] ?? ['blocks' => [], 'sections' => []];
+
+            return ['blocks' => $document['blocks'], 'sections' => $document['sections']];
         }
 
         // Session data is rebuilt rather than trusted: it survives across requests, and
@@ -278,7 +222,7 @@ final class PageBuilderController
         // nothing about it — the same rule Page::update() follows, for the same reason.
         $sections = is_array($pending['sections'] ?? null)
             ? SectionForm::parse($pending['sections'], [])
-            : Page::editableSections($this->db(), $pageId);
+            : (PageDraft::current($this->db(), $this->registry(), $pageId)['document']['sections'] ?? []);
 
         /*
          * AND A BAND FOR ANY BLOCK LEFT WITHOUT ONE.
@@ -315,26 +259,6 @@ final class PageBuilderController
     }
 
     /**
-     * The sections a drawing joins its blocks to, by KEY (D-098, Sections::group).
-     *
-     * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}> $sections
-     * @return array<string, array{layout: string, stack: string, style: array<string, string|int|null>}>
-     */
-    private function sectionsByKey(array $sections): array
-    {
-        $byKey = [];
-        foreach ($sections as $section) {
-            $byKey[$section['key']] = [
-                'layout' => SectionLayout::normalize($section['layout']),
-                'stack' => SectionLayout::normalizeStack($section['stack']),
-                'style' => SectionStyle::normalize($section['style']),
-            ];
-        }
-
-        return $byKey;
-    }
-
-    /**
      * @param array<string, mixed> $page
      * @param list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}> $blocks
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
@@ -349,7 +273,7 @@ final class PageBuilderController
      *        blocks is safe without having to know this exists.
      * @param list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>|null $sections
      */
-    private function shell(array $page, string $title, string $slug, array $blocks, ?array $sections = null, array $errors = [], ?string $notice = null, int $status = 200, bool $fromStorage = false): Response
+    private function shell(array $page, string $title, string $slug, array $blocks, ?array $sections, int $version, array $errors = [], ?string $notice = null, int $status = 200, bool $fromStorage = false): Response
     {
         $id = (int) $page['id'];
 
@@ -366,7 +290,10 @@ final class PageBuilderController
             'titleValue' => $title,
             'slugValue' => $slug,
             'blocks' => $blocks,
-            'sections' => PageEditorController::sectionMap($this->db(), $id, $sections),
+            'sections' => PageEditorController::sectionMap($this->db(), $this->registry(), $id, $sections),
+            // Which draft the form was made from, and what the page is (D-173).
+            'draftVersion' => $version,
+            'state' => PageDraft::state($this->db(), $page),
             'errors' => $errors,
             'notice' => $notice,
             'fromStorage' => $fromStorage,

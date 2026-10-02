@@ -62,7 +62,7 @@ testBothDrivers("a section stores only what its owner set, and the rest is its c
             ['id' => $one, 'type' => 'text', 'body' => '<p>One</p>', 'style' => []],
             ['id' => $two, 'type' => 'text', 'body' => '<p>Two</p>', 'style' => ['surface' => 'contrast', 'pad_top' => '120', 'width' => 'enormous', 'divider' => 'curve']],
         ],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
     assertRedirectedTo("/admin/pages/{$id}", $response);

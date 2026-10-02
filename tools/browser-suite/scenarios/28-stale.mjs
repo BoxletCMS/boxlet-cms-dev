@@ -72,7 +72,7 @@ export default {
       await page.type(`[data-block-group="${group}"] .ProseMirror`, 'Original words.', { delay: SLOW });
       await wait(400);
       await leaveUnsaved(page);
-      await clickAndWait(page, '.builder-bar button[value="save"]');
+      await clickAndWait(page, '.builder-bar button[value="publish"]');
 
       // ---- translated -----------------------------------------------------------------------
       await canvasReady(page).catch(() => {});
@@ -94,7 +94,7 @@ export default {
       await retype(page, heading, 'Changed heading');
       await wait(400);
       await leaveUnsaved(page);
-      await clickAndWait(page, '.builder-bar button[value="save"]');
+      await clickAndWait(page, '.builder-bar button[value="publish"]');
 
       // ---- the translation shows it ------------------------------------------------------------
       await page.goto(`${BASE}/admin/pages/${translation}`, { waitUntil: 'networkidle2' });

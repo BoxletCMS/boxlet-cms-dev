@@ -33,7 +33,7 @@ final class Sitemap
              ORDER BY l.is_primary DESC, l.sort, p.locale, p.sort, p.id"
         );
         // A page kept out of search engines is kept out of the map of the site (D-170).
-        $rows = array_values(array_filter($rows, static fn (array $row): bool => !Page::seo($row)['noindex']));
+        $rows = array_values(array_filter($rows, static fn (array $row): bool => !PageSeo::of($row)['noindex']));
         $groups = [];
         foreach ($rows as $row) {
             $groups[(int) ($row['content_group_id'] ?? $row['id'])][(string) $row['locale']] = (string) $row['slug'];

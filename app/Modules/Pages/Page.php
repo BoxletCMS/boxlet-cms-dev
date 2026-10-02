@@ -38,59 +38,6 @@ final class Page
     }
 
     /**
-     * What this page says about itself in <head>: a title and a description (D-004).
-     * Two fields, and nothing else — no sharing image, no robots directive, no sitemap.
-     *
-     * WHAT IS STORED, NOT WHAT IS SHOWN. Neither field falls back here, deliberately.
-     * The title's fallback to the page title belongs where it is rendered, because a
-     * fallback applied here would be written straight back on the next save: the page
-     * title would become an explicit SEO title and would stop following the title from
-     * then on. The editors want the raw value too, or an owner cannot tell a field they
-     * set from one they inherited.
-     *
-     * A page created before this existed — and every new page, since create() does not
-     * write the column — has NULL rather than '{}', so both have to decode to nothing.
-     *
-     * @param array<string, mixed> $page a row from find() or published()
-     * @return array{title: string, description: string, noindex: bool}
-     */
-    public static function seo(array $page): array
-    {
-        $stored = json_decode((string) ($page['seo_json'] ?? ''), true);
-        $stored = is_array($stored) ? $stored : [];
-
-        return [
-            'title' => is_string($stored['title'] ?? null) ? trim($stored['title']) : '',
-            'description' => is_string($stored['description'] ?? null) ? trim($stored['description']) : '',
-            // Kept out of search engines, the sitemap and llms.txt (D-170).
-            'noindex' => ($stored['noindex'] ?? false) === true,
-        ];
-    }
-
-    /**
-     * The inverse of seo(), kept beside it: both halves of one stored shape belong
-     * together, and the alternative is json_encode's flags copied into a controller,
-     * where they drift.
-     *
-     * An empty field is dropped rather than stored as an empty string, so a page with no
-     * SEO of its own holds {} however it arrived there.
-     *
-     * @param array{title: string, description: string, noindex?: bool} $seo
-     */
-    public static function seoJson(array $seo): string
-    {
-        $stored = array_filter(
-            ['title' => trim($seo['title']), 'description' => trim($seo['description'])],
-            static fn (string $value): bool => $value !== '',
-        );
-        if (($seo['noindex'] ?? false) === true) {
-            $stored['noindex'] = true;
-        }
-
-        return self::json($stored);
-    }
-
-    /**
      * Stored blocks in order, exactly as stored: callers validate layout and style
      * against the registry when they use them.
      *
@@ -269,7 +216,7 @@ final class Page
      * The registry is here because saving resolves media references: which fields of a
      * block can hold a picture is something only the registry knows.
      *
-     * seo_json travels already encoded, by Page::seoJson(), because it is also what
+     * seo_json travels already encoded, by PageSeo::json(), because it is also what
      * a rejected save hands back to the editor: one name for the column, the settings
      * array and the re-rendered form means those three can never drift apart.
      *

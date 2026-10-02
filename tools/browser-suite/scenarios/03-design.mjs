@@ -343,14 +343,19 @@ export default {
     }));
     const drawn = await specimen();
     const factors = drawn.lines.map((l) => l.drawn / l.said);
-    const spread = Math.max(...factors) - Math.min(...factors);
-    report.verdict('the specimen is the page\'s own sizes, shrunk together to fit',
+    // SINCE D-172 A HEADING MAY GIVE WAY ALONE: one that would need a third line shrinks by
+    // itself (shrinking every line with it put Brutalist's body at 5px). So the body and the
+    // small print share one factor, and a heading's is that one or smaller.
+    const shared = factors.slice(2);
+    const spread = Math.max(...shared) - Math.min(...shared);
+    report.verdict('the specimen is the page\'s own sizes, shrunk to fit, a heading giving way alone',
       drawn.lines.length === 4
         // Rounding to whole pixels is the only thing that may separate the factors.
         && spread < 0.05
+        && factors.slice(0, 2).every((f) => f <= Math.max(...shared) + 0.05)
         && new Set(drawn.lines.map((l) => l.drawn)).size === 4
         && Math.max(...drawn.lines.map((l) => l.drawn)) <= 40,
-      `${drawn.lines.map((l) => `${l.said}→${l.drawn}`).join(' ')}; factors differ by ${spread.toFixed(3)}`);
+      `${drawn.lines.map((l) => `${l.said}→${l.drawn}`).join(' ')}; body and small differ by ${spread.toFixed(3)}`);
     /*
      * AND IT IS SET IN THE PAIRING BEING CHOSEN.
      *
@@ -1008,7 +1013,7 @@ export default {
         radio.dispatchEvent(new Event('change', { bubbles: true }));
       }, key);
       await retype(page, `input[name="sections[${key}][style][pad_top]"]`, '120');
-      await clickAndWait(page, 'div.editor-actions button[name="action"][value="save"]');
+      await clickAndWait(page, 'div.editor-actions button[name="action"][value="publish"]');
 
       await page.goto(`${BASE}${STYLE_GUIDE_PATH}`, { waitUntil: 'networkidle2' });
       const after = await sectionClasses(page);

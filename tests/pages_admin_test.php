@@ -98,7 +98,7 @@ testBothDrivers('saving reorders, edits, removes and adds blocks', function (str
             ['id' => (string) $imageText, 'type' => 'image_text', 'body' => '', '_delete' => '1'],
             ['type' => 'text', 'heading' => '', 'body' => '<p>Added</p>'],
         ],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 
@@ -116,7 +116,7 @@ testBothDrivers('a block keeps its type whatever the form claims', function (str
     $blockId = (string) ($db->one('SELECT id FROM page_blocks')['id'] ?? '');
     $blocks = [['id' => $blockId, 'type' => 'text', 'heading' => 'Still a hero', 'body' => '<p>x</p>']];
 
-    assertRedirectedTo("/admin/pages/{$id}", adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'save', '_end' => '1']));
+    assertRedirectedTo("/admin/pages/{$id}", adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'publish', '_end' => '1']));
     assertEquals(['hero'], blockTypes($db, $id), 'stored type');
 });
 
@@ -177,7 +177,7 @@ test('invalid block content is refused and nothing is saved', function () {
     $blockId = (int) ($db->one('SELECT id FROM page_blocks')['id'] ?? 0);
     $blocks = [['id' => (string) $blockId, 'type' => 'image_text', 'body' => '', 'image_fit' => 'cover', 'link' => ['label' => 'x', 'url' => 'javascript:alert(1)']]];
 
-    $response = adminPost("/admin/pages/{$id}", ['title' => 'Changed', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'save', '_end' => '1']);
+    $response = adminPost("/admin/pages/{$id}", ['title' => 'Changed', 'slug' => 'about', 'blocks' => $blocks, 'action' => 'publish', '_end' => '1']);
     assertEquals(422, $response->status, 'status');
     assertContains(e(t('pages.field.link_url')), $response->body, 'link error');
     assertContains(e(t('pages.field.required')), $response->body, 'required error');
@@ -191,7 +191,7 @@ test('richtext is reduced to the whitelist when saved', function () {
     $blockId = (int) ($db->one('SELECT id FROM page_blocks')['id'] ?? 0);
     $body = '<p onclick="steal()">Hi<script>alert(1)</script></p><a href="javascript:alert(1)">link</a>';
 
-    adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'body' => $body]], 'action' => 'save', '_end' => '1']);
+    adminPost("/admin/pages/{$id}", ['title' => 'About', 'slug' => 'about', 'blocks' => [['id' => (string) $blockId, 'type' => 'text', 'body' => $body]], 'action' => 'publish', '_end' => '1']);
     assertEquals('<p>Hi</p><a>link</a>', storedContent($db, $blockId)['body'] ?? null, 'stored body');
 });
 

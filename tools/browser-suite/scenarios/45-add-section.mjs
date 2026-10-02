@@ -24,7 +24,7 @@ const MARKER = 'A band of my own.';
 const submit = async (page) => {
   await page.evaluate(() => {
     const form = document.querySelector('form[data-builder]');
-    form.requestSubmit(form.querySelector('button[name="action"][value="save"]:not(.visually-hidden)'));
+    form.requestSubmit(form.querySelector('button[name="action"][value="publish"]'));
   });
   await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
 

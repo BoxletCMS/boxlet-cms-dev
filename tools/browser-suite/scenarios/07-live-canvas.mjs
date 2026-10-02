@@ -206,7 +206,7 @@ export default {
           const action = document.createElement('input');
           action.type = 'hidden';
           action.name = 'action';
-          action.value = 'save';
+          action.value = 'publish'; // what the site shows is what is published (D-173)
           form.appendChild(action);
           form.submit();
         }),
@@ -248,7 +248,7 @@ export default {
             el.dispatchEvent(new Event('change', { bubbles: true }));
           }, original);
           await wait(SETTLE);
-          await clickAndWait(page, 'form[data-builder] button[name="action"][value="save"]:not(.visually-hidden)');
+          await clickAndWait(page, 'form[data-builder] button[name="action"][value="publish"]');
         }
         const back = await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' })
           .then(() => page.evaluate(() => document.body.textContent));

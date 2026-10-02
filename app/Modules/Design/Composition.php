@@ -6,6 +6,7 @@ use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Settings;
 use App\Modules\Admin\Activity;
+use App\Modules\Pages\PageDraft;
 
 /**
  * Layer 0 reaching layers 2 and 3: the composition a character gives a site.
@@ -221,6 +222,9 @@ final class Composition
                 $changed += 1;
             }
         }
+        // And every draft the same way: what the owner is preparing would otherwise publish the
+        // old styling back over the page just handed back (D-163 point 5, D-173).
+        PageDraft::handBack($db, $registry, static fn (string $type): string => self::layout($registry, $character, $type));
 
         return $changed;
     }

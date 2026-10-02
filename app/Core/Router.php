@@ -144,8 +144,10 @@ final class Router
     {
         [$handler, $middleware, $session] = $route;
 
+        // The token is a form's field, or for a JSON body its X-CSRF-Token header (D-173).
+        $token = $request->body['_csrf'] ?? $request->header('x-csrf-token');
         if ($session && $request->method !== 'GET' && $request->method !== 'HEAD'
-            && !$this->container->get('session')->validCsrf($request->body['_csrf'] ?? null)) {
+            && !$this->container->get('session')->validCsrf($token)) {
             // A post over post_max_size arrives with $_POST and $_FILES both empty, so the
             // token is missing for a reason that has nothing to do with the token. Saying
             // "this form has expired" would send someone to reload the page and send the

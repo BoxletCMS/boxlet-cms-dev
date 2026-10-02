@@ -79,7 +79,7 @@ final class PageCache
             return;
         }
         $method = strtoupper((string) ($server['REQUEST_METHOD'] ?? 'GET'));
-        if ($method === 'POST' && self::segment($server) === 'admin' && !in_array(self::segment($server, 1), self::NOT_CHANGES, true)) {
+        if ($method === 'POST' && self::segment($server) === 'admin' && !in_array(self::segment($server, 1), self::NOT_CHANGES, true) && !self::drafting($server)) {
             self::clear();
 
             return;
@@ -99,6 +99,10 @@ final class PageCache
     /** Every kept page removed. */
     public static function clear(): void
     {
+        // Never told where the pages are, there are none: '' would make this the disk's root.
+        if (self::$directory === '') {
+            return;
+        }
         foreach (glob(self::$directory . '/*.html') ?: [] as $file) {
             @unlink($file);
         }
@@ -123,6 +127,18 @@ final class PageCache
             && preg_match('~(?:^|;)\s*boxlet_session=~', (string) ($server['HTTP_COOKIE'] ?? '')) !== 1
             && !in_array(self::segment($server), self::SKIPPED, true)
             && !is_file($storage . '/maintenance.flag');
+    }
+
+    /**
+     * A POST that touches only what the editors show (D-163, D-173): the draft's autosave, and
+     * a block or a band drawn for the canvas. Emptying every kept page on each of them would
+     * make the cache useless while anyone edits.
+     *
+     * @param array<string, mixed> $server
+     */
+    private static function drafting(array $server): bool
+    {
+        return self::segment($server, 1) === 'pages' && in_array(self::segment($server, 3), ['draft', 'block', 'section'], true);
     }
 
     /**

@@ -1,7 +1,7 @@
 <?php
 
 use App\Modules\Design\Composition;
-use App\Modules\Pages\Page;
+use App\Modules\Pages\PageSeo;
 use App\Support\Url;
 
 /**
@@ -19,18 +19,21 @@ use App\Support\Url;
  * @var string $character the character new blocks are composed with
  * @var \App\Core\Blocks $registry
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures every picture a media field may choose
+ * @var int $draftVersion the draft this form is made from; 0 when there is none (D-173)
+ * @var string $state published, changes (a published page with a draft) or draft
+ * @var array{mine: list<array{id: int, name: string, created_at: string}>, set: list<array{id: string, name: string}>} $patterns
  * @var string $csrf
  */
 $pageId = (int) $page['id'];
 $published = $page['status'] === 'published';
 // What is stored, not what a visitor would see: on a rejected save $page already carries
 // the submitted seo_json, so this shows back what was typed rather than what was kept.
-$seo = Page::seo($page);
+$seo = PageSeo::of($page);
 $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>' : '';
 ?>
         <div class="page-header">
             <h1><?= e(t('pages.edit')) ?></h1>
-            <span class="status status-<?= e($page['status']) ?>"><?= e(t('pages.status.' . $page['status'])) ?></span>
+            <span class="status status-<?= e($state) ?>"><?= e(t('pages.state.' . $state)) ?></span>
             <a class="button button-secondary" href="<?= e(Url::admin('pages', $pageId)) ?>"><?= e(t('pages.editor.visual')) ?></a>
 <?php if ($published): ?>
             <a href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>"><?= e(t('pages.view')) ?></a>
@@ -42,8 +45,9 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php endif; ?>
         <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="editor-form" data-page-editor>
             <?php /* First submit button in the form: pressing Enter in a field saves. */ ?>
-            <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save')) ?></button>
+            <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save_draft')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+            <input type="hidden" name="draft_version" value="<?= e($draftVersion) ?>">
 
             <div class="panel editor-meta">
                 <div class="field">
@@ -139,8 +143,16 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
                 <button type="submit" name="action" value="add" class="button button-secondary" data-editor-action="add"><?= e(t('pages.add')) ?></button>
             </div>
 
+<?php require __DIR__ . '/patterns.php'; ?>
+
+            <?php /* SAVE KEEPS A DRAFT, PUBLISH PUTS IT ON THE SITE (D-173). Discard is offered only
+                     where there is a published page to go back to. */ ?>
             <div class="editor-actions">
-                <button type="submit" name="action" value="save" class="button"><?= e(t('pages.save')) ?></button>
+                <button type="submit" name="action" value="save" class="button button-secondary"><?= e(t('pages.save_draft')) ?></button>
+                <button type="submit" name="action" value="publish" class="button"><?= e(t('pages.publish')) ?></button>
+<?php if ($state === 'changes'): ?>
+                <button type="submit" name="action" value="discard" class="button button-ghost" data-confirm="<?= e(t('pages.discard_confirm')) ?>"><?= e(t('pages.discard')) ?></button>
+<?php endif; ?>
                 <span class="hint"><?= e(t('pages.save_hint')) ?></span>
             </div>
             <input type="hidden" name="_end" value="1">
@@ -196,12 +208,16 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php endforeach; ?>
 
         <div class="row-actions editor-secondary">
+<?php if ($published): ?>
+            <?php /* Publish is in the form above, with the draft it publishes; taking the page
+                     off the site keeps it as the draft (D-173). */ ?>
             <form method="post" action="<?= e(Url::admin('pages', $pageId, 'status')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="return" value="edit">
-                <input type="hidden" name="status" value="<?= $published ? 'draft' : 'published' ?>">
-                <button type="submit" class="button button-secondary"><?= e(t($published ? 'pages.unpublish' : 'pages.publish')) ?></button>
+                <input type="hidden" name="status" value="draft">
+                <button type="submit" class="button button-secondary"><?= e(t('pages.unpublish')) ?></button>
             </form>
+<?php endif; ?>
             <form method="post" action="<?= e(Url::admin('pages', $pageId, 'delete')) ?>">
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <button type="submit" class="button button-ghost button-danger" data-confirm="<?= e(t('pages.delete_confirm', ['title' => (string) $page['title']])) ?>"><?= e(t('pages.delete')) ?></button>

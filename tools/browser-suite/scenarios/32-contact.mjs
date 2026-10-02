@@ -76,7 +76,7 @@ export default {
       await report.shot(page, '01-editor', { fullPage: false });
       report.verdict('the Form block shows the chosen form on the canvas', onCanvas, `form drawn: ${onCanvas}`);
       await page.evaluate(() => { window.onbeforeunload = null; });
-      await clickAndWait(page, '.builder-bar button[value="save"]');
+      await clickAndWait(page, '.builder-bar button[value="publish"]');
       await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
       await clickAndWait(page, `form[action$="/pages/${pageId}/status"] button`);
       // The address cell is the path in words since D-052: opening the page on the site

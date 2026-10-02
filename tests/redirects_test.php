@@ -17,12 +17,13 @@ function assertMovedTo(string $location, Response $response, string $what): void
 }
 
 /** The editor's save, with only the address changing. */
-function renamePage(int $id, string $title, string $slug, string $status = 'published'): void
+function renamePage(int $id, string $title, string $slug): void
 {
+    // Published (D-173): a save keeps a draft, and an address changes when the page does.
     assertRedirectedTo('/admin/pages/' . $id, adminPost("/admin/pages/{$id}", [
         'title' => $title,
         'slug' => $slug,
-        'status' => $status,
+        'action' => 'publish',
         '_end' => '1',
     ]));
 }
@@ -64,8 +65,9 @@ testBothDrivers('a draft\'s address changes are not kept: nobody outside knew th
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'draft-one', 'Draft', false);
 
-    renamePage($id, 'Draft', 'draft-two', 'draft');
-    assertEquals(t('pages.saved'), $_SESSION['flash'] ?? null, 'told of an old address nobody had');
+    // Published for the first time under a new address: the old one was never on the site.
+    renamePage($id, 'Draft', 'draft-two');
+    assertEquals(t('pages.published'), $_SESSION['flash'] ?? null, 'told of an old address nobody had');
     assertEquals(0, (int) ($db->one('SELECT COUNT(*) AS n FROM redirects')['n'] ?? -1), 'a draft\'s slug kept');
 });
 

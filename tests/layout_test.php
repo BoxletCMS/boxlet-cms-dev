@@ -15,7 +15,7 @@ testBothDrivers('a declared layout is saved; one the block does not declare fall
         'title' => 'About',
         'slug' => 'about',
         'blocks' => [['id' => (string) $blockId, 'type' => 'hero', 'heading' => 'Hi', 'layout' => $layout]],
-        'action' => 'save',
+        'action' => 'publish',
         '_end' => '1',
     ]);
 

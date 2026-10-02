@@ -213,10 +213,20 @@ final class PagesController
         if ($page === null) {
             return self::missing();
         }
+        // Publish is the draft's when there is one (D-173): what the page list's button puts on
+        // the site is what the editor shows. Unpublish keeps the page as the draft.
         $published = $request->input('status') === 'published';
-        Page::setStatus($this->db(), $id, $published);
-        Activity::record($this->db(), 'page', $published ? 'published' : 'unpublished', $id, (string) $page['title']);
-        Sitemap::refresh($this->container);
+        if ($published) {
+            $errors = PagePublish::publish($this->container, $id);
+            if ($errors !== []) {
+                $this->container->get('session')->set('flash', t('pages.publish_refused', ['problem' => (string) reset($errors)]));
+
+                return Response::redirect($request->input('return') === 'edit' ? Url::admin('pages', $id) : Url::admin('pages'));
+            }
+        } else {
+            PagePublish::unpublish($this->container, $id);
+            Activity::record($this->db(), 'page', 'unpublished', $id, (string) $page['title']);
+        }
         $this->container->get('session')->set('flash', t($published ? 'pages.published' : 'pages.unpublished'));
 
         return Response::redirect($request->input('return') === 'edit' ? Url::admin('pages', $id) : Url::admin('pages'));

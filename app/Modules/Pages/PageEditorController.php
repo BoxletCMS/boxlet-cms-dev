@@ -73,8 +73,8 @@ final class PageEditorController
 
         $registry = $this->registry();
         // The blocks as the form was made from them, by id: the type an existing block keeps
-        // whatever the form claims, and the content a block that sent only its skeleton is
-        // restored from (D-081) — the draft's, when there is one, since that is what was shown.
+        // whatever the form claims — the draft's, when there is one, since that is what was
+        // shown.
         $stored = [];
         foreach ($document['blocks'] as $block) {
             if ($block['id'] !== null) {

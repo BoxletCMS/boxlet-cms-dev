@@ -92,7 +92,11 @@ final class Overrides
         foreach (Decisions::ALL as $key => $definition) {
             $defaults[$key] = match (Decisions::follows($key)) {
                 'pairing' => Decisions::fromPairing($key, $typography),
-                'palette' => '',
+                // A colour that follows the palette follows the CHARACTER'S own colour where it
+                // names one (D-177). Brutalist names its footer's (D-172); counted as the
+                // owner's because the palette's answer is '', it was stored as theirs and kept
+                // through a change to Soft, which drew Brutalist's black footer under Soft.
+                'palette' => $values[$key] ?? '',
                 default => $values[$key],
             };
         }

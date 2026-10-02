@@ -11,6 +11,7 @@
 use App\Core\Blocks;
 use App\Core\Config;
 use App\Core\Db;
+use App\Modules\Demo\DemoPictures;
 use App\Modules\Demo\DemoSite;
 use App\Modules\Design\Design;
 use Dotenv\Dotenv;
@@ -33,7 +34,8 @@ if ($primary === null) {
 }
 
 try {
-    $count = DemoSite::seed($db, Blocks::discover($root . '/app/Blocks'), (string) $primary['code']);
+    $storage = (string) ($config->get('app', [])['storage_path'] ?? $root . '/storage');
+    $count = DemoSite::seed($db, Blocks::discover($root . '/app/Blocks'), (string) $primary['code'], DemoPictures::importer($db, $storage, $root . '/public'));
 } catch (RuntimeException $e) {
     fwrite(STDERR, $e->getMessage() . "\n");
     exit(1);

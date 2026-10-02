@@ -30,6 +30,12 @@ use App\Support\Url;
  */
 final class PageBuilderController
 {
+    /**
+     * The order blocks are offered in, in Add and in the quick inserter (the owner, D-176):
+     * what a page is made of most, first. A block not named here comes after, by name.
+     */
+    public const ORDER = ['text', 'hero', 'image_text', 'cards', 'quote', 'cta', 'picture', 'gallery', 'stats', 'accordion', 'logos', 'downloads', 'form', 'embed', 'divider'];
+
     public function __construct(private readonly Container $container)
     {
     }
@@ -47,7 +53,7 @@ final class PageBuilderController
         $id = (int) $page['id'];
         $character = Composition::active($this->db());
         $state = PageDraft::state($this->db(), $page);
-        $library = $this->library($character);
+        $library = $this->library($character, (string) $page['locale']);
 
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/builder', [
             'title' => t('pages.edit'),
@@ -228,18 +234,22 @@ final class PageBuilderController
      *
      * @return list<array{type: string, label: string, icon: string, group: string, summary: string, fresh: array<string, mixed>, layout: string}>
      */
-    private function library(string $character): array
+    private function library(string $character, string $locale): array
     {
         $registry = $this->registry();
+        $types = $registry->types();
+        $order = array_flip(self::ORDER);
+        usort($types, static fn (string $a, string $b): int => ($order[$a] ?? 99) <=> ($order[$b] ?? 99) ?: strcmp($a, $b));
         $library = [];
-        foreach ($registry->types() as $type) {
+        foreach ($types as $type) {
             $library[] = [
                 'type' => $type,
                 'label' => t('block.' . $type),
                 'icon' => (string) $registry->get($type)['icon'],
                 'group' => (string) $registry->get($type)['group'],
                 'summary' => t('block.' . $type . '.summary'),
-                'fresh' => $registry->fresh($type),
+                // A new block says what each part is for, in the page's language (D-176).
+                'fresh' => $registry->sampled($type, static fn (string $key): string => site_t($key, $locale, 'samples')),
                 'layout' => Composition::layout($registry, $character, $type),
             ];
         }

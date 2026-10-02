@@ -96,6 +96,7 @@ $slider = static function (string $key, float $min, float $max, float $step, arr
         'readout' => $readouts[$key] ?? '',
         'readoutKey' => $key,
         'readoutFor' => $id,
+        'following' => true,
     ]);
 
     return Controls::row($label, Controls::slider($name, $id, ($isLook ? $look : $decisions)[$key] ?? '', $min, $max, $step, $marks, ['data-slider-for' => $id . '-value']), $options);

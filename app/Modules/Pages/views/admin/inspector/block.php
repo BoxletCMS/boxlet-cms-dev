@@ -66,7 +66,7 @@ foreach ($specs as $name => $spec) {
     } else {
         $control = Controls::slider($prefix . '[options][' . $name . ']', $idPrefix . 'option-' . $name, $shown[$name], $spec['min'], $spec['max'], $spec['step']);
     }
-    $optionsGroup .= Controls::row(t($label), $control, ['key' => $path, 'labelId' => $idPrefix . 'option-' . $name . '-label', 'changed' => $stored !== '', 'readout' => $spec['type'] === 'choice' ? '' : $shown[$name]] + ($stored !== '' ? ['reset' => $reset($path)] : []));
+    $optionsGroup .= Controls::row(t($label), $control, ['key' => $path, 'labelId' => $idPrefix . 'option-' . $name . '-label', 'changed' => $stored !== '', 'readout' => $spec['type'] === 'choice' ? '' : $shown[$name], 'following' => $spec['type'] !== 'choice'] + ($stored !== '' ? ['reset' => $reset($path)] : []));
 }
 
 // ---- Fields ----------------------------------------------------------------------------------

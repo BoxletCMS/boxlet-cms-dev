@@ -5,7 +5,8 @@
 # copy's revision does not match the checkout's HEAD, and a guard nobody can satisfy gets
 # switched off — so the sync that makes it true lives here, next to it.
 #
-# Only code moves: app/, config/, lang/, public/assets, migrations/, designs/ (not its custom/)
+# Only code moves: app/, config/, lang/, public/assets, migrations/, install/ (the demo's
+# pictures, D-176), designs/ (not its custom/)
 # and public/index.php.
 # config/ was missing until 2026-09-29: it holds no site's settings (those are in .env), and a
 # copy with an old config/app.php had no public_path, which sent an SVG logo to /m/logo on the
@@ -37,7 +38,7 @@ fi
 # --delete: a file the checkout no longer has is gone from the copy too. Without it a block
 # removed or renamed (Columns became Cards, D-166) stayed in the copy's app/Blocks, and the
 # registry refused the whole site over a definition the checkout had not had for a day.
-for part in app config lang public/assets migrations; do
+for part in app config lang public/assets migrations install; do
   rsync -a --delete "$checkout/$part/" "$target/$part/"
 done
 # The design sets Boxlet ships (PLAN.md D-152): without them the copy has no characters at
@@ -67,5 +68,5 @@ revision="$(git -C "$checkout" rev-parse HEAD)"
 mkdir -p "$target/storage"
 printf '%s\n' "$revision" > "$target/storage/checkout.rev"
 
-echo "Synced app, lang, public/assets, migrations, designs and public/index.php into $target"
+echo "Synced app, lang, public/assets, migrations, install, designs and public/index.php into $target"
 echo "Recorded revision ${revision:0:12}"

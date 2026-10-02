@@ -36,7 +36,7 @@ test('every admin stylesheet on disk is one this file checks', function () {
         $name = basename($file);
         // Front-end stylesheets are the other side of the rule and are checked by
         // tests/blocks_test.php instead.
-        if (in_array($name, ['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-footer.css', 'chrome-header.css', 'sections.css', 'sections-steps.css', 'maintenance-bar.css'], true)) {
+        if (in_array($name, ['site.css', 'blocks-hero.css', 'blocks-hero-split.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-footer.css', 'chrome-header.css', 'sections.css', 'sections-steps.css', 'maintenance-bar.css'], true)) {
             continue;
         }
         assertTrue(in_array($name, $linked, true), "{$name} is checked by no stylesheet test");
@@ -110,7 +110,7 @@ test('the front-end stylesheets are linked with a hash of their content', functi
     createPage($db, 'en', 'about', 'About');
     $body = dispatch('/about')->body;
 
-    foreach (['site.css', 'blocks-hero.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-footer.css', 'chrome-header.css', 'sections.css', 'sections-steps.css'] as $css) {
+    foreach (['site.css', 'blocks-hero.css', 'blocks-hero-split.css', 'blocks.css', 'blocks-words.css', 'blocks-media.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-footer.css', 'chrome-header.css', 'sections.css', 'sections-steps.css'] as $css) {
         $hash = substr((string) hash_file('sha256', dirname(__DIR__) . '/public/assets/' . $css), 0, 12);
         assertContains("/assets/{$css}?v={$hash}", $body, "{$css} link");
     }

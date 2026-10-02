@@ -58,3 +58,8 @@
 .bx-inserter-item:hover .bx-icon {
   color: var(--bx-paper);
 }
+
+/* While the inserter is open the toolbars give way (D-176): it is the one thing being used. */
+.bx-layer:has(> .bx-inserter) > .bx-toolbar {
+  display: none;
+}

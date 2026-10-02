@@ -45,7 +45,8 @@ final class Controls
      *   so an answer from the server can rewrite it; readoutFor: makes the readout an <output>
      *   for that control; changed: draws the dot and offers the reset; default: printed as
      *   data-default, omitted when null; reset: the submit button that puts the value back;
-     *   hint and error: markup already escaped, placed under the control.
+     *   hint and error: markup already escaped, placed under the control; following: a
+     *   slider whose value may be the character's, whose readout then says so (D-176).
      */
     public static function row(string $label, string $control, array $options = []): string
     {
@@ -81,6 +82,9 @@ final class Controls
             $html .= '<' . $tag . ' class="readout"'
                 . ($text('readoutKey') !== '' ? ' data-readout="' . e($text('readoutKey')) . '"' : '')
                 . ($for !== '' ? ' id="' . e($for) . '-value" for="' . e($for) . '"' : '')
+                // "80 px · character" while the row has no dot: the word is added by CSS from
+                // here, so the dot and the word come and go together, by the row's class.
+                . (($options['following'] ?? false) === true ? ' data-from="' . e(t('controls.from_word')) . '"' : '')
                 . ' title="' . e($text('readout')) . '">' . e($text('readout')) . '</' . $tag . '>';
         }
 

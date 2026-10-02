@@ -27,6 +27,10 @@
       item.parentElement.hidden = !hit;
       shown += hit ? 1 : 0;
     });
+    // A shelf with nothing on it after a search goes, its name with it.
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-pb-shelf]'), function (shelf) {
+      shelf.hidden = shelf.querySelector('li:not([hidden])') === null;
+    });
     none.hidden = shown > 0;
   }
 
@@ -73,7 +77,7 @@
     li.appendChild(b);
     list.insertBefore(li, list.firstChild);
     var empty = panel.querySelector('[data-pb-mine-none]');
-    if (empty) { empty.hidden = true; }
+    if (empty) { empty.remove(); }
   });
 
   pb.on('select', placeLine);

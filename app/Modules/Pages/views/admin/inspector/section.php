@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\SectionLayout;
 use App\Support\Controls;
@@ -20,15 +19,15 @@ use App\Support\Controls;
  * @var array<string, array{0: string, 1: string}> $swatches surface => the two colours drawn for it
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures
  * @var int $number its place on the page, from 1
+ * @var int $gap the design's section gap in px, which a padding left to the character falls to
  */
 $style = $section['style'];
-$types = array_values(array_unique(array_map(static fn (array $b): string => (string) $b['type'], $blocks)));
-$composed = Composition::section($character, $types);
+$composed = \App\Modules\Pages\SectionRender::composed($character, $blocks);
 $effective = SectionStyle::effective($style, $composed);
 $name = (string) ($style[SectionStyle::NAME] ?? '');
 $reset = static fn (string $path): array => ['form' => '', 'name' => 'reset', 'value' => $path, 'title' => t('controls.reset')];
-$row = static function (string $label, string $control, string $path, bool $changed, string $readout = '') use ($reset): string {
-    return Controls::row($label, $control, ['key' => $path, 'labelId' => 'ins-' . str_replace('.', '-', $path) . '-label', 'changed' => $changed, 'readout' => $readout] + ($changed ? ['reset' => $reset($path)] : []));
+$row = static function (string $label, string $control, string $path, bool $changed, string $readout = '', bool $following = false) use ($reset): string {
+    return Controls::row($label, $control, ['key' => $path, 'labelId' => 'ins-' . str_replace('.', '-', $path) . '-label', 'changed' => $changed, 'readout' => $readout, 'following' => $following] + ($changed ? ['reset' => $reset($path)] : []));
 };
 $own = static fn (string $key): bool => (string) ($style[$key] ?? '') !== '';
 $labelOf = static fn (string $key): string => 'ins-s-style-' . $key . '-label';
@@ -73,15 +72,21 @@ if ($effective['surface'] === 'image') {
 }
 
 // ---- Spacing & height ------------------------------------------------------------------------------
+// THE SLIDER STANDS AT THE REAL VALUE (D-176). A padding left to the character is the
+// character's number, or the design's section gap where the character leaves it too; the
+// slider stands there, the readout says "80 px · character", and the dot comes only when the
+// slider is moved. It stood at 0 before, which read as "no room at all".
 $spacing = '';
 foreach (SectionStyle::NUMBERS as $key => $range) {
     $value = (string) $effective[$key];
+    if ($value === '' && str_starts_with($key, 'pad_')) {
+        $value = (string) $gap;
+    }
     $shown = $key === 'min_height'
         ? ($value === '0' || $value === '' ? t('style.min_height.auto') : $value . '%')
-        : ($value === '' ? t('style.pad.gap') : $value . ' px');
-    // '' for the padding is the design's section gap: the slider stands at that gap's place.
+        : $value . ' px';
     $at = $value === '' ? (string) $range['min'] : $value;
-    $spacing .= $row(t('style.' . $key), Controls::slider('s.style.' . $key, 'ins-s-' . $key, $at, $range['min'], $range['max'], $range['step']), 's.style.' . $key, $own($key), $shown);
+    $spacing .= $row(t('style.' . $key), Controls::slider('s.style.' . $key, 'ins-s-' . $key, $at, $range['min'], $range['max'], $range['step']), 's.style.' . $key, $own($key), $shown, true);
 }
 if ((int) $effective['min_height'] > 0) {
     $spacing .= $row(t('style.v_align'), segmented_group('s.style.v_align', array_combine(SectionStyle::OPTIONS['v_align'], array_map(static fn (string $v): string => short_label('style.v_align', $v), SectionStyle::OPTIONS['v_align'])), (string) $effective['v_align'], $labelOf('v_align'), 'ins-s-v_align-'), 's.style.v_align', $own('v_align'));

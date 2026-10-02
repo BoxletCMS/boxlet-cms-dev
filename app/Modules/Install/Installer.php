@@ -6,6 +6,7 @@ use App\Core\Blocks;
 use App\Core\Db;
 use App\Core\Migrator;
 use App\Core\Settings;
+use App\Modules\Demo\DemoPictures;
 use App\Modules\Demo\DemoSite;
 use App\Modules\Design\Design;
 use App\Support\PageCache;
@@ -24,6 +25,8 @@ final class Installer
         private readonly string $storage,
         private readonly string $envPath,
         private readonly string $cacheDirectory,
+        // The web root the picture sizes are written under (m/): the folder install.php is in.
+        private readonly string $public,
     ) {
     }
 
@@ -66,7 +69,8 @@ final class Installer
         // The demo is written for its own character (DemoSite::CHARACTER) and sets it, so it
         // is seeded before the design is compiled.
         if ($demo) {
-            DemoSite::seed($db, Blocks::discover($this->root . '/app/Blocks'), $site['locale']);
+            // With its pictures, every size made (D-176), from the package's install/demo/.
+            DemoSite::seed($db, Blocks::discover($this->root . '/app/Blocks'), $site['locale'], DemoPictures::importer($db, $this->storage, $this->public));
         }
         // A new site starts with nothing of the owner's: its character, the default one
         // without the demo, compiled so its first page is styled (D-164).

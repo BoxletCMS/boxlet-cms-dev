@@ -52,6 +52,12 @@
   margin-inline-start: auto;
 }
 
+/* A SLIDER LEFT TO THE CHARACTER SAYS SO (D-176): "80 px · character", the slider standing at
+   that value, and no dot. The word goes the moment the row is the owner's, with the dot. */
+.control-row:not(.is-changed) > .control-head > .readout[data-from]::after {
+  content: " · " attr(data-from);
+}
+
 /* THE WAY BACK, offered only where there is something to go back from: a reset beside a
    value nobody changed would do nothing, and a button that does nothing teaches people not to
    trust buttons. It is a whole control when it is there — an icon button at rest. */

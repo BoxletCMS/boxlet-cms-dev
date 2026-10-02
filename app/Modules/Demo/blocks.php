@@ -28,7 +28,9 @@ return static function (Closure $t, Closure $p): array {
                 'heading' => $t('Sve što stane na stranicu', 'Everything a page can hold'),
                 'subheading' => $t('Svaki blok, u svakom svom obliku. Promijenite karakter i svi se mijenjaju s njim.', 'Every block, in each of its shapes. Change the character and all of them change with it.'),
                 'cta' => ['label' => $t('Natrag na početnu', 'Back home'), 'url' => 'demo:home'],
-            ], 'split', ['height' => 'tall'], 0]),
+                // Centred here since the home page's hero follows its character, split (D-176):
+                // between them the demo still shows every hero layout.
+            ], 'center', ['height' => 'tall'], 0]),
             $one(['surface' => 'gradient', 'min_height' => '50', 'v_align' => 'center'], ['hero', [
                 'heading' => $t('Riječi u sredini', 'Words in the middle'),
                 'subheading' => $t('Slika iza riječi, najsvjetlija sjena.', 'A picture behind the words, the lightest shade.'),

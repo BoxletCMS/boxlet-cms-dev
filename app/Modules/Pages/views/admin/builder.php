@@ -27,6 +27,7 @@ $pageId = (int) $page['id'];
     <div class="pb-body" data-pb-body>
 <?php require __DIR__ . '/builder/rail.php'; ?>
         <main class="pb-stage">
+            <p class="pb-small-note"><a href="<?= e(Url::admin('pages', $pageId, 'form')) ?>"><?= e(t('builder.small_screen')) ?></a></p>
             <div class="pb-stage-head">
                 <nav class="pb-trail" data-pb-trail aria-label="<?= e(t('builder.canvas.page')) ?>"><button type="button" class="pb-trail-part" data-trail="page"><?= e(t('builder.canvas.page')) ?></button></nav>
                 <p class="pb-stage-hint"><?= icon('mouse-pointer-click') ?> <?= e(t('builder.canvas.hint')) ?></p>

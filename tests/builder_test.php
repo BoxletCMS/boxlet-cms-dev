@@ -54,6 +54,19 @@ test('the builder is one shell: bar, rail, canvas and inspector, and its documen
     assertEquals(1, substr_count($response->body, '<iframe'), 'the canvas is the one frame on the screen');
     assertContains('data-add-block="hero"', $response->body, 'the Hero in the list');
 
+    // The owner's order (D-176): in the inserter's data as it is, and in Add on its shelves.
+    assertEquals(App\Modules\Pages\PageBuilderController::ORDER, array_column($data['library'] ?? [], 'type'), 'the order blocks are offered in');
+    preg_match_all('~<h3 class="pb-add-group">([^<]+)</h3>\s*<ul class="pb-add-list">\s*<li><button type="button" class="pb-add-item" data-add-block="([a-z_]+)"~', $response->body, $shelves);
+    assertEquals(['Text', 'Media', 'Layout', 'Marketing', 'Embed'], $shelves[1], 'the shelves');
+    assertEquals(['text', 'image_text', 'cards', 'hero', 'embed'], $shelves[2], 'each opening with its first in the order');
+    // A new block says what each part is for (D-176).
+    $hero = array_values(array_filter($data['library'], static fn (array $i): bool => $i['type'] === 'hero'))[0];
+    assertEquals('The line that says what this is', $hero['fresh']['heading'] ?? null, 'a sample, not an empty block');
+    // Nothing of the owner's yet: a card saying so, not a line.
+    assertContains('data-pb-mine-none><div class="pb-add-item pb-add-empty">', $response->body, 'an empty My patterns as a card');
+    // Under 800px, the way to the plain editor.
+    assertContains('class="pb-small-note"><a href="/admin/pages/' . $id . '/form">', $response->body, 'the small screen\'s line');
+
     // The document's keys are the browser's to pair by, never a person's to read.
     $words = strip_tags((string) preg_replace('~<(script|template)\b.*?</\1>~s', '', $response->body));
     assertTrue(preg_match('~\b[bsnm][0-9]+\b~', $words) !== 1, 'an internal key is shown: ' . (preg_match('~.{20}\b[bsnm][0-9]+\b.{20}~', $words, $m) ? $m[0] : ''));

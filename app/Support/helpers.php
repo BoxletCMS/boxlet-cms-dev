@@ -156,21 +156,25 @@ function short_label(string $prefix, string $value): string
  * English: a language added from the admin that Boxlet has no words for falls back the way
  * a translation's missing alt text does (D-043), and English is the last resort because it
  * is the one set that is always complete.
+ *
+ * $file names the set: `site` for the site's own words, `samples` for the copy a new block
+ * starts with (D-176), which becomes the owner's words once it is on a page.
  */
-function site_t(string $key, string $locale): string
+function site_t(string $key, string $locale, string $file = 'site'): string
 {
     static $loaded = [];
     foreach ([$locale, \App\Support\Url::primaryLocale(), 'en'] as $code) {
         if (preg_match('~^[a-z]{2,3}$~', $code) !== 1) {
             continue;
         }
-        if (!array_key_exists($code, $loaded)) {
-            $file = dirname(__DIR__, 2) . '/lang/' . $code . '/site.php';
-            $strings = is_file($file) ? require $file : [];
-            $loaded[$code] = is_array($strings) ? $strings : [];
+        $set = $code . '/' . $file;
+        if (!array_key_exists($set, $loaded)) {
+            $path = dirname(__DIR__, 2) . '/lang/' . $set . '.php';
+            $strings = is_file($path) ? require $path : [];
+            $loaded[$set] = is_array($strings) ? $strings : [];
         }
-        if (is_string($loaded[$code][$key] ?? null)) {
-            return $loaded[$code][$key];
+        if (is_string($loaded[$set][$key] ?? null)) {
+            return $loaded[$set][$key];
         }
     }
 

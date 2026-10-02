@@ -19,7 +19,7 @@ return [
     'group' => 'embed',
     'version' => 1,
     'fields' => [
-        'url' => ['type' => 'text', 'required' => true, 'sample' => 'preview.embed.url'],
+        'url' => ['type' => 'text', 'required' => true],
         // What stands in the frame until a visitor presses Play (D-147): the site's own
         // picture, fetched once from the video by the admin (EmbedPoster) or chosen by hand.
         // Nothing of the provider's is loaded before the press, so this is all a visitor sees.

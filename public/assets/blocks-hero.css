@@ -65,17 +65,6 @@
 }
 
 
-.layout-split .hero {
-  /* The words a little wider than the picture (README 1.6). */
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: var(--space-columns);
-}
-
-/* A split hero always has a media element now, whether or not a picture has been chosen,
-   so the rules that re-flowed one WITHOUT it have gone rather than staying as selectors
-   that can no longer match. What they did — heading in one column, subheading and button
-   in the other — avoided an empty half but still left the lower part of the section dead. */
-
 /* ---- THE PICTURE BEHIND THE WORDS (D-118) -----------------------------------------------
 
    Four arrangements — words centred, on the left, on the right, low on the left — a height,

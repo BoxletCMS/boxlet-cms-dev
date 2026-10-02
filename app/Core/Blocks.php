@@ -147,6 +147,39 @@ final class Blocks
     }
 
     /**
+     * The content a block starts with when it is added in the builder (D-176): fresh(), with
+     * every word field that declares a sample holding it — in the words $say gives for a
+     * sample key, which is the page's language. Rich text gets it as one paragraph; a link
+     * and a picture stay empty, since a link's words without an address are an error.
+     *
+     * @param \Closure(string): string $say
+     * @return array<string, mixed>
+     */
+    public function sampled(string $type, \Closure $say): array
+    {
+        $fill = static function (array $fields, array $content) use ($say): array {
+            foreach ($fields as $name => $field) {
+                $sample = $field['sample'] ?? null;
+                if (!is_string($sample) || !in_array($field['type'], ['text', 'textarea', 'richtext'], true)) {
+                    continue;
+                }
+                $words = $say($sample);
+                $content[$name] = $field['type'] === 'richtext' ? '<p>' . htmlspecialchars($words, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : $words;
+            }
+
+            return $content;
+        };
+        $content = $fill($this->get($type)['fields'], $this->fresh($type));
+        foreach ($this->get($type)['fields'] as $name => $field) {
+            if ($field['type'] === 'repeater' && is_array($content[$name] ?? null)) {
+                $content[$name] = array_map(static fn (array $item): array => $fill($field['fields'], $item), $content[$name]);
+            }
+        }
+
+        return $content;
+    }
+
+    /**
      * One empty item of a repeater: every field present, at its empty value.
      *
      * Needed twice by the editor — to render the blank item its <template> holds, and to

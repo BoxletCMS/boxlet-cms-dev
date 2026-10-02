@@ -37,10 +37,15 @@
     var html = '';
     pb.doc.sections.forEach(function (section) {
       var columns = COLUMNS[section.layout] || 1;
-      var meta = NOTATION[section.layout] || '1';
-      if (section.style && section.style.anchor) {
-        meta += ' · #' + section.style.anchor;
+      // One column says nothing (the owner, D-176): only an arrangement is worth a mark.
+      var parts = [];
+      if (section.layout && section.layout !== 'one' && NOTATION[section.layout]) {
+        parts.push(NOTATION[section.layout]);
       }
+      if (section.style && section.style.anchor) {
+        parts.push('#' + section.style.anchor);
+      }
+      var meta = parts.join(' · ');
       html += '<li class="pb-tree-section" data-tree-section="' + text(section.key) + '">'
         + '<div class="pb-tree-row" role="button" tabindex="0" data-tree-select="section" data-key="' + text(section.key) + '">'
         + '<span class="pb-tree-grip" data-tree-grip aria-hidden="true">' + icon('grip-vertical') + '</span>'

@@ -78,6 +78,7 @@ final class PageBuilderApi
         $html = (new View(__DIR__ . '/views'))->render('admin/inspector/' . $kind, $locale, [
             'number' => is_int($number) && $number > 0 ? $number : 1,
             'swatches' => $kind === 'section' ? $this->swatches() : [],
+            'gap' => \App\Modules\Design\Tokens::readable(\App\Modules\Design\Design::resolved($this->db()))['section'],
             'page' => $page,
             'section' => $section,
             'blocks' => $band['blocks'],

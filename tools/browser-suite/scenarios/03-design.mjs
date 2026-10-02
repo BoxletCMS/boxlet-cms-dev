@@ -46,6 +46,10 @@ export default {
     // From the characters as they are: values an earlier run left behind would be measured
     // as this one's (a page colour, a boxed page).
     await resetDesign(page, BASE);
+    // And from the demo's own character: an earlier scenario may leave another (22 and 58
+    // leave Brutalist), whose full-width sections have no character's measure to read and
+    // whose own footer colour adds contrast pairs (D-177).
+    await applyCharacter(page, BASE, 'soft', 'save');
     // The header's width is measured below, and a fresh copy has no header to measure.
     if (await ensureHeaderMenu(page, BASE) === '') {
       report.fail('design: its test data', 'no menu could be put in the header, so there is no header to measure');
@@ -254,8 +258,12 @@ export default {
         columnHeight: document.body.scrollHeight,
       };
     });
+    // As many pairs as the design has, not a fixed twelve: a character that names a colour of
+    // its own for the footer or the header adds that place's pairs (Brutalist: 14), and this
+    // scenario measures whichever character the copy is on (D-177). Changed deliberately; what
+    // it checks is unchanged — every pair listed is measured, and one line counts them all.
     report.verdict('every contrast pair is measured on the screen, under one line that says so',
-      loop.rows === 12 && /12\/12$/.test(loop.verdict),
+      loop.rows >= 12 && new RegExp(`${loop.rows}\\/${loop.rows}$`).test(loop.verdict),
       `${loop.rows} rows; "${loop.verdict}"; first ratios ${loop.ratios.join(', ')}`);
     report.verdict('the "Update preview" button is gone where JavaScript runs', !loop.updateButton,
       loop.updateButton ? 'it is still there' : 'the preview follows every change instead');
@@ -700,7 +708,9 @@ export default {
     const measured = await page.evaluate(() => {
       const frame = document.querySelector('iframe[data-design-preview]');
       const inside = frame.contentDocument;
-      const container = inside ? inside.querySelector('main section .container') : null;
+      // The first section at the character's own measure: the home page's first is a split
+      // hero since D-177, which takes the wide measure on purpose.
+      const container = inside ? inside.querySelector('main section:not(.width-wide):not(.width-full):not(.width-narrow) .container') : null;
       // The content BOX, not the border box: a container carries side padding, and measuring
       // that instead was the first answer this check gave — 784px for a 704px measure.
       let content = 0;
@@ -832,7 +842,8 @@ export default {
           }
         }
         const headerBox = document.querySelector('header.block-header > .container');
-        const contentBox = document.querySelector('main section .container');
+        // At the character's own measure, not the split hero's wide one (D-177).
+        const contentBox = document.querySelector('main section:not(.width-wide):not(.width-full):not(.width-narrow) .container');
 
         return {
           around: getComputedStyle(document.body).backgroundColor,

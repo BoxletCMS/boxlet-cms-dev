@@ -40,12 +40,6 @@ final class BlockForm
      * its stored type whatever the form claims. A layout the block does not declare
      * falls back to its default rather than being stored.
      *
-     * A BLOCK MAY SEND ITS SKELETON INSTEAD OF ITS FIELDS (PLAN.md D-081). A group the
-     * author never touched posts its id, the marker _unchanged, and nothing else; its
-     * content, style and layout are taken from $stored. The result is the same block this
-     * would have returned had the browser sent every field, so nothing downstream — the
-     * canvas, a rejected save, the write — needs to know which blocks did that.
-     *
      * @param array<int, array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string}> $stored
      *        block id => the block as stored, for this page's blocks
      * @return array{blocks: list<array{key: string, id: int|null, type: string, content: array<string, mixed>|null, style: array<string, string|int|null>, options?: array<string, string>, layout: string, section?: string, column?: int}>, errors: array<string, string>}
@@ -86,18 +80,6 @@ final class BlockForm
                         ? (int) $raw['column']
                         : 0,
                 ];
-            }
-            if (($raw['_unchanged'] ?? '') === '1') {
-                // Nothing to restore it from, so there is nothing it can mean. Adding an
-                // empty block here would turn a lost id into content the author never wrote.
-                if ($id !== null) {
-                    // ITS FIELDS COME FROM STORAGE, BUT NOT ITS PLACE (D-081 meets D-098).
-                    // A form may let an untouched block send a skeleton; the block may
-                    // be untouched and still have been moved, so where it stands is read
-                    // from what was sent and only the content is restored.
-                    $blocks[] = $where === [] ? $stored[$id] : $where + $stored[$id];
-                }
-                continue;
             }
             $type = $id !== null ? $stored[$id]['type'] : (is_string($raw['type'] ?? null) ? $raw['type'] : '');
 

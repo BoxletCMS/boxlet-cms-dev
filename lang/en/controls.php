@@ -9,4 +9,6 @@ return [
     'controls.changed' => 'Changed',
     'controls.changed_count' => 'changed here',
     'controls.reset' => 'Back to the character',
+    // After a slider's readout while it is the character's (D-176): "80 px · character".
+    'controls.from_word' => 'character',
 ];

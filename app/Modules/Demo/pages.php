@@ -36,15 +36,16 @@ return static function (string $lang): array {
                         'heading' => $t('Prostori koji izgledaju kao da ste ih oduvijek imali', 'Spaces that feel like they were always yours'),
                         'subheading' => $t('Projektiramo stanove, urede i male trgovine — od prve skice do zadnje police.', 'We design flats, offices and small shops — from the first sketch to the last shelf.'),
                         'cta' => ['label' => $t('Dogovorite konzultacije', 'Book a consultation'), 'url' => 'demo:contact'],
-                    ], 'center', [], 0],
+                        'image' => 'demo-picture:hero-living-room',
+                    ], '', [], 0],
                 ]],
                 ['style' => ['name' => $t('Usluge', 'Services'), 'anchor' => $t('usluge', 'services')], 'layout' => 'one', 'blocks' => [
                     ['cards', [
                         'heading' => $t('Što radimo', 'What we do'),
                         'items' => [
-                            ['heading' => $t('Stanovi', 'Homes'), 'body' => $p('Preuređenje od jedne sobe do cijelog stana.', 'From a single room to the whole flat.')],
-                            ['heading' => $t('Uredi', 'Offices'), 'body' => $p('Radni prostori za male timove.', 'Workspaces for small teams.')],
-                            ['heading' => $t('Trgovine', 'Shops'), 'body' => $p('Izlozi, police i put kupca.', 'Windows, shelving and the customer\'s path.')],
+                            ['heading' => $t('Stanovi', 'Homes'), 'body' => $p('Preuređenje od jedne sobe do cijelog stana.', 'From a single room to the whole flat.'), 'image' => 'demo-picture:card-homes'],
+                            ['heading' => $t('Uredi', 'Offices'), 'body' => $p('Radni prostori za male timove.', 'Workspaces for small teams.'), 'image' => 'demo-picture:card-offices'],
+                            ['heading' => $t('Trgovine', 'Shops'), 'body' => $p('Izlozi, police i put kupca.', 'Windows, shelving and the customer\'s path.'), 'image' => 'demo-picture:card-shops'],
                         ],
                     ], 'grid', [], 0],
                 ]],
@@ -53,6 +54,7 @@ return static function (string $lang): array {
                         'heading' => $t('Od skice do ključa', 'From sketch to keys'),
                         'body' => $p('Vodimo cijeli projekt: mjerenje, 3D prikaz, izbor materijala i nadzor izvođača.', 'We run the whole project: measuring, 3D views, choosing materials and overseeing the builders.'),
                         'link' => ['label' => $t('Kako radimo →', 'How we work →'), 'url' => 'demo:process'],
+                        'image' => 'demo-picture:process-plan',
                     ], 'image-left', [], 0],
                 ]],
                 ['style' => ['name' => $t('Iskustvo', 'Experience')], 'layout' => 'wide-left', 'blocks' => [
@@ -91,6 +93,7 @@ return static function (string $lang): array {
                     ['image_text', [
                         'heading' => $t('Kako smo počeli', 'How we began'),
                         'body' => $p('Studio je nastao 2010. iz jedne narudžbe: kuhinje za prijatelje kojoj nitko nije znao naći mjesto. Od tada radimo isto, samo više puta.', 'The studio began in 2010 with one job: a kitchen for friends that nobody could find room for. We have been doing the same ever since, only more often.'),
+                        'image' => 'demo-picture:about-studio',
                     ], 'image-right', [], 0],
                 ]],
                 ['style' => [], 'layout' => 'one', 'blocks' => [

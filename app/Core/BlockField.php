@@ -80,12 +80,12 @@ final class BlockField
             }
         }
         /*
-         * WHAT THIS FIELD SAYS IN A LIBRARY PREVIEW (PLAN.md D-083, SPEC §5.3).
+         * WHAT THIS FIELD SAYS WHEN THE BLOCK IS NEW (PLAN.md D-083, D-176, SPEC §5.3).
          *
-         * Optional, and a LANGUAGE KEY rather than words: a preview is drawn in the admin's
-         * language and sample copy is copy. Without it the preview falls back to the
-         * generic sample for the field's type, which is what every field had and why all
-         * five cards read the same sentence.
+         * Optional, and a LANGUAGE KEY rather than words: a new block starts with it in the
+         * page's language (lang/{code}/samples.php, English where a language has none), and
+         * from then on it is the owner's text. Without it the field starts empty. A link
+         * field's sample is not used: a link's words without an address is an error.
          */
         if (array_key_exists('sample', $field)
             && (!is_string($field['sample']) || !preg_match(self::LANG_KEY, $field['sample']))) {

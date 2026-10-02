@@ -1,6 +1,16 @@
 /* THE BUILDER IN A NARROWER WINDOW (PLAN.md D-175): what gives first as the window narrows.
    builder.css is the shell at full width; this is the same shell with less room. */
 
+.pb-small-note {
+  display: none;
+  margin: var(--ui-2) 0 0;
+  font-size: var(--ui-text-sm);
+}
+
+.pb-small-note a {
+  color: var(--ui-accent);
+}
+
 /* Narrow windows: the inspector narrows before anything else gives. */
 @media (max-width: 75rem) {
   .pb-body {
@@ -54,6 +64,16 @@
 
   .pb-bar {
     flex-wrap: wrap;
+  }
+
+  /* The way to the plain editor, said once at the top of the stage (the owner, D-176). */
+  .pb-small-note {
+    display: block;
+  }
+
+  /* Its own row above the trail, the canvas still taking what is left. */
+  .pb-stage {
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 }
 

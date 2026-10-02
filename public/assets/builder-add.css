@@ -65,6 +65,7 @@
 }
 
 .pb-add-item {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: var(--ui-3);
@@ -113,3 +114,30 @@
   color: var(--ui-ink-muted);
 }
 
+/* An empty list said as a card (D-176): an item's shape, not a control, so no hover. */
+.pb-add-empty {
+  cursor: default;
+}
+
+.pb-add-empty:hover {
+  border-color: var(--ui-line);
+}
+
+.pb-add-shelf {
+  display: grid;
+  gap: var(--ui-2);
+}
+
+.pb-add-shelf[hidden] {
+  display: none;
+}
+
+
+div[data-pb-add-list] {
+  display: grid;
+  gap: var(--ui-3);
+}
+
+div[data-pb-add-list][hidden] {
+  display: none;
+}

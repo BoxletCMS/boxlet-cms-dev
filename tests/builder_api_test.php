@@ -90,6 +90,13 @@ testBothDrivers('the section inspector has its five groups and its actions, ever
     foreach (['pattern', 'duplicate', 'delete'] as $action) {
         assertContains('data-action="' . $action . '"', $html, "the {$action} action");
     }
+    // A padding left to the character stands at the real value, the design's section gap, and
+    // its readout says it is the character's (D-176): the dot only once the slider is moved.
+    $gap = App\Modules\Design\Tokens::readable(App\Modules\Design\Design::resolved($db))['section'];
+    assertContains('name="s.style.pad_top" min="0" max="200" step="4" value="' . $gap . '"', $html, 'the slider at the section gap');
+    assertTrue((bool) preg_match('~data-control="s.style.pad_top">.*?<span class="readout"[^>]*data-from="character"[^>]*>' . $gap . ' px</span>~s', $html), 'its readout, said as the character\'s');
+    assertTrue((bool) preg_match('~<div class="control-row" data-control="s.style.pad_top">~', $html), 'and no dot');
+
     // The anchor it has, as a link to it; and no key of the document anywhere a person reads.
     assertContains('#words', $html, 'the anchor said as a link');
     assertTrue(!str_contains(strip_tags($html), $section['key']), 'the band\'s internal key was shown');

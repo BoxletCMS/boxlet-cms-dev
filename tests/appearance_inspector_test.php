@@ -296,3 +296,17 @@ testBothDrivers('the preview is drawn with the site\'s own character when none i
     assertEquals(App\Modules\Design\Characters::decisions('soft')['typography'], $query['typography'] ?? null, 'Soft\'s typeface in the picture');
     assertEquals(App\Modules\Design\Characters::decisions('soft')['seed'], $query['seed'] ?? null, 'and its colour');
 });
+
+// A colour a character names for itself follows that character (D-177): Brutalist's footer is
+// its own, not the owner's, so it is stored as '' and gives way when the character changes.
+// It was counted as the owner's, kept through a change to Soft, and drew Brutalist's black
+// footer under Soft on the browser copy.
+test('a character\'s own footer colour is the character\'s, not the owner\'s', function () {
+    $brutalist = App\Modules\Design\Characters::decisions('brutalist');
+    assertTrue(($brutalist['footer_colour'] ?? '') !== '', 'Brutalist names a footer colour (D-172)');
+
+    assertEquals('', App\Modules\Appearance\Overrides::settle($brutalist, 'brutalist')['footer_colour'] ?? null, 'stored as following the character');
+    assertTrue(!in_array('footer_colour', App\Modules\Appearance\Overrides::changed($brutalist, 'brutalist'), true), 'and no dot');
+    // The same colour chosen under Soft, which names none, is the owner's.
+    assertTrue(in_array('footer_colour', App\Modules\Appearance\Overrides::changed(['footer_colour' => $brutalist['footer_colour']], 'soft'), true), 'under Soft it is a change');
+});

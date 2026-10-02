@@ -35,13 +35,20 @@ final class DemoSite
      */
     public const CHARACTER = 'soft';
 
+    /** The demo's own name (the owner, D-177): the mockup's studio, in either language. */
+    public const NAME = 'Atelier Lumen';
+
     /**
      * Creates the demo in $locale: Croatian words for a Croatian site, English for any other.
      * Refuses a site that already has pages rather than mixing demo content into real content.
      *
+     * $store takes the demo's pictures into the library (DemoPictures::importer); without it
+     * the pages are made with their picture fields empty, as the tests make them.
+     *
+     * @param \Closure(string, string): int|null $store
      * @return int the number of pages created in $locale (the translation not counted)
      */
-    public static function seed(Db $db, Blocks $registry, string $locale): int
+    public static function seed(Db $db, Blocks $registry, string $locale, ?\Closure $store = null): int
     {
         if ((int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? 0) > 0) {
             throw new RuntimeException('The site already has pages. The demo is only added to a site without any.');
@@ -49,6 +56,7 @@ final class DemoSite
 
         $lang = $locale === 'hr' ? 'hr' : 'en';
         $pages = self::pages($lang);
+        $pictures = $store === null ? [] : DemoPictures::import($db, $store, $locale, $lang);
         // Every page first, so a link can refer to one seeded after it (PLAN.md D-034).
         $ids = [];
         foreach ($pages as $page) {
@@ -58,14 +66,19 @@ final class DemoSite
         $form = Form::create($db, $locale, $lang === 'hr' ? 'Kontakt' : 'Contact');
 
         foreach ($pages as $page) {
-            self::fill($db, $registry, $ids[$page['key']], $page, $ids, $form);
+            self::fill($db, $registry, $ids[$page['key']], $page, $ids, $form, $pictures);
             Page::setStatus($db, $ids[$page['key']], true);
         }
         self::menu($db, $locale, $pages, $ids);
         self::translateHome($db, $registry, $ids, $lang === 'hr' ? 'en' : 'hr');
+        DemoPictures::translate($db, $pictures, $lang === 'hr' ? 'en' : 'hr');
         // Its sections store only what differs from this character, so they are drawn with it
         // (the owner's review of D-170). The caller compiles the design: Installer does.
         Composition::remember($db, self::CHARACTER);
+        // The site is the demo's studio, whatever the installer was told: the pages, the menu
+        // and the pictures are all Atelier Lumen's, and a header naming something else read as
+        // two sites in one (the copy's "Checklist Site", D-177).
+        \App\Core\Settings::set($db, 'site_name', self::NAME);
 
         return count($pages);
     }
@@ -75,8 +88,9 @@ final class DemoSite
      *
      * @param array{key: string, slug: string, title: string, description: string, menu: bool, sections: list<array{style: array<string, string>, layout: string, blocks: list<array{string, array<string, mixed>, string, array<string, string>, int}>}>} $page
      * @param array<string, int> $ids page key => id
+     * @param array<string, int> $pictures picture name => media id
      */
-    private static function fill(Db $db, Blocks $registry, int $id, array $page, array $ids, int $form): void
+    private static function fill(Db $db, Blocks $registry, int $id, array $page, array $ids, int $form, array $pictures): void
     {
         $reference = static fn (array $match): string => isset($ids[$match[1]]) ? PageLinks::to($ids[$match[1]]) : $match[0];
         $sections = [];
@@ -91,7 +105,7 @@ final class DemoSite
                 'style' => self::ownStyle($section['style'], array_column($section['blocks'], 0)),
             ];
             foreach ($section['blocks'] as [$type, $content, $layout, $options, $column]) {
-                $content = self::link($registry->get($type)['fields'], $content, $reference);
+                $content = DemoPictures::place(self::link($registry->get($type)['fields'], $content, $reference), $pictures);
                 if (($content['form'] ?? null) === 'demo:form') {
                     $content['form'] = $form;
                 }
@@ -103,7 +117,8 @@ final class DemoSite
                     'content' => $registry->normalize($type, $content),
                     'style' => SectionStyle::normalize([]),
                     'options' => self::ownOptions($registry, $type, $options),
-                    'layout' => $registry->layout($type, $layout),
+                    // '' is the character's own layout for the type (the owner, D-176).
+                    'layout' => $layout === '' ? Composition::layout($registry, self::CHARACTER, $type) : $registry->layout($type, $layout),
                     'section' => $key,
                     'column' => $column,
                 ];

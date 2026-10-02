@@ -41,7 +41,8 @@ return [
     'builder.add.where_after' => 'Goes after “:section”. Or use “+” between sections on the page.',
     'builder.add.mine' => 'My patterns',
     'builder.add.from_set' => 'From design set “:set”',
-    'builder.add.none_mine' => 'None yet. Keep a section with “Save as pattern”.',
+    'builder.add.none_mine_title' => 'No patterns yet',
+    'builder.add.none_mine' => 'Choose a section → “Save as pattern”',
     'builder.add.none_found' => 'Nothing matches.',
     'builder.add.insert' => 'Add',
     'builder.page.title' => 'Page',
@@ -53,6 +54,8 @@ return [
     'builder.page.restore' => 'Restore to draft',
     'builder.page.restored' => 'That version is in the draft now. Publish to put it back on the site.',
     // The canvas
+    // Under 800px only (D-176): the builder works there, and the plain form is easier.
+    'builder.small_screen' => 'On a small screen the plain editor is easier →',
     'builder.canvas.hint' => 'Click a block for its options · the background of a section for its layout',
     'builder.canvas.add_here' => 'Add a section here',
     'builder.canvas.add_end' => 'Add section at the end',

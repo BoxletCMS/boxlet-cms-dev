@@ -165,8 +165,29 @@ final class SectionRender
      */
     public static function style(string $character, array $stored, array $blocks): array
     {
-        $types = array_map(static fn (array $block): string => (string) $block['type'], $blocks);
+        return SectionStyle::effective(SectionStyle::normalize($stored), self::composed($character, $blocks));
+    }
 
-        return SectionStyle::effective(SectionStyle::normalize($stored), Composition::section($character, $types));
+    /**
+     * What the character composes for a section holding these blocks, and one rule of the
+     * blocks' own (the owner, D-177): A SPLIT HERO TAKES THE WIDE MEASURE. Words and a picture
+     * side by side in a narrow character's column left the heading six lines tall and the
+     * picture a thumbnail (Editorial, measured on the demo). Only where the character would
+     * draw it narrower; a section with a width of its own keeps it, since this is what ''
+     * comes to.
+     *
+     * @param list<array<string, mixed>> $blocks
+     * @return array<string, string>
+     */
+    public static function composed(string $character, array $blocks): array
+    {
+        $composed = Composition::section($character, array_map(static fn (array $block): string => (string) $block['type'], $blocks));
+        foreach ($blocks as $block) {
+            if (($block['type'] ?? '') === 'hero' && ($block['layout'] ?? '') === 'split' && in_array($composed['width'] ?? 'normal', ['narrow', 'normal'], true)) {
+                $composed['width'] = 'wide';
+            }
+        }
+
+        return $composed;
     }
 }

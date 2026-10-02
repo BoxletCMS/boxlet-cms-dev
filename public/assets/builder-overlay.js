@@ -74,6 +74,8 @@
       layer = el('div', 'bx-layer');
       doc.body.appendChild(layer);
     }
+    // The quick inserter stays open through a repaint (an image loading, a band redrawn).
+    var open = layer.querySelector('.bx-inserter');
     layer.textContent = '';
     Array.prototype.forEach.call(doc.querySelectorAll('[data-bx-selected]'), function (n) { n.removeAttribute('data-bx-selected'); });
 
@@ -101,7 +103,7 @@
       ['hide_desktop', 'hide_tablet', 'hide_mobile'].forEach(function (k) {
         if (style[k] === 'yes') { var h = el('span', 'bx-badge'); h.appendChild(icon('eye-off')); h.appendChild(doc.createTextNode(pb.t('device.' + (k === 'hide_mobile' ? 'phone' : k.slice(5))))); badges.appendChild(h); }
       });
-      if (badges.childNodes.length) { at(badges, { top: b.top + px(8), left: b.left + px(8) }); layer.appendChild(badges); }
+      if (badges.childNodes.length) { badges.setAttribute('data-bx-badges', section.key); at(badges, { top: b.top + px(8), left: b.left + px(8) }); layer.appendChild(badges); }
       // Hidden on the device being looked at: still here to be edited, striped over.
       if (style[HIDE[pb.device]] === 'yes') {
         var stripes = el('div', 'bx-hidden-here', pb.t('canvas.hidden_here', { device: pb.t('device.' + pb.device) }));
@@ -121,6 +123,9 @@
     layer.appendChild(end);
 
     selection();
+    if (open) {
+      layer.appendChild(open);
+    }
   }
 
   function plus(index, top, main) {
@@ -175,6 +180,15 @@
       if (b.top - px(4) - bar.offsetHeight < 0) {
         bar.style.transform = 'none';
         bar.style.top = (b.top + px(4)) + 'px';
+      }
+      // Never over its band's badges (D-176): where they meet, the badges move to its right.
+      var badges = layer.querySelector('[data-bx-badges="' + CSS.escape(block.section) + '"]');
+      if (badges) {
+        var r1 = bar.getBoundingClientRect();
+        var r2 = badges.getBoundingClientRect();
+        if (r1.left < r2.right && r2.left < r1.right && r1.top < r2.bottom && r2.top < r1.bottom) {
+          badges.style.left = (box(bar).left + r1.width + px(6)) + 'px';
+        }
       }
     } else if (sel.kind === 'section') {
       var element = pb.canvas.sectionEl(sel.key);

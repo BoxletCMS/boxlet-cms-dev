@@ -163,7 +163,7 @@ final class InstallController
 
         $db = DatabaseSetup::fromEnv($this->root, $state['db']);
         $cache = $this->cacheDirectory ?? $this->root . '/public/cache';
-        $installer = new Installer($this->root, $this->storage, $this->envPath, $cache);
+        $installer = new Installer($this->root, $this->storage, $this->envPath, $cache, dirname($this->script));
         $installer->run($db, $state['db'], $state['admin'], $site, $request->input('demo') === '1');
 
         $this->session->remove('install');

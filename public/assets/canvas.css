@@ -73,14 +73,20 @@
   outline-offset: -1px;
 }
 
+/* THE ACCENT, AND A LIGHT EDGE BESIDE IT (D-176): one pixel of white against the accent, so
+   the outline stands apart from whatever colour the page is — the accent alone sank into a
+   page of a near colour. A block's edge is outside it; a band fills the window's width, so
+   its edge is inside. */
 .bx-canvas [data-bx-selected="block"] {
   outline: 2px solid var(--bx-select);
-  outline-offset: 2px;
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--bx-paper);
 }
 
 .bx-canvas [data-bx-selected="section"] {
   outline: 2px solid var(--bx-select);
   outline-offset: -2px;
+  box-shadow: inset 0 0 0 3px var(--bx-paper);
 }
 
 /* Links on the page do nothing while it is edited; the press selects (builder-overlay.js). */

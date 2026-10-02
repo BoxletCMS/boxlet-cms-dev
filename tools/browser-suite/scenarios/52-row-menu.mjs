@@ -4,10 +4,11 @@
  * row-menu.js places the list against the window: below its button, or above it when
  * there is no room below — the maintenance bar counting as the bottom where it lies there.
  *
- * READ ONLY, on the development site: it opens menus and presses nothing in them.
+ * READ ONLY, on the copy (D-174): it opens menus and presses nothing in them. It needs more
+ * pictures than one window shows, which prepare-copy.php sees the copy has.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login } from '../harness.mjs';
+import { login, clickAndWait } from '../harness.mjs';
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -55,6 +56,19 @@ export default {
     report.verdict('the last page\'s menu opens whole, over the page, and its table grows no scrollbar',
       pages !== null && pages.onTop && pages.inWindow && !pages.tableScrolls, JSON.stringify(pages));
 
+    // MAINTENANCE ON, AS THE DEVELOPMENT SITE HAD IT, for the two checks below (D-174): its
+    // bar is the bottom a menu opens against, and the rail's foot has to clear it. Switched
+    // on through Settings and off again at the end, so the copy is left as it was found.
+    const toggleMaintenance = async () => {
+      await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+      await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');
+    };
+    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    const wasOn = await page.$('.boxlet-maintenance-bar') !== null;
+    if (!wasOn) {
+      await toggleMaintenance();
+    }
+
     // A row near the bottom of the window opens its menu upward.
     await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
     const buttons = await page.$$('details[data-menu] > summary');
@@ -74,7 +88,7 @@ export default {
     report.verdict('scrolling the page closes it', open === 0, `${open} open`);
 
     // THE RAIL'S FOOT CLEARS THE MAINTENANCE BAR (the owner, 2026-09-27): who is logged in
-    // lay under the bar. Only checkable while maintenance is on, as it is on this site.
+    // lay under the bar. Maintenance is on for it, above.
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     const foot = await page.evaluate(() => {
       const bar = document.querySelector('.boxlet-maintenance-bar');
@@ -87,6 +101,10 @@ export default {
       report.skip('the rail\'s foot sits above the maintenance bar', 'maintenance is off on this site, so there is no bar');
     } else {
       report.verdict('the rail\'s foot sits above the maintenance bar', foot.visible && foot.footBottom <= foot.barTop, JSON.stringify(foot));
+    }
+    if (!wasOn) {
+      await toggleMaintenance();
+      report.verdict('maintenance is off again, as the copy was found', await page.$('.boxlet-maintenance-bar') === null, 'switched back through Settings');
     }
   },
 };

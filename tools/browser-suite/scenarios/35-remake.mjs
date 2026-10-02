@@ -40,6 +40,12 @@ export default {
     await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
     const said = await page.$$eval('[role="status"], .flash, .notice', (els) => els.map((e) => e.textContent.trim()).join(' | '));
     const after = await thumbs(page);
+    // Where the pass stopped, said, rather than a missing element thrown: the one full run
+    // that failed here left no trace of what the page showed instead.
+    if (!await page.$('#remake')) {
+      report.fail('remake: back on the media screen', `at ${page.url()}: ${said || (await page.$eval('main', (m) => m.textContent.trim().slice(0, 300)).catch(() => ''))}`);
+      return;
+    }
     await page.$eval('#remake', (el) => el.scrollIntoView({ block: 'center' }));
     await report.shot(page, '01-done', { fullPage: false });
 

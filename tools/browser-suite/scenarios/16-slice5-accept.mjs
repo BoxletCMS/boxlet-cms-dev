@@ -21,7 +21,7 @@
  * means the web server read the file, and Boxlet's PHP was never asked.
  */
 import { statSync } from 'node:fs';
-import { BASE, ADMIN, PHOTOS, CHECKOUT } from '../config.mjs';
+import { BASE, ADMIN, PHOTOS, SITE_DIR } from '../config.mjs';
 import { login } from '../harness.mjs';
 import { attemptDelete } from '../media-helpers.mjs';
 
@@ -148,7 +148,7 @@ export default {
       // ---- a second request, answered from disk --------------------------------------------
       const second = await fetchOf(drawn.current);
       const path = decodeURIComponent(new URL(drawn.current).pathname);
-      const onDisk = statSync(`${CHECKOUT}/public${path}`);
+      const onDisk = statSync(`${SITE_DIR}/public${path}`); // the site the scenario runs against (D-174)
       const expected = `"${Math.floor(onDisk.mtimeMs / 1000).toString(16)}-${onDisk.size.toString(16)}"`;
       report.verdict('a second request does not hit PHP', second.etag === expected,
         `ETag ${second.etag}; the file on disk gives ${expected} (mtime and size in hex, which only the web server reading the file can send)`);

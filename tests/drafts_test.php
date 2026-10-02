@@ -76,7 +76,11 @@ testBothDrivers('Discard goes back to the published page, and is no answer for a
     $db = adminSite($driver);
     [$id, $block] = publishedTextPage($db);
     adminPost("/admin/pages/{$id}", editedText($block, '<p>Draft words</p>', 'save'));
-    assertContains(e(t('pages.discard')), dispatch("/admin/pages/{$id}/form")->body, 'offered with a draft over a published page');
+    $form = dispatch("/admin/pages/{$id}/form")->body;
+    assertContains(e(t('pages.discard')), $form, 'offered with a draft over a published page');
+    // Beside what the page is, as well as at the form's foot (D-174).
+    assertContains('form="page-editor" name="action" value="discard"', $form, 'Discard by the status');
+    assertContains('form="page-editor" name="action" value="publish"', $form, 'Publish by the status');
 
     adminPost("/admin/pages/{$id}", editedText($block, '<p>Draft words</p>', 'discard', 1));
     assertEquals(false, PageDraft::exists($db, $id), 'the draft is gone');

@@ -6,7 +6,7 @@
  * the inspector, Add as character, the tile it becomes with its Custom label, and its delete
  * (PLAN.md D-157 moved all of it out of the rail).
  *
- * ON THE DEVELOPMENT SITE. The one character it adds is deleted again through its own card,
+ * ON THE COPY since D-174 (written for the development site). The one character it adds is deleted again through its own card,
  * and, should a step fail before that, by the same post at the end. Nothing is published.
  */
 import { writeFileSync } from 'node:fs';

@@ -77,8 +77,9 @@ export default {
       report.verdict('the Form block shows the chosen form on the canvas', onCanvas, `form drawn: ${onCanvas}`);
       await page.evaluate(() => { window.onbeforeunload = null; });
       await clickAndWait(page, '.builder-bar button[value="publish"]');
+      // Publish puts the page on the site since D-173: the row's status button, pressed here
+      // before, would take it off again, and the visitor found no form.
       await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
-      await clickAndWait(page, `form[action$="/pages/${pageId}/status"] button`);
       // The address cell is the path in words since D-052: opening the page on the site
       // moved into the row's menu, so there is no link in the cell to read a href from.
       const address = await page.evaluate((id) => {

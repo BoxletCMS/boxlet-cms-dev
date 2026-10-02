@@ -59,10 +59,8 @@ if (banned.length > 0) {
 }
 
 /*
- * THE COPY MUST BE RUNNING THIS CHECKOUT'S CODE (PLAN.md D-029).
- *
- * Asked only when a chosen scenario runs against the copy. The development site IS this
- * checkout, so for everything else there is nothing that could have fallen behind.
+ * THE COPY MUST BE RUNNING THIS CHECKOUT'S CODE (PLAN.md D-029). Every scenario runs there
+ * since D-174, so it is asked every time.
  *
  * Refused here, before a browser opens, rather than reported per scenario: every verdict
  * in the run is about whatever code the copy holds, so one stale sync makes the whole
@@ -74,35 +72,9 @@ for (const file of files) {
   scenarios.push({ file, scenario: (await import(new URL(file, dir))).default });
 }
 
-/*
- * A SCENARIO THAT ASKS FOR THE COPY MUST ALSO GO THERE. `copy: true` only gates the check
- * above; the address a scenario visits is whatever it imported. Scenario 25 declared the
- * copy, imported the development site's BASE, and rewrote the development site's design
- * five times on its first run — and 03 and 14 applied characters there without declaring
- * anything. Read from the source, before a browser opens: a copy scenario must import
- * COPY_BASE, and whatever applies a character must be a copy scenario.
- */
-const misdirected = [];
-for (const { file, scenario } of scenarios) {
-  const source = readFileSync(new URL(file, dir), 'utf8');
-  if (scenario.copy && !/COPY_BASE as BASE/.test(source)) {
-    misdirected.push(`${file} declares copy: true but does not import COPY_BASE as BASE`);
-  }
-  if (!scenario.copy && /applyCharacter\(/.test(source)) {
-    misdirected.push(`${file} applies a character but does not run against the copy`);
-  }
-}
-if (misdirected.length > 0) {
-  console.error(misdirected.join('\n'));
-  console.error('Refusing to run: these would change the development site (PLAN.md D-033).');
-  process.exit(2);
-}
-
 let revision = null;
 try {
-  if (scenarios.some(({ scenario }) => scenario.copy)) {
-    revision = requireCurrentCode();
-  }
+  revision = requireCurrentCode();
 } catch (error) {
   // A REFUSAL, NOT A CRASH. Thrown, it arrived as an uncaught exception with a stack
   // trace, and a guard that reads like a bug in the harness is a guard someone deletes.

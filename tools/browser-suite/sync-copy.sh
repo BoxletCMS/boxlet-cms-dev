@@ -54,6 +54,15 @@ rsync -a "$checkout/public/index.php" "$target/public/index.php"
 # "Database update needed", and 03-design read that as a screen with no characters (D-152).
 php "$target/migrations/migrate.php"
 
+# THE COPY'S ROUTER AND WHAT SCENARIOS NEED OF THE COPY (PLAN.md D-174): every scenario runs
+# here, so a file on disk is answered as nginx answers it (copy-router.php, written where the
+# running server reads it: beside the copy, as dev-router.php), and what four scenarios once
+# took from the development site — the country database, visits from several countries,
+# pictures enough to scroll — is made here through the application (prepare-copy.php). Again
+# after 01-install, which starts the copy from nothing.
+sed "s|__SITE__|$(cd "$target" && pwd)|" "$checkout/tools/browser-suite/copy-router.php" > "$(dirname "$target")/dev-router.php"
+php "$checkout/tools/browser-suite/prepare-copy.php" "$target" "$checkout"
+
 revision="$(git -C "$checkout" rev-parse HEAD)"
 mkdir -p "$target/storage"
 printf '%s\n' "$revision" > "$target/storage/checkout.rev"

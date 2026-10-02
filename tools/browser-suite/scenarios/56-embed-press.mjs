@@ -11,7 +11,7 @@
  * press, and the player must arrive. Then, as the admin, the cover is taken from the video
  * in the editor — never saved, and the picture it adds is deleted again by its id.
  *
- * ON THE DEVELOPMENT SITE. It needs a YouTube Embed block on the showroom page, /blocks, which
+ * ON THE COPY since D-174 (written for the development site). It needs a YouTube Embed block on the showroom page, /blocks, which
  * the demo has since D-167 (the home page had one before); it finds that page's id in the page
  * list. Without one this is a failure, not NOT CHECKABLE.
  */

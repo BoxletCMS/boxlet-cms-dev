@@ -7,7 +7,7 @@
  * photograph through the crop step at 1:1, and checks that the field, the canvas and the
  * library all hold the cut.
  *
- * ON THE DEVELOPMENT SITE. Nothing is saved: the page is left by reloading it. The one
+ * ON THE COPY since D-174 (written for the development site). Nothing is saved: the page is left by reloading it. The one
  * picture the upload adds is deleted by its exact id at the end, through the app, and only
  * if it is new — a picture that was already in the library is never touched.
  */

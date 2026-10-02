@@ -34,6 +34,12 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
         <div class="page-header">
             <h1><?= e(t('pages.edit')) ?></h1>
             <span class="status status-<?= e($state) ?>"><?= e(t('pages.state.' . $state)) ?></span>
+            <?php /* Publish and Discard beside what the page is, as well as at the form's foot
+                     (D-174): the same submits of the same form, reached by its id. */ ?>
+<?php if ($state === 'changes'): ?>
+            <button type="submit" form="page-editor" name="action" value="discard" class="button button-ghost" data-confirm="<?= e(t('pages.discard_confirm')) ?>"><?= e(t('pages.discard')) ?></button>
+<?php endif; ?>
+            <button type="submit" form="page-editor" name="action" value="publish" class="button"><?= e(t('pages.publish')) ?></button>
             <a class="button button-secondary" href="<?= e(Url::admin('pages', $pageId)) ?>"><?= e(t('pages.editor.visual')) ?></a>
 <?php if ($published): ?>
             <a href="<?= e(Url::page((string) $page['locale'], (string) $page['slug'])) ?>"><?= e(t('pages.view')) ?></a>
@@ -43,7 +49,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php if ($notice !== null): ?>
         <p class="notice notice-error" role="alert"><?= e($notice) ?></p>
 <?php endif; ?>
-        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="editor-form" data-page-editor>
+        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="editor-form" id="page-editor" data-page-editor>
             <?php /* First submit button in the form: pressing Enter in a field saves. */ ?>
             <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save_draft')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

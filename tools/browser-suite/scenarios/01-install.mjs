@@ -17,7 +17,8 @@
  * CORRECT password.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { COPY_BASE as BASE, SITE_DIR, COPY_ADMIN as ADMIN, SITE_NAME } from '../config.mjs';
+import { execSync } from 'node:child_process';
+import { COPY_BASE as BASE, SITE_DIR, COPY_ADMIN as ADMIN, SITE_NAME, CHECKOUT } from '../config.mjs';
 import { submitVia, alerts, heading, resetForInstall, SLOW } from '../harness.mjs';
 
 export default {
@@ -171,5 +172,10 @@ export default {
     // The lockout is checked in 99-lockout, which runs last: it locks the account for
     // fifteen minutes (LoginThrottle: 5 failures per 900s), and every scenario in between
     // has to be able to log in.
+
+    // What later scenarios need of the copy, made again on the site just installed
+    // (prepare-copy.php, PLAN.md D-174): sync-copy.sh made it on the one this replaced.
+    const prepared = execSync(`php ${JSON.stringify(`${CHECKOUT}/tools/browser-suite/prepare-copy.php`)} ${JSON.stringify(SITE_DIR)} ${JSON.stringify(CHECKOUT)}`, { encoding: 'utf8' });
+    report.verdict('the new copy is prepared for the scenarios after this one', /Pictures in the library: \d+/.test(prepared), prepared.trim().replace(/\n/g, ' '));
   },
 };

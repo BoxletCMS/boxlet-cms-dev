@@ -10,7 +10,7 @@
  * and four blocks invisible the moment they were added. And "sadržaj izlazi izvan linija
  * bloka", which was the Logos block's pictures.
  *
- * ON THE DEVELOPMENT SITE, AND IT SAVES NOTHING. Every check here happens in the editor
+ * ON THE COPY since D-174 (written for the development site), AND IT SAVES NOTHING. Every check here happens in the editor
  * before Save, and every one starts from a fresh load of the page, so nothing one leaves
  * behind can decide the next. Leaving the page discards it all.
  */

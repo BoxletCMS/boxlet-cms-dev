@@ -29,9 +29,7 @@ final class InlineFields
                     foreach ($field['fields'] as $sub => $declared) {
                         $fields[$type][$name]['fields'][$sub] = self::describe($type, $name . '.' . $sub, $declared);
                     }
-                    // What "+" adds: one item saying what it is for, as a new block's do (D-176).
-                    $sampled = $registry->sampled($type, $say)[$name] ?? [];
-                    $items[$type][$name] = is_array($sampled) && isset($sampled[0]) ? $sampled[0] : Blocks::emptyItem($field);
+                    $items[$type][$name] = self::item($type, $field, $say);
                 }
             }
         }
@@ -41,6 +39,31 @@ final class InlineFields
         }
 
         return ['fields' => $fields, 'items' => $items, 'pages' => $pages];
+    }
+
+    /**
+     * What "+" adds to a repeater, on the page and in All content (D-179): an empty item whose
+     * words say only that it is new — "New card", "A short description." — from the samples'
+     * `item.<type>.<field>` keys, in the page's language. Not a new block's first item, which
+     * reads as one of a set ("One of the three") and is wrong as the fourth.
+     *
+     * @param array<string, mixed> $field a validated repeater declaration
+     * @param \Closure(string): string $say
+     * @return array<string, mixed>
+     */
+    private static function item(string $type, array $field, \Closure $say): array
+    {
+        $item = Blocks::emptyItem($field);
+        foreach ($field['fields'] as $sub => $declared) {
+            $key = 'item.' . $type . '.' . $sub;
+            $words = $say($key);
+            if ($words === $key || !in_array($declared['type'], ['text', 'textarea', 'richtext'], true)) {
+                continue;
+            }
+            $item[$sub] = $declared['type'] === 'richtext' ? '<p>' . htmlspecialchars($words, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : $words;
+        }
+
+        return $item;
     }
 
     /**

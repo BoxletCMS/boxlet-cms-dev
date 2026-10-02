@@ -114,8 +114,15 @@
     }, rethink ? 0 : 400);
   }
 
+  /**
+   * Each error under its field, the field marked, and never out of sight (D-179): All content
+   * opens on an error in it, and the first error is scrolled to when it is not in view — an
+   * error found on the page, that is: typing in the inspector is never scrolled away from.
+   */
   function errors(form, found) {
     Array.prototype.forEach.call(form.querySelectorAll('.field-error[data-pb-error]'), function (e) { e.remove(); });
+    Array.prototype.forEach.call(form.querySelectorAll('[aria-invalid="true"]'), function (e) { e.removeAttribute('aria-invalid'); });
+    var first = null;
     Object.keys(found).forEach(function (name) {
       var input = form.querySelector('[name$="[' + name + ']"]');
       var holder = input ? input.closest('.field, .repeater') : null;
@@ -126,11 +133,20 @@
         p.setAttribute('data-pb-error', '');
         p.textContent = found[name];
         holder.appendChild(p);
-        // Never behind a fold: All content opens on an error in it.
+        input.setAttribute('aria-invalid', 'true');
         var fold = holder.closest('details');
         if (fold) { fold.open = true; }
+        first = first || holder;
       }
     });
+    // Not while the inspector is being typed in: the hand stays where it is.
+    if (first && !panel.contains(document.activeElement)) {
+      var shown = first.getBoundingClientRect();
+      var room = panel.getBoundingClientRect();
+      if (shown.top < room.top || shown.bottom > room.bottom) {
+        first.scrollIntoView({ block: 'center' });
+      }
+    }
   }
 
   panel.addEventListener('input', function (event) {

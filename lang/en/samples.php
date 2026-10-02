@@ -45,4 +45,15 @@ return [
     'preview.cards.item_link' => 'More',
     'preview.form.heading' => 'Get in touch',
     'preview.form.intro' => 'A line telling people what happens when they write.',
+
+    // What a repeater's "+" adds (D-179): new, and nothing more, so it reads right as the fourth.
+    'item.cards.heading' => 'New card',
+    'item.cards.body' => 'A short description.',
+    'item.accordion.question' => 'New question',
+    'item.accordion.answer' => 'The answer.',
+    'item.stats.value' => '0',
+    'item.stats.label' => 'New number',
+    'item.logos.name' => 'New logo',
+    'item.downloads.title' => 'New file',
+    'item.downloads.description' => 'A short description.',
 ];

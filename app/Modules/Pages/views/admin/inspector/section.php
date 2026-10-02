@@ -43,7 +43,7 @@ foreach (SectionLayout::LAYOUTS as $layout => $shares) {
         $parts .= '<rect class="pict-image" x="' . $x . '" y="5" width="' . $width . '" height="14" rx="1"/>';
         $x += $width + 2;
     }
-    $columnTiles[$layout] = ['label' => t('style.layout.short.' . $layout), 'picture' => '<svg viewBox="0 0 48 24" focusable="false" aria-hidden="true"><rect class="pict-ground" width="48" height="24" rx="3"/>' . $parts . '</svg>'];
+    $columnTiles[$layout] = ['label' => t('style.layout.short.' . $layout), 'title' => t('style.layout.' . $layout), 'picture' => '<svg viewBox="0 0 48 24" focusable="false" aria-hidden="true"><rect class="pict-ground" width="48" height="24" rx="3"/>' . $parts . '</svg>'];
 }
 $stacks = [];
 foreach (SectionLayout::STACKS as $stack) {

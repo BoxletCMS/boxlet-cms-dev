@@ -42,7 +42,8 @@ $sectionName = $sectionName !== '' ? $sectionName : t('builder.section_n', ['n' 
 $composedLayout = Composition::layout($registry, $character, $type);
 $tiles = [];
 foreach ($definition['layouts'] as $layout) {
-    $tiles[$layout] = ['label' => t('block.' . $type . '.layout.' . $layout), 'picture' => Pictogram::svg($definition['pictograms'][$layout] ?? [])];
+    // Shown short and told apart (D-179): "Behind · left", its full name the tooltip.
+    $tiles[$layout] = ['label' => short_label('block.' . $type . '.layout', $layout), 'title' => t('block.' . $type . '.layout.' . $layout), 'picture' => Pictogram::svg($definition['pictograms'][$layout] ?? [])];
 }
 $layoutChanged = $block['layout'] !== $composedLayout;
 $layoutGroup = count($tiles) > 1

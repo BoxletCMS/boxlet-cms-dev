@@ -3,7 +3,8 @@
  * canvas's document (same origin): the outline of what is hovered and what is selected, the
  * selected block's toolbar and the selected band's, a "+" on every boundary between bands (its
  * quick inserter is builder-inserter.js), the badges a band wears (#anchor, animation,
- * hidden-on), and the stripes over a band hidden on the device being looked at.
+ * hidden-on), and the stripes over a band hidden on the device being looked at. None of them
+ * lies over another (builder-overlay-apart.js).
  *
  * ALL OF IT IN ONE LAYER laid over the page, never between the bands: sections.css styles a
  * section by its place among its siblings, so anything put between them would change the page
@@ -77,7 +78,10 @@
     // The quick inserter stays open through a repaint (an image loading, a band redrawn).
     var open = layer.querySelector('.bx-inserter');
     layer.textContent = '';
-    Array.prototype.forEach.call(doc.querySelectorAll('[data-bx-selected]'), function (n) { n.removeAttribute('data-bx-selected'); });
+    // What is selected is marked BEFORE anything is measured: a selected block shows more of
+    // itself (its placeholders, its "+ Card"), and a "+" placed for the page without them stood
+    // a card's height above its boundary (D-179).
+    marked();
 
     // A block that draws nothing yet is given a size and a word (canvas-marks.css, D-117):
     // a new Text or Form measures 0px tall, and what cannot be seen cannot be pressed.
@@ -141,7 +145,19 @@
     return p;
   }
 
-  /** The selected thing's outline and toolbar. */
+  /** The selected block or band marked, and nothing else. */
+  function marked() {
+    var sel = pb.selection;
+    var node = !sel ? null : sel.kind === 'block' ? pb.canvas.blockEl(sel.key) : pb.canvas.sectionEl(sel.key);
+    Array.prototype.forEach.call(cdoc().querySelectorAll('[data-bx-selected]'), function (n) {
+      if (n !== node) { n.removeAttribute('data-bx-selected'); }
+    });
+    if (node) {
+      node.setAttribute('data-bx-selected', sel.kind);
+    }
+  }
+
+  /** The selected thing's toolbar. */
   function selection() {
     var sel = pb.selection;
     if (!sel) {
@@ -151,7 +167,6 @@
       var block = pb.block(sel.key);
       var node = pb.canvas.blockEl(sel.key);
       if (!block || !node) { return; }
-      node.setAttribute('data-bx-selected', 'block');
       var item = pb.libraryItem(block.type) || { label: block.type, icon: 'file-text' };
       var bar = el('div', 'bx-toolbar bx-toolbar-block');
       var name = el('span', 'bx-toolbar-name');
@@ -178,24 +193,19 @@
       var b = box(node);
       at(bar, { top: b.top - px(4), left: b.left });
       layer.appendChild(bar);
-      // Over the block, unless that is above the page: then just inside its top edge.
-      if (b.top - px(4) - bar.offsetHeight < 0) {
+      // Over the block, unless that would reach above its band's "+" or the band's edge: then
+      // inside the band, under them (D-179). The badges and the "+" keep clear of it
+      // (builder-overlay-apart.js).
+      var band = box(pb.canvas.sectionEl(block.section) || node);
+      var edge = layer.querySelector('[data-bx-insert="' + pb.sectionIndex(block.section) + '"]');
+      var floor = Math.max(band.top, edge ? box(edge).top + box(edge).height : band.top) + px(4);
+      if (box(bar).top < floor) {
         bar.style.transform = 'none';
-        bar.style.top = (b.top + px(4)) + 'px';
-      }
-      // Never over its band's badges (D-176): where they meet, the badges move to its right.
-      var badges = layer.querySelector('[data-bx-badges="' + CSS.escape(block.section) + '"]');
-      if (badges) {
-        var r1 = bar.getBoundingClientRect();
-        var r2 = badges.getBoundingClientRect();
-        if (r1.left < r2.right && r2.left < r1.right && r1.top < r2.bottom && r2.top < r1.bottom) {
-          badges.style.left = (box(bar).left + r1.width + px(6)) + 'px';
-        }
+        bar.style.top = floor + 'px';
       }
     } else if (sel.kind === 'section') {
       var element = pb.canvas.sectionEl(sel.key);
       if (!element) { return; }
-      element.setAttribute('data-bx-selected', 'section');
       var tools = el('div', 'bx-toolbar bx-toolbar-section');
       tools.appendChild(el('span', 'bx-toolbar-name', pb.sectionName(sel.key)));
       tools.appendChild(button('section-up', 'arrow-up', pb.t('canvas.move_up')));

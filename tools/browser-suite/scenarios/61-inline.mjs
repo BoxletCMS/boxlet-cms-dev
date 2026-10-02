@@ -77,18 +77,23 @@ export default {
       await shot(report, page, '02-rich');
       report.verdict('rich text is written in place, with a toolbar of what the field allows',
         /<strong>Typed<\/strong>/.test(rich.doc) && rich.tools.includes('bold') && rich.tools.includes('link'), JSON.stringify(rich));
+      // Taken back at once, so nothing typed here is on the page the later pictures show.
+      let richBack = rich.doc;
+      for (let i = 0; i < 6 && /Typed/.test(richBack); i += 1) {
+        await page.click('[data-pb-undo]');
+        await wait(700);
+        richBack = await page.evaluate((k) => window.pb.block(k).content.body, imageText);
+      }
+      report.verdict('undo takes back rich text written on the page', !/Typed/.test(richBack), richBack);
 
       // ---- a link: its words and where it leads ------------------------------------------------------
       await clickInCanvas(page, `[data-bx-key="${hero}"] [data-bx-field="cta"]`);
       await wait(600);
-      const pages = await inCanvas(page, () => [...document.querySelector('[data-pb-canvas]').contentDocument.querySelectorAll('.bx-link-page option')].map((o) => o.value));
+      // The admin's own popover, over the canvas (D-179).
+      const pages = await page.$$eval('[data-pb-link] select option', (os) => os.map((o) => o.value)).catch(() => []);
       await shot(report, page, '03-link');
       const about = pages.find((v) => v.startsWith('page:') && v !== pages[1]) || pages[1];
-      await inCanvas(page, (v) => {
-        const select = document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-link-page');
-        select.value = v;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      }, about);
+      await page.select('[data-pb-link] select', about).catch(() => {});
       await wait(400);
       const led = await page.evaluate((k) => window.pb.block(k).content.cta.url, hero);
       report.verdict('a link opens where it leads, and a page chosen is kept as its reference', pages.length > 2 && led === about, `${led} of ${JSON.stringify(pages)}`);
@@ -141,7 +146,7 @@ export default {
       await wait(500);
       const error = await page.evaluate(() => {
         const doc = document.querySelector('[data-pb-canvas]').contentDocument;
-        return { marked: doc.querySelector('[data-bx-error]') !== null, note: (doc.querySelector('.bx-error') || {}).textContent || '', inspector: (document.querySelector('[data-pb-inspector] .field-error') || {}).textContent || '' };
+        return { marked: doc.querySelector('[data-bx-error]') !== null, note: (doc.querySelector('[data-bx-note]') || {}).textContent || '', inspector: (document.querySelector('[data-pb-inspector] .field-error') || {}).textContent || '' };
       });
       await shot(report, page, '06-error');
       report.verdict('an error is shown on the element and in the inspector', error.marked && /required/.test(error.note) && /required/.test(error.inspector), JSON.stringify(error));
@@ -154,7 +159,9 @@ export default {
         await page.waitForFunction(() => document.querySelector('[data-pb-discard]').hidden, { timeout: 10000 }).catch(() => {});
       }
       const state = await page.$eval('[data-pb-state]', (p) => p.className);
-      report.verdict('the draft is discarded and the page is as it was', /status-published/.test(state), state);
+      // Nothing typed here is left anywhere: not in the draft, not on the page (D-179).
+      const left = await page.evaluate((base) => fetch(`${base}/`).then((r) => r.text()).then((t) => ['Every room', 'Typed'].filter((w) => t.includes(w))), BASE);
+      report.verdict('the draft is discarded and the page is as it was', /status-published/.test(state) && left.length === 0, `${state}; left on the page: ${JSON.stringify(left)}`);
     }
   },
 };

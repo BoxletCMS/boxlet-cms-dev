@@ -225,6 +225,11 @@
   pointer-events: none;
 }
 
+/* Put away where they would lie over a control (builder-overlay-apart.js). */
+.bx-badges[hidden] {
+  display: none;
+}
+
 .bx-badge {
   display: inline-flex;
   align-items: center;

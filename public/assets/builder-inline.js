@@ -7,12 +7,12 @@
  *   - rich text: builder-inline-rich.js; a link's words: here, its address in the popover of
  *     builder-inline-link.js;
  *   - a picture: the inspector's own picker, opened;
- *   - a repeater: "+" at its end adds one, and a pointed-at item has its own tools.
+ *   - a repeater: "+" at its end adds one, and a pointed-at item has its own tools
+ *     (builder-inline-items.js).
  *
  * Every keystroke writes the document — an undo step per field, folded while typing — and
  * nothing is drawn again while typing: the page already shows what was typed. Leaving a field
- * asks the server what is wrong with the block, and an error is shown on the element and in
- * the inspector.
+ * asks the server what is wrong with the block (builder-inline-errors.js).
  */
 (function () {
   'use strict';
@@ -21,7 +21,6 @@
   if (!pb || !pb.overlay || !pb.data.inline) {
     return;
   }
-  var o = pb.overlay;
   var inline = pb.data.inline;
   var editing = null;
 
@@ -98,7 +97,7 @@
       el.removeEventListener('paste', paste);
       el.removeAttribute('contenteditable');
       if (editing && editing.el === el) { editing = null; }
-      check(block.key);
+      pb.inline.check(block.key);
     }
     el.addEventListener('input', input);
     el.addEventListener('keydown', keys);
@@ -134,94 +133,6 @@
     }
   }
 
-  // ---- a repeater's items ---------------------------------------------------------------------------
-  function addItem(block, field) {
-    var declared = (inline.fields[block.type] || {})[field] || {};
-    var items = block.content[field] || [];
-    if (declared.max && items.length >= declared.max) {
-      return;
-    }
-    pb.change(function () { block.content[field] = items.concat([pb.copy(inline.items[block.type][field])]); }, { sections: [block.section] });
-  }
-  function moveItem(block, field, at, by) {
-    var items = block.content[field] || [];
-    var to = at + by;
-    if (to < 0 || to >= items.length) {
-      return;
-    }
-    pb.change(function () {
-      var copy = items.slice();
-      var moved = copy.splice(at, 1)[0];
-      copy.splice(to, 0, moved);
-      block.content[field] = copy;
-    }, { sections: [block.section] });
-  }
-  function removeItem(block, field, at) {
-    pb.change(function () { block.content[field] = (block.content[field] || []).filter(function (_, i) { return i !== at; }); }, { sections: [block.section] });
-  }
-
-  /** The tools of the item pointed at, in the selected block: before, after, remove. */
-  var pointed = null;
-  function itemTools(itemEl) {
-    if (!itemEl) {
-      return;
-    }
-    var block = blockOf(itemEl);
-    var sel = pb.selection;
-    if (!block || !sel || sel.kind !== 'block' || sel.key !== block.key) {
-      return;
-    }
-    var bar = o.el('div', 'bx-item-tools');
-    bar.setAttribute('data-bx-item-tools', itemEl.getAttribute('data-bx-item'));
-    bar.appendChild(o.button('item-before', 'arrow-left', pb.t('inline.item_before')));
-    bar.appendChild(o.button('item-after', 'arrow-right', pb.t('inline.item_after')));
-    bar.appendChild(o.button('item-remove', 'x', pb.t('inline.remove_item')));
-    var b = o.box(itemEl);
-    o.at(bar, { top: b.top + o.px(6), left: b.left + b.width - o.px(6) });
-    o.layer().appendChild(bar);
-  }
-
-  // ---- what the server says is wrong ------------------------------------------------------------------
-  function check(key) {
-    var block = pb.block(key);
-    if (!block) {
-      return;
-    }
-    pb.api(pb.data.endpoints.fields, { block: { key: key, type: block.type, content: block.content, layout: block.layout, options: block.options || {} } }).then(function (answer) {
-      if (answer.status !== 200) { return; }
-      pb.errors[key] = answer.json.errors || {};
-      pb.emit('errors', key);
-      // The inspector's All content shows what was typed here, unless it is being typed in.
-      var sel = pb.selection;
-      if (sel && sel.kind === 'block' && sel.key === key && !document.querySelector('[data-pb-inspector]').contains(document.activeElement)) {
-        pb.emit('inspect');
-      }
-    });
-  }
-
-  /** Each error on the element it is about: an outline at rest and the words under it. */
-  function marks(layer) {
-    var doc = pb.canvas.doc();
-    if (!doc || !layer) { return; }
-    Array.prototype.forEach.call(doc.querySelectorAll('[data-bx-error]'), function (n) { n.removeAttribute('data-bx-error'); });
-    Object.keys(pb.errors).forEach(function (key) {
-      var host = pb.canvas.blockEl(key);
-      Object.keys(pb.errors[key] || {}).forEach(function (path) {
-        if (!host) { return; }
-        var el = host.querySelector('[data-bx-field="' + path + '"]') || host.querySelector('[data-bx-field^="' + path + '."]') || host;
-        el.setAttribute('data-bx-error', '');
-        var note = o.el('p', 'bx-error', pb.errors[key][path]);
-        note.setAttribute('role', 'alert');
-        var b = o.box(el);
-        o.at(note, { top: b.top + b.height + o.px(4), left: b.left });
-        layer.appendChild(note);
-      });
-    });
-    if (pointed && pointed.isConnected) { itemTools(pointed); }
-  }
-  pb.on('painted', marks);
-  pb.on('errors', function () { marks(o.layer()); });
-
   // ---- the presses ------------------------------------------------------------------------------------
   function onDown(event) {
     var t = event.target;
@@ -248,43 +159,12 @@
     }
   }
   function onClick(event) {
-    var t = event.target;
-    if (!t.closest) { return; }
-    var tool = t.closest('[data-bx-action^="item-"]');
-    if (tool) {
-      var bar = tool.closest('[data-bx-item-tools]');
-      var parts = bar.getAttribute('data-bx-item-tools').split('.');
-      var block = pb.selection ? pb.block(pb.selection.key) : null;
-      if (!block) { return; }
-      var at = Number(parts[1]);
-      var act = tool.getAttribute('data-bx-action');
-      if (act === 'item-before') { moveItem(block, parts[0], at, -1); }
-      if (act === 'item-after') { moveItem(block, parts[0], at, 1); }
-      if (act === 'item-remove') { removeItem(block, parts[0], at); }
-      return;
+    var el = event.target.closest ? event.target.closest('[data-bx-field]') : null;
+    var block = el ? blockOf(el) : null;
+    if (el && block && !event.target.closest('.bx-layer')) {
+      var field = spec(block.type, el.getAttribute('data-bx-field'));
+      if (field && field.type === 'media') { picture(block, el.getAttribute('data-bx-field')); }
     }
-    var add = t.closest('[data-bx-add-item]');
-    if (add) {
-      var owner = blockOf(add);
-      if (owner) { addItem(owner, add.getAttribute('data-bx-add-item')); }
-      return;
-    }
-    var el = t.closest('[data-bx-field]');
-    var block2 = el ? blockOf(el) : null;
-    if (el && block2) {
-      var field = spec(block2.type, el.getAttribute('data-bx-field'));
-      if (field && field.type === 'media') { picture(block2, el.getAttribute('data-bx-field')); }
-    }
-  }
-  function onMove(event) {
-    var item = event.target.closest ? event.target.closest('[data-bx-item]') : null;
-    if (item === pointed || (event.target.closest && event.target.closest('.bx-item-tools'))) {
-      return;
-    }
-    pointed = item;
-    var old = o.layer() ? o.layer().querySelector('[data-bx-item-tools]') : null;
-    if (old) { old.remove(); }
-    itemTools(item);
   }
 
   pb.on('canvas', function () {
@@ -293,8 +173,8 @@
     doc.__bxInline = true;
     doc.addEventListener('mousedown', onDown, true);
     doc.addEventListener('click', onClick, true);
-    doc.addEventListener('mousemove', onMove);
   });
 
-  pb.inline = { spec: spec, get: get, set: set, write: write, check: check, blockOf: blockOf, editing: function () { return editing; } };
+  // check(), what the server says is wrong, is builder-inline-errors.js's.
+  pb.inline = { spec: spec, get: get, set: set, write: write, blockOf: blockOf, editing: function () { return editing; } };
 })();

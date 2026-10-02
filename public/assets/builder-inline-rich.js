@@ -64,6 +64,7 @@
     var b = o.box(current.el);
     o.at(current.tools, { top: b.top - o.px(6), left: b.left });
     refresh();
+    if (o.apart) { o.apart(); }
   }
 
   function refresh() {

@@ -41,4 +41,14 @@ return [
     'preview.cards.item_link' => 'Više',
     'preview.form.heading' => 'Javite nam se',
     'preview.form.intro' => 'Redak koji kaže što se događa kad nam pišete.',
+
+    'item.cards.heading' => 'Nova kartica',
+    'item.cards.body' => 'Kratak opis.',
+    'item.accordion.question' => 'Novo pitanje',
+    'item.accordion.answer' => 'Odgovor.',
+    'item.stats.value' => '0',
+    'item.stats.label' => 'Novi broj',
+    'item.logos.name' => 'Novi logo',
+    'item.downloads.title' => 'Nova datoteka',
+    'item.downloads.description' => 'Kratak opis.',
 ];

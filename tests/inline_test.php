@@ -78,6 +78,40 @@ test('the builder knows what each field is, what a repeater\'s "+" adds, and whe
     assertEquals(true, $inline['fields']['hero']['heading']['required'] ?? null, 'and required');
     assertEquals('richtext', $inline['fields']['cards']['items']['fields']['body']['type'] ?? null, 'a card\'s body is rich text');
     assertTrue(is_array($inline['fields']['text']['body']['allow'] ?? null), 'and what rich text allows');
-    assertEquals('One of the three', $inline['items']['cards']['items']['heading'] ?? null, 'a new card says what it is for');
+    // A new card says it is new, not "One of the three", which is wrong as the fourth (D-179).
+    assertEquals('New card', $inline['items']['cards']['items']['heading'] ?? null, 'a new card says it is new');
+    assertEquals('<p>A short description.</p>', $inline['items']['cards']['items']['body'] ?? null, 'and what goes under it');
+    assertEquals(['label' => '', 'url' => ''], $inline['items']['cards']['items']['link'] ?? null, 'a link stays empty: words without an address are an error');
     assertTrue(count(array_filter($inline['pages'] ?? [], static fn (array $p): bool => (bool) preg_match('~^page:\d+$~', $p['ref']))) > 0, 'pages, by reference');
+});
+
+test('a repeater\'s new item is in the page\'s language, and All content adds the same', function () {
+    $db = adminSite('sqlite');
+    $inline = \App\Modules\Pages\InlineFields::of($db, blockRegistry(), 'hr');
+    assertEquals('Nova kartica', $inline['items']['cards']['items']['heading'] ?? null, 'Croatian');
+    assertEquals('Novo pitanje', $inline['items']['accordion']['items']['question'] ?? null, 'a question too');
+
+    $id = builderPage();
+    $html = dispatch("/admin/pages/{$id}")->body;
+    preg_match('~<template data-item-template="cards.items">(.*?)</template>~s', $html, $template);
+    assertContains('New card', $template[1] ?? '', 'the inspector\'s "+" adds the item the canvas\'s does');
+});
+
+test('a block\'s layout tiles show short names that tell them apart, the full name their tooltip', function () {
+    $registry = blockRegistry();
+    foreach ($registry->types() as $type) {
+        $layouts = $registry->get($type)['layouts'];
+        if (count($layouts) < 2) {
+            continue;
+        }
+        $shown = array_map(static fn (string $l): string => short_label('block.' . $type . '.layout', $l), $layouts);
+        assertEquals(count($shown), count(array_unique($shown)), "{$type}: two tiles say the same: " . implode(', ', $shown));
+        foreach ($shown as $words) {
+            assertTrue(mb_strlen($words) <= 16, "{$type}: \"{$words}\" is too long for a tile");
+        }
+    }
+    $tiles = \App\Support\Controls::tiles('l', ['cover-left' => ['label' => 'Behind · left', 'title' => 'Picture behind, words on the left', 'picture' => '']], 'x', 'lab', 'id-');
+    assertContains('title="Picture behind, words on the left"', $tiles, 'the full name as the tooltip');
+    assertContains('aria-label="Picture behind, words on the left"', $tiles, 'and as the name read aloud');
+    assertContains('<span class="tile-label">Behind · left</span>', $tiles, 'the short one shown');
 });

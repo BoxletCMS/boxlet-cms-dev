@@ -203,3 +203,45 @@
   margin: var(--ui-2) 0;
   font-size: var(--ui-text-sm);
 }
+
+/* WHERE A LINK LEADS (builder-inline-link.js, D-179): the inspector's own fields and buttons on
+   the inspector's own panel, laid over the canvas under the words it is about. */
+.pb-link {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  gap: var(--ui-3);
+  inline-size: min(20rem, calc(100vw - 1rem));
+  padding: var(--ui-4);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-l);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow-m);
+  color: var(--ui-ink);
+}
+
+.pb-link-title {
+  margin: 0;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pb-link .field[hidden] {
+  display: none;
+}
+
+.pb-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-2);
+  align-items: center;
+}
+
+/* A field with an error, marked where it stands as well as said under it (D-179). */
+.pb-inspector .field [aria-invalid="true"] {
+  border-color: var(--ui-danger);
+  box-shadow: 0 0 0 1px var(--ui-danger);
+}

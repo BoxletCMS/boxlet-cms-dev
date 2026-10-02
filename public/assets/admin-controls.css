@@ -260,8 +260,13 @@
   fill: var(--ui-accent);
 }
 
+/* Two lines before it is cut (D-179): a short name — "Behind · bottom" — is read whole rather
+   than told from its neighbours by its first word. */
 .tile-label {
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: var(--ui-leading-tight);
+  overflow-wrap: anywhere;
 }

@@ -63,7 +63,8 @@ $pageId = (int) $page['id'];
 <?php endforeach; ?>
 
 <?php /* One <template> per repeater, keyed type.field, at the top level so repeater.js can clone
-         an item into the inspector's All content (PLAN.md O-11). */ ?>
+         an item into the inspector's All content (PLAN.md O-11): the item the canvas's "+"
+         adds too, saying it is new (D-179). */ ?>
 <?php foreach ($registry->types() as $templateType): ?>
 <?php foreach ($registry->get($templateType)['fields'] as $templateField => $templateSpec): ?>
 <?php if ($templateSpec['type'] !== 'repeater') { continue; } ?>
@@ -74,7 +75,7 @@ $pageId = (int) $page['id'];
     $repeaterName = (string) $templateField;
     $repeaterField = $templateSpec;
     $itemIndex = '__ITEM__';
-    $itemValue = \App\Core\Blocks::emptyItem($templateSpec);
+    $itemValue = $data['inline']['items'][$templateType][$templateField] ?? \App\Core\Blocks::emptyItem($templateSpec);
     require __DIR__ . '/item.php';
 ?>
 </template>
@@ -89,8 +90,11 @@ $pageId = (int) $page['id'];
 <script src="<?= e(Url::versioned('assets/builder-overlay.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inserter.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inline.js')) ?>" defer></script>
+<script src="<?= e(Url::versioned('assets/builder-inline-errors.js')) ?>" defer></script>
+<script src="<?= e(Url::versioned('assets/builder-inline-items.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inline-link.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inline-rich.js')) ?>" defer></script>
+<script src="<?= e(Url::versioned('assets/builder-overlay-apart.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-tree.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-add.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-page.js')) ?>" defer></script>

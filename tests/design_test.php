@@ -767,6 +767,10 @@ test('every readout the screen shows comes from one place', function () {
     // instead of holding the number the page was rendered with.
     $checked = json_decode(dispatch('/admin/appearance/check?' . http_build_query(designFields(['spacing' => '1.5'] + Presets::get('minimal'))))->body, true);
     assertEquals('1.5rem · ' . Tokens::readable(['spacing' => '1.5'] + Presets::get('minimal'))['space'] . 'px', $checked['readouts']['spacing'] ?? '', 'the spacing it would come to');
+
+    // A button's corners at the top of their range are a pill, and say so (D-171).
+    assertEquals(t('design.button_radius.pill'), App\Modules\Appearance\AppearanceForm::readouts(['button_radius' => '28'] + Presets::get('minimal'))['button_radius'] ?? '', 'the pill');
+    assertEquals('12px', App\Modules\Appearance\AppearanceForm::readouts(['button_radius' => '12'] + Presets::get('minimal'))['button_radius'] ?? '', 'below it, the pixels');
 });
 
 // ---- Round 9: the sheet, and what breaks out of it (D-067) -----------------------------

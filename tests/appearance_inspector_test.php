@@ -212,6 +212,18 @@ test('the shared controls know nothing of designs and print what a script reads'
     assertContains('<text x="38.46%" y="11" text-anchor="middle">Normal</text>', $slider, 'a mark where its value is');
     assertTrue(!str_contains($slider, 'Off the end'), 'a mark outside the range');
 
+    // Two marks that would touch: the one nearer the middle of the range is drawn, the other
+    // left out, and what is drawn is in the order of its values (D-171). Corners and Spacing,
+    // whose words ran together as "SquaSubtle" and "CompactNormal".
+    $corners = Controls::slider('r', 'r', '4', 0, 32, 1, [0 => 'Square', 4 => 'Subtle', 12 => 'Round']);
+    assertTrue(!str_contains($corners, 'Square'), 'the mark at the end gives way');
+    assertTrue(strpos($corners, 'Subtle') < strpos($corners, 'Round'), 'Subtle, then Round');
+    $spacing = Controls::slider('s', 's', '1', 0.75, 1.75, 0.05, ['0.875' => 'Compact', '1' => 'Normal', '1.25' => 'Roomy', '1.5' => 'Generous']);
+    assertEquals(['Normal', 'Roomy', 'Generous'], preg_match_all('~>(\w+)</text>~', $spacing, $m) > 0 ? $m[1] : [], 'Compact gives way to Normal');
+    // Marks with room between them are all drawn, ends included.
+    $size = Controls::slider('t', 't', '16', 14, 20, 0.5, ['15' => 'Small', '16' => 'Normal', '17' => 'Large', '18' => 'Larger']);
+    assertEquals(4, substr_count($size, '<text '), 'four marks with room');
+    assertContains('text-anchor="start">Square</text>', Controls::slider('b', 'b', '6', 0, 28, 1, [0 => 'Square', 28 => 'Pill']), 'an end hangs inward');
 
     $group = Controls::group('g', 'Group', 'body', ['open' => false]);
     assertContains('<details class="control-group" id="g" data-group="g">', $group, 'closed, and no changes');

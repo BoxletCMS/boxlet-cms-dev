@@ -34,7 +34,9 @@
 
 /* ---- the sections ----------------------------------------------------------------------- */
 
-.inspector-heading {
+/* A group's heading, as Quick start's is. `.admin` because `.admin h2` (admin.css) outranks a
+   lone class: measured, "Detailed" stood at 15px over its 11px neighbours. */
+.admin .inspector-heading {
   margin: var(--ui-4) 0 var(--ui-1);
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-xs);

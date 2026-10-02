@@ -203,6 +203,11 @@ final class AppearanceForm
                 default => $value,
             };
         }
+        // A button's corners at their top are a pill (Derived::radii draws 999px), and the
+        // readout says so rather than a number the button does not have.
+        if (($decisions['button_radius'] ?? '') !== '' && (float) $decisions['button_radius'] >= 28) {
+            $readouts['button_radius'] = t('design.button_radius.pill');
+        }
         $readouts['scale'] = t('design.scale_readout', ['scale' => $decisions['scale'], 'size' => $readable['text']['4xl'] . 'px']);
         $readouts['sheet_gap'] = $readable['sheet_gap'] . 'px';
         $readouts['phone'] = t('design.readable.phone', ['phone' => $readable['text_phone'] . 'px']);

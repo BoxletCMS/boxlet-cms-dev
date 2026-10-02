@@ -109,9 +109,15 @@
   color: var(--ui-ink);
 }
 
-.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-home > .control-group:first-of-type > .control-group-head,
-.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-panels > :first-child {
+.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-home > .control-group:first-of-type > .control-group-head {
   padding-inline-end: 2.25rem;
+}
+
+/* A QUESTION STANDS BELOW THE ICON, NOT BEHIND IT (README 4.6, D-171): a panel is a box, and
+   room kept for the icon inside it still left the icon on the box's corner, measured over
+   Publish's question. With a question shown, the icon has the row above it to itself. */
+.appearance-inspector:has(> .hints-icon:not([hidden])) .inspector-panels:has(> *) {
+  margin-block-start: calc(1.5rem + var(--ui-2));
 }
 
 /* The questions and notices over the controls (parts/panels.php). */

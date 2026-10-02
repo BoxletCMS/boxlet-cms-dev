@@ -202,6 +202,11 @@ export default {
         cancel: (panel.querySelector('a[data-apply-cancel]') || {}).getAttribute?.('href') ?? null,
         restyled: (panel.querySelector('[data-restyled]') || {}).textContent || '',
         warns: getComputedStyle(panel).backgroundColor !== getComputedStyle(document.querySelector('.appearance-inspector')).backgroundColor,
+        // README 4.6: the hints icon is above the question, never on its corner.
+        iconClear: (() => {
+          const icon = document.querySelector('.hints-icon');
+          return !icon || icon.hidden || icon.getBoundingClientRect().bottom <= panel.getBoundingClientRect().top;
+        })(),
       } : null;
     });
     await shot(report, page, '06-apply-question');
@@ -209,6 +214,8 @@ export default {
       asked !== null && asked.inInspector && asked.pictureAtTop && asked.answers === 2 && asked.warns, JSON.stringify(asked));
     // Since D-165 a load keeps the owner's values, so what Apply would take is the sections
     // styled by hand — the demo's home has several — and the question says how many.
+    report.verdict('the hints icon stands above the question, not on its corner',
+      asked !== null && asked.iconClear, JSON.stringify(asked));
     report.verdict('it says how many sections styled by hand Apply hands back, and offers Cancel',
       asked !== null && /styled by hand/.test(asked.restyled) && asked.cancel !== null && /\/admin\/appearance$/.test(asked.cancel), JSON.stringify(asked));
     // Not answered: leaving the screen publishes nothing.

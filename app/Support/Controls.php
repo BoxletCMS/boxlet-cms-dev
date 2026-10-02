@@ -25,6 +25,13 @@ namespace App\Support;
  */
 final class Controls
 {
+    /** The narrowest track a slider's marks stand under, in px: the builder's inspector. */
+    private const MARK_TRACK = 300;
+    /** What a character of a mark is taken to be, in px, at the marks' 11px — on the wide side. */
+    private const MARK_CHARACTER = 6.4;
+    /** Room kept between two marks, in px. */
+    private const MARK_GAP = 6;
+
     /**
      * One control with its framing: the name, the dot, the readout and the reset on one line,
      * then the control itself, its hint and its error.
@@ -96,6 +103,12 @@ final class Controls
      * wrong place is worse than none. They are SVG text at a percentage of the width, which
      * is an attribute and not a style, inset by the thumb's half-width in the stylesheet.
      *
+     * A MARK THAT WOULD TOUCH ANOTHER IS LEFT OUT (D-171). Marks are where their values are,
+     * so two near values wrote one word over the other ("SquaSubtle" under Corners). Placed
+     * from the middle of the range outwards, a mark is drawn only if it clears every mark
+     * already placed, at the narrowest track a slider stands in; the readout above still says
+     * the value. The width of a word is estimated, since the server cannot measure it.
+     *
      * @param array<array-key, string> $marks value => what it is called; values outside the
      *        range are left out. array-key: PHP turns the key '56' into 56
      * @param array<string, string> $attributes more attributes for the input
@@ -114,16 +127,32 @@ final class Controls
         if ($marks === [] || $max <= $min) {
             return $html;
         }
-        $html .= '<svg class="slider-marks" width="100%" height="14" aria-hidden="true" focusable="false">';
-        foreach ($marks as $at => $label) {
-            $at = (float) $at;
-            if ($at < $min || $at > $max) {
+        $placed = [];
+        $middle = ($min + $max) / 2;
+        $order = array_keys($marks);
+        usort($order, static fn (int|string $a, int|string $b): int => abs((float) $a - $middle) <=> abs((float) $b - $middle));
+        foreach ($order as $at) {
+            $value = (float) $at;
+            if ($value < $min || $value > $max) {
                 continue;
             }
-            $share = ($at - $min) / ($max - $min) * 100;
+            $share = ($value - $min) / ($max - $min) * 100;
             // The two ends hang inward, so a word at 0% or 100% is not cut by the edge.
             $anchor = $share < 8 ? 'start' : ($share > 92 ? 'end' : 'middle');
-            $html .= '<text x="' . e(self::number(round($share, 2))) . '%" y="11" text-anchor="' . $anchor . '">' . e($label) . '</text>';
+            $width = mb_strlen($marks[$at]) * self::MARK_CHARACTER;
+            $from = $share / 100 * self::MARK_TRACK - ($anchor === 'start' ? 0 : ($anchor === 'end' ? $width : $width / 2));
+            foreach ($placed as [$left, $right]) {
+                if ($from < $right + self::MARK_GAP && $from + $width + self::MARK_GAP > $left) {
+                    continue 2;
+                }
+            }
+            $placed[(string) $at] = [$from, $from + $width, $share, $anchor];
+        }
+        // Drawn in the order of their values, as a screen reader would meet them if it could.
+        uksort($placed, static fn (string $a, string $b): int => (float) $a <=> (float) $b);
+        $html .= '<svg class="slider-marks" width="100%" height="14" aria-hidden="true" focusable="false">';
+        foreach ($placed as $at => [, , $share, $anchor]) {
+            $html .= '<text x="' . e(self::number(round($share, 2))) . '%" y="11" text-anchor="' . $anchor . '">' . e($marks[$at]) . '</text>';
         }
 
         return $html . '</svg>';

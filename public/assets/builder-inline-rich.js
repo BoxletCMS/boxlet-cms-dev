@@ -155,7 +155,7 @@
       }, href ? function () {
         current.holding = false;
         editor.chain().focus().setTextSelection({ from: from, to: to }).extendMarkRange('link').unsetLink().run();
-      } : null, said);
+      } : null, said, said !== '');
       return;
     }
     rt.commands[name].run(editor.chain().focus()).run();

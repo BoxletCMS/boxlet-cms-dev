@@ -82,9 +82,12 @@
    * text", for a page and for another address alike). `onChange(url, text)` is told every
    * change; `onDone(url, text)` when it closes. `onRemove`, when given, offers taking the link
    * away. Choosing a page fills the words with its title only when there are none (D-183):
-   * the words are never written over. Done waits for both words and an address.
+   * the words are never written over. `selected`, for rich text, says the words are text
+   * already on the page — the selection, or the link the caret is in — and then a page never
+   * fills them, even emptied (D-183, the owner: Link text is the selection's, always). Done
+   * waits for both words and an address.
    */
-  function picker(anchor, url, onChange, onDone, onRemove, text) {
+  function picker(anchor, url, onChange, onDone, onRemove, text, selected) {
     close();
     var panel = el('div', 'pb-link');
     panel.setAttribute('role', 'dialog');
@@ -148,7 +151,7 @@
     select.addEventListener('change', function () {
       urlField.hidden = select.value !== '';
       var title = select.value !== '' ? select.selectedOptions[0].getAttribute('data-title') : null;
-      if (title !== null && words.value.trim() === '') {
+      if (title !== null && words.value.trim() === '' && !selected) {
         words.value = title;
       }
       changed();

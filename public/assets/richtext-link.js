@@ -3,9 +3,10 @@
  * is on, a page of the site or another address, Link and Unlink.
  *
  * THE WORDS ("Link text"): the selection's, or the whole link the caret is in. Changed, or
- * typed with nothing selected, they are put in as the link; a page chosen fills them with its
- * title only when there are none (D-183), so the words are never written over. Link waits for
- * both words and an address.
+ * typed with nothing selected, they are put in as the link. A page chosen fills them with its
+ * title only for a new link at the caret, with nothing selected and no words typed (D-183):
+ * selected words, or a link's own, are its text always. Link waits for both words and an
+ * address.
  *
  * Editing a link without stealing the selection: the selection lives in the editor's state,
  * not in the browser, so moving focus to an input does not disturb it. extendMarkRange('link')
@@ -85,7 +86,9 @@
       page.addEventListener('change', function () {
         var option = page.options[page.selectedIndex];
         var title = page.value !== '' && option ? option.getAttribute('data-title') : null;
-        if (words && title && words.value.trim() === '') {
+        // Only for a new link at the caret: words selected, or a link's own, are the link's
+        // text always (D-183), even emptied.
+        if (words && title && words.value.trim() === '' && range && range.from === range.to) {
           words.value = title;
         }
         ready();

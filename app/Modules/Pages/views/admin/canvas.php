@@ -33,6 +33,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-downloads.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-columns.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas-inserter.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/canvas-inline.css')) ?>">

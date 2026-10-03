@@ -91,7 +91,7 @@ final class AppearancePreview
                 $shown,
                 $basis,
                 (string) $this->container->get('config')->get('app.key'),
-                ['pageId' => (int) $home['id'], 'layouts' => $layouts],
+                ['pageId' => (int) $home['id'], 'layouts' => $layouts, 'design' => Tokens::resolve($decisions, $basis)],
             );
             $html = $drawn['html'];
             $firstSurface = $drawn['firstSurface'];

@@ -78,6 +78,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-header.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-columns.css')) ?>">
 <?php /* A script a visitor's page loads only when the header has a menu for it to fold: the
          mobile menu and submenu buttons (D-036). Without it nothing breaks. */ ?>
 <?php if (str_contains($headerHtml, 'data-site-nav-toggle')): ?>

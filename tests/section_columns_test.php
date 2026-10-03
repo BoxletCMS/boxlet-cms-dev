@@ -147,6 +147,46 @@ test('guard (two declarations of one fact): the stylesheet agrees with SectionLa
     assertEquals([], array_values(array_diff(array_unique($all[1]), $declared)), 'rules for layouts that do not exist');
 });
 
+test('guard (D-184): what each arrangement needs for 16rem columns agrees with SectionLayout', function () {
+    // sections-columns.css writes, for each arrangement, the width at which every column holds
+    // 16rem (the narrowest's share of the whole, and the gaps), and the weight of each wider
+    // column; both are SectionLayout::LAYOUTS again, so this reads both.
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections-columns.css');
+    preg_match_all('~\.block:has\(> \.container > (?::is\()?([^){]+)\)?\)\s*\{\s*--columns-need:\s*calc\(([0-9.]+)rem(?: \+ (?:(\d+) \* )?var\(--space-l\))?\);~', $css, $rules, PREG_SET_ORDER);
+    $need = [];
+    foreach ($rules as $rule) {
+        foreach (preg_split('~,\s*~', $rule[1]) ?: [] as $selector) {
+            $need[substr(trim($selector), strlen('.cols-'))] = [(float) $rule[2], isset($rule[3]) ? (int) $rule[3] : 1];
+        }
+    }
+    foreach (SectionLayout::LAYOUTS as $name => $weights) {
+        if (count($weights) < 2) {
+            continue;
+        }
+        assertTrue(isset($need[$name]), "no need written for {$name}");
+        assertEquals((float) (16 * array_sum($weights) / min($weights)), $need[$name][0], "{$name}: 16rem for the narrowest column");
+        assertEquals(count($weights) - 1, $need[$name][1], "{$name}: its gaps");
+    }
+    assertContains('.cols-wide-left > .section-column:first-child,', $css, 'wide-left\'s wide column');
+    assertContains(".cols-wide-right > .section-column:last-child {\n  --column-weight: 2;", $css, 'wide-right\'s');
+    assertContains(".cols-sidebar > .section-column:first-child {\n  --column-weight: 3;", $css, 'the sidebar\'s');
+});
+
+// A SECTION OF COLUMNS TAKES THE WIDE MEASURE WHERE ITS COLUMNS NEED IT (D-184): Editorial's
+// content is 42rem, and a wide-left band's narrow column came to 13.2rem there.
+test('a section of columns is composed wide when the content width cannot give each column 16rem', function () {
+    $blocks = [['type' => 'text', 'content' => ['body' => '<p>Words.</p>'], 'layout' => 'single', 'column' => 0]];
+    $editorial = App\Modules\Design\Tokens::resolve(App\Modules\Design\Presets::get('editorial'));
+    $minimal = App\Modules\Design\Tokens::resolve(App\Modules\Design\Presets::get('minimal'));
+    assertEquals('wide', SectionRender::composed('editorial', $blocks, 'wide-left', $editorial)['width'] ?? '', 'Editorial, wide-left');
+    assertEquals('normal', SectionRender::composed('editorial', $blocks, 'halves', $editorial)['width'] ?? '', 'Editorial, halves: 19.4rem each, enough');
+    assertEquals('normal', SectionRender::composed('minimal', $blocks, 'wide-left', $minimal)['width'] ?? '', 'Minimal, wide-left: 19rem, enough');
+    assertEquals('normal', SectionRender::composed('editorial', $blocks, 'one', $editorial)['width'] ?? '', 'one column is never widened for it');
+    assertEquals('normal', SectionRender::composed('editorial', $blocks, 'wide-left')['width'] ?? '', 'no design given, nothing measured');
+    // A width the owner set is the owner's: SectionStyle::effective keeps it over the composed.
+    assertEquals('normal', SectionRender::style('editorial', ['width' => 'normal'], $blocks, 'wide-left', $editorial)['width'] ?? '', 'the owner\'s own width');
+});
+
 testBothDrivers('a new section is one column that stacks, and a block remembers its column', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', false, [

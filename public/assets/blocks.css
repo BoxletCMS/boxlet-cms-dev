@@ -13,14 +13,16 @@
 
 
 
+/* As many columns as hold 16rem, at most two (D-184). */
 .layout-columns .richtext {
-  columns: 2;
+  columns: 16rem 2;
   column-gap: var(--space-xl);
 }
 
+/* Two equal columns while each holds 16rem of words, else one (D-184). */
 .image-text {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(max(16rem, calc((100% - var(--space-columns)) / 2)), 1fr));
   gap: var(--space-columns);
   align-items: center;
 }

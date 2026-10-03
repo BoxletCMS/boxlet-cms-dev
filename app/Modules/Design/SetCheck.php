@@ -59,7 +59,7 @@ final class SetCheck
         $out['notes'][] = sprintf('veil over a picture: at least %.2f', PaletteInks::veil($colors));
 
         foreach (SetMeasure::narrow($resolved, $set['composition'], $set['patterns'], $registry) as $narrow) {
-            $out['warnings'][] = 'under 16rem: ' . $narrow;
+            $out['warnings'][] = '16rem: ' . $narrow;
         }
 
         return $out;

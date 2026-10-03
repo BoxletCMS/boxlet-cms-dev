@@ -4,6 +4,7 @@ namespace App\Modules\Pages;
 
 use App\Core\Blocks;
 use App\Modules\Design\Composition;
+use App\Modules\Design\SetMeasure;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Media\MediaPicture;
 
@@ -60,6 +61,8 @@ final class SectionRender
      * @param string $character the character the page is drawn under
      * @param bool  $eager whether this is the first section drawn on the page
      * @param array<string, mixed> $resolved what the renderer resolved for these templates
+     * @param array<string, string> $design the design's resolved decisions, which say how wide
+     *        a column comes out (composed()); none, and no section is widened for its columns
      */
     public static function draw(
         Blocks $registry,
@@ -71,9 +74,10 @@ final class SectionRender
         array $resolved = [],
         string $locale = '',
         bool $asColumns = false,
+        array $design = [],
     ): string {
         $layout = SectionLayout::normalize($section['layout']);
-        $style = self::style($character, $section['style'], $blocks);
+        $style = self::style($character, $section['style'], $blocks, $layout, $design);
 
         if (!$asColumns && $layout === SectionLayout::ONE && count($blocks) === 1) {
             $block = $blocks[0];
@@ -161,11 +165,12 @@ final class SectionRender
      *
      * @param array<string, string|int|null> $stored
      * @param list<array<string, mixed>> $blocks
+     * @param array<string, string> $design resolved decisions (composed())
      * @return array<string, string|int|null>
      */
-    public static function style(string $character, array $stored, array $blocks): array
+    public static function style(string $character, array $stored, array $blocks, string $layout = SectionLayout::ONE, array $design = []): array
     {
-        return SectionStyle::effective(SectionStyle::normalize($stored), self::composed($character, $blocks));
+        return SectionStyle::effective(SectionStyle::normalize($stored), self::composed($character, $blocks, $layout, $design));
     }
 
     /**
@@ -176,10 +181,18 @@ final class SectionRender
      * draw it narrower; a section with a width of its own keeps it, since this is what ''
      * comes to.
      *
+     * AND A SECTION OF COLUMNS TAKES IT WHERE ITS COLUMNS NEED IT (D-184, the owner): when the
+     * design's content width cannot give every column 16rem, as Editorial's 42rem gave a
+     * wide-left section's narrow column 13.2rem. The same arithmetic as bin/check-set.php
+     * (SetMeasure); sections-columns.css grows the wide measure to what the columns need, and
+     * stacks them only where even that cannot be had.
+     *
      * @param list<array<string, mixed>> $blocks
+     * @param array<string, string> $design the design's resolved decisions; none, and no
+     *        section is widened for its columns
      * @return array<string, string>
      */
-    public static function composed(string $character, array $blocks): array
+    public static function composed(string $character, array $blocks, string $layout = SectionLayout::ONE, array $design = []): array
     {
         $composed = Composition::section($character, array_map(static fn (array $block): string => (string) $block['type'], $blocks));
         foreach ($blocks as $block) {
@@ -188,6 +201,14 @@ final class SectionRender
             // for the picture it has not got, so it is wide there either way.
             $picture = is_array($block['content'] ?? null) && ($block['content']['image'] ?? null) !== null;
             if (($block['type'] ?? '') === 'hero' && ($block['layout'] ?? '') === 'split' && ($picture || \App\Support\Editing::on()) && in_array($composed['width'] ?? 'normal', ['narrow', 'normal'], true)) {
+                $composed['width'] = 'wide';
+            }
+        }
+        $width = $composed['width'] ?? 'normal';
+        $count = SectionLayout::columns($layout);
+        if ($design !== [] && $count >= 2 && in_array($width, ['narrow', 'normal'], true)) {
+            $narrowest = min(array_map(static fn (int $column): float => (float) SetMeasure::words($design, $width, $layout, $column, 'text', 'single'), range(0, $count - 1)));
+            if ($narrowest < SetMeasure::LEAST) {
                 $composed['width'] = 'wide';
             }
         }

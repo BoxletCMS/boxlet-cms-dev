@@ -28,7 +28,7 @@ final class PageRender
     /**
      * @param array{blocks: list<array{type: string, content: array<string, mixed>|null, layout: string, section: string, id?: int|null, column?: int, options?: array<string, string>}>, sections: list<array{key: string, id: int|null, layout: string|null, stack: string|null, style: array<string, string|int|null>|null}>} $document
      *        the document's blocks and sections; nothing else of it is read
-     * @param array{pageId?: int|null, sent?: int|null, layouts?: array<string, string>, editor?: bool, stale?: array<int, mixed>} $how
+     * @param array{pageId?: int|null, sent?: int|null, layouts?: array<string, string>, editor?: bool, stale?: array<int, mixed>, design?: array<string, string>} $how
      *        pageId and sent: the form a visitor just sent (D-046); layouts: block type => the
      *        layout to draw it in instead of its own, what Apply would give it, for a preview
      *        of a character not yet applied; editor: the canvas's drawing (below); stale: the
@@ -39,6 +39,9 @@ final class PageRender
     public static function draw(Db $db, Blocks $registry, array $document, string $locale, string $character, string $appKey, array $how = []): array
     {
         $editor = ($how['editor'] ?? false) === true;
+        // How wide a column comes out, for a section of columns (SectionRender::composed): the
+        // design being tried in a preview, else the site's.
+        $design = $how['design'] ?? \App\Modules\Design\Design::resolved($db);
         $layouts = $how['layouts'] ?? [];
         $blocks = [];
         foreach ($document['blocks'] as $block) {
@@ -86,14 +89,14 @@ final class PageRender
             // into and what the + in it adds to, and a band that draws none has neither.
             // Only the first section drawn is eager: its picture is the one a visitor waits for.
             // The canvas's drawing carries the editor's marks on each field (D-178); no other does.
-            $drawn = \App\Support\Editing::during($editor, static fn (): string => SectionRender::draw($registry, $character, $group['section'], $shown, $media, $first, ['forms' => $forms, 'files' => $files], $locale, $editor));
+            $drawn = \App\Support\Editing::during($editor, static fn (): string => SectionRender::draw($registry, $character, $group['section'], $shown, $media, $first, ['forms' => $forms, 'files' => $files], $locale, $editor, $design));
             if ($editor) {
                 $drawn = self::marked($drawn, (string) $group['id'], $isStale);
             }
             $html .= $drawn;
             if ($first) {
                 // As it is drawn: a surface left to the character is the character's (D-165).
-                $firstSurface = (string) (SectionRender::style($character, $group['section']['style'], $shown)['surface'] ?? '');
+                $firstSurface = (string) (SectionRender::style($character, $group['section']['style'], $shown, SectionLayout::normalize($group['section']['layout']), $design)['surface'] ?? '');
             }
             $first = false;
         }

@@ -80,7 +80,7 @@ test('the checker refuses what an import refuses, and warns of the other mode, u
     $set['decisions']['section_gap'] = '50';
     $set['patterns'] = [[
         'id' => 'side', 'name' => ['en' => 'Side by side'],
-        'section' => ['layout' => 'thirds'],
+        'section' => ['layout' => 'thirds', 'style' => ['width' => 'normal']],
         'blocks' => [['type' => 'text', 'column' => 2, 'content' => ['body' => ['en' => '<p>Words.</p>']]]],
     ]];
     $report = SetCheck::check((string) json_encode($set), blockRegistry());
@@ -89,12 +89,13 @@ test('the checker refuses what an import refuses, and warns of the other mode, u
     assertContains('decisions.wobble', $warnings, 'an unknown key, left out');
     assertContains('in dark mode', $warnings, 'the other mode');
     assertContains('decisions.section_gap: 50 is not on its step', $warnings, 'a number put on its step');
-    assertContains('pattern side: text, single, in column 3 of thirds', $warnings, 'a pattern\'s narrow column');
+    // A width of its own is not widened: its columns stack (D-184), and the author hears it.
+    assertContains('pattern side: text, single, in column 3 of thirds: its columns stack', $warnings, 'a pattern\'s columns stacked');
 });
 
-// Measured in the browser under Editorial (content 42rem, spacing 1.25), D-183: the arithmetic
-// is held to it.
-test('the width of words is worked out as the browser draws it', function () {
+// Measured in the browser under Editorial (content 42rem, spacing 1.25), D-183: the grids'
+// arithmetic is held to it.
+test('the width of words by the grids alone is worked out as the browser measured it', function () {
     $editorial = Tokens::resolve(Presets::get('editorial'));
     $at = static fn (string $width, string $columns, int $column, string $type, string $layout): string => sprintf('%.1f', SetMeasure::words($editorial, $width, $columns, $column, $type, $layout));
     assertEquals('13.2', $at('normal', 'wide-left', 1, 'quote', 'plain'), 'the narrow column of wide-left');
@@ -103,6 +104,22 @@ test('the width of words is worked out as the browser draws it', function () {
     assertEquals('24.0', $at('wide', 'one', 0, 'hero', 'split'), 'a split hero, at the wide measure');
     assertEquals('28.0', $at('normal', 'one', 0, 'hero', 'cover-left'), 'a cover hero keeps the narrow measure');
     assertEquals(null, SetMeasure::words($editorial, 'normal', 'one', 0, 'cta', 'beside'), 'Call to action beside, not worked out');
+});
+
+// And as the page draws them since D-184, measured again in the browser under Editorial: the
+// home page's wide-left band widened and grown to 50.5rem, its quote 16.0rem and its words 32.0;
+// Form beside stacked, its words the column's whole width.
+test('the width of words as the page draws them, with the 16rem rules', function () {
+    $editorial = Tokens::resolve(Presets::get('editorial'));
+    $drawn = static fn (string $width, bool $following, string $columns, int $column, string $type, string $layout): array => SetMeasure::drawn($editorial, $width, $following, $columns, $column, $type, $layout);
+    assertEquals('16.0', sprintf('%.1f', $drawn('normal', true, 'wide-left', 1, 'quote', 'plain')['words']), 'the quote of Editorial\'s home');
+    assertEquals('32.0', sprintf('%.1f', $drawn('normal', true, 'wide-left', 0, 'text', 'single')['words']), 'and the words beside it');
+    assertEquals([], $drawn('normal', true, 'wide-left', 1, 'quote', 'plain')['stacked'], 'side by side');
+    $form = $drawn('normal', true, 'one', 0, 'form', 'beside');
+    assertEquals('42.0', sprintf('%.1f', $form['words']), 'Form beside, stacked: the whole column');
+    assertContains('its words stack', implode(' ', $form['stacked']), 'and said so');
+    $own = $drawn('normal', false, 'wide-left', 1, 'quote', 'plain');
+    assertContains('its columns stack', implode(' ', $own['stacked']), 'a width of the owner\'s is not widened: the columns stack');
 });
 
 test('bin/check-set.php prints the report and exits 1 on a refused file', function () {

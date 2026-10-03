@@ -10,10 +10,63 @@
  * ON THE COPY. Layouts are tried in the builder's draft, which is discarded at the end.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, settle } from '../harness.mjs';
+import { login, openBuilder, settle, applyCharacter } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const NARROWEST = 256;
+const ARRANGEMENTS = ['halves', 'thirds', 'quarters', 'wide-left', 'wide-right', 'sidebar'];
+
+/**
+ * SECTIONS OF COLUMNS (D-184): a band of each arrangement added to the draft, a Text in every
+ * column, on each device. Every column's words are 16rem or more, or the columns are stacked,
+ * one under another — never two words-columns squeezed side by side.
+ */
+async function columns(page, report, label) {
+  const keys = await page.evaluate((arrangements) => {
+    const made = [];
+    window.pb.change((doc) => {
+      arrangements.forEach((layout) => {
+        const key = window.pb.mint('m');
+        const n = { halves: 2, thirds: 3, quarters: 4, 'wide-left': 2, 'wide-right': 2, sidebar: 2 }[layout];
+        doc.sections.push({ key, id: null, layout, stack: 'stack', style: {} });
+        for (let c = 0; c < n; c += 1) {
+          const item = window.pb.libraryItem('text');
+          doc.blocks.push({ key: window.pb.mint('n'), id: null, type: 'text', content: window.pb.copy(item.fresh), style: {}, options: {}, layout: item.layout, section: key, column: c });
+        }
+        made.push([layout, key]);
+      });
+    }, { structure: true });
+    return made;
+  }, ARRANGEMENTS);
+  await wait(2500);
+  for (const device of ['desktop', 'tablet', 'phone']) {
+    await page.click(`[data-device="${device}"]`);
+    await wait(1500);
+    const seen = await page.evaluate((made, least) => {
+      const doc = document.querySelector('[data-pb-canvas]').contentDocument;
+      return made.map(([layout, key]) => {
+        const band = doc.querySelector(`[data-bx-section="${key}"]`);
+        if (!band) { return { layout, missing: true }; }
+        const cols = [...band.querySelectorAll('.section-column')].map((c) => c.getBoundingClientRect());
+        const stacked = cols.every((r) => Math.abs(r.left - cols[0].left) < 1);
+        const narrow = [...band.querySelectorAll('[data-bx-field="body"]')].map((f) => {
+          const range = doc.createRange();
+          range.selectNodeContents(f);
+          const lines = new Set([...range.getClientRects()].filter((r) => r.width > 2).map((r) => Math.round(r.top))).size;
+          return { width: Math.round(f.getBoundingClientRect().width), lines };
+        }).filter((f) => f.width < least && f.lines > 1);
+        return { layout, stacked, width: [...band.classList].find((c) => c.startsWith('width-')), columns: cols.map((r) => Math.round(r.width)), narrow };
+      });
+    }, keys, NARROWEST);
+    const bad = seen.filter((x) => x.missing || x.narrow.length > 0);
+    report.verdict(`${label}, ${device}: in every arrangement of columns each column's words are 16rem or more, or the columns stack`,
+      seen.length === ARRANGEMENTS.length && bad.length === 0,
+      bad.length ? JSON.stringify(bad) : seen.map((x) => `${x.layout} ${x.width}${x.stacked ? ' stacked' : ''} [${x.columns.join(',')}]`).join('; '));
+  }
+  await page.click('[data-device="desktop"]');
+  await wait(800);
+  return keys;
+}
 
 export default {
   name: 'layouts',
@@ -81,6 +134,9 @@ export default {
       await page.click('[data-device="desktop"]');
       await wait(800);
 
+      // ---- sections of columns (D-184), under the copy's character -------------------------
+      await columns(page, report, 'the copy\'s character');
+
       // ---- a split hero with no picture -------------------------------------------------------------
       const hero = await page.evaluate(() => (window.pb.doc.blocks.find((b) => b.type === 'hero' && b.content.image === null) || {}).key || null);
       if (hero === null) {
@@ -111,6 +167,38 @@ export default {
       }
       const state = await page.$eval('[data-pb-state]', (p) => p.className);
       report.verdict('layouts: the draft is discarded', /status-published/.test(state), state);
+    }
+
+    // ---- under Editorial, the narrowest content of the five (42rem), and back -------------------
+    // The owner's case (D-184): Editorial's home, text and quote side by side in a wide-left
+    // band whose narrow column was 13.2rem; it stays side by side, at 16rem or more.
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    const was = await page.$eval('.character-tile.is-current .tile-use', (b) => b.value.replace('preset:', '')).catch(() => '');
+    await applyCharacter(page, BASE, 'editorial', 'save_composition');
+    try {
+      await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
+      const home = await page.evaluate(() => {
+        const quote = document.querySelector('.cols-wide-left .quote-words, .cols-wide-left blockquote');
+        const band = quote ? quote.closest('.block') : null;
+        if (!band) { return null; }
+        band.scrollIntoView({ block: 'center' });
+        const cols = [...band.querySelectorAll('.section-column')].map((c) => c.getBoundingClientRect());
+        return { width: [...band.classList].find((c) => c.startsWith('width-')), quote: Math.round((quote.getBoundingClientRect().width / 16) * 10) / 10, side: cols.length === 2 && cols[1].left > cols[0].right };
+      });
+      await new Promise((r) => setTimeout(r, 600));
+      await report.shot(page, '03-editorial-experience', { fullPage: false });
+      report.verdict('Editorial\'s home: text and quote side by side, the quote 16rem or more', home !== null && home.side && home.quote >= 15.95, JSON.stringify(home));
+      await openBuilder(page, BASE, id);
+      await columns(page, report, 'Editorial');
+    } finally {
+      await settle(page).catch(() => {});
+      await openBuilder(page, BASE, id);
+      if (await page.$('[data-pb-discard]:not([hidden])')) {
+        await page.click('[data-pb-discard]');
+        await page.waitForFunction(() => document.querySelector('[data-pb-discard]').hidden, { timeout: 10000 }).catch(() => {});
+      }
+      if (was !== '' && was !== 'editorial') { await applyCharacter(page, BASE, was, 'save_composition'); }
+      report.verdict('layouts: the copy\'s character is back', was !== '', `${was || 'could not read it'}`);
     }
 
     /** The draft's preview in a page of its own: the split hero's parts, and its words' width against its band's. */

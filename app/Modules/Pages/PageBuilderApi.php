@@ -74,11 +74,13 @@ final class PageBuilderApi
             return Response::json(['error' => t('pages.draft.unreadable')], 422);
         }
         $character = Composition::active($this->db());
+        $design = \App\Modules\Design\Design::resolved($this->db());
         $number = $request->body['number'] ?? 1;
         $html = (new View(__DIR__ . '/views'))->render('admin/inspector/' . $kind, $locale, [
             'number' => is_int($number) && $number > 0 ? $number : 1,
             'swatches' => $kind === 'section' ? $this->swatches() : [],
-            'gap' => \App\Modules\Design\Tokens::readable(\App\Modules\Design\Design::resolved($this->db()))['section'],
+            'gap' => \App\Modules\Design\Tokens::readable($design)['section'],
+            'design' => $design,
             'page' => $page,
             'section' => $section,
             'blocks' => $band['blocks'],

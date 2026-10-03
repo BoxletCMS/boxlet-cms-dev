@@ -20,9 +20,11 @@ use App\Support\Controls;
  * @var list<array{id: int, name: string, thumb: string|null}> $pictures
  * @var int $number its place on the page, from 1
  * @var int $gap the design's section gap in px, which a padding left to the character falls to
+ * @var array<string, string> $design the design's resolved decisions: a section of columns
+ *      composes wide where its columns need it (D-184)
  */
 $style = $section['style'];
-$composed = \App\Modules\Pages\SectionRender::composed($character, $blocks);
+$composed = \App\Modules\Pages\SectionRender::composed($character, $blocks, \App\Modules\Pages\SectionLayout::normalize($section['layout']), $design);
 $effective = SectionStyle::effective($style, $composed);
 $name = (string) ($style[SectionStyle::NAME] ?? '');
 $reset = static fn (string $path): array => ['form' => '', 'name' => 'reset', 'value' => $path, 'title' => t('controls.reset')];

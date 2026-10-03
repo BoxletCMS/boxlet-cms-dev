@@ -188,6 +188,26 @@ export default {
       await new Promise((r) => setTimeout(r, 600));
       await report.shot(page, '03-editorial-experience', { fullPage: false });
       report.verdict('Editorial\'s home: text and quote side by side, the quote 16rem or more', home !== null && home.side && home.quote >= 15.95, JSON.stringify(home));
+      // Two bands of one surface: half the space between them, the first's room below and the
+      // second's above each half the gap (D-185): Why us and the call to action stood 168px apart.
+      const joins = await page.evaluate(() => {
+        const bands = [...document.querySelectorAll('main > .block')];
+        const surface = (b) => [...b.classList].find((c) => c.startsWith('surface-'));
+        const out = [];
+        for (let i = 0; i + 1 < bands.length; i += 1) {
+          const a = bands[i]; const b = bands[i + 1];
+          if (surface(a) !== surface(b) || !b.classList.contains('divider-none') || surface(a) === 'surface-image') { continue; }
+          const gap = parseFloat(getComputedStyle(a).getPropertyValue('--section-gap')) * 16 || 0;
+          const between = parseFloat(getComputedStyle(a).paddingBottom) + parseFloat(getComputedStyle(b).paddingTop);
+          out.push({ from: a.className.split(' ')[1] || 'columns', to: b.className.split(' ')[1] || 'columns', between: Math.round(between), full: Math.round(parseFloat(getComputedStyle(bands[0]).paddingTop) * 2) });
+        }
+        const cta = document.querySelector('main > .block-cta');
+        if (cta) { cta.scrollIntoView({ block: 'center' }); }
+        return out;
+      });
+      await new Promise((r) => setTimeout(r, 600));
+      await report.shot(page, '04-editorial-why-us-cta', { fullPage: false });
+      report.verdict('two bands of one surface are half the space apart, a call to action among them', joins.length >= 2 && joins.every((j) => Math.abs(j.between * 2 - j.full) <= 2) && joins.some((j) => j.to === 'block-cta'), JSON.stringify(joins));
       await openBuilder(page, BASE, id);
       await columns(page, report, 'Editorial');
     } finally {

@@ -78,6 +78,13 @@
       return;
     }
     doc.__bxPress = true;
+    // Writing on the page: the block's toolbar steps back (canvas.css).
+    var writing = function () {
+      var layer = pb.overlay.layer();
+      if (layer) { layer.classList.toggle('is-writing', !!(doc.activeElement && pb.inline && pb.inline.within && pb.inline.within(doc.activeElement))); }
+    };
+    doc.addEventListener('focusin', writing);
+    doc.addEventListener('focusout', function () { setTimeout(writing, 0); });
     doc.addEventListener('mousedown', onPress, true);
     doc.addEventListener('click', onClick, true);
     doc.addEventListener('mousemove', onMove);

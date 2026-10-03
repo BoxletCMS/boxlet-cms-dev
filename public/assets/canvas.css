@@ -111,7 +111,13 @@
 /* The selected block's bar is the selection's colour; the band's is dark, at its top right. */
 .bx-toolbar-block {
   background: var(--bx-select);
-  transform: translateY(-100%);
+}
+
+/* While words are written, the block's toolbar steps back: seen, faint, and never in the way
+   of a press (D-182). */
+.bx-layer.is-writing > .bx-toolbar-block {
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .bx-toolbar-section {

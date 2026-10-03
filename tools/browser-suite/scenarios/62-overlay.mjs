@@ -38,6 +38,17 @@ function crossings(page) {
         }
       }
     }
+    // The block's toolbar over no field's words, of its block or any other (D-182).
+    const bar = layer ? layer.querySelector('.bx-toolbar-block') : null;
+    if (bar) {
+      const b = bar.getBoundingClientRect();
+      doc.querySelectorAll('[data-bx-field]').forEach((field) => {
+        const f = field.getBoundingClientRect();
+        if (f.width > 0 && f.height > 0 && b.left < f.right - 0.5 && f.left < b.right - 0.5 && b.top < f.bottom - 0.5 && f.top < b.bottom - 0.5) {
+          found.push(`the block's toolbar × ${field.getAttribute('data-bx-field')}`);
+        }
+      });
+    }
     // And each "+" on its boundary, where the band it adds before begins.
     window.pb.doc.sections.forEach((s, i) => {
       const plus = doc.querySelector(`.bx-plus[data-bx-insert="${i}"]`);
@@ -85,24 +96,27 @@ export default {
         await page.click(`[data-device="${device}"]`);
         await wait(900);
         const seen = await everySelection(page);
-        report.verdict(`${device}: no two of the editor's marks cross and every "+" is on its boundary, with each band and block selected (${seen.checked} states, ${seen.marks} marks)`,
+        report.verdict(`${device}: no two of the editor's marks cross, the block's toolbar covers no words, and every "+" is on its boundary, with each band and block selected (${seen.checked} states, ${seen.marks} marks)`,
           seen.bad.length === 0 && seen.marks > seen.checked, seen.bad.join(' | ') || 'none cross');
       }
       await page.click('[data-device="desktop"]');
       await wait(900);
 
-      // ---- the top block of a band: its toolbar inside the band, the badges beside it -------------------
+      // ---- the top block of a band: its toolbar outside the block, never on its words (D-182) ----
+      // The rule changed on purpose: D-179 put it inside the band, over the block's top; the
+      // owner's review of phase 6 has it outside the block, above, or under it where above
+      // has no room.
       const cards = await blockKey(page, 'cards');
       await page.evaluate((k) => window.pb.select('block', k), cards);
       await wait(400);
       const top = await page.evaluate((k) => {
         const doc = document.querySelector('[data-pb-canvas]').contentDocument;
         const bar = doc.querySelector('.bx-toolbar-block').getBoundingClientRect();
-        const band = doc.querySelector(`[data-bx-section="${window.pb.block(k).section}"]`).getBoundingClientRect();
-        return { inside: bar.top >= band.top, bar: Math.round(bar.top), band: Math.round(band.top) };
+        const block = doc.querySelector(`[data-bx-key="${k}"]`).getBoundingClientRect();
+        return { outside: bar.bottom <= block.top + 0.5 || bar.top >= block.bottom - 0.5, bar: [Math.round(bar.top), Math.round(bar.bottom)], block: [Math.round(block.top), Math.round(block.bottom)] };
       }, cards);
       await shot(report, page, '01-top-block');
-      report.verdict('a block at the top of its band has its toolbar inside the band', top.inside, JSON.stringify(top));
+      report.verdict('a block\'s toolbar stands outside the block', top.outside, JSON.stringify(top));
 
       // ---- a card added: "+" never over "+ Card" ----------------------------------------------------
       const before = await page.evaluate((k) => window.pb.block(k).content.items.length, cards);
@@ -120,6 +134,28 @@ export default {
       await wait(300);
       const tools = await crossings(page);
       report.verdict('an item\'s tools cross nothing', tools.found.length === 0, tools.found.join('; ') || 'none cross');
+
+      // ---- writing rich text: the block's toolbar steps back, and the small one keeps clear ------
+      const imageText = await blockKey(page, 'image_text');
+      await clickInCanvas(page, `[data-bx-key="${imageText}"] [data-bx-field="body"]`, { at: 'top', side: 'left' });
+      await wait(800);
+      const writing = await page.evaluate(() => {
+        const doc = document.querySelector('[data-pb-canvas]').contentDocument;
+        const layer = doc.querySelector('.bx-layer');
+        const bar = layer.querySelector('.bx-toolbar-block');
+        const tools = layer.querySelector('.bx-rich-tools');
+        if (!bar || !tools) { return { bar: !!bar, tools: !!tools }; }
+        const a = bar.getBoundingClientRect();
+        const b = tools.getBoundingClientRect();
+        const style = doc.defaultView.getComputedStyle(bar);
+        return { cross: a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom, faint: Number(style.opacity) < 1, presses: style.pointerEvents };
+      });
+      await shot(report, page, '02b-writing');
+      report.verdict('writing rich text, the block\'s toolbar is faint and takes no press, and the small toolbar does not sit on it',
+        writing.cross === false && writing.faint && writing.presses === 'none', JSON.stringify(writing));
+      await page.keyboard.press('Escape');
+      await page.mouse.click(10, 10);
+      await wait(500);
 
       // ---- an error: under its field, over nothing, and its field shown in the inspector ---------------
       const cta = await blockKey(page, 'cta');

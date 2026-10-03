@@ -156,6 +156,33 @@
     }
   }
 
+  /**
+   * THE BLOCK'S TOOLBAR NEVER COVERS WORDS (D-182): outside the block, above it, clear of its
+   * band's "+" and edge and of every field's words; where that is not to be had, under it;
+   * where neither is, above it all the same, which at least never covers its own block.
+   */
+  function placeBar(bar, node, block) {
+    bar.style.transform = 'none';
+    var b = box(node);
+    var h = bar.offsetHeight;
+    var gap = px(4);
+    var band = box(pb.canvas.sectionEl(block.section) || node);
+    var edge = layer.querySelector('[data-bx-insert="' + pb.sectionIndex(block.section) + '"]');
+    var floor = Math.max(band.top, edge ? box(edge).top + box(edge).height : band.top) + gap;
+    var fields = Array.prototype.map.call(pb.canvas.main().querySelectorAll('[data-bx-field]'), box).filter(function (f) { return f.width > 0 && f.height > 0; });
+    var w = bar.offsetWidth;
+    function clear(top) {
+      return !fields.some(function (f) {
+        return b.left < f.left + f.width && f.left < b.left + w && top < f.top + f.height && f.top < top + h;
+      });
+    }
+    var above = b.top - gap - h;
+    var below = b.top + b.height + gap;
+    var top = above >= floor && clear(above) ? above : (clear(below) ? below : above);
+    at(bar, { top: top, left: b.left });
+    bar.setAttribute('data-bx-side', top === below ? 'below' : 'above');
+  }
+
   /** The selected thing's toolbar. */
   function selection() {
     var sel = pb.selection;
@@ -189,19 +216,8 @@
       bar.appendChild(button('block-down', 'arrow-down', pb.t('canvas.move_down')));
       bar.appendChild(button('block-copy', 'copy', pb.t('canvas.copy')));
       bar.appendChild(button('block-delete', 'trash-2', pb.t('canvas.delete')));
-      var b = box(node);
-      at(bar, { top: b.top - px(4), left: b.left });
       layer.appendChild(bar);
-      // Over the block, unless that would reach above its band's "+" or the band's edge: then
-      // inside the band, under them (D-179). The badges and the "+" keep clear of it
-      // (builder-overlay-apart.js).
-      var band = box(pb.canvas.sectionEl(block.section) || node);
-      var edge = layer.querySelector('[data-bx-insert="' + pb.sectionIndex(block.section) + '"]');
-      var floor = Math.max(band.top, edge ? box(edge).top + box(edge).height : band.top) + px(4);
-      if (box(bar).top < floor) {
-        bar.style.transform = 'none';
-        bar.style.top = floor + 'px';
-      }
+      placeBar(bar, node, block);
     } else if (sel.kind === 'section') {
       var element = pb.canvas.sectionEl(sel.key);
       if (!element) { return; }

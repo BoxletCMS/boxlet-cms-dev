@@ -120,6 +120,12 @@
   pointer-events: none;
 }
 
+/* While a link's popover is open, the block's toolbar is put away (D-183): the popover is
+   what is being worked in, and the toolbar stood beside it, faint, saying nothing of use. */
+.bx-layer.is-linking > .bx-toolbar-block {
+  visibility: hidden;
+}
+
 .bx-toolbar-section {
   transform: translateX(-100%);
 }

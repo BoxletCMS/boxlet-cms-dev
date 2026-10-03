@@ -89,6 +89,87 @@ export default {
       }
       report.verdict('undo takes back rich text written on the page', !/Typed/.test(richBack), richBack);
 
+      // ---- every link of the page: its own words, a popover beside it, no block toolbar (D-183) ----
+      {
+        const links = await page.evaluate(() => {
+          const doc = document.querySelector('[data-pb-canvas]').contentDocument;
+          return window.pb.doc.blocks.flatMap((b) => [...doc.querySelectorAll(`[data-bx-key="${b.key}"] [data-bx-field]`)]
+            .filter((e) => (window.pb.inline.spec(b.type, e.getAttribute('data-bx-field')) || {}).type === 'link' && e.innerText.trim() !== '')
+            .map((e) => ({ key: b.key, type: b.type, path: e.getAttribute('data-bx-field') })));
+        });
+        const bad = [];
+        for (const l of links) {
+          await clickInCanvas(page, `[data-bx-key="${l.key}"] [data-bx-field="${l.path}"]`);
+          await page.waitForSelector('[data-pb-link]', { timeout: 5000 }).catch(() => {});
+          await wait(500);
+          const seen = await page.evaluate((k, path) => {
+            const frame = document.querySelector('[data-pb-canvas]');
+            const doc = frame.contentDocument;
+            const el = doc.querySelector(`[data-bx-key="${k}"] [data-bx-field="${path}"]`);
+            const panel = document.querySelector('[data-pb-link]');
+            if (!panel) { return { panel: false }; }
+            const f = frame.getBoundingClientRect();
+            const s = window.pb.canvas.scale;
+            const r = el.getBoundingClientRect();
+            const a = { left: f.left + r.left * s, right: f.left + r.right * s, top: f.top + r.top * s, bottom: f.top + r.bottom * s };
+            const p = panel.getBoundingClientRect();
+            const bar = doc.querySelector('.bx-toolbar-block');
+            return {
+              panel: true,
+              words: panel.querySelector('[data-pb-link-text]').value,
+              shown: el.innerText.trim(),
+              over: p.left < a.right && a.left < p.right && p.top < a.bottom && a.top < p.bottom,
+              bar: bar ? getComputedStyle(bar).visibility : 'none',
+            };
+          }, l.key, l.path);
+          if (!seen.panel) { bad.push(`${l.type} ${l.path}: no popover`); } else {
+            if (seen.words !== seen.shown) { bad.push(`${l.type} ${l.path}: "${seen.words}" for "${seen.shown}"`); }
+            if (seen.over) { bad.push(`${l.type} ${l.path}: the popover over its words`); }
+            if (seen.bar === 'visible') { bad.push(`${l.type} ${l.path}: the block's toolbar shown`); }
+          }
+          if (l.type === 'hero') { await shot(report, page, '03e-hero-button'); }
+          await page.keyboard.press('Escape');
+          await page.mouse.click(10, 10);
+          await wait(400);
+        }
+        // A link at the foot of the window: no room under it, so the popover stands above it.
+        const low = links[links.length - 1];
+        const point = await page.evaluate((k, path) => {
+          const frame = document.querySelector('[data-pb-canvas]');
+          const el = frame.contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-field="${path}"]`);
+          el.scrollIntoView({ block: 'end' });
+          const f = frame.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          const s = window.pb.canvas.scale;
+          return { x: f.left + (r.left + r.width / 2) * s, y: f.top + (r.top + r.height / 2) * s };
+        }, low.key, low.path);
+        await page.mouse.click(point.x, point.y);
+        await page.waitForSelector('[data-pb-link]', { timeout: 5000 }).catch(() => {});
+        await wait(500);
+        const foot = await page.evaluate((k, path) => {
+          const frame = document.querySelector('[data-pb-canvas]');
+          const r = frame.contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-field="${path}"]`).getBoundingClientRect();
+          const f = frame.getBoundingClientRect();
+          const s = window.pb.canvas.scale;
+          const panel = document.querySelector('[data-pb-link]');
+          if (!panel) { return null; }
+          const p = panel.getBoundingClientRect();
+          return { above: p.bottom <= f.top + r.top * s, panelBottom: Math.round(p.bottom), wordsTop: Math.round(f.top + r.top * s), window: window.innerHeight };
+        }, low.key, low.path);
+        await shot(report, page, '03f-link-at-the-foot');
+        report.verdict('a link at the foot of the window has its popover above it', foot !== null && foot.above, JSON.stringify(foot));
+        await page.keyboard.press('Escape');
+        await page.mouse.click(10, 10);
+        await wait(400);
+        const back = await page.evaluate((k) => { window.pb.select('block', k); return null; }, links[0] ? links[0].key : null);
+        await wait(400);
+        const bar = await page.evaluate(() => { const b = document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-toolbar-block'); return b ? getComputedStyle(b).visibility : 'none'; });
+        report.verdict(`every link on the page: the popover has the element's own words, stands beside them, and the block's toolbar is away while it is open (${links.length}: ${links.map((l) => l.type).join(', ')})`,
+          links.length >= 3 && bad.length === 0 && back === null, bad.join(' | ') || 'all as said');
+        report.verdict('the block\'s toolbar is back once the popover closes', bar === 'visible', bar);
+        await page.evaluate(() => window.pb.select(null));
+      }
+
       // ---- a link: its words and where it leads ------------------------------------------------------
       await clickInCanvas(page, `[data-bx-key="${hero}"] [data-bx-field="cta"]`);
       await wait(600);
@@ -110,6 +191,9 @@ export default {
       await page.select('[data-pb-link] select', third);
       await wait(300);
       const refilled = await words();
+      // The button on the page says what the popover says (D-183): the title filled in stood
+      // only in the popover while the button kept its old words.
+      const onPage = await page.evaluate((k) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-field="cta"]`).innerText.trim(), hero);
       const title = await page.evaluate((ref) => (window.pb.data.inline.pages.find((p) => p.ref === ref) || {}).title, third);
       await shot(report, page, '03b-link-text');
       // And never over words it holds, even a title an earlier page filled in (D-183).
@@ -118,7 +202,10 @@ export default {
       const again = await words();
       report.verdict('the popover has the link\'s words; a page fills them only when empty, never over words, and Done waits for words',
         kept.text !== '' && kept.done && !emptied.done && refilled.text === title && refilled.done && again.text === title, JSON.stringify({ kept, emptied, refilled, title, again }));
+      report.verdict('the words filled in from a page are the button\'s words on the page too', onPage === title, JSON.stringify({ onPage, title }));
       await page.keyboard.press('Escape');
+      await page.mouse.click(10, 10);
+      await wait(400);
 
       // ---- an empty field, a card added and taken away ---------------------------------------------------
       await clickInCanvas(page, `[data-bx-key="${cards}"] .cards-heading`);

@@ -5,9 +5,9 @@
  * reference (`page:3`, D-034), so the link follows the page wherever it moves.
  *
  * In the admin's own document, over the canvas, and in the admin's own fields and buttons
- * (D-179): a form the inspector would draw, not a control of the page's. It is placed under
- * the words where the scaled canvas shows them, and placed again when the page scrolls or is
- * drawn again.
+ * (D-179): a form the inspector would draw, not a control of the page's. It is placed by the
+ * words where the scaled canvas shows them, never over them, and placed again when the page
+ * scrolls or is drawn again. While it is open the block's toolbar is put away (D-183).
  */
 (function () {
   'use strict';
@@ -26,14 +26,25 @@
     return node;
   }
 
+  /** The block's toolbar put away while the popover is open, back when it closes. */
+  function linking(on) {
+    var layer = pb.overlay.layer();
+    if (layer) { layer.classList.toggle('is-linking', on); }
+  }
+
   function close() {
     if (open) {
       open.panel.remove();
       open = null;
+      linking(false);
     }
   }
 
-  /** Under the words, where the scaled canvas shows them; above them when there is no room. */
+  /**
+   * NEVER OVER THE WORDS IT EDITS (D-183), where the scaled canvas shows them: under them, at
+   * their start; above them; beside them, right then left, level with them; and only when the
+   * window has room for none of these, under them all the same.
+   */
   function place() {
     if (!open) {
       return;
@@ -42,18 +53,28 @@
       close();
       return;
     }
+    linking(true);
     var frame = document.querySelector('[data-pb-canvas]').getBoundingClientRect();
     var scale = pb.canvas.scale || 1;
     var r = open.anchor.getBoundingClientRect();
+    var a = { top: frame.top + r.top * scale, bottom: frame.top + r.bottom * scale, left: frame.left + r.left * scale, right: frame.left + r.right * scale };
     var panel = open.panel;
+    var h = panel.offsetHeight;
+    var w = panel.offsetWidth;
     var gap = 8;
-    var top = frame.top + (r.top + r.height) * scale + gap;
-    if (top + panel.offsetHeight > window.innerHeight - gap) {
-      top = Math.max(gap, frame.top + r.top * scale - panel.offsetHeight - gap);
-    }
-    var left = Math.min(frame.left + r.left * scale, window.innerWidth - panel.offsetWidth - gap);
-    panel.style.top = top + 'px';
-    panel.style.left = Math.max(gap, left) + 'px';
+    var high = window.innerHeight - gap;
+    var wide = window.innerWidth - gap;
+    function along(left) { return Math.max(gap, Math.min(left, wide - w)); }
+    function level(top) { return Math.max(gap, Math.min(top, high - h)); }
+    var places = [
+      { top: a.bottom + gap, left: along(a.left), fits: a.bottom + gap + h <= high },
+      { top: a.top - gap - h, left: along(a.left), fits: a.top - gap - h >= gap },
+      { top: level(a.top), left: a.right + gap, fits: a.right + gap + w <= wide },
+      { top: level(a.top), left: a.left - gap - w, fits: a.left - gap - w >= gap },
+    ];
+    var at = places.filter(function (p) { return p.fits; })[0] || { top: level(places[0].top), left: places[0].left };
+    panel.style.top = at.top + 'px';
+    panel.style.left = at.left + 'px';
   }
 
   /**
@@ -151,6 +172,9 @@
     return panel;
   }
 
+  /** A link's words as the page shows them, on one line. */
+  function shown(anchor) { return anchor.innerText.replace(/\s*\n\s*/g, ' '); }
+
   /** A link field's address and words, the words also typed where they are shown. */
   pb.inline.link = function (anchor, block, path) {
     var now = pb.inline.get(block, path) || { label: '', url: '' };
@@ -161,9 +185,11 @@
       link.url = url;
       if (link.label !== text) {
         link.label = text;
-        // The words on the page follow, unless they are the ones being typed.
-        if (anchor.ownerDocument.activeElement !== anchor) { anchor.textContent = text; }
       }
+      // The words on the page are always the popover's (D-183): a page's title filled in
+      // while the words were being typed in place stood only in the popover. Words typed in
+      // place are already the same, and are left alone with their caret.
+      if (shown(anchor) !== text) { anchor.textContent = text; }
       pb.inline.write(b, path, link);
     }, function () {
       pb.inline.check(block.key);
@@ -179,7 +205,7 @@
     anchor.addEventListener('input', function () {
       var words = document.querySelector('[data-pb-link] [data-pb-link-text]');
       if (words && open && open.anchor === anchor) {
-        words.value = anchor.innerText.replace(/\s*\n\s*/g, ' ');
+        words.value = shown(anchor);
         words.dispatchEvent(new Event('input'));
       }
     });

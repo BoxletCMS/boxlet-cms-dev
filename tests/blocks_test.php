@@ -187,19 +187,25 @@ test('rendering escapes content and puts type and layout classes on the wrapper'
     assertContains('<a class="button" href="/go">Go</a>', $html, 'button');
 });
 
-// The architect's hero ruling, 2026-09-17. image_text has always drawn its placeholder
-// unconditionally — only data-media-id depends on a picture being chosen — while hero drew
-// no media element at all, so a layout that had reserved half the section for a picture
-// left it empty. Seen on the demo's /services once the seed stopped shipping media ids.
-test('a hero layout that reserves a picture area always draws the placeholder', function () {
+// The architect's hero ruling, 2026-09-17, changed deliberately by the owner's review of
+// phase 6 (D-182): a split hero with no picture is words alone on a visitor's page — no
+// empty column — and only the canvas keeps the place for the picture, saying "+ Add
+// picture". A picture chosen and since lost keeps its placeholder, as before.
+test('a split hero with no picture is words alone, with the place for one in the canvas only', function () {
     $blocks = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
 
-    $splitEmpty = $blocks->render('hero', ['heading' => 'x'], [], 'split');
-    assertContains('hero-media', $splitEmpty, 'split with no picture draws no media area');
-    assertContains('media-placeholder', $splitEmpty, 'split with no picture draws no placeholder');
-    assertTrue(!str_contains($splitEmpty, 'data-media-id'), 'a placeholder with no picture claims a media id');
+    $alone = $blocks->render('hero', ['heading' => 'x'], [], 'split');
+    assertTrue(!str_contains($alone, 'hero-media'), 'a visitor\'s split hero with no picture draws a column for one');
+    assertContains('is-alone', $alone, 'and is drawn as words alone');
 
-    assertContains('data-media-id="7"', $blocks->render('hero', ['heading' => 'x', 'image' => 7], [], 'split'), 'split with a picture');
+    $canvas = \App\Support\Editing::during(true, static fn (): string => $blocks->render('hero', ['heading' => 'x'], [], 'split'));
+    assertContains('class="hero-media is-empty" data-bx-field="image"', $canvas, 'the canvas keeps the place, pressed for the picker');
+    assertContains(e(t('builder.inline.add_picture')), $canvas, 'saying what it is for');
+    assertTrue(!str_contains($canvas, 'is-alone'), 'and draws the two columns');
+
+    $lost = $blocks->render('hero', ['heading' => 'x', 'image' => 7], [], 'split');
+    assertContains('data-media-id="7"', $lost, 'a picture chosen and gone keeps its placeholder');
+    assertTrue(!str_contains($lost, 'is-alone'), 'and its column');
 
     // A layout that reserves nothing draws nothing: a centred hero has no picture area.
     $centred = $blocks->render('hero', ['heading' => 'x'], [], 'center');

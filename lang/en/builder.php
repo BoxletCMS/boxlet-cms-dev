@@ -78,6 +78,7 @@ return [
     'builder.inline.item_after' => 'Move it after the one after',
     'builder.inline.link_title' => 'Where it leads',
     'builder.inline.link_text' => 'Link text',
+    'builder.inline.add_picture' => '+ Add picture',
     'builder.inline.link_page' => 'A page',
     'builder.inline.link_other' => 'Another address…',
     'builder.inline.link_url' => 'Address',

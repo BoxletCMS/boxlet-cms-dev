@@ -183,7 +183,11 @@ final class SectionRender
     {
         $composed = Composition::section($character, array_map(static fn (array $block): string => (string) $block['type'], $blocks));
         foreach ($blocks as $block) {
-            if (($block['type'] ?? '') === 'hero' && ($block['layout'] ?? '') === 'split' && in_array($composed['width'] ?? 'normal', ['narrow', 'normal'], true)) {
+            // With a picture to stand beside; without one a split hero is words alone, drawn as
+            // Left is, at the character's own measure (D-182). In the canvas it keeps the place
+            // for the picture it has not got, so it is wide there either way.
+            $picture = is_array($block['content'] ?? null) && ($block['content']['image'] ?? null) !== null;
+            if (($block['type'] ?? '') === 'hero' && ($block['layout'] ?? '') === 'split' && ($picture || \App\Support\Editing::on()) && in_array($composed['width'] ?? 'normal', ['narrow', 'normal'], true)) {
                 $composed['width'] = 'wide';
             }
         }

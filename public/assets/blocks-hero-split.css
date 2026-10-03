@@ -47,10 +47,24 @@
   object-fit: cover;
 }
 
-/* A split hero always has a media element now, whether or not a picture has been chosen,
-   so the rules that re-flowed one WITHOUT it have gone rather than staying as selectors
-   that can no longer match. What they did — heading in one column, subheading and button
-   in the other — avoided an empty half but still left the lower part of the section dead. */
+/* WITH NO PICTURE, WORDS ALONE (D-182): on a visitor's page a split hero that has none draws
+   no column for it, and its words take the column as Left's do, at Left's display size. */
+.layout-split .hero.is-alone {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.layout-split .is-alone .hero-text {
+  container-type: normal;
+}
+
+.layout-split .is-alone .hero-heading {
+  --hero-size: min(var(--text-4xl), calc(1rem + 4.6vw));
+}
+
+/* With a picture, or in the canvas, a split hero always has its media element, so the old
+   rules that re-flowed one WITHOUT it are gone. What they did — heading in one column,
+   subheading and button in the other — avoided an empty half but still left the lower part
+   of the section dead. */
 
 /* Stacked on a phone, the picture takes its own proportions again. */
 @media (max-width: 40rem) {

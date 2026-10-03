@@ -382,6 +382,18 @@ main > .block:first-child {
   margin-inline: auto;
 }
 
+/* Centred, a block keeps its column's width: in a grid, auto margins alone size an item to
+   its content, and a split hero in a centred band stood 410px wide in a 1120px column, its
+   words 194px (D-182, measured on the demo's page of every block). A block with a measure
+   of its own is still centred by the margins; its words by text-align. */
+.align-center .section-column > .block-hero,
+.align-center .section-column > .block-image_text,
+.align-center .section-column > .block-form,
+.align-center .section-column > .block-cta {
+  box-sizing: border-box;
+  inline-size: 100%;
+}
+
 /* Below the width two columns of words can hold, the columns become rows.
 
    64rem and not 40rem: the question is not whether this is a phone but whether a column

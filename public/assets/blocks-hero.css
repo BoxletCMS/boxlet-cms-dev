@@ -51,6 +51,12 @@
   margin: var(--space-xs) 0 0;
 }
 
+/* In a centred band, a left-ranged hero's parts are centred with its words: the lead keeps
+   its own measure, and stood at the start of the column under a centred heading (D-182). */
+.align-center .hero-text {
+  justify-items: center;
+}
+
 .layout-center .hero,
 .layout-center .hero-text {
   justify-items: center;

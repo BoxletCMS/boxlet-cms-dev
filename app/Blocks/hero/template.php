@@ -28,7 +28,14 @@ if ($cover) {
     $coverTag = \App\Modules\Media\MediaPicture::tag($coverPicture, ['wide', 'hero', 'full'], '100vw', $eager);
 }
 ?>
-<div class="hero height-<?= e($options['height']) ?><?= $cover ? ' is-cover veil-' . e($options['veil']) : '' ?>">
+<?php
+/* A SPLIT HERO WITH NO PICTURE (D-182) is words alone on a visitor's page, drawn as Left is,
+   with no empty column beside them. In the canvas the place for the picture stays, saying
+   "+ Add picture", and pressing it opens the picker. A picture chosen and since lost keeps its
+   placeholder, as it did: that is a picture missing, not one never chosen. */
+$alone = $layout === 'split' && $content['image'] === null;
+?>
+<div class="hero height-<?= e($options['height']) ?><?= $cover ? ' is-cover veil-' . e($options['veil']) : '' ?><?= $alone && !\App\Support\Editing::on() ? ' is-alone' : '' ?>">
 <?php if ($cover): ?>
     <div class="hero-cover-picture"<?= edit_attr('image') ?><?= $coverTag === '' && $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?>>
 <?php if ($coverTag !== ''): ?>
@@ -54,7 +61,7 @@ if ($cover) {
 
    A list rather than "always", because a layout that reserves nothing should draw nothing:
    a centred hero has no picture area to fill. */
-$reservesPictureArea = in_array($layout, ['split'], true);
+$reservesPictureArea = in_array($layout, ['split'], true) && !($alone && !\App\Support\Editing::on());
 
 // hero and full: a hero picture can be asked to fill the whole column, so the largest
 // preset it offers is the biggest one that exists (SPEC §5.5).
@@ -62,9 +69,12 @@ $picture = is_int($content['image'] ?? null) ? ($media[$content['image']] ?? nul
 $tag = \App\Modules\Media\MediaPicture::tag($picture, ['hero', 'full'], '(max-width: 40rem) 100vw, 50vw', $eager);
 ?>
 <?php if (!$cover && ($reservesPictureArea || $content['image'] !== null)): ?>
-    <div class="hero-media"<?= edit_attr('image') ?>>
+    <div class="hero-media<?= $alone ? ' is-empty' : '' ?>"<?= edit_attr('image') ?>>
 <?php if ($tag !== ''): ?>
         <?= $tag ?>
+<?php elseif ($alone): ?>
+        <?php /* Only ever in the canvas: a visitor's split hero with no picture has no column. */ ?>
+        <span class="hero-add-picture"><?= e(t('builder.inline.add_picture')) ?></span>
 <?php else: ?>
         <div class="media-placeholder"<?= $content['image'] !== null ? ' data-media-id="' . e($content['image']) . '"' : '' ?> aria-hidden="true"></div>
 <?php endif; ?>

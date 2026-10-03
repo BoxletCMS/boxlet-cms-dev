@@ -184,3 +184,20 @@
   background: var(--bx-select);
   box-shadow: 0 0 0 2px var(--bx-ink);
 }
+
+/* A SPLIT HERO'S PICTURE NOT YET CHOSEN (D-182): in the canvas only, the place for it, said in
+   words and pressed to open the picker; dashed as every empty place is (.is-empty above). A
+   visitor's page draws no column for it. */
+.bx-canvas .hero-media.is-empty {
+  display: grid;
+  place-items: center;
+}
+
+.bx-canvas .hero-add-picture {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--bx-paper);
+  border-radius: 999px;
+  background: var(--bx-ink);
+  color: var(--bx-paper);
+  font: 500 calc(0.8125rem * var(--bx-z, 1))/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}

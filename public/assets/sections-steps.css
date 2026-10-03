@@ -150,6 +150,18 @@
   flex-direction: column;
 }
 
+/* The band's content keeps the band's measure: in a flex column the container's auto margins
+   would otherwise shrink it to its words, and a heading and its paragraph stood 179px wide in
+   a band 960px across (D-182, measured on the demo's page of every block). */
+.v-top > .container,
+.v-center > .container,
+.v-bottom > .container {
+  box-sizing: border-box;
+  inline-size: 100%;
+  /* The same measure as any band's: the section's width, and the container's own padding. */
+  max-inline-size: calc(var(--section-width) + 2 * var(--space-l));
+}
+
 .v-center {
   justify-content: center;
 }

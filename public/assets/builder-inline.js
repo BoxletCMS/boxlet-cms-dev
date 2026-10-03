@@ -193,12 +193,31 @@
     }
   }
 
+  /*
+   * ONE SELECTION ON SCREEN (D-185, the owner): the canvas and the inspector are two documents,
+   * and each kept its own selection when the other was written in — a word still marked on
+   * the page while Link text spoke of the inspector's. Whichever takes the focus, the other's
+   * selection is let go.
+   */
+  function letGo(doc) {
+    var selection = doc && doc.getSelection ? doc.getSelection() : null;
+    if (selection && selection.rangeCount > 0) { selection.removeAllRanges(); }
+  }
+  document.addEventListener('focusin', function (event) {
+    if (event.target.closest && event.target.closest('[data-pb-inspector]')) { letGo(pb.canvas.doc()); }
+  });
+
   pb.on('canvas', function () {
     var doc = pb.canvas.doc();
     if (!doc || doc.__bxInline) { return; }
     doc.__bxInline = true;
     doc.addEventListener('mousedown', onDown, true);
     doc.addEventListener('click', onClick, true);
+    doc.addEventListener('focusin', function () {
+      var selection = document.getSelection();
+      var at = selection && selection.anchorNode ? selection.anchorNode : null;
+      if (at && (at.nodeType === 1 ? at : at.parentElement).closest('[data-pb-inspector]')) { letGo(document); }
+    });
   });
 
   // check(), what the server says is wrong, is builder-inline-errors.js's.

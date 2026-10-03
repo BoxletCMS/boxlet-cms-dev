@@ -383,6 +383,8 @@ export default {
         await page.mouse.click(at.x, at.y, { count: 2 });
         await wait(300);
         const chosen = await page.evaluate(() => document.getSelection().toString().trim());
+        // One selection on screen (D-185): the page's own let go when the inspector took it.
+        const onPage = await page.evaluate(() => document.querySelector('[data-pb-canvas]').contentDocument.getSelection().toString());
         await page.click('[data-pb-inspector] [data-richtext] [data-rt="link"]');
         await wait(300);
         const panel = await page.evaluate(() => {
@@ -433,6 +435,14 @@ export default {
           panel !== null && chosen.length > 1 && panel.text === chosen && !panel.apply && panel.labels.join('|') === 'Link text|A page|Address'
             && kept.text === chosen && kept.apply && again.text === chosen && emptied.text === '' && !emptied.apply
             && inLink !== null && reopened !== null && reopened.text === inLink.words, JSON.stringify({ chosen, panel, kept, again, emptied, inLink: inLink && inLink.words, reopened }));
+        report.verdict('one selection on screen: a word selected in the inspector leaves none on the page', onPage === '', JSON.stringify({ chosen, onPage }));
+        // And back on the page: the inspector's selection is let go.
+        await page.keyboard.press('Escape');
+        const textKey2 = await blockKey(page, 'text');
+        await clickInCanvas(page, `[data-bx-key="${textKey2}"] [data-bx-field="heading"]`);
+        await wait(500);
+        const inInspector = await page.evaluate(() => { const s = document.getSelection(); return s.rangeCount > 0 && s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement).closest('[data-pb-inspector]') ? s.toString() || '(a caret)' : ''; });
+        report.verdict('one selection on screen: pressing into the page lets the inspector\'s go', inInspector === '', JSON.stringify({ inInspector }));
         report.verdict('the rich text field and its link panel never widen the inspector (closed, open, a page, the longest page, a narrow window)', wide.length === 0, wide.join(' | ') || 'none wider');
         await page.keyboard.press('Escape');
         await page.evaluate(() => window.pb.select(null));

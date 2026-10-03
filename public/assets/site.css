@@ -90,7 +90,8 @@ body {
 .text-link a {
   color: var(--section-link);
   font-weight: 700;
-  text-decoration: none;
+  /* Unlined, unless the link has the text's own colour (--link-line, D-185). */
+  text-decoration: var(--link-line, none);
 }
 
 .text-link a:is(:hover, :focus-visible) {

@@ -69,6 +69,10 @@ final class Derived
                 'width' => CssNumber::of((float) $resolved['border_width']) . 'px',
                 'card' => $resolved['shadow'] === 'hard' ? CssNumber::of(max(2.0, (float) $resolved['border_width'])) . 'px' : '0px',
             ],
+            // A link in the text's own colour is told apart by its line (D-185): a dark page's
+            // link from a seed with almost no hue is the text's ink, and a standalone link
+            // (.text-link), bold and unlined elsewhere, is underlined then.
+            'link' => ['line' => $colors['link'] === $colors['text'] ? 'underline' : 'none'],
             'button' => [
                 'height' => CssNumber::rem((float) $resolved['button_height']),
                 'transform' => $resolved['button_caps'] === 'yes' ? 'uppercase' : 'none',

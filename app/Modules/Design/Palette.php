@@ -140,12 +140,13 @@ final class Palette
          * refused dark mode under all five. The links and the buttons take a lighter variant,
          * the same hue walked up in OKLCH until it reads at 4.5:1 on the page, a card and the
          * tinted surface, as a muted ink is walked; a link colour set by hand the same. A seed
-         * that already reads is kept as it is. The gradient keeps the seed.
+         * that already reads is kept as it is; one with almost no hue takes the text's light
+         * ink instead (D-185). The gradient keeps the seed.
          */
         if ($dark) {
             $grounds = [$colors['background'], $colors['card'], $colors['surface']];
-            $colors['accent'] = PaletteInks::lifted($colors['accent'], $grounds);
-            $colors['link'] = PaletteInks::lifted($colors['link'], $grounds);
+            $colors['accent'] = PaletteInks::lifted($colors['accent'], $grounds, $colors['text']);
+            $colors['link'] = PaletteInks::lifted($colors['link'], $grounds, $colors['text']);
         }
 
         $colors['on-accent'] = PaletteInks::readableOn([$colors['accent']], $colors);

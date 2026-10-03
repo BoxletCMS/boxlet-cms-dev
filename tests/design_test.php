@@ -30,7 +30,7 @@ function expectedProperties(): array
         ['font-heading', 'font-body', 'heading-weight', 'heading-tracking', 'heading-transform', 'body-weight', 'leading-body', 'leading-heading'],
         array_map(static fn (string $s): string => "text-{$s}", ['sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', 'small']),
         array_map(static fn (string $s): string => "space-{$s}", ['xs', 's', 'm', 'l', 'xl', '2xl', '3xl']),
-        ['radius-s', 'radius-m', 'radius-l', 'radius-button', 'shadow-s', 'shadow-m', 'shadow-l', 'shadow-edge', 'border-width', 'border-card', 'container-width', 'container-narrow', 'container-wide', 'veil-least'],
+        ['radius-s', 'radius-m', 'radius-l', 'radius-button', 'shadow-s', 'shadow-m', 'shadow-l', 'shadow-edge', 'border-width', 'border-card', 'container-width', 'container-narrow', 'container-wide', 'veil-least', 'link-line'],
     );
 }
 
@@ -144,6 +144,18 @@ test('in dark mode every character passes, its links and buttons a lighter varia
         $light = Palette::forDecisions(Presets::get($name));
         assertEquals(Color::normalizeHex($dark['seed']), $light['accent'], "{$name}: a light page keeps the seed");
     }
+
+    // A seed with almost no hue goes to the text's ink, not to a middle grey (D-185, the
+    // owner): Minimal's slate lifted was #778090, and a button of it looked disabled.
+    $minimal = Presets::get('minimal');
+    $minimal['mode'] = 'dark';
+    $colors = Palette::forDecisions($minimal);
+    assertEquals($colors['text'], $colors['accent'], 'Minimal in dark mode: the buttons take the text\'s ink');
+    assertEquals($colors['text'], $colors['link'], 'and the links');
+    assertTrue(Color::contrast($colors['on-accent'], $colors['accent']) >= 7.0, 'a light button with dark words');
+    $css = (new TokenCompiler())->css(Derived::from(Tokens::resolve($minimal)));
+    assertContains('--link-line: underline;', $css, 'a link in the text\'s colour is underlined');
+    assertContains('--link-line: none;', (new TokenCompiler())->css(Derived::from(Tokens::resolve(Presets::get('minimal')))), 'and in the main colour it is not');
 
     $byHand = Presets::get('minimal');
     $byHand['mode'] = 'dark';

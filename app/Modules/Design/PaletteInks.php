@@ -13,6 +13,9 @@ namespace App\Modules\Design;
  */
 final class PaletteInks
 {
+    /** OKLCH chroma under which a colour reads as a grey (D-185, the owner's threshold). */
+    public const NEUTRAL = 0.03;
+
     /**
      * THE INK FOR A SURFACE THE PALETTE DID NOT CHOOSE (PLAN.md D-076).
      *
@@ -92,15 +95,24 @@ final class PaletteInks
      * when it already does. At the top of the range it is as light as it goes, and the check
      * refuses what still fails.
      *
+     * A COLOUR WITH ALMOST NO HUE GOES TO THE TEXT'S INK instead (D-185, the owner): walked up,
+     * Minimal's slate came out a middle grey, and a button of it looked disabled. Under
+     * NEUTRAL chroma a dark page's links and buttons take `$ink`, the page's own light text: a
+     * light button with dark words, and a link in the text's colour, which the stylesheet
+     * then underlines (Derived, --link-line).
+     *
      * @param non-empty-list<string> $grounds
      */
-    public static function lifted(string $color, array $grounds): string
+    public static function lifted(string $color, array $grounds, string $ink = ''): string
     {
         $worst = static fn (string $c): float => min(array_map(static fn (string $g): float => Color::contrast($c, $g), $grounds));
         if ($worst($color) >= Palette::AA_BODY) {
             return $color;
         }
         [$lightness, $chroma, $hue] = Color::toOklch($color);
+        if ($chroma < self::NEUTRAL && $ink !== '') {
+            return $ink;
+        }
         $lifted = $color;
         for ($at = $lightness + 0.02; $at <= 1.0; $at += 0.02) {
             $lifted = Color::fromOklch($at, $chroma, $hue);

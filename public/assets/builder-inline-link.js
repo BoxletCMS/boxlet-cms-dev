@@ -60,9 +60,8 @@
    * The popover under `anchor`, showing `url` and the link's words, `text` (D-182: "Link
    * text", for a page and for another address alike). `onChange(url, text)` is told every
    * change; `onDone(url, text)` when it closes. `onRemove`, when given, offers taking the link
-   * away. Choosing a page fills the words with its title when there are none, or when they
-   * are still the title the last page chosen filled them with: words the owner wrote are
-   * never written over. Done waits for both words and an address.
+   * away. Choosing a page fills the words with its title only when there are none (D-183):
+   * the words are never written over. Done waits for both words and an address.
    */
   function picker(anchor, url, onChange, onDone, onRemove, text) {
     close();
@@ -107,7 +106,6 @@
     select.value = isPage ? url : '';
     input.value = isPage ? '' : (url || '');
     urlField.hidden = isPage;
-    var filled = isPage && select.selectedOptions[0] ? select.selectedOptions[0].getAttribute('data-title') : null;
 
     var row = el('div', 'pb-link-actions');
     var done = el('button', 'button button-secondary', pb.t('inline.link_done'));
@@ -129,9 +127,8 @@
     select.addEventListener('change', function () {
       urlField.hidden = select.value !== '';
       var title = select.value !== '' ? select.selectedOptions[0].getAttribute('data-title') : null;
-      if (title !== null && (words.value.trim() === '' || words.value === filled)) {
+      if (title !== null && words.value.trim() === '') {
         words.value = title;
-        filled = title;
       }
       changed();
     });

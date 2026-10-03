@@ -4,8 +4,8 @@
  *
  * THE WORDS ("Link text"): the selection's, or the whole link the caret is in. Changed, or
  * typed with nothing selected, they are put in as the link; a page chosen fills them with its
- * title when there are none, or when they are still the title the last page filled them with,
- * so words the owner wrote are never written over. Link waits for both words and an address.
+ * title only when there are none (D-183), so the words are never written over. Link waits for
+ * both words and an address.
  *
  * Editing a link without stealing the selection: the selection lives in the editor's state,
  * not in the browser, so moving focus to an input does not disturb it. extendMarkRange('link')
@@ -21,7 +21,6 @@
     var words = link.querySelector('.rt-link-text');
     var apply = link.querySelector('[data-rt-link="apply"]');
     var range = null;
-    var filled = null;
 
     function href() {
       return page && page.value !== '' ? page.value : input.value.trim();
@@ -46,7 +45,6 @@
       if (page) { page.value = offered ? now : ''; }
       input.value = offered ? '' : now;
       if (words) { words.value = editor.state.doc.textBetween(range.from, range.to, ' '); }
-      filled = null;
       ready();
       (words && words.value === '' ? words : (offered ? page : input)).focus();
     }
@@ -87,9 +85,8 @@
       page.addEventListener('change', function () {
         var option = page.options[page.selectedIndex];
         var title = page.value !== '' && option ? option.getAttribute('data-title') : null;
-        if (words && title && (words.value.trim() === '' || words.value === filled)) {
+        if (words && title && words.value.trim() === '') {
           words.value = title;
-          filled = title;
         }
         ready();
       });

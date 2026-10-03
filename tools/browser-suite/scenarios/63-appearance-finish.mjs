@@ -123,13 +123,17 @@ export default {
       await page.keyboard.type(words, { delay: 20 });
       await wait(300);
       return page.evaluate(() => ({
-        rows: [...document.querySelectorAll('.inspector-section:not([hidden]) .control-row:not([data-search-miss])')].map((r) => r.getAttribute('data-control')),
+        // What is SHOWN: every control with a box, and anything else shown beside them.
+        rows: [...document.querySelectorAll('.inspector-section:not([hidden]) [data-control]')].filter((r) => r.getBoundingClientRect().height > 0).map((r) => r.getAttribute('data-control')),
+        own: [...document.querySelectorAll('.inspector-section:not([hidden]) .own-colour')].filter((r) => r.getBoundingClientRect().height > 0).length,
         none: !document.querySelector('[data-search-none]').hidden,
         state: document.querySelector('[data-state]').textContent.trim(),
       }));
     };
     const corners = await find('corners');
     report.verdict('search finds a control by its name, in every section it is in', corners.rows.includes('radius') && corners.rows.includes('button_radius') && !corners.none, JSON.stringify(corners));
+    // Only the controls found (D-182): "Or a colour of your own" stood under "Sheet corners".
+    report.verdict('and shows only the controls found, no other beside them', corners.own === 0 && corners.rows.every((r) => /radius/.test(r)), JSON.stringify(corners));
     await report.shot(page, '02-search', { fullPage: false });
     const sticky = await find('sticky');
     report.verdict('and by the words of its choices', sticky.rows.includes('header_behaviour'), JSON.stringify(sticky));

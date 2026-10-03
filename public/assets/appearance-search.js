@@ -33,8 +33,31 @@
   /** What a row is found by: its label and choices, not its readout, and its keywords. */
   function said(row) {
     var copy = row.cloneNode(true);
-    [].forEach.call(copy.querySelectorAll('.readout, .control-reset, .visually-hidden'), function (n) { n.remove(); });
+    [].forEach.call(copy.querySelectorAll('.readout, .control-reset, .visually-hidden, .role-value, .role-derived'), function (n) { n.remove(); });
     return words(copy) + ' ' + (keywords[row.getAttribute('data-control')] || '').toLowerCase();
+  }
+
+  /**
+   * ONLY THE CONTROLS FOUND, AND WHAT HOLDS THEM (D-182). Every control is something with a
+   * key (`data-control`): a row, or a colour of the owner's own, which is not a row. Inside a
+   * group, a control that matches stays, with what holds it; everything else — another
+   * control, a hint, a diagram — is put away. "Or a colour of your own" stood under "Sheet
+   * corners" because it was neither a row nor told to go.
+   */
+  function prune(node, hit) {
+    var found = 0;
+    [].forEach.call(node.children, function (child) {
+      if (child.hasAttribute('data-control')) {
+        var yes = hit(child);
+        child.toggleAttribute('data-search-miss', !yes);
+        found += yes ? 1 : 0;
+        return;
+      }
+      var inside = child.querySelector('[data-control]') ? prune(child, hit) : 0;
+      child.toggleAttribute('data-search-miss', inside === 0);
+      found += inside;
+    });
+    return found;
   }
 
   function search(query) {
@@ -52,11 +75,9 @@
       var inSection = 0;
       [].forEach.call(section.querySelectorAll('.control-group'), function (group) {
         var heading = words(group.querySelector('.control-group-title'));
-        var inGroup = 0;
-        [].forEach.call(group.querySelectorAll('.control-row'), function (row) {
-          var hit = (said(row) + ' ' + heading + ' ' + title).indexOf(q) >= 0;
-          row.toggleAttribute('data-search-miss', !hit);
-          inGroup += hit ? 1 : 0;
+        var body = group.querySelector('.control-group-body') || group;
+        var inGroup = prune(body, function (control) {
+          return (said(control) + ' ' + heading + ' ' + title).indexOf(q) >= 0;
         });
         group.toggleAttribute('data-search-miss', inGroup === 0);
         if (inGroup > 0) { group.open = true; }

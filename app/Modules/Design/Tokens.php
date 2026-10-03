@@ -58,7 +58,7 @@ final class Tokens
          * unreadable pair, and this is what refuses it — naming the control at fault.
          */
         $resolved = self::resolve($decisions, $character);
-        foreach (Palette::failures(Palette::forDecisions($resolved), $resolved['secondary'] !== '', self::byHand($resolved), self::ownChrome($resolved)) as $failure) {
+        foreach (PalettePairs::failures(Palette::forDecisions($resolved), $resolved['secondary'] !== '', self::byHand($resolved), self::ownChrome($resolved)) as $failure) {
             $message = t('design.error.contrast', [
                 'pair' => t('design.pair.' . $failure['pair']),
                 'ratio' => number_format($failure['ratio'], 2),

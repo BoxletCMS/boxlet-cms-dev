@@ -10,6 +10,7 @@ use App\Modules\Design\Characters;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Design;
 use App\Modules\Design\Palette;
+use App\Modules\Design\PalettePairs;
 use App\Modules\Design\Vocabulary\Decisions;
 use App\Modules\Design\Tokens;
 use App\Modules\Pages\PageTree;
@@ -81,7 +82,7 @@ final class AppearanceScreen
         [$resolved, $defaults, $shown] = self::shown($values, $basis);
         $published = Design::load($db);
         $colors = Palette::forDecisions($resolved);
-        $pairs = Palette::pairs($colors, $resolved['secondary'] !== '', Tokens::byHand($resolved), Tokens::ownChrome($resolved));
+        $pairs = PalettePairs::pairs($colors, $resolved['secondary'] !== '', Tokens::byHand($resolved), Tokens::ownChrome($resolved));
         $shownLocale = Url::primaryLocale() !== '' ? Url::primaryLocale() : ($this->locales()[0] ?? 'en');
         $lookKeys = array_flip(ChromeLook::keys());
         $characterLook = Characters::look($basis);

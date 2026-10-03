@@ -10,6 +10,7 @@ use App\Modules\Admin\Activity;
 use App\Modules\Design\Characters;
 use App\Modules\Design\Composition;
 use App\Modules\Design\Palette;
+use App\Modules\Design\PalettePairs;
 use App\Modules\Design\Presets;
 use App\Modules\Design\Tokens;
 use App\Modules\Design\Vocabulary\Decisions;
@@ -119,7 +120,7 @@ final class AppearanceActions
         $freed = 0;
         if ($action === 'colour:free:failing') {
             /* ONLY WHAT THE OWNER SET AND WHAT FAILS. A failing pair names the control that
-               can fix it (Palette::pairs), and that is a colour by hand whenever one of its
+               can fix it (PalettePairs::pairs), and that is a colour by hand whenever one of its
                two colours is. Freed one at a time and measured again, because freeing the
                ink can be enough and the background the owner chose should then stay theirs.
                A pair the main colour fails is left: no colour by hand caused it, and the
@@ -158,7 +159,7 @@ final class AppearanceActions
     public static function failingByHand(array $decisions): ?string
     {
         $byHand = Tokens::byHand($decisions);
-        foreach (Palette::failures(Palette::forDecisions($decisions), $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions)) as $failure) {
+        foreach (PalettePairs::failures(Palette::forDecisions($decisions), $decisions['secondary'] !== '', $byHand, Tokens::ownChrome($decisions)) as $failure) {
             if (Overrides::kind($failure['decision']) === 'by_hand' && ($decisions[$failure['decision']] ?? '') !== '') {
                 return $failure['decision'];
             }

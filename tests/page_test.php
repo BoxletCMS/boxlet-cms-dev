@@ -4,7 +4,7 @@
 // the colour around a boxed page.
 //
 // THE POINT OF THESE TESTS IS THE CONTRAST GUARANTEE. A new colour would normally have to
-// join Palette::failures(), because every colour that can sit under text is checked at
+// join PalettePairs::failures(), because every colour that can sit under text is checked at
 // WCAG AA. The page background is exempt for one reason only: no text ever sits on it. That
 // is a claim about geometry, so it is asserted here rather than written down and trusted —
 // if a later change lets a section escape the sheet, this fails instead of the palette

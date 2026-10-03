@@ -7,6 +7,7 @@ use App\Modules\Settings\SiteChrome;
 use App\Modules\Design\Derived;
 use App\Modules\Design\Design;
 use App\Modules\Design\Palette;
+use App\Modules\Design\PalettePairs;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
 use App\Modules\Design\Tokens;
@@ -74,6 +75,50 @@ foreach (Presets::names() as $name) {
         }
     });
 }
+
+// MUTED WORDS READ ON EVERY SURFACE THEY CAN STAND ON (PLAN.md D-183), under every character,
+// light and dark: each surface's muted ink, as sections.css hands it out, on the surface and on
+// a card raised from it; and on a header's or footer's own colour where a character sets one.
+// A card in a contrast band put its muted lines at 3.8–4.5:1 under all five before.
+test('every character\'s muted words read on every surface and on its cards, light and dark', function () {
+    $surfaces = [
+        'plain' => ['muted', ['background', 'card']],
+        'tinted' => ['muted', ['surface', 'background']],
+        'contrast' => ['muted-on-contrast', ['contrast', 'contrast-raised']],
+        'image' => ['on-contrast', ['contrast', 'contrast-raised']],
+        'gradient' => ['on-gradient', ['gradient-start', 'gradient-end']],
+    ];
+    $low = [];
+    $measured = 0;
+    foreach (App\Modules\Design\Characters::CORE as $name) {
+        foreach (['light', 'dark'] as $mode) {
+            $decisions = Presets::get($name);
+            $decisions['mode'] = $mode;
+            $colors = Palette::forDecisions($decisions);
+            foreach ($surfaces as $surface => [$ink, $grounds]) {
+                foreach ($grounds as $ground) {
+                    $measured++;
+                    $ratio = Color::contrast($colors[$ink], $colors[$ground]);
+                    if ($ratio < Palette::AA_BODY) {
+                        $low[] = sprintf('%s %s: %s on %s (%s) %.2f', $name, $mode, $ink, $ground, $surface, $ratio);
+                    }
+                }
+            }
+            foreach (Tokens::ownChrome($decisions) as $part => $own) {
+                $inks = Palette::inksOn($own, $colors);
+                foreach ([$own, $inks['raised']] as $ground) {
+                    $measured++;
+                    $ratio = Color::contrast($inks['muted'], $ground);
+                    if ($ratio < Palette::AA_BODY) {
+                        $low[] = sprintf('%s %s: muted on the %s\'s own %s %.2f', $name, $mode, $part, $ground, $ratio);
+                    }
+                }
+            }
+        }
+    }
+    assertTrue($measured >= 5 * 2 * 10, "pairs measured: {$measured}");
+    assertEquals([], $low, 'muted words under 4.5:1');
+});
 
 // A band's shadow falls straight down in every style: a hard one thrown to the right left a
 // notch of the page at the left end of an edge-to-edge header (Brutalist, D-170).
@@ -233,10 +278,12 @@ test('a missing stylesheet is recompiled on the next request', function () {
 
 test('every pair is measured, and the failures are exactly the ones that do not pass', function () {
     $colors = App\Modules\Design\Palette::colors('#ffe600', '', 20.0);
-    $pairs = App\Modules\Design\Palette::pairs($colors, false);
-    $failures = App\Modules\Design\Palette::failures($colors, false);
+    $pairs = App\Modules\Design\PalettePairs::pairs($colors, false);
+    $failures = App\Modules\Design\PalettePairs::failures($colors, false);
 
-    assertEquals(12, count($pairs), 'pairs measured');
+    // Fourteen since D-183, which added the muted words on a card, on the page and in a
+    // contrast band: the rule widened on purpose, not a count matched to new output.
+    assertEquals(14, count($pairs), 'pairs measured');
     foreach ($pairs as $pair) {
         assertTrue($pair['ratio'] > 0, 'a ratio for ' . $pair['pair']);
         assertEquals($pair['ratio'] >= 4.5, $pair['passes'], 'the verdict for ' . $pair['pair']);
@@ -256,7 +303,8 @@ test('the check endpoint carries every pair, not only the failures', function ()
     $query = http_build_query(designFields(Presets::get('minimal')));
     $result = json_decode(dispatch('/admin/appearance/check?' . $query)->body, true);
 
-    assertEquals(12, count($result['pairs'] ?? []), 'pairs in the response');
+    // 14 since D-183's two muted-on-a-card pairs, on purpose.
+    assertEquals(14, count($result['pairs'] ?? []), 'pairs in the response');
     assertEquals([], $result['errors'] ?? null, 'minimal passes, so no errors');
     foreach ($result['pairs'] as $pair) {
         assertTrue($pair['passes'] === true, $pair['pair'] . ' passes under minimal');
@@ -274,14 +322,14 @@ test('the screen shows the contrast check, and never folds away a pair that fail
     adminSite('sqlite');
     $body = dispatch('/admin/appearance')->body;
 
-    assertEquals(12, substr_count($body, 'class="gauge-row'), 'every pair is listed');
+    assertEquals(14, substr_count($body, 'class="gauge-row'), 'every pair is listed (14 since D-183)');
     assertContains('data-pair="text_on_background"', $body, 'the first pair');
     assertContains('4.5', $body, 'what the rule asks for');
     assertContains('<details class="gauge-more">', $body, 'the list, closed while all pass');
-    assertContains('<span class="contrast-tally" data-contrast-tally>12/12</span>', $body, 'the verdict');
+    assertContains('<span class="contrast-tally" data-contrast-tally>14/14</span>', $body, 'the verdict');
     assertContains('data-contrast-fails hidden', $body, 'no failure said');
 
-    // A grey seed fails three pairs, one of them the eleventh of twelve. The list opens.
+    // A grey seed fails three pairs. The list opens.
     $failing = adminPost('/admin/appearance', designFields(['seed' => '#7f7f7f'] + Presets::get('minimal')) + ['action' => 'save']);
     assertContains('<details class="gauge-more" open>', $failing->body, 'the list, open on a failure');
     assertEquals(3, substr_count($failing->body, 'gauge-row gauge-fails'), 'all three failures listed');
@@ -780,7 +828,7 @@ testBothDrivers('cards have a colour of their own, between the page and a tinted
         'and it is neither the page nor the tinted surface: ' . $colors['card']);
 
     // It is checked like every other surface text can land on.
-    $pairs = array_column(Palette::pairs($colors, false), 'pair');
+    $pairs = array_column(PalettePairs::pairs($colors, false), 'pair');
     assertTrue(in_array('text_on_card', $pairs, true), 'text on a card is measured');
 
     // And the owner may take it over, like the other six.
@@ -841,7 +889,7 @@ testBothDrivers('the header and the footer may take a colour of their own, with 
     }
 
     // And the gauge says so, by name, so a person can see the number rather than trust it.
-    $pairs = array_column(Palette::pairs($colors, false, [], Tokens::ownChrome($stored)), 'pair');
+    $pairs = array_column(PalettePairs::pairs($colors, false, [], Tokens::ownChrome($stored)), 'pair');
     foreach (['text_on_header', 'muted_on_header', 'text_on_footer', 'muted_on_footer'] as $pair) {
         assertTrue(in_array($pair, $pairs, true), $pair . ' is measured');
     }
@@ -916,7 +964,7 @@ testBothDrivers('the page\'s own colour paints what surrounds a boxed page, and 
     // No text sits on it, so it adds nothing to the gauge — the reasoning that has always
     // made this decision harmless.
     $colors = Palette::forDecisions(Tokens::resolve($stored));
-    $pairs = Palette::pairs($colors, false, [], Tokens::ownChrome($stored));
+    $pairs = PalettePairs::pairs($colors, false, [], Tokens::ownChrome($stored));
     foreach ($pairs as $pair) {
         assertTrue(!str_contains($pair['decision'], 'page_background_colour'), 'no pair belongs to the page background');
     }

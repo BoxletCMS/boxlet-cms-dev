@@ -3,8 +3,8 @@
 namespace App\Modules\Design;
 
 /**
- * Derives the whole palette from one or two seed colours, then checks every
- * text/background pair it produces against WCAG AA.
+ * Derives the whole palette from one or two seed colours. Every text/background pair it
+ * produces is measured against WCAG AA by PalettePairs.
  *
  * Seeds are used as given and never nudged to pass: the seed is the accent, the button
  * colour and the link colour, so a seed too light to read as text fails, naming the
@@ -174,11 +174,14 @@ final class Palette
         $text = self::readableOn([$surface], $colors);
         [$inkLightness] = Color::toOklch($text);
         $lightText = $inkLightness > 0.5;
+        $raised = Color::fromOklch($lightness + ($lightText ? 0.06 : -0.06), $chroma, $hue);
 
         return [
             'text' => $text,
-            'muted' => self::muted($surface, $lightness, min($chroma, 0.04), $hue, $lightText),
-            'raised' => Color::fromOklch($lightness + ($lightText ? 0.06 : -0.06), $chroma, $hue),
+            // Read on the surface AND on a card raised from it (D-183): the muted words of a
+            // card in a contrast band stood at 3.8–4.5:1 under all five characters.
+            'muted' => self::muted([$surface, $raised], $lightness, min($chroma, 0.04), $hue, $lightText),
+            'raised' => $raised,
         ];
     }
 
@@ -193,154 +196,29 @@ final class Palette
      * Boxlet refused the two colours anybody is likeliest to choose. That was the derivation
      * being weak, not the choice being bad.
      *
-     * It walks further away until the pair reads, and stops at the first step that does. A
-     * surface already passing at 0.42 is returned at 0.42 — which is every contrast surface
-     * in use today, so nothing that works now moves.
+     * It walks further away until it reads on every one of `$surfaces` — the surface and the
+     * card raised from it, which is the darker of the two under light ink and the lighter
+     * under dark (D-183) — and stops at the first step that does. A surface already passing at
+     * 0.42 is returned at 0.42.
      *
      * When the whole range is exhausted nothing is forced: the last value is returned, the
      * pair fails and the check refuses it, naming the control (D-063). A colour neither of
      * the palette's inks can be read on is a colour Boxlet should say no to.
      */
-    private static function muted(string $surface, float $lightness, float $chroma, float $hue, bool $lighter): string
+    /** @param non-empty-list<string> $surfaces */
+    private static function muted(array $surfaces, float $lightness, float $chroma, float $hue, bool $lighter): string
     {
         $limit = $lighter ? 1.0 : 0.0;
         $muted = Color::fromOklch($lightness + ($lighter ? 0.42 : -0.42), $chroma, $hue);
         for ($step = 0.42; $lighter ? $lightness + $step <= $limit : $lightness - $step >= $limit; $step += 0.02) {
             $muted = Color::fromOklch($lightness + ($lighter ? $step : -$step), $chroma, $hue);
-            if (Color::contrast($muted, $surface) >= self::AA_BODY) {
+            $worst = min(array_map(static fn (string $surface): float => Color::contrast($muted, $surface), $surfaces));
+            if ($worst >= self::AA_BODY) {
                 break;
             }
         }
 
         return $muted;
-    }
-
-    /**
-     * EVERY text/background pair the palette produces, with what it measures and what it
-     * needs. The gauge on the Design screen is this list; failures() is a filter over it.
-     *
-     * One list, because two would drift: for a while the screen could only say "this fails",
-     * which made a palette that passes by a hair look the same as one that passes easily —
-     * and a person cannot aim at a number they are never shown.
-     *
-     * $decision names the choice responsible, so a failure can point at the control that
-     * causes it rather than at the colour it produced.
-     *
-     * @param array<string, string> $colors
-     * @param array<string, string> $byHand the roles the owner set, so a failure names the
-     *        control that can fix it
-     * @param array<string, string> $ownChrome `header` and `footer` => the colour the owner
-     *        gave that part, absent for one still taking a shade of the palette (D-076)
-     * @return list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}>
-     */
-    public static function pairs(array $colors, bool $hasSecondary, array $byHand = [], array $ownChrome = []): array
-    {
-        $contrastDecision = $hasSecondary ? 'secondary' : 'seed';
-        $defined = [
-            ['text_on_background', 'surface_contrast', 'text', 'background'],
-            ['muted_on_background', 'surface_contrast', 'muted', 'background'],
-            ['text_on_card', 'surface_contrast', 'text', 'card'],
-            ['text_on_surface', 'surface_contrast', 'text', 'surface'],
-            ['muted_on_surface', 'surface_contrast', 'muted', 'surface'],
-            ['links_on_background', 'seed', 'link', 'background'],
-            ['links_on_surface', 'seed', 'link', 'surface'],
-            ['button_text_on_accent', 'seed', 'on-accent', 'accent'],
-            ['text_on_contrast', $contrastDecision, 'on-contrast', 'contrast'],
-            ['muted_on_contrast', $contrastDecision, 'muted-on-contrast', 'contrast'],
-            ['text_on_gradient_start', 'seed', 'on-gradient', 'gradient-start'],
-            ['text_on_gradient_end', 'seed', 'on-gradient', 'gradient-end'],
-        ];
-
-        $pairs = [];
-        foreach ($defined as [$pair, $decision, $foreground, $background]) {
-            $ratio = Color::contrast($colors[$foreground], $colors[$background]);
-            $pairs[] = [
-                'pair' => $pair,
-                // A COLOUR SET BY HAND OWNS ITS OWN FAILURE. Otherwise "text on the
-                // background is 2.1:1" would point at surface contrast, a control that
-                // cannot fix it, while the control that can sits two fields above. The ink
-                // is named first, because it is usually the one to move.
-                'decision' => self::responsible($foreground, $background, $byHand) ?? $decision,
-                'ratio' => $ratio,
-                'required' => self::AA_BODY,
-                'passes' => $ratio >= self::AA_BODY,
-                // The two colours themselves, so the gauge can show the pair rather than
-                // only name it: a row that says 3.9:1 and shows nothing is a number.
-                'foreground' => $colors[$foreground],
-                'background' => $colors[$background],
-            ];
-        }
-
-        /*
-         * THE TWO SURFACES THE PALETTE DOES NOT OWN (D-076).
-         *
-         * While the header and the footer could only take `plain`, `tinted` or `contrast`,
-         * the twelve pairs above already covered them: each of those three is a palette role
-         * that is measured. A colour of their own is a surface nothing else measures, so it
-         * gets its own rows — one for the ink, one for the muted text beside it.
-         *
-         * Both are DERIVED from the colour (inksOn), so these can only fail for a colour
-         * neither of the palette's inks can be read on. That is rare and it is real, and a
-         * refusal naming the control is the whole reason the check exists (D-063).
-         */
-        foreach (['header', 'footer'] as $part) {
-            $surface = $ownChrome[$part] ?? '';
-            if ($surface === '') {
-                continue;
-            }
-            $inks = self::inksOn($surface, $colors);
-            foreach (['text' => 'text', 'muted' => 'muted'] as $which => $ink) {
-                $ratio = Color::contrast($inks[$ink], $surface);
-                $pairs[] = [
-                    'pair' => $which . '_on_' . $part,
-                    'decision' => $part . '_colour',
-                    'ratio' => $ratio,
-                    'required' => self::AA_BODY,
-                    'passes' => $ratio >= self::AA_BODY,
-                    'foreground' => $inks[$ink],
-                    'background' => $surface,
-                ];
-            }
-        }
-
-        return $pairs;
-    }
-
-    /**
-     * Every pair that falls below WCAG AA, with the decision responsible for it. What Save
-     * refuses on, and what the screen puts beside the control at fault.
-     *
-     * @param array<string, string> $colors
-     * @param array<string, string> $byHand
-     * @param array<string, string> $ownChrome
-     * @return list<array{pair: string, decision: string, ratio: float, required: float}>
-     */
-    public static function failures(array $colors, bool $hasSecondary, array $byHand = [], array $ownChrome = []): array
-    {
-        $failures = [];
-        foreach (self::pairs($colors, $hasSecondary, $byHand, $ownChrome) as $pair) {
-            if (!$pair['passes']) {
-                $failures[] = ['pair' => $pair['pair'], 'decision' => $pair['decision'], 'ratio' => $pair['ratio'], 'required' => $pair['required']];
-            }
-        }
-
-        return $failures;
-    }
-
-    /**
-     * Which control a failing pair belongs to, when one of its two colours was set by hand.
-     *
-     * @param array<string, string> $byHand
-     */
-    private static function responsible(string $foreground, string $background, array $byHand): ?string
-    {
-        foreach ([$foreground, $background] as $role) {
-            if (in_array($role, self::BY_HAND, true) && ($byHand[$role] ?? '') !== '') {
-                return 'color_' . $role;
-            }
-        }
-
-        return null;
     }
 
     /**

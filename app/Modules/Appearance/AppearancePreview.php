@@ -13,6 +13,7 @@ use App\Modules\Design\SectionStyle;
 use App\Modules\Design\Design;
 use App\Modules\Design\Derived;
 use App\Modules\Design\Palette;
+use App\Modules\Design\PalettePairs;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
 use App\Modules\Design\Tokens;
@@ -205,7 +206,7 @@ final class AppearancePreview
         $result = Tokens::validate(self::fields($request->query), $character);
         $decisions = Tokens::resolve($result['decisions'], $character);
         $colors = Palette::forDecisions($decisions);
-        $pairs = Palette::pairs($colors, $decisions['secondary'] !== '', Tokens::byHand($decisions), Tokens::ownChrome($decisions));
+        $pairs = PalettePairs::pairs($colors, $decisions['secondary'] !== '', Tokens::byHand($decisions), Tokens::ownChrome($decisions));
         $body = json_encode([
             'errors' => (object) $result['errors'],
             'colors' => $colors,

@@ -14,6 +14,11 @@
 
   function onClick(event) {
     var t = event.target;
+    // Words being written: the press was the editor's, and selects nothing again (D-182).
+    if (pb.inline && pb.inline.within && pb.inline.within(t)) {
+      pressedAt = null;
+      return;
+    }
     var control = t.closest('[data-bx-action], [data-bx-insert], [data-bx-add-block], [data-bx-add-pattern]');
     if (control || t.closest('.bx-layer')) {
       event.preventDefault();

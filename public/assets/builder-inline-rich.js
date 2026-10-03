@@ -112,6 +112,23 @@
     pb.inline.check(done.key);
   }
 
+  /** The editor's position after `n` characters of its words, as the page counted them. */
+  function textPos(editor, n) {
+    var found = null;
+    editor.state.doc.descendants(function (node, pos) {
+      if (found !== null || !node.isText) {
+        return found === null;
+      }
+      if (n <= node.text.length) {
+        found = pos + n;
+      } else {
+        n -= node.text.length;
+      }
+      return false;
+    });
+    return found;
+  }
+
   pb.inline.rich = function (el, block, path, field, point) {
     if (current && current.el === el) {
       return;
@@ -139,8 +156,18 @@
       setTimeout(function () { if (current && current.editor === editor && !editor.isFocused) { finish(); } }, 0);
     });
     // The caret where the press was, as in any text; at the end when that is not a place in it.
-    var at = point ? editor.view.posAtCoords({ left: point.x, top: point.y }) : null;
-    editor.commands.focus(at ? at.pos : 'end');
+    // Asked once the editor is laid out, and focused without scrolling, which moved the page
+    // from under the point pressed: every first press put the caret at the end (D-182).
+    editor.commands.focus('end', { scrollIntoView: false });
+    var counted = point && point.offset !== null && point.offset !== undefined ? textPos(editor, point.offset) : null;
+    if (counted !== null) {
+      editor.commands.setTextSelection(counted);
+    } else if (point) {
+      el.ownerDocument.defaultView.requestAnimationFrame(function () {
+        var at = editor.isDestroyed ? null : editor.view.posAtCoords({ left: point.x, top: point.y });
+        if (at) { editor.commands.setTextSelection(at.pos); }
+      });
+    }
   };
 
   // The layer drawn again keeps the toolbar over the words being written.

@@ -138,6 +138,66 @@ export default {
       await page.keyboard.press('Escape');
       await wait(400);
 
+      // ---- the caret goes where a press lands, a double press selects a word (D-182) ---------------
+      // In five blocks, rich and plain: a first press starts the editing where it lands, a
+      // second press inside the words being written moves the caret, a double press selects
+      // a word. A rich field once kept the caret at its end through every press.
+      const place = (s, line, along) => page.evaluate((q, n, a) => {
+        const frame = document.querySelector('[data-pb-canvas]');
+        const doc = frame.contentDocument;
+        const el = doc.querySelector(q);
+        if (!el) { return null; }
+        const f = frame.getBoundingClientRect();
+        const sc = window.pb.canvas.scale;
+        const range = doc.createRange();
+        range.selectNodeContents(el);
+        const lines = [...range.getClientRects()].filter((r) => r.width > 4);
+        const r = lines[Math.min(n, lines.length - 1)];
+        const y = r.top + r.height / 2;
+        // On a letter with a letter either side, so a double press there is on a word, not a
+        // space between two (the point is the harness's to choose well).
+        let x = r.left + r.width * a;
+        for (let step = 0; step < 40; step += 1) {
+          const at = doc.caretRangeFromPoint(x, y);
+          const text = at && at.startContainer.nodeType === 3 ? at.startContainer.textContent : '';
+          if (/\w\w/.test(text.slice(Math.max(0, at.startOffset - 1), at.startOffset + 1))) { break; }
+          x += r.width / 80;
+        }
+        return { x: f.left + x * sc, y: f.top + y * sc };
+      }, s, line, along);
+      const caret = () => page.evaluate(() => {
+        const s = document.querySelector('[data-pb-canvas]').contentDocument.getSelection();
+        return { at: s.anchorOffset, of: s.anchorNode ? (s.anchorNode.textContent || '').length : -1, words: s.toString() };
+      });
+      for (const [type, field] of [['cards', 'items.0.body'], ['image_text', 'body'], ['text', 'body'], ['quote', 'quote'], ['hero', 'subheading']]) {
+        const s = `[data-bx-key="${await blockKey(page, type)}"] [data-bx-field="${field}"]`;
+        await page.evaluate((q) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(q).scrollIntoView({ block: 'center' }), s);
+        await wait(300);
+        let p = await place(s, 0, 0.3);
+        await page.mouse.click(p.x, p.y);
+        await wait(600);
+        const first = await caret();
+        p = await place(s, 1, 0.4);
+        await page.mouse.click(p.x, p.y);
+        await wait(300);
+        const second = await caret();
+        // Apart from the press before, or the browser counts three presses and takes a paragraph.
+        await wait(800);
+        p = await place(s, 1, 0.4);
+        // A double press is `count: 2`; clickCount sends one press, and selected nothing even
+        // on the admin's own words (the harness).
+        await page.mouse.click(p.x, p.y, { count: 2 });
+        await wait(300);
+        const word = await caret();
+        if (type === 'image_text') { await shot(report, page, '06b-word-selected'); }
+        report.verdict(`${type}: the caret goes where each press lands, and a double press selects a word`,
+          first.at > 0 && first.at < first.of && second.at > 0 && second.at < second.of && second.at !== first.at && /^\S+$/.test(word.words.trim()) && word.words.trim().length > 1,
+          JSON.stringify({ first, second, word: word.words }));
+        await page.keyboard.press('Escape');
+        await page.mouse.click(10, 10);
+        await wait(400);
+      }
+
       // ---- an error on the element ---------------------------------------------------------------------
       await clickInCanvas(page, `[data-bx-key="${cta}"] [data-bx-field="heading"]`);
       await page.keyboard.down('Control');

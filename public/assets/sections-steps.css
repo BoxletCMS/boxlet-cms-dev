@@ -151,8 +151,8 @@
 }
 
 /* The band's content keeps the band's measure: in a flex column the container's auto margins
-   would otherwise shrink it to its words, and a heading and its paragraph stood 179px wide in
-   a band 960px across (D-182, measured on the demo's page of every block). */
+   would otherwise shrink it to its words, and a heading and its paragraph stood 179 pixels
+   wide in a band 960 across (D-182, measured on the demo's page of every block). */
 .v-top > .container,
 .v-center > .container,
 .v-bottom > .container {

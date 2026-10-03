@@ -35,10 +35,16 @@ const readChrome = (page) => page.evaluate(() => {
 });
 
 /**
- * Every language's words open: on a site whose first language is not English the English
- * panel is folded, and a field in a folded <details> cannot be typed into.
+ * English chosen: on a site whose first language is not English its words are not the ones
+ * shown, and a field that is not shown cannot be typed into.
  */
-const openWords = (page) => page.$$eval('details.words', (all) => all.forEach((d) => { d.open = true; }));
+const openWords = async (page) => {
+  // The language is chosen once at the top (D-182); English is the one typed in here.
+  const en = await page.$('[data-navigation-language] input[value="en"]');
+  if (en) {
+    await page.evaluate((input) => { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }, en);
+  }
+};
 
 export default {
   name: 'chrome',

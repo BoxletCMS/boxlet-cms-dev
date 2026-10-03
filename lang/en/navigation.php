@@ -10,6 +10,8 @@ return [
     'navigation.footer' => 'Footer',
     'navigation.footer_hint' => 'Up to three columns, each a title, a line or two and a menu. How many are shown is set in Appearance → Footer.',
     'navigation.save' => 'Save',
+    'navigation.language' => 'Language',
+    'navigation.more' => 'More about this',
     'navigation.saved' => 'The header and footer are saved.',
     'navigation.not_saved' => 'Nothing was saved. Fix what is marked below.',
 ];

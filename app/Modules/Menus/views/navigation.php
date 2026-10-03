@@ -10,6 +10,8 @@ use App\Support\Url;
  * @var string $csrf
  * @var ?string $notice
  * @var array<string, string> $errors the words', keyed by the field at fault
+ * @var array<int, array<string, mixed>> $locales
+ * @var string $shownLocale
  */
 $error = static fn (string $key): string => isset($errors[$key])
     ? '<p class="field-error" role="alert">' . e($errors[$key]) . '</p>'
@@ -22,6 +24,20 @@ require __DIR__ . '/parts/words.php';
         <p class="page-subtitle"><?= e(t('navigation.intro')) ?> <a href="<?= e(Url::admin('appearance')) ?>"><?= e(t('navigation.look_where')) ?></a></p>
 <?php if ($notice !== null): ?>
         <p class="notice notice-error" role="alert"><?= e($notice) ?></p>
+<?php endif; ?>
+
+<?php if (count($locales) > 1):
+    $languages = [];
+    foreach ($locales as $locale) {
+        $languages[(string) $locale['code']] = strtoupper((string) $locale['code']);
+    }
+?>
+        <?php /* THE LANGUAGE, CHOSEN ONCE (D-182): every card shows that language's words. Not a
+                 field of the form (form= names one that is not there), so it is never sent. */ ?>
+        <div class="navigation-language" data-navigation-language>
+            <span class="navigation-language-label" id="navigation-language-label"><?= e(t('navigation.language')) ?></span>
+            <?= segmented_group('navigation-language', $languages, $shownLocale, 'navigation-language-label', 'navigation-language-', 'navigation-language-none') ?>
+        </div>
 <?php endif; ?>
 
         <form method="post" action="<?= e(Url::admin('navigation')) ?>" class="navigation stack" id="navigation-form">

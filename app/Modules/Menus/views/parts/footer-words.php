@@ -10,6 +10,7 @@ use App\Modules\Settings\SiteChrome;
  * parts/words.php in scope.
  *
  * @var Closure(string, string, string): string $wordsPanel
+ * @var Closure(string, string): string $hint
  * @var Closure(string, string): string $word
  * @var array<int, array<string, mixed>> $locales
  * @var array<int, string> $footerMenus each column's menu: `header`, `none`, or a name (D-115)
@@ -60,7 +61,7 @@ $richInline = static function (string $name, string $value, string $code, string
 ?>
             <section class="panel stack navigation-part" aria-labelledby="navigation-footer-title">
                 <h2 id="navigation-footer-title"><?= e(t('navigation.footer')) ?></h2>
-                <p class="hint"><?= e(t('navigation.footer_hint')) ?></p>
+                <p class="navigation-lead"><?= $hint('navigation-footer-hint', t('navigation.footer_hint')) ?></p>
                     <?php /* Each column's menu (D-115): none, the header's, or a menu of its own,
                              by name, so each language's menu of that name is the column's. */ ?>
 <?php foreach (range(1, SiteChrome::FOOTER_COLUMNS) as $n): ?>
@@ -74,7 +75,7 @@ $richInline = static function (string $name, string $value, string $code, string
                             <option value="<?= e($name) ?>"<?= $chosen === $name ? ' selected' : '' ?>><?= e($name) ?></option>
 <?php endforeach; ?>
                         </select>
-                        <span class="hint" id="footer_menu_<?= e((string) $n) ?>-hint"><?= e($n === 1 ? t('chrome.footer_menu_hint') : t('chrome.footer_column_menu_hint')) ?></span>
+                        <?= $hint('footer_menu_' . $n . '-hint', $n === 1 ? t('chrome.footer_menu_hint') : t('chrome.footer_column_menu_hint')) ?>
                     </div>
 <?php endforeach; ?>
 <?php foreach ($locales as $locale): ?>
@@ -97,7 +98,7 @@ $richInline = static function (string $name, string $value, string $code, string
                         <div class="field">
                             <label for="<?= e($field($textName)) ?>"><?= e(t('chrome.text')) ?></label>
                             <?= $richInline($field($textName), $word($code, $textName), $code, $field($textName) . '-hint') ?>
-                            <span class="hint" id="<?= e($field($textName)) ?>-hint"><?= e(t('chrome.text_hint')) ?></span>
+                            <?= $hint($field($textName) . '-hint', t('chrome.text_hint')) ?>
                         </div>
                     </div>
 <?php endforeach; ?>
@@ -107,7 +108,7 @@ $richInline = static function (string $name, string $value, string $code, string
                         <input type="text" id="<?= e($field('small_print')) ?>" name="<?= e($field('small_print')) ?>"
                                maxlength="255" value="<?= e($word($code, 'small_print')) ?>"
                                aria-describedby="<?= e($field('small_print')) ?>-hint">
-                        <span class="hint" id="<?= e($field('small_print')) ?>-hint"><?= e(t('chrome.small_print_hint')) ?></span>
+                        <?= $hint($field('small_print') . '-hint', t('chrome.small_print_hint')) ?>
                     </div>
 <?= $wordsPanel($code, t('chrome.words.footer'), (string) ob_get_clean()) ?>
 <?php endforeach; ?>

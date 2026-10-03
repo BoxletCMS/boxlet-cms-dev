@@ -175,6 +175,32 @@ export default {
     await page.goto(`${BASE}/admin/navigation`, { waitUntil: 'networkidle2' });
     const navigation = await a11yProblems(page);
     report.verdict('Navigation: every control has a name, no id twice, one h1', navigation.length === 0, navigation.join('; ') || 'none');
+    // One language at a time, chosen at the top; no card inside a card; a hint is one
+    // sentence, the rest behind (?) (D-182).
+    const shape = await page.evaluate(() => {
+      const shown = (el) => el.getBoundingClientRect().height > 0;
+      const panels = [...document.querySelectorAll('.words-for[data-locale]')];
+      const first = (panels.find(shown) || {}).getAttribute ? panels.find(shown).getAttribute('data-locale') : null;
+      const hr = document.querySelector('[data-navigation-language] input[value="hr"]');
+      if (hr) { hr.checked = true; hr.dispatchEvent(new Event('change', { bubbles: true })); }
+      const after = panels.filter(shown).map((p) => p.getAttribute('data-locale'));
+      const hints = [...document.querySelectorAll('#navigation-form .hint, .navigation-menus .hint')].filter(shown).map((h) => {
+        const copy = h.cloneNode(true);
+        copy.querySelectorAll('.help-tip').forEach((t) => t.remove());
+        return copy.textContent.trim();
+      });
+      return {
+        switcher: !!document.querySelector('[data-navigation-language] input[type="radio"]'),
+        first,
+        after: [...new Set(after)],
+        nested: document.querySelectorAll('.panel .panel, .panel details.fieldset, .panel fieldset').length,
+        long: hints.filter((h) => (h.match(/[.!?](\s|$)/g) || []).length > 1),
+        tips: document.querySelectorAll('.help-tip').length,
+      };
+    });
+    report.verdict('Navigation: the language is chosen once, the cards hold no card, and every hint is one sentence',
+      shape.switcher && shape.first === 'en' && shape.after.length === 1 && shape.after[0] === 'hr' && shape.nested === 0 && shape.long.length === 0 && shape.tips > 3, JSON.stringify(shape));
+    await page.$eval('[data-navigation-language] input[value="en"]', (input) => { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }).catch(() => {});
     await report.shot(page, '04-navigation', { fullPage: false });
     await openBuilder(page, BASE, 1);
     await page.evaluate(() => window.pb.select('block', window.pb.doc.blocks[0].key));

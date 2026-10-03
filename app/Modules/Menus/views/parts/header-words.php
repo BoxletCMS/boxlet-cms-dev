@@ -10,6 +10,7 @@ use App\Modules\Settings\ChromeWords;
  *
  * @var Closure(string): string $error
  * @var Closure(string, string, string): string $wordsPanel
+ * @var Closure(string, string): string $hint
  * @var Closure(string, string): string $word
  * @var string $menu the menu the header shows, by name
  * @var list<string> $menuNames every menu name on offer
@@ -29,7 +30,7 @@ use App\Modules\Settings\ChromeWords;
                             <option value="<?= e($name) ?>"<?= $menu === $name ? ' selected' : '' ?>><?= e($name) ?></option>
 <?php endforeach; ?>
                         </select>
-                        <span class="hint" id="header_menu-hint"><?= e($menuNames === [] ? t('chrome.no_menus') : t('chrome.menu_hint')) ?></span>
+                        <?= $hint('header_menu-hint', $menuNames === [] ? t('chrome.no_menus') : t('chrome.menu_hint')) ?>
                     </div>
 <?php foreach ($locales as $locale): ?>
 <?php
@@ -57,7 +58,7 @@ use App\Modules\Settings\ChromeWords;
                                 <option value="<?= e((string) $pageGroup) ?>" data-url="<?= e($choice['url']) ?>" data-title="<?= e($choice['title']) ?>"<?= $pageGroup === $buttonGroup ? ' selected' : '' ?>><?= e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) ?></option>
 <?php endforeach; ?>
                             </select>
-                            <span class="hint" id="<?= e($field('button_url')) ?>-hint"><?= e(t('chrome.button_url_hint')) ?></span>
+                            <?= $hint($field('button_url') . '-hint', t('chrome.button_url_hint')) ?>
                         </div>
 
                         <div class="field">
@@ -65,7 +66,7 @@ use App\Modules\Settings\ChromeWords;
                             <input type="text" id="<?= e($field('button_url')) ?>" name="<?= e($field('button_url')) ?>"
                                    maxlength="2048" value="<?= e($buttonAddress) ?>" data-link-address<?= $buttonReadonly ?>
                                    placeholder="<?= e(t('pages.field.link_url_input')) ?>" aria-describedby="<?= e($field('button_url')) ?>-address-hint">
-                            <span class="hint" id="<?= e($field('button_url')) ?>-address-hint"><?= e(t('chrome.button_address_hint')) ?></span>
+                            <?= $hint($field('button_url') . '-address-hint', t('chrome.button_address_hint')) ?>
                             <?= $error($field('button_url')) ?>
                         </div>
 
@@ -74,7 +75,7 @@ use App\Modules\Settings\ChromeWords;
                             <input type="text" id="<?= e($field('button_label')) ?>" name="<?= e($field('button_label')) ?>"
                                    maxlength="60" value="<?= e($word($code, 'button_label')) ?>" data-link-label
                                    aria-describedby="<?= e($field('button_label')) ?>-hint">
-                            <span class="hint" id="<?= e($field('button_label')) ?>-hint"><?= e(t('chrome.button_label_hint')) ?></span>
+                            <?= $hint($field('button_label') . '-hint', t('chrome.button_label_hint')) ?>
                         </div>
                     </div>
 <?= $wordsPanel($code, t('chrome.words.header'), (string) ob_get_clean()) ?>

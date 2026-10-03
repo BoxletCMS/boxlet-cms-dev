@@ -10,6 +10,7 @@ use App\Support\Url;
  * @var list<array<string, mixed>> $locales
  * @var array<string, string> $menuErrors
  * @var string $csrf
+ * @var Closure(string, string): string $hint
  */
 $menuError = static fn (string $key): string => isset($menuErrors[$key])
     ? '<p class="field-error" role="alert">' . e($menuErrors[$key]) . '</p>'
@@ -64,17 +65,17 @@ $menuError = static fn (string $key): string => isset($menuErrors[$key])
                     <label for="menu-name"><?= e(t('menus.name')) ?></label>
                     <input type="text" id="menu-name" name="name" maxlength="190" required
                            aria-describedby="menu-name-hint">
-                    <span class="hint" id="menu-name-hint"><?= e(t('menus.name_hint')) ?></span>
+                    <?= $hint('menu-name-hint', t('menus.name_hint')) ?>
                     <?= $menuError('name') ?>
                 </div>
                 <div class="field">
                     <label for="menu-locale"><?= e(t('menus.locale')) ?></label>
-                    <select id="menu-locale" name="locale">
+                    <select id="menu-locale" name="locale" aria-describedby="menu-locale-hint">
 <?php foreach ($locales as $locale): ?>
                         <option value="<?= e($locale['code']) ?>"><?= e($locale['label']) ?></option>
 <?php endforeach; ?>
                     </select>
-                    <?= field_hint('hint.menus.locale') ?>
+                    <?= $hint('menu-locale-hint', t('hint.menus.locale')) ?>
                     <?= $menuError('locale') ?>
                 </div>
                 <button type="submit" class="button"><?= e(t('menus.create')) ?></button>

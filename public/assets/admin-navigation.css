@@ -25,31 +25,102 @@
   margin: 0;
 }
 
-/* ---- one language's words, folded (D-111) ---------------------------------------------- */
+/* ---- the language, chosen once (D-182) ----------------------------------------------- */
 
-/* With several languages each one's words are a <details>, and the site's main language
-   stands open. The summary is drawn like a group's legend, and it is a control at rest: a
-   chevron the browser gives it, and a name. */
-.words > summary {
-  cursor: pointer;
-  padding-block: var(--ui-1);
-  color: var(--ui-ink);
+.navigation-language {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-3);
+  align-items: center;
+  margin-block-end: var(--ui-4);
+}
+
+.navigation-language-label {
+  color: var(--ui-ink-muted);
   font-size: var(--ui-text-sm);
   font-weight: 600;
 }
 
-.words > summary:hover {
-  color: var(--ui-accent);
+/* One language's words, in the card itself: no card inside a card. Its name shows only
+   when every language stands in turn, without a script. */
+.words-for {
+  display: grid;
+  gap: var(--ui-4);
 }
 
-.words-inside,
-.words-one {
-  display: grid;
-  gap: var(--ui-3);
-  padding-block-start: var(--ui-2);
+.words-for[hidden] {
+  display: none;
+}
+
+.words-language {
+  margin: 0;
+  padding-block-start: var(--ui-3);
+  border-block-start: var(--ui-border) solid var(--ui-line);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+}
+
+.one-language .words-language {
+  display: none;
 }
 
 .footer-column-words {
   padding-block-end: var(--ui-3);
   border-block-end: var(--ui-border) solid var(--ui-line);
+}
+
+.navigation-lead {
+  margin: 0;
+}
+
+/* ---- a hint in one sentence, the rest behind (?) (D-182) ------------------------------ */
+
+.help-tip {
+  position: relative;
+  display: inline-block;
+}
+
+.help-tip-button {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  padding: 0;
+  border: var(--ui-border) solid var(--ui-control-line);
+  border-radius: 999px;
+  background: var(--ui-panel);
+  color: var(--ui-ink-muted);
+  font: inherit;
+  font-size: var(--ui-text-xs);
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.help-tip-button:hover,
+.help-tip-button:focus-visible {
+  border-color: var(--ui-accent);
+  color: var(--ui-ink);
+}
+
+.help-tip-text {
+  position: absolute;
+  inset-block-start: calc(100% + var(--ui-1));
+  inset-inline-start: 50%;
+  z-index: 20;
+  display: none;
+  inline-size: min(20rem, 70vw);
+  padding: var(--ui-2) var(--ui-3);
+  border: var(--ui-border) solid var(--ui-line);
+  border-radius: var(--ui-radius-m);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow-m);
+  color: var(--ui-ink);
+  font-size: var(--ui-text-xs);
+  line-height: 1.45;
+  transform: translateX(-50%);
+}
+
+.help-tip:hover .help-tip-text,
+.help-tip:focus-within .help-tip-text {
+  display: block;
 }

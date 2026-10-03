@@ -94,7 +94,7 @@ export default {
         const links = await page.evaluate(() => {
           const doc = document.querySelector('[data-pb-canvas]').contentDocument;
           return window.pb.doc.blocks.flatMap((b) => [...doc.querySelectorAll(`[data-bx-key="${b.key}"] [data-bx-field]`)]
-            .filter((e) => (window.pb.inline.spec(b.type, e.getAttribute('data-bx-field')) || {}).type === 'link' && e.innerText.trim() !== '')
+            .filter((e) => (window.pb.inline.spec(b.type, e.getAttribute('data-bx-field')) || {}).type === 'link' && e.textContent.trim() !== '')
             .map((e) => ({ key: b.key, type: b.type, path: e.getAttribute('data-bx-field') })));
         });
         const bad = [];
@@ -117,7 +117,7 @@ export default {
             return {
               panel: true,
               words: panel.querySelector('[data-pb-link-text]').value,
-              shown: el.innerText.trim(),
+              shown: el.textContent.replace(/\s+/g, ' ').trim(),
               over: p.left < a.right && a.left < p.right && p.top < a.bottom && a.top < p.bottom,
               bar: bar ? getComputedStyle(bar).visibility : 'none',
             };
@@ -193,7 +193,7 @@ export default {
       const refilled = await words();
       // The button on the page says what the popover says (D-183): the title filled in stood
       // only in the popover while the button kept its old words.
-      const onPage = await page.evaluate((k) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-field="cta"]`).innerText.trim(), hero);
+      const onPage = await page.evaluate((k) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-field="cta"]`).textContent.replace(/\s+/g, ' ').trim(), hero);
       const title = await page.evaluate((ref) => (window.pb.data.inline.pages.find((p) => p.ref === ref) || {}).title, third);
       await shot(report, page, '03b-link-text');
       // And never over words it holds, even a title an earlier page filled in (D-183).
@@ -282,7 +282,9 @@ export default {
         await page.mouse.click(p.x, p.y);
         await wait(600);
         const first = await caret();
-        p = await place(s, 1, 0.4);
+        // Further along than the first: words on one line (Editorial's cards) put both presses
+        // in one word, at one offset.
+        p = await place(s, 1, 0.75);
         await page.mouse.click(p.x, p.y);
         await wait(300);
         const second = await caret();

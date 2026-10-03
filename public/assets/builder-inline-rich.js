@@ -70,7 +70,9 @@
    * THE SMALL TOOLBAR COVERS NO OTHER WORDS (D-183): above the field written in, at its start;
    * where that would lie on another field, the block's toolbar or the page's "+ Card", under
    * the field; where that would too, above the whole block at its start, over the block's
-   * toolbar when that stands above it. Never past the page's right edge.
+   * toolbar when that stands above it; then under the whole block; then the nearest clear
+   * place up or down from the field; and only when there is none, above the block all the
+   * same. Never past the page's right edge.
    */
   function spot(tools, el) {
     var gap = o.px(6);
@@ -84,9 +86,11 @@
     var bar = o.layer().querySelector('.bx-toolbar-block');
     if (bar) { others.push(o.box(bar)); }
     others = others.filter(function (r) { return r.width > 0 && r.height > 0; });
+    // Clear by the gap, not by a hair: a band that slides in as it is drawn moves the fields
+    // a few pixels after they were measured, and a toolbar placed flush lay 2px on a picture.
     function clear(top, left) {
       return !others.some(function (r) {
-        return left < r.left + r.width && r.left < left + w && top < r.top + r.height && r.top < top + h;
+        return left < r.left + r.width + gap && r.left < left + w + gap && top < r.top + r.height + gap && r.top < top + h + gap;
       });
     }
     function fit(left) { return Math.max(0, Math.min(left, right - w)); }
@@ -97,11 +101,20 @@
     var places = [
       { top: f.top - gap - h, left: fit(f.left) },
       { top: f.top + f.height + gap, left: fit(f.left) },
+      { top: over - gap - h, left: fit(b.left) },
+      // Under the whole block, where above it lies on the band's picture or the block over it.
+      { top: b.top + b.height + gap, left: fit(b.left) },
     ];
+    // None of those: the nearest clear place up or down from the field, at its start, within
+    // the page shown around it — a block packed between a cover picture and the next band.
+    for (var d = gap; d < o.px(600); d += gap) {
+      places.push({ top: f.top - gap - h - d, left: fit(f.left) }, { top: f.top + f.height + gap + d, left: fit(f.left) });
+    }
     var chosen = places.filter(function (p) { return p.top >= 0 && clear(p.top, p.left); })[0]
       || { top: Math.max(0, over - gap - h), left: fit(b.left) };
     o.at(tools, chosen);
-    tools.setAttribute('data-bx-side', chosen === places[1] ? 'below' : (chosen === places[0] ? 'above' : 'block'));
+    var at = places.indexOf(chosen);
+    tools.setAttribute('data-bx-side', at < 0 ? 'block' : (['above', 'below', 'block', 'under-block'][at] || 'nearest'));
   }
 
   function refresh() {

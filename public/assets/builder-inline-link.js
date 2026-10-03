@@ -172,8 +172,11 @@
     return panel;
   }
 
-  /** A link's words as the page shows them, on one line. */
-  function shown(anchor) { return anchor.innerText.replace(/\s*\n\s*/g, ' '); }
+  /**
+   * A link's words as they are written, on one line. Not innerText, which gives them as drawn:
+   * a design that sets buttons in capitals put "BOOK A CONSULTATION" in Link text (D-183).
+   */
+  function shown(anchor) { return anchor.textContent.replace(/\s+/g, ' '); }
 
   /** A link field's address and words, the words also typed where they are shown. */
   pb.inline.link = function (anchor, block, path) {

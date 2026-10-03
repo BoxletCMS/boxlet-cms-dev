@@ -138,7 +138,8 @@ export default {
     // link existed.
     const before = await canvasHrefs(page, richKey);
     await page.select(`${rich} .rt-link-page`, option.value);
-    const inputHidden = await page.$eval(`${rich} .rt-link-input`, (input) => getComputedStyle(input).display === 'none');
+    // Not drawn, whichever element hides it: its labelled field does since D-183.
+    const inputHidden = await page.$eval(`${rich} .rt-link-input`, (input) => input.getClientRects().length === 0);
     await page.$eval(`${rich} [data-richtext-link]`, (el) => el.scrollIntoView({ block: 'center' }));
     await report.shot(page, '02-panel-with-a-page', { fullPage: false });
     await page.click(`${rich} [data-rt-link="apply"]`);

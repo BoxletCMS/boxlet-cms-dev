@@ -35,7 +35,7 @@ final class DerivedPage
             'sheet-width' => $boxed ? Derived::rem((float) $resolved['sheet_width']) : 'none',
             'sheet-radius' => $boxed ? CssNumber::rem((float) $resolved['sheet_radius']) : '0',
             'sheet-shadow' => $boxed ? match ($resolved['sheet_shadow']) {
-                'shadow' => Derived::shadows('soft', 40, $colors['text'])['l'],
+                'shadow' => Derived::shadows('soft', 40, Derived::shadowInk($colors))['l'],
                 'hairline' => '0 0 0 1px ' . $colors['border'],
                 default => 'none',
             } : 'none',

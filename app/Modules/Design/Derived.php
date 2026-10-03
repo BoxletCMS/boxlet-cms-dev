@@ -63,7 +63,7 @@ final class Derived
                 'blocks' => self::rem($unit * 1.5),
             ],
             'radius' => self::radii((float) $resolved['radius'], (float) $resolved['button_radius']),
-            'shadow' => self::shadows($resolved['shadow'], (float) $resolved['shadow_strength'], $colors['text']),
+            'shadow' => self::shadows($resolved['shadow'], (float) $resolved['shadow_strength'], self::shadowInk($colors)),
             // The width of every rule and outline; a card is outlined only with hard shadows.
             'border' => [
                 'width' => CssNumber::of((float) $resolved['border_width']) . 'px',
@@ -208,6 +208,24 @@ final class Derived
         $sizes['edge'] = $style === 'hard' ? "0 {$offset(6)} 0 {$ink}" : $sizes['m'];
 
         return $sizes;
+    }
+
+    /**
+     * WHAT A SHADOW IS DRAWN IN: the text's ink on a light page, and on a dark one a tone darker
+     * than the page (D-185, the owner). The text's ink there is light, and a hard shadow of it
+     * drew a light line under Brutalist's header and light edges to its cards: a shadow is
+     * never lighter than what it lies on.
+     *
+     * @param array<string, string> $colors
+     */
+    public static function shadowInk(array $colors): string
+    {
+        [$lightness, $chroma, $hue] = Color::toOklch($colors['background']);
+        if ($lightness >= 0.5) {
+            return $colors['text'];
+        }
+
+        return Color::fromOklch($lightness * 0.45, min($chroma, 0.02), $hue);
     }
 
     public static function rem(float $value): string

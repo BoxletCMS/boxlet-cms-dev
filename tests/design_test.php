@@ -157,6 +157,17 @@ test('in dark mode every character passes, its links and buttons a lighter varia
     assertContains('--link-line: underline;', $css, 'a link in the text\'s colour is underlined');
     assertContains('--link-line: none;', (new TokenCompiler())->css(Derived::from(Tokens::resolve(Presets::get('minimal')))), 'and in the main colour it is not');
 
+    // A hard shadow on a dark page is darker than the page, never the light text's ink
+    // (D-185): it drew a light line under Brutalist's header and light edges to its cards.
+    $brutalist = Presets::get('brutalist');
+    $brutalist['mode'] = 'dark';
+    $css = (new TokenCompiler())->css(Derived::from(Tokens::resolve($brutalist)));
+    preg_match('~--color-background: (#[0-9a-f]{6});~', $css, $page);
+    foreach (['shadow-s', 'shadow-m', 'shadow-l', 'shadow-edge'] as $size) {
+        preg_match('~--' . $size . ': [^;]*(#[0-9a-f]{6});~', $css, $ink);
+        assertTrue(isset($ink[1], $page[1]) && Color::toOklch($ink[1])[0] < Color::toOklch($page[1])[0], "Brutalist dark, {$size}: " . ($ink[1] ?? 'no colour') . ' on ' . ($page[1] ?? '?'));
+    }
+
     $byHand = Presets::get('minimal');
     $byHand['mode'] = 'dark';
     $byHand['color_link'] = '#1d3557';

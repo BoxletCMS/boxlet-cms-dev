@@ -88,7 +88,7 @@ final class PalettePairs
             if ($surface === '') {
                 continue;
             }
-            $inks = Palette::inksOn($surface, $colors);
+            $inks = PaletteInks::inksOn($surface, $colors);
             foreach ([['text', 'text', $surface, ''], ['muted', 'muted', $surface, ''], ['muted', 'muted', $inks['raised'], '_card']] as [$which, $ink, $ground, $card]) {
                 $ratio = Color::contrast($inks[$ink], $ground);
                 $pairs[] = [

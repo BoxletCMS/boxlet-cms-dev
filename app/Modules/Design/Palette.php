@@ -3,12 +3,15 @@
 namespace App\Modules\Design;
 
 /**
- * Derives the whole palette from one or two seed colours. Every text/background pair it
- * produces is measured against WCAG AA by PalettePairs.
+ * Derives the whole palette from one or two seed colours. The inks that must be read on a
+ * colour are PaletteInks' to work out; every text/background pair is measured against WCAG
+ * AA by PalettePairs.
  *
- * Seeds are used as given and never nudged to pass: the seed is the accent, the button
- * colour and the link colour, so a seed too light to read as text fails, naming the
- * pair, instead of being silently turned into a different colour.
+ * On a light page seeds are used as given and never nudged to pass: the seed is the accent,
+ * the button colour and the link colour, so a seed too light to read as text fails, naming
+ * the pair, instead of being silently turned into a different colour. On a dark page the
+ * links and buttons take the seed's hue lifted until it reads (D-184, the owner): a seed is
+ * chosen for one page, and a dark page is the other.
  */
 final class Palette
 {
@@ -131,147 +134,34 @@ final class Palette
             }
         }
 
-        $colors['on-accent'] = self::readableOn([$seed], $colors);
+        /*
+         * ON A DARK PAGE THE MAIN COLOUR IS LIFTED (D-184, the owner): a seed chosen for a light
+         * page — every character's — read at 1.9-3.1:1 as a link on a dark one, and Save
+         * refused dark mode under all five. The links and the buttons take a lighter variant,
+         * the same hue walked up in OKLCH until it reads at 4.5:1 on the page, a card and the
+         * tinted surface, as a muted ink is walked; a link colour set by hand the same. A seed
+         * that already reads is kept as it is. The gradient keeps the seed.
+         */
+        if ($dark) {
+            $grounds = [$colors['background'], $colors['card'], $colors['surface']];
+            $colors['accent'] = PaletteInks::lifted($colors['accent'], $grounds);
+            $colors['link'] = PaletteInks::lifted($colors['link'], $grounds);
+        }
+
+        $colors['on-accent'] = PaletteInks::readableOn([$colors['accent']], $colors);
 
         // The contrast surface is the second seed when given, else a deep shade of the first.
         $contrast = $secondary !== '' ? $secondary : Color::fromOklch(0.27, min($seedChroma, 0.1), $hue);
         $colors['contrast'] = $contrast;
-        $inks = self::inksOn($contrast, $colors);
+        $inks = PaletteInks::inksOn($contrast, $colors);
         $colors['on-contrast'] = $inks['text'];
         $colors['muted-on-contrast'] = $inks['muted'];
         $colors['contrast-raised'] = $inks['raised'];
 
         $colors['gradient-start'] = $seed;
         $colors['gradient-end'] = Color::fromOklch(max(0.2, $seedLightness - 0.1), $seedChroma, $hue + 45);
-        $colors['on-gradient'] = self::readableOn([$colors['gradient-start'], $colors['gradient-end']], $colors);
+        $colors['on-gradient'] = PaletteInks::readableOn([$colors['gradient-start'], $colors['gradient-end']], $colors);
 
         return $colors;
-    }
-
-    /**
-     * THE INK FOR A SURFACE THE PALETTE DID NOT CHOOSE (PLAN.md D-076).
-     *
-     * Whichever of the palette's two inks can be read on it, a muted version of that, and a
-     * raised version of the surface itself — the three a section needs beyond its background.
-     *
-     * WHICH INK WON IS MEASURED, NOT GUESSED FROM WHICH SLOT IT CAME FROM. This asked
-     * whether the ink was the BACKGROUND colour and took that to mean "light text" — true
-     * while every background was near-white, and wrong the moment one could be set by hand:
-     * on a dark page the background IS the dark ink, and the muted text beside it was then
-     * pushed the wrong way, to 1.40:1 (D-063).
-     *
-     * It was the contrast surface's own arithmetic, inline. The header and the footer may
-     * now carry a colour of their own (D-076) and need exactly the same three, so it is one
-     * function with three callers rather than three copies that would drift — the contrast
-     * surface included, which is what proves the move changed nothing.
-     *
-     * @param array<string, string> $colors the palette so far; needs `background` and `text`
-     * @return array{text: string, muted: string, raised: string}
-     */
-    public static function inksOn(string $surface, array $colors): array
-    {
-        [$lightness, $chroma, $hue] = Color::toOklch($surface);
-        $text = self::readableOn([$surface], $colors);
-        [$inkLightness] = Color::toOklch($text);
-        $lightText = $inkLightness > 0.5;
-        $raised = Color::fromOklch($lightness + ($lightText ? 0.06 : -0.06), $chroma, $hue);
-
-        return [
-            'text' => $text,
-            // Read on the surface AND on a card raised from it (D-183): the muted words of a
-            // card in a contrast band stood at 3.8–4.5:1 under all five characters.
-            'muted' => self::muted([$surface, $raised], $lightness, min($chroma, 0.04), $hue, $lightText),
-            'raised' => $raised,
-        ];
-    }
-
-    /**
-     * The muted ink for a surface: the step the contrast surface has always taken, and
-     * further where that step is not enough to read (PLAN.md D-076).
-     *
-     * A FIXED STEP IS WRONG AT THE ENDS OF THE RANGE. 0.42 of lightness away is a comfortable
-     * muted tone for a surface somewhere in the middle, which every contrast surface the five
-     * characters ship is. Measured against a surface the OWNER picks it breaks at both ends:
-     * a pure black header put the muted text at 2.48:1 and a pure white one at 4.29:1, so
-     * Boxlet refused the two colours anybody is likeliest to choose. That was the derivation
-     * being weak, not the choice being bad.
-     *
-     * It walks further away until it reads on every one of `$surfaces` — the surface and the
-     * card raised from it, which is the darker of the two under light ink and the lighter
-     * under dark (D-183) — and stops at the first step that does. A surface already passing at
-     * 0.42 is returned at 0.42.
-     *
-     * When the whole range is exhausted nothing is forced: the last value is returned, the
-     * pair fails and the check refuses it, naming the control (D-063). A colour neither of
-     * the palette's inks can be read on is a colour Boxlet should say no to.
-     */
-    /** @param non-empty-list<string> $surfaces */
-    private static function muted(array $surfaces, float $lightness, float $chroma, float $hue, bool $lighter): string
-    {
-        $limit = $lighter ? 1.0 : 0.0;
-        $muted = Color::fromOklch($lightness + ($lighter ? 0.42 : -0.42), $chroma, $hue);
-        for ($step = 0.42; $lighter ? $lightness + $step <= $limit : $lightness - $step >= $limit; $step += 0.02) {
-            $muted = Color::fromOklch($lightness + ($lighter ? $step : -$step), $chroma, $hue);
-            $worst = min(array_map(static fn (string $surface): float => Color::contrast($muted, $surface), $surfaces));
-            if ($worst >= self::AA_BODY) {
-                break;
-            }
-        }
-
-        return $muted;
-    }
-
-    /**
-     * THE LEAST VEIL OVER A PICTURE (O-33, D-183): how much of the contrast colour must lie
-     * between a photograph and the words on it for the words to read at 4.5:1 whatever the
-     * photograph is. The worst photographs are a pure white and a pure black; the veil is
-     * composited over them as a browser composites opacity, channel by channel in sRGB.
-     *
-     * Never under 0.55, the veil every band with a picture has worn since D-024; above it only
-     * as far as the colours ask. At 1.0 the picture is gone and the pair is the contrast
-     * surface's own text, which the check measures and refuses on (text_on_contrast).
-     *
-     * @param array<string, string> $colors needs `contrast` and `on-contrast`
-     */
-    public static function veil(array $colors): float
-    {
-        for ($opacity = 0.55; $opacity < 1.0; $opacity = round($opacity + 0.01, 2)) {
-            $worst = min(array_map(
-                static fn (string $picture): float => Color::contrast($colors['on-contrast'], self::over($colors['contrast'], $picture, $opacity)),
-                ['#ffffff', '#000000'],
-            ));
-            if ($worst >= self::AA_BODY) {
-                return $opacity;
-            }
-        }
-
-        return 1.0;
-    }
-
-    /** `$veil` at `$opacity` over `$under`, as #rrggbb. */
-    public static function over(string $veil, string $under, float $opacity): string
-    {
-        $channels = [];
-        for ($i = 0; $i < 3; $i++) {
-            $channels[] = (int) round(hexdec(substr($veil, 1 + 2 * $i, 2)) * $opacity + hexdec(substr($under, 1 + 2 * $i, 2)) * (1 - $opacity));
-        }
-
-        return sprintf('#%02x%02x%02x', ...$channels);
-    }
-
-    /**
-     * The palette's own light or dark text colour, whichever gives the higher worst-case
-     * contrast across all of $backgrounds.
-     *
-     * @param non-empty-list<string> $backgrounds
-     * @param array<string, string> $colors
-     */
-    private static function readableOn(array $backgrounds, array $colors): string
-    {
-        $worst = static function (string $text) use ($backgrounds): float {
-            return min(array_map(static fn (string $background): float => Color::contrast($text, $background), $backgrounds));
-        };
-
-        return $worst($colors['background']) >= $worst($colors['text']) ? $colors['background'] : $colors['text'];
     }
 }

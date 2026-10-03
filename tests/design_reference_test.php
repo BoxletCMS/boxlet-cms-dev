@@ -73,6 +73,9 @@ test('the checker refuses what an import refuses, and warns of the other mode, u
 
     $set = sampleSet();
     $set['decisions']['wobble'] = 'yes';
+    // Dark text by hand reads on the light page and not on a dark one: what a derivation
+    // cannot mend (the main colour is lifted in dark mode since D-184).
+    $set['decisions']['color_text'] = '#222222';
     $set['decisions']['container'] = '36';
     $set['decisions']['section_gap'] = '50';
     $set['patterns'] = [[

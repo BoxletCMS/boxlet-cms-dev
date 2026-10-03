@@ -113,6 +113,7 @@ final class DesignReference
         $out[] = 'What is worked out rather than set, so that it passes:';
         $out[] = '';
         $out[] = '- The ink on the main colour, on the contrast colour and on the gradient is whichever of the page\'s two inks reads better there.';
+        $out[] = '- On a dark page the main colour, as links and buttons, is its own hue lifted until it reads on the page, a card and the tinted surface; a link colour set by hand the same. On a light page the seed is used as given, and a seed too light to read is refused.';
         $out[] = '- Each surface\'s muted ink is derived to read on that surface **and on a card raised from it**: a contrast band\'s muted words on its cards, a header\'s or footer\'s own colour likewise.';
         $out[] = '- Over a picture (a section\'s or a cover hero\'s), the words are the contrast surface\'s ink on a veil of the contrast colour, never weaker than what keeps them at ' . Palette::AA_BODY . ':1 over a pure white and a pure black picture.';
         $out[] = '';

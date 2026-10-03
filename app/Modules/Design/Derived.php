@@ -87,7 +87,7 @@ final class Derived
             ],
             // The least veil that keeps words over a picture at 4.5:1 (O-33, D-183): a band
             // with a picture and a cover hero's every strength never go under it.
-            'veil' => ['least' => CssNumber::of(Palette::veil($colors))],
+            'veil' => ['least' => CssNumber::of(PaletteInks::veil($colors))],
             'page' => DerivedPage::page($resolved, $colors, $sectionWidth),
             'chrome' => DerivedPage::chrome($resolved, $colors),
         ];

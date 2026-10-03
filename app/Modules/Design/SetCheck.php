@@ -56,7 +56,7 @@ final class SetCheck
         foreach (array_slice($pairs, 0, 3) as $pair) {
             $out['notes'][] = sprintf('contrast %s: %.2f:1 (%s on %s)', $pair['pair'], $pair['ratio'], $pair['foreground'], $pair['background']);
         }
-        $out['notes'][] = sprintf('veil over a picture: at least %.2f', Palette::veil($colors));
+        $out['notes'][] = sprintf('veil over a picture: at least %.2f', PaletteInks::veil($colors));
 
         foreach (SetMeasure::narrow($resolved, $set['composition'], $set['patterns'], $registry) as $narrow) {
             $out['warnings'][] = 'under 16rem: ' . $narrow;

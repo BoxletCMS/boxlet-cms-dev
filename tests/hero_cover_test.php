@@ -3,6 +3,7 @@
 use App\Core\Blocks;
 use App\Modules\Design\Color;
 use App\Modules\Design\Palette;
+use App\Modules\Design\PaletteInks;
 use App\Modules\Design\Presets;
 
 /*
@@ -40,7 +41,7 @@ function veiled(string $veil, string $under, float $opacity): string
  * The words are the contrast surface's own ink, and between them and the photograph is the
  * contrast colour at the veil's opacity. The worst photograph is the one as light as the
  * ink, or as dark: a pure white or a pure black under the veil. The least veil is worked out
- * from the palette (Palette::veil) and is measured here with this file's own compositing, not
+ * from the palette (PaletteInks::veil) and is measured here with this file's own compositing, not
  * the palette's. A fixed 0.65 held only for the five characters in light mode: Minimal in dark
  * mode needs 0.68, and a band with a picture wore 0.55, 3.1-3.8:1 under four of five.
  */
@@ -59,7 +60,7 @@ test('the least veil keeps the words at 4.5:1 over a white or a black picture, u
     $worse = [];
     foreach ($designs as $label => $design) {
         $colors = Palette::forDecisions($design);
-        $least = Palette::veil($colors);
+        $least = PaletteInks::veil($colors);
         assertTrue($least >= 0.55 && $least <= 1.0, "{$label}: {$least}");
         foreach (['#ffffff', '#000000'] as $picture) {
             $ratio = Color::contrast($colors['on-contrast'], veiled($colors['contrast'], $picture, $least));

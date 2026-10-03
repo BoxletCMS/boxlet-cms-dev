@@ -65,7 +65,7 @@ final class DerivedPage
             'header-blur' => $resolved['header_behaviour'] === 'static' ? '0px' : CssNumber::of((float) $resolved['header_blur']) . 'px',
         ];
         foreach (Tokens::ownChrome($resolved) as $part => $surface) {
-            $inks = Palette::inksOn($surface, $colors);
+            $inks = PaletteInks::inksOn($surface, $colors);
             $tokens[$part . '-bg'] = $surface;
             $tokens[$part . '-text'] = $inks['text'];
             $tokens[$part . '-muted'] = $inks['muted'];

@@ -7,6 +7,7 @@ use App\Modules\Settings\SiteChrome;
 use App\Modules\Design\Derived;
 use App\Modules\Design\Design;
 use App\Modules\Design\Palette;
+use App\Modules\Design\PaletteInks;
 use App\Modules\Design\PalettePairs;
 use App\Modules\Design\Presets;
 use App\Modules\Design\TokenCompiler;
@@ -105,7 +106,7 @@ test('every character\'s muted words read on every surface and on its cards, lig
                 }
             }
             foreach (Tokens::ownChrome($decisions) as $part => $own) {
-                $inks = Palette::inksOn($own, $colors);
+                $inks = PaletteInks::inksOn($own, $colors);
                 foreach ([$own, $inks['raised']] as $ground) {
                     $measured++;
                     $ratio = Color::contrast($inks['muted'], $ground);
@@ -118,6 +119,37 @@ test('every character\'s muted words read on every surface and on its cards, lig
     }
     assertTrue($measured >= 5 * 2 * 10, "pairs measured: {$measured}");
     assertEquals([], $low, 'muted words under 4.5:1');
+});
+
+// DARK MODE LIFTS THE MAIN COLOUR (PLAN.md D-184, the owner): a seed chosen for a light page
+// read at 1.9-3.1:1 as a link on a dark one, and every character was refused in dark mode. The
+// links and the buttons take the same hue, lighter, until they read on the page, a card and the
+// tinted surface; a link colour by hand the same; and a light page keeps the seed as it is.
+test('in dark mode every character passes, its links and buttons a lighter variant of the main colour', function () {
+    foreach (App\Modules\Design\Characters::CORE as $name) {
+        $dark = Presets::get($name);
+        $dark['mode'] = 'dark';
+        assertEquals([], Tokens::validate($dark)['errors'], "{$name} in dark mode");
+        $colors = Palette::forDecisions($dark);
+        [$seedLightness, , $seedHue] = Color::toOklch($dark['seed']);
+        [$lightness, , $hue] = Color::toOklch($colors['link']);
+        assertTrue($lightness > $seedLightness, "{$name}: the link is lighter than the seed");
+        assertTrue(abs($hue - $seedHue) < 3 || abs($hue - $seedHue) > 357 || Color::toOklch($colors['link'])[1] < 0.02, "{$name}: the link keeps the seed's hue");
+        assertEquals($colors['link'], $colors['accent'], "{$name}: the buttons take the same variant");
+        foreach (['background', 'card', 'surface'] as $ground) {
+            assertTrue(Color::contrast($colors['link'], $colors[$ground]) >= 4.5, "{$name}: the link on the {$ground}");
+        }
+        assertTrue(Color::contrast($colors['on-accent'], $colors['accent']) >= 4.5, "{$name}: a button's words");
+
+        $light = Palette::forDecisions(Presets::get($name));
+        assertEquals(Color::normalizeHex($dark['seed']), $light['accent'], "{$name}: a light page keeps the seed");
+    }
+
+    $byHand = Presets::get('minimal');
+    $byHand['mode'] = 'dark';
+    $byHand['color_link'] = '#1d3557';
+    $colors = Palette::forDecisions($byHand);
+    assertTrue($colors['link'] !== '#1d3557' && Color::contrast($colors['link'], $colors['background']) >= 4.5, 'a link colour by hand is lifted too');
 });
 
 // A band's shadow falls straight down in every style: a hard one thrown to the right left a
@@ -671,11 +703,14 @@ test('a dark page set by hand works out its own palette, and the preview draws i
         assertTrue($pair['passes'], $pair['pair'] . ' is ' . $pair['ratio']);
     }
 
-    // The same palette WITHOUT the lighter link is refused, and the refusal names the link.
-    $unreadable = json_decode(dispatch('/admin/appearance/check?' . http_build_query(
+    // The same palette WITHOUT the lighter link: it was refused, naming the seed. THE RULE
+    // CHANGED DELIBERATELY with D-184: on a dark page the main colour is lifted until it reads,
+    // so nothing is refused and the link is the seed's hue, lighter.
+    $lifted = json_decode(dispatch('/admin/appearance/check?' . http_build_query(
         designFields(['color_background' => '#0d0d10', 'color_background_on' => '1'] + Presets::get('minimal'))
     ))->body, true);
-    assertTrue(isset($unreadable['errors']['seed']), 'the seed is what is too dark now');
+    assertEquals([], $lifted['errors'], 'the seed is lifted, not refused');
+    assertTrue(Color::contrast($lifted['colors']['link'] ?? '#000000', '#0d0d10') >= 4.5, 'the link reads on the dark page');
 });
 
 // ---- Round 9: type in detail (D-066) ---------------------------------------------------
@@ -881,7 +916,7 @@ testBothDrivers('the header and the footer may take a colour of their own, with 
     // against THIS surface, and it reads on it.
     $colors = Palette::forDecisions(Tokens::resolve($stored));
     foreach (['#1b3a2f', '#f3e9d2'] as $surface) {
-        $inks = Palette::inksOn($surface, $colors);
+        $inks = PaletteInks::inksOn($surface, $colors);
         assertTrue(Color::contrast($inks['text'], $surface) >= Palette::AA_BODY,
             'the text reads on ' . $surface . ': ' . number_format(Color::contrast($inks['text'], $surface), 2));
         assertTrue(Color::contrast($inks['muted'], $surface) >= Palette::AA_BODY,
@@ -909,7 +944,7 @@ testBothDrivers('black and white are colours the header may take', function (str
     $colors = Palette::colors($decisions['seed'], $decisions['secondary'], (float) $decisions['surface_contrast']);
 
     foreach (['#000000', '#ffffff'] as $surface) {
-        $inks = Palette::inksOn($surface, $colors);
+        $inks = PaletteInks::inksOn($surface, $colors);
         assertTrue(Color::contrast($inks['muted'], $surface) >= Palette::AA_BODY,
             'muted text reads on ' . $surface . ': ' . number_format(Color::contrast($inks['muted'], $surface), 2));
         // And it is MUTED, not the text colour over again: a second ink identical to the

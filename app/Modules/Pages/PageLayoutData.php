@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Core\Settings;
 use App\Modules\Design\Design;
 use App\Modules\Design\Palette;
+use App\Modules\Design\PaletteInks;
 use App\Modules\Design\Color;
 use App\Modules\Design\Tokens;
 use App\Modules\Media\MediaPicture;
@@ -176,7 +177,7 @@ final class PageLayoutData
         $colors = Palette::forDecisions($decisions);
         $surface = ($look['header_behaviour'] ?? '') === 'over' ? $firstSurface : ($look['header_surface'] ?? 'plain');
         if (($look['header_behaviour'] ?? '') !== 'over' && isset($own['header'])) {
-            $ink = Palette::inksOn($own['header'], $colors)['text'];
+            $ink = PaletteInks::inksOn($own['header'], $colors)['text'];
         } else {
             $ink = $colors[match ($surface) {
                 'contrast', 'image' => 'on-contrast',

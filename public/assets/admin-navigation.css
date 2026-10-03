@@ -1,11 +1,13 @@
-/* NAVIGATION (PLAN.md D-180): what the header and footer say, side by side where there is
-   room, and the menus under them. */
+/* NAVIGATION (PLAN.md D-180, D-183): what the header and footer say, in one column read
+   from top to bottom, and the menus under them. */
+
+.navigation-screen {
+  max-inline-size: 46rem;
+}
 
 .navigation-parts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
   gap: var(--ui-4);
-  align-items: start;
 }
 
 .navigation-part > h2 {
@@ -65,9 +67,21 @@
   display: none;
 }
 
-.footer-column-words {
-  padding-block-end: var(--ui-3);
-  border-block-end: var(--ui-border) solid var(--ui-line);
+/* A footer column is one group under its own heading (D-183): its menu, its title and its
+   words; the small print last, the same way. */
+.footer-column {
+  padding-block-start: var(--ui-4);
+  border-block-start: var(--ui-border) solid var(--ui-line);
+}
+
+.footer-column > h3 {
+  margin: 0;
+  font-size: var(--ui-text-base);
+}
+
+/* The footer's words are a line or two: three lines tall, growing with what is typed. */
+.navigation .richtext-editor .ProseMirror {
+  min-block-size: calc(3em * var(--ui-leading));
 }
 
 .navigation-lead {
@@ -76,9 +90,15 @@
 
 /* ---- a hint in one sentence, the rest behind (?) (D-182) ------------------------------ */
 
+/* The (?) is held to the last word before it (D-183), never alone on a line. */
+.hint-tail {
+  white-space: nowrap;
+}
+
 .help-tip {
   position: relative;
   display: inline-block;
+  white-space: normal;
 }
 
 .help-tip-button {

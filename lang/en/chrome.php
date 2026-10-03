@@ -65,10 +65,9 @@ return [
     // The footer's columns (D-115).
     'chrome.footer_column' => 'Column :n',
     'chrome.footer_column_title' => 'Title',
-    'chrome.footer_column_menu' => 'Column :n menu',
     'chrome.footer_menu_same' => 'The header’s menu',
     'chrome.footer_menu_hint' => 'None, the header’s menu again, or a menu of this column’s own — Privacy, Imprint, Terms. Built at the foot of this page, chosen by name, so each language’s menu of that name is the column’s. Its title and words are under Footer words below.',
-    'chrome.footer_column_menu_hint' => 'Drawn only when Appearance’s footer arrangement shows this column. Its title and words are under Footer words below.',
+    'chrome.footer_column_menu_hint' => 'Drawn only when Appearance’s footer arrangement shows this column.',
     'chrome.look.footer_layout' => 'Footer arrangement',
     'chrome.look.footer_layout.simple' => 'One column',
     'chrome.look.footer_layout.centred' => 'Centred',

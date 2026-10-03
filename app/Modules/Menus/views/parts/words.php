@@ -35,7 +35,8 @@ $wordsPanel = static function (string $code, string $legend, string $inside) use
 
 /**
  * A FIELD'S HINT IN ONE SENTENCE (D-182): the first sentence under the field, and the rest,
- * if any, behind a (?) that shows it on hover and on focus and is read with the field.
+ * if any, behind a (?) that shows it on hover and on focus and is read with the field. The (?)
+ * is held to the sentence's last word, so it never stands on a line of its own (D-183).
  */
 $hint = static function (string $id, string $text): string {
     $first = $text;
@@ -43,11 +44,16 @@ $hint = static function (string $id, string $text): string {
     if (preg_match('~^(.+?[.!?])\s+(\S.*)$~su', $text, $parts) === 1) {
         [$first, $rest] = [$parts[1], $parts[2]];
     }
-    $html = '<span class="hint" id="' . e($id) . '">' . e($first);
-    if ($rest !== '') {
-        $html .= ' <span class="help-tip"><button type="button" class="help-tip-button" aria-describedby="' . e($id) . '-more" aria-label="' . e(t('navigation.more')) . '">?</button>'
-            . '<span class="help-tip-text" role="tooltip" id="' . e($id) . '-more">' . e($rest) . '</span></span>';
+    if ($rest === '') {
+        return '<span class="hint" id="' . e($id) . '">' . e($first) . '</span>';
+    }
+    $head = '';
+    $last = $first;
+    if (preg_match('~^(.*\s)(\S+)$~su', $first, $words) === 1) {
+        [$head, $last] = [$words[1], $words[2]];
     }
 
-    return $html . '</span>';
+    return '<span class="hint" id="' . e($id) . '">' . e($head)
+        . '<span class="hint-tail">' . e($last) . ' <span class="help-tip"><button type="button" class="help-tip-button" aria-describedby="' . e($id) . '-more" aria-label="' . e(t('navigation.more')) . '">?</button>'
+        . '<span class="help-tip-text" role="tooltip" id="' . e($id) . '-more">' . e($rest) . '</span></span></span></span>';
 };

@@ -18,6 +18,9 @@ $error = static fn (string $key): string => isset($errors[$key])
     : '';
 require __DIR__ . '/parts/words.php';
 ?>
+        <?php /* One column, as a form is read (D-183): the header, the footer column by
+                 column, the small print, and the menus under them. */ ?>
+        <div class="navigation-screen">
         <div class="page-header">
             <h1><?= e($title) ?></h1>
         </div>
@@ -52,3 +55,4 @@ require __DIR__ . '/parts/words.php';
         </form>
 
 <?php require __DIR__ . '/parts/menus-list.php'; ?>
+        </div>

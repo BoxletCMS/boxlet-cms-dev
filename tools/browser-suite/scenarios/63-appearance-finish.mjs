@@ -201,6 +201,56 @@ export default {
     report.verdict('Navigation: the language is chosen once, the cards hold no card, and every hint is one sentence',
       shape.switcher && shape.first === 'en' && shape.after.length === 1 && shape.after[0] === 'hr' && shape.nested === 0 && shape.long.length === 0 && shape.tips > 3, JSON.stringify(shape));
     await page.$eval('[data-navigation-language] input[value="en"]', (input) => { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }).catch(() => {});
+    // One column; each footer column a group under its heading, the small print last; the
+    // words' editor three lines tall; a (?) never alone on its line (D-183).
+    const column = await page.evaluate(() => {
+      const shown = (el) => el.getBoundingClientRect().height > 0;
+      const screen = document.querySelector('.navigation-screen');
+      const parts = [...document.querySelectorAll('.navigation-parts > .panel')].map((p) => p.getBoundingClientRect());
+      const groups = [...document.querySelectorAll('.navigation-part .footer-column')];
+      const heads = groups.map((g) => (g.querySelector(':scope > h3') || {}).textContent || '');
+      const holds = groups.slice(0, 3).map((g, i) => !!g.querySelector(`select[name="footer_menu_${i + 1}"]`)
+        && [...g.querySelectorAll('.words-for')].filter(shown).length === 1
+        && !!g.querySelector('.words-for:not([hidden]) input[name$="_en"]') && !!g.querySelector('.words-for:not([hidden]) [data-richtext]'));
+      const last = groups[groups.length - 1];
+      const editor = document.querySelector('#navigation-form [data-richtext]:has([name="footer_text_en"]) .ProseMirror');
+      const lineHeight = editor ? parseFloat(getComputedStyle(editor).lineHeight) : 0;
+      return {
+        width: screen ? Math.round(screen.getBoundingClientRect().width) : 0,
+        rem: parseFloat(getComputedStyle(document.documentElement).fontSize),
+        stacked: parts.length === 2 && Math.abs(parts[0].left - parts[1].left) < 1 && parts[1].top >= parts[0].bottom,
+        heads,
+        holds,
+        smallPrintLast: !!last && !!last.querySelector('.words-for:not([hidden]) input[name="footer_small_print_en"]') && last === last.parentElement.lastElementChild,
+        lines: editor && lineHeight ? Math.round((editor.getBoundingClientRect().height / lineHeight) * 10) / 10 : 0,
+      };
+    });
+    report.verdict('Navigation is one column, each footer column a group under "Column n" with its menu, title and words, and the small print last',
+      column.width > 0 && column.width <= 46 * column.rem + 1 && column.stacked && column.heads.join('|') === 'Column 1|Column 2|Column 3|Small print'
+        && column.holds.every(Boolean) && column.smallPrintLast, JSON.stringify(column));
+    report.verdict('the footer\'s words editor is three lines tall', column.lines >= 2.6 && column.lines <= 4.4, JSON.stringify({ lines: column.lines }));
+    const alone = [];
+    for (const width of [1440, 1100, 390]) {
+      await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+      await wait(300);
+      const found = await page.evaluate(() => [...document.querySelectorAll('.help-tip-button')].filter((b) => b.getBoundingClientRect().height > 0).map((b) => {
+        const tail = b.closest('.hint-tail');
+        const word = tail ? tail.firstChild : null;
+        if (!word || word.nodeType !== 3) { return `${b.getAttribute('aria-describedby')}: no word before it`; }
+        const range = document.createRange();
+        range.selectNodeContents(word);
+        const rects = [...range.getClientRects()].filter((r) => r.width > 0);
+        const w = rects[rects.length - 1];
+        const r = b.getBoundingClientRect();
+        const middle = r.top + r.height / 2;
+        return middle >= w.top - 2 && middle <= w.bottom + 2 ? null : `${b.getAttribute('aria-describedby')}: below its words`;
+      }).filter(Boolean));
+      found.forEach((f) => alone.push(`${width}px ${f}`));
+      if (width === 390) { await report.shot(page, '04b-navigation-phone', { fullPage: false }); }
+    }
+    await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+    await wait(300);
+    report.verdict('every (?) stands on the line of the words before it, at 1440, 1100 and 390px', alone.length === 0, alone.join(' | ') || 'none alone');
     await report.shot(page, '04-navigation', { fullPage: false });
     await openBuilder(page, BASE, 1);
     await page.evaluate(() => window.pb.select('block', window.pb.doc.blocks[0].key));

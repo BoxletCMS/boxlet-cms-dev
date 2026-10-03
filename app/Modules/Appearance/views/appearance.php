@@ -32,7 +32,7 @@ use App\Support\Url;
 
 require __DIR__ . '/parts/controls.php';
 require __DIR__ . '/cards.php';
-$icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'layout' => 'panels-top-left', 'header' => 'arrow-up', 'footer' => 'arrow-down', 'buttons' => 'square-play'];
+$icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'layout' => 'panels-top-left', 'header' => 'panel-top', 'footer' => 'panel-bottom', 'buttons' => 'square-play'];
 ?>
         <div class="appearance" data-appearance>
 <?php require __DIR__ . '/parts/bar.php'; ?>

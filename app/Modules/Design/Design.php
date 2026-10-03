@@ -34,6 +34,7 @@ final class Design
         foreach ($db->all('SELECT group_key, value_json FROM design_tokens') as $row) {
             $stored[(string) $row['group_key']] = json_decode((string) $row['value_json'], true);
         }
+        $stored = Tokens::upgraded($stored);
         $values = [];
         foreach (array_keys(Decisions::ALL) as $key) {
             $value = $stored[$key] ?? '';
@@ -99,7 +100,7 @@ final class Design
         $file = (new TokenCompiler())->compile(
             Derived::from($resolved, Composition::section(Composition::active($db), [])['width']),
             $cacheDirectory,
-            Typography::fontFaces($resolved['typography'], self::FONTS_FROM_CACHE),
+            Typography::fontFaces([$resolved['heading_font'], $resolved['body_font']], self::FONTS_FROM_CACHE),
         );
         Settings::set($db, 'tokens_css', $file);
 

@@ -155,6 +155,12 @@ final class DesignVocabulary
                     'additionalProperties' => false,
                     'properties' => $decisions,
                 ],
+                'dark' => [
+                    'type' => 'object',
+                    'description' => 'The set\'s dark version (D-185): in dark mode these stand for the light ones. A colour left out is worked out by the palette; anything else left out is the light version\'s. With it, both versions are checked for contrast.',
+                    'additionalProperties' => false,
+                    'properties' => array_intersect_key($decisions, array_flip(Decisions::DARK)),
+                ],
                 'look' => [
                     'type' => 'object',
                     'description' => '\'\' or a choice left out follows the character.',

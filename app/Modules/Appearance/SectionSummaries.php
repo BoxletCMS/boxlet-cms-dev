@@ -37,7 +37,8 @@ final class SectionSummaries
                 'total' => count($pairs),
             ]),
             'summary.typography' => t('inspector.summary.typography', [
-                'pairing' => t('design.typography.' . $decisions['typography']),
+                // The two families by name, one when they are the same (D-185).
+                'fonts' => implode(' / ', array_unique([\App\Modules\Design\Fonts::ALL[\App\Modules\Design\Fonts::known($decisions['heading_font'])]['name'], \App\Modules\Design\Fonts::ALL[\App\Modules\Design\Fonts::known($decisions['body_font'])]['name']])),
                 'size' => $readable['text']['base'],
                 'scale' => $decisions['scale'],
             ]),

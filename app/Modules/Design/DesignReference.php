@@ -41,11 +41,12 @@ final class DesignReference
         $out[] = '| `author` | no | Up to 80 characters. |';
         $out[] = '| `tags` | no | Up to 12 words, each up to 32 characters. |';
         $out[] = '| `decisions` | yes | The design: colour, type, space, layout, buttons. Only `seed` is required; a key left out takes its default. |';
+        $out[] = '| `dark` | no | The set\'s dark version: colours, surface contrast and shadow for dark mode (below). |';
         $out[] = '| `look` | no | The header and footer. A key left out, or `""`, follows the character. |';
         $out[] = '| `composition` | no | What each section and block looks like by default. With it the set is a character. |';
         $out[] = '| `patterns` | no | Up to ' . DesignSetPatterns::MAX . ' starter sections, the one place a set carries words. |';
         $out[] = '';
-        $out[] = 'A number may be written as a number or a string (`60` or `"60"`); it must lie in its range, and one off its step is put on the nearest step (`bin/check-set.php` says so). A colour is `#rgb` or `#rrggbb`. `""` means *follow*: the character\'s value, the typeface pairing\'s, or the palette\'s (column **""**).';
+        $out[] = 'A number may be written as a number or a string (`60` or `"60"`); it must lie in its range, and one off its step is put on the nearest step (`bin/check-set.php` says so). A colour is `#rgb` or `#rrggbb`. `""` means *follow*: the character\'s value, the font\'s, or the palette\'s (column **""**).';
         $out[] = '';
 
         foreach (['decisions' => 'Decisions', 'look' => 'Look: the header and footer'] as $part => $title) {
@@ -66,6 +67,26 @@ final class DesignReference
             }
             $out[] = '';
         }
+
+        $out[] = '## Fonts';
+        $out[] = '';
+        $out[] = '`heading_font` and `body_font` name a family from the library below, self-hosted (no CDN), each under the SIL Open Font License and carrying č ć đ š ž and their capitals. A page declares and preloads only its two families. Left alone, a heading takes its family\'s weight, letter spacing, line height and capitals, and running text its family\'s line height; a weight the family has no file for is the nearest one it has.';
+        $out[] = '';
+        $out[] = '| Id | Name | Category | Weights | Heading: weight, spacing (em), line height, capitals | Text line height | Fallback |';
+        $out[] = '|---|---|---|---|---|---|---|';
+        foreach (Fonts::ALL as $id => $font) {
+            $out[] = '| `' . $id . '` | ' . $font['name'] . ' | ' . $font['category'] . ' | ' . ($font['variable'] ? implode(' – ', $font['weights']) . ' (variable)' : implode(', ', $font['weights']))
+                . ' | ' . $font['heading'][0] . ', ' . $font['heading'][1] . ', ' . $font['heading'][2] . ', ' . ($font['heading'][3] ? 'yes' : 'no')
+                . ' | ' . $font['leading'] . ' | ' . substr($font['stack'], strpos($font['stack'], ',') + 2) . ' |';
+        }
+        $out[] = '';
+        $out[] = '**Pairings**, shortcuts the screen offers (a set names the two families itself): ' . implode('; ', array_map(static fn (string $name, array $p): string => '`' . $name . '` ' . Fonts::ALL[$p['heading']]['name'] . ' / ' . Fonts::ALL[$p['body']]['name'], array_keys(Typography::PAIRINGS), Typography::PAIRINGS)) . '.';
+        $out[] = '';
+
+        $out[] = '## Dark version';
+        $out[] = '';
+        $out[] = '`dark` is optional. When a site shows the set in dark mode, these keys stand for the light ones: ' . implode(', ', array_map(static fn (string $k): string => '`' . $k . '`', Decisions::DARK)) . '. A colour left out (`color_*`, `header_colour`, `footer_colour`) is worked out by the palette for the dark page, not carried over from the light version; anything else left out is the light version\'s, and a main colour that does not read on the dark page is lifted until it does. With a dark version both versions are checked, and a pair under 4.5:1 in either refuses the set (`dark.<key>` for the dark one). Without one, the dark version is derived alone, and `bin/check-set.php` warns of what that cannot mend.';
+        $out[] = '';
 
         $out[] = '## Composition';
         $out[] = '';
@@ -163,7 +184,7 @@ final class DesignReference
     {
         return match ($rule['type']) {
             'number' => self::number($rule['min']) . ' – ' . self::number($rule['max']),
-            'choice' => implode(', ', array_map(static fn (string $v): string => '`' . $v . '`', $rule['values'])),
+            'choice' => $rule['values'] === Decisions::FONTS ? 'a family from the library (Fonts, below)' : implode(', ', array_map(static fn (string $v): string => '`' . $v . '`', $rule['values'])),
             'colour' => '#rgb, #rrggbb',
             default => '',
         };

@@ -35,7 +35,8 @@ $chips = static function (array $decisions, string $key) use ($swatch): string {
  * @param array<string, string> $decisions
  */
 $summary = static fn (array $decisions, string $header): string => implode(' · ', array_filter([
-    t('design.typography.' . ($decisions['typography'] ?? 'modern')),
+    // The heading family by name (D-185); a design kept before names its pairing instead.
+    \App\Modules\Design\Fonts::ALL[\App\Modules\Design\Fonts::known((string) (\App\Modules\Design\Tokens::upgraded($decisions)['heading_font'] ?? 'inter'))]['name'],
     ($decisions['container'] ?? '60') . 'rem',
     t(($decisions['boxed'] ?? 'no') === 'yes' ? 'appearance.boxed' : 'appearance.full_bleed'),
     $header === '' ? '' : t('chrome.look.header_arrangement.' . $header),

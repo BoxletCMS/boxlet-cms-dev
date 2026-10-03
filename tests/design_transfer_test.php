@@ -104,9 +104,9 @@ testBothDrivers('an imported file asks, and Add as character keeps it, under an 
 
 testBothDrivers('a refused file says why, field by field, and nothing waits', function (string $driver) {
     $db = transferSite($driver);
-    $refused = designUpload(customFile('harbour', ['decisions' => ['typography' => 'comic']]));
+    $refused = designUpload(customFile('harbour', ['decisions' => ['heading_font' => 'comic']]));
     assertEquals(422, $refused->status, 'status');
-    assertContains('decisions.typography', $refused->body, 'the field and the reason');
+    assertContains('decisions.heading_font', $refused->body, 'the field and the reason');
     assertEquals(null, $_SESSION['design_import'] ?? null, 'a refused set waits');
     assertContains('This file is not a Boxlet design.', designUpload('{"hello": "world"}')->body, 'not a design');
     assertContains('Choose a design file first.', adminUpload('/admin/appearance/import', [], [], 'design')->body, 'no file');

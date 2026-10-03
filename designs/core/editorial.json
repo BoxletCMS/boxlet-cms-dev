@@ -12,7 +12,8 @@
     "decisions": {
         "seed": "#8a1c2b",
         "secondary": "#1f1a17",
-        "typography": "editorial",
+        "heading_font": "playfair-display",
+        "body_font": "source-serif-4",
         "text_size": "17",
         "scale": "1.335",
         "spacing": "1.25",

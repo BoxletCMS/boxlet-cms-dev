@@ -47,7 +47,7 @@ return [
 
     // The line under each section's name, built from the values on the screen.
     'inspector.summary.colours' => ':seed · :passing/:total readable',
-    'inspector.summary.typography' => ':pairing · :size px · scale :scale',
+    'inspector.summary.typography' => ':fonts · :size px · scale :scale',
     'inspector.summary.space' => 'spacing :space px · corners :radius px · shadow :shadow',
     'inspector.summary.layout_boxed' => 'sheet :sheet px · content :content px',
     'inspector.summary.layout_full' => 'full width · content :content px',

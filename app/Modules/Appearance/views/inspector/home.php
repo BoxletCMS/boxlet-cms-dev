@@ -25,7 +25,7 @@ use App\Support\Url;
  * @var array<string, string> $decisions
  * @var Closure(array<string, string>, string): string $chips
  * @var Closure(string, string, array<string, mixed>=): array<string, mixed> $rowOptions
- * @var Closure(string=): string $typefaceCards
+ * @var Closure(): string $pairingTiles
  * @var Closure(string, list<string>): array<string, string> $labels
  * @var array<string, string> $icons each section's icon
  */
@@ -94,7 +94,8 @@ ob_start();
                                 . '<output class="colour-value" for="quick-seed" data-colour-for="quick-seed">' . e($decisions['seed']) . '</output></div>',
                                 ['for' => 'quick-seed', 'hint' => '', 'error' => ''] + $rowOptions('seed', t('design.seed'))) ?>
                             <?= $mirror('mode') ?>
-                            <?= Controls::row(t('design.typography'), $typefaceCards('appearance-quick'), ['labelId' => 'quick-typography-label', 'hint' => '', 'error' => ''] + $rowOptions('typography', t('design.typography'))) ?>
+                            <?php /* The pairings, which set the two families in Typography (D-185). */ ?>
+                            <?= Controls::row(t('design.pairings'), $pairingTiles(), ['hint' => '', 'error' => '']) ?>
                             <?= $mirror('text_size') ?>
                             <?= $mirror('radius') ?>
                             <?= $mirror('spacing') ?>
@@ -102,7 +103,7 @@ ob_start();
 <?php $quick = (string) ob_get_clean(); ?>
                 <section class="inspector-view inspector-home" id="appearance-home" data-view="home" aria-labelledby="appearance-home-title">
                     <h2 class="visually-hidden" id="appearance-home-title"><?= e(t('inspector.home')) ?></h2>
-                    <?= Controls::group('group-quick', t('inspector.quick'), $quick, ['changed' => count(array_intersect($changed, ['seed', 'mode', 'typography', 'text_size', 'radius', 'spacing']))]) ?>
+                    <?= Controls::group('group-quick', t('inspector.quick'), $quick, ['changed' => count(array_intersect($changed, ['seed', 'mode', 'heading_font', 'body_font', 'text_size', 'radius', 'spacing']))]) ?>
 
                     <?php /* HOW MUCH IS THE OWNER'S OWN (D-158): shown only when something is, and
                              with the one press that gives all of it back. The count and the words

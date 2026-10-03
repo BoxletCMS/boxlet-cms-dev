@@ -181,13 +181,13 @@
     });
   }
 
-  /** And in the face being chosen: a pairing is two faces, and the specimen shows both. */
+  /** And in the faces being chosen: two families, and the specimen shows both (D-185). */
   function showTypeface() {
     var specimen = document.querySelector('.specimen');
-    var chosen = form.querySelector('input[name="typography"]:checked');
-    if (specimen && chosen) {
-      specimen.setAttribute('data-typeface', chosen.value);
-    }
+    var heading = form.querySelector('input[name="heading_font"]:checked');
+    var body = form.querySelector('input[name="body_font"]:checked');
+    if (specimen && heading) { specimen.setAttribute('data-heading-font', heading.value); }
+    if (specimen && body) { specimen.setAttribute('data-body-font', body.value); }
   }
 
   /*

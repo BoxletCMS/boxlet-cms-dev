@@ -105,6 +105,7 @@ $icons = ['colours' => 'palette', 'typography' => 'type', 'space' => 'box', 'lay
         <form id="design-preview-form" method="get" action="<?= e(Url::admin('appearance', 'preview')) ?>" target="design-preview" class="visually-hidden"></form>
         <script src="<?= e(Url::versioned('assets/appearance.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-readouts.js')) ?>" defer></script>
+        <script src="<?= e(Url::versioned('assets/appearance-fonts.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-overrides.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-quick.js')) ?>" defer></script>
         <script src="<?= e(Url::versioned('assets/appearance-sections.js')) ?>" defer></script>

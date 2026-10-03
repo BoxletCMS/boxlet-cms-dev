@@ -14,6 +14,7 @@ use App\Support\Url;
  * @var string $description meta description; empty when the page gives none (D-004)
  * @var bool $noindex keep this page out of search engines: the owner's choice, and always
  *                   for a preview (D-170)
+ * @var list<string> $fontPreloads the two families' first files, preloaded (D-185)
  * @var bool $designPreview drawn inside the Appearance preview, where the editor-only marks
  *                         show (D-170)
  * @var array{url: string, type: string}|null $icon the site's tab icon (D-028)
@@ -64,6 +65,10 @@ use App\Support\Url;
 <?php if ($shareImage !== null): ?>
     <meta property="og:image" content="<?= e($shareImage) ?>">
 <?php endif; ?>
+<?php /* The two families' first files at once (D-185): drawn in their own face the first time. */ ?>
+<?php foreach ($fontPreloads as $font): ?>
+    <link rel="preload" href="<?= e($font) ?>" as="font" type="font/woff2" crossorigin>
+<?php endforeach; ?>
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-hero.css')) ?>">

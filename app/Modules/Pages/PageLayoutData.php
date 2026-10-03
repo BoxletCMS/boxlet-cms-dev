@@ -44,6 +44,7 @@ use App\Modules\Settings\SiteChrome;
  *     breadcrumbs: string,
  *     noindex: bool,
  *     designPreview: bool,
+ *     fontPreloads: list<string>,
  *     headerBleed: string,
  *     footerBleed: string,
  *     headerHtml: string,
@@ -56,7 +57,7 @@ final class PageLayoutData
      * What the layout is handed, beside View's own $locale and $content. The test above
      * asserts this list against the template, so it is a fact rather than a comment.
      */
-    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'breadcrumbs', 'noindex', 'designPreview', 'headerBleed', 'footerBleed', 'headerHtml', 'footerHtml'];
+    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'breadcrumbs', 'noindex', 'designPreview', 'fontPreloads', 'headerBleed', 'footerBleed', 'headerHtml', 'footerHtml'];
 
     /**
      * A visitor's page, or an error page.
@@ -79,6 +80,7 @@ final class PageLayoutData
         // home where it is not translated (D-043, step 4). What the switcher draws, and what
         // hreflang is made from.
         $alternates = Alternates::for($db, $page, $container->get('locales'));
+        $design = self::design($db);
 
         return [
             'title' => $head['title'],
@@ -96,7 +98,8 @@ final class PageLayoutData
             // A page its owner keeps out of search engines (D-170).
             'noindex' => ($head['noindex'] ?? false) === true,
             'designPreview' => false,
-        ] + self::chrome($container, $locale, $alternates, $current, self::design($db) + ['first_surface' => $head['first_surface'] ?? '']);
+            'fontPreloads' => self::fontPreloads($design['decisions']),
+        ] + self::chrome($container, $locale, $alternates, $current, $design + ['first_surface' => $head['first_surface'] ?? '']);
     }
 
     /**
@@ -137,7 +140,27 @@ final class PageLayoutData
             'noindex' => true,
             // The Appearance screen's picture, which marks an empty picture as one (D-170).
             'designPreview' => true,
+            'fontPreloads' => isset($trying['decisions']['heading_font']) ? self::fontPreloads($trying['decisions']) : [],
         ] + self::chrome($container, $locale, Alternates::for($db, null, $container->get('locales')), '', $trying);
+    }
+
+    /**
+     * THE TWO FAMILIES' FIRST FILES, FETCHED AT ONCE (D-185): the heading's latin file at its
+     * weight and the text's at 400, so the words are drawn in their own face the first time.
+     *
+     * @param array<string, string> $decisions resolved
+     * @return list<string> addresses
+     */
+    private static function fontPreloads(array $decisions): array
+    {
+        $heading = \App\Modules\Design\Fonts::known($decisions['heading_font'] ?? '');
+        $weight = $decisions['heading_weight'] ?? '';
+        $weight = $weight !== '' ? (int) $weight : \App\Modules\Design\Fonts::ALL[$heading]['heading'][0];
+
+        return array_map(
+            static fn (string $path): string => \App\Support\Url::asset('assets/fonts/' . $path),
+            \App\Modules\Design\Typography::preloads($heading, $decisions['body_font'] ?? '', $weight),
+        );
     }
 
     /**

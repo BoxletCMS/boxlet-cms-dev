@@ -201,30 +201,9 @@ $group = static function (string $section, string $name, string $body, bool $ope
     ]);
 };
 
-/**
- * THE PAIRINGS AS CARDS, NOT A LIST OF NAMES. "Modern" means nothing on its own; "Modern ·
- * Inter" is a choice a person can make, and the sample is set in the face itself — the ONE
- * place the admin shows the site's typefaces, because they are what is being chosen.
- *
- * Twice on the screen: in Typography, where the field is, and in Quick start, where a script
- * mirrors it — which is what $form is for: the mirror belongs to an empty form of its own,
- * so the two are not one radio group (D-157).
- */
-$typefaceCards = static function (string $form = '') use ($decisions): string {
-    // In Quick start three to a row, the sample and the name: the families are in Typography.
-    $html = '<div class="typefaces' . ($form !== '' ? ' typefaces-compact' : '') . '" role="radiogroup" aria-labelledby="' . ($form === '' ? 'design-typography-label' : 'quick-typography-label') . '">';
-    foreach (App\Modules\Design\Typography::PAIRINGS as $name => $pairing) {
-        $heading = App\Modules\Design\Typography::FAMILIES[$pairing['heading']]['name'];
-        $body = App\Modules\Design\Typography::FAMILIES[$pairing['body']]['name'];
-        $html .= '<label class="typeface"><input type="radio" name="typography" value="' . e($name) . '"'
-            . ($form !== '' ? ' form="' . e($form) . '"' : '') . ($decisions['typography'] === $name ? ' checked' : '') . '>'
-            . '<span class="typeface-sample" data-typeface="' . e($name) . '" aria-hidden="true">Aa</span>'
-            . '<span class="typeface-name">' . e(t('design.typography.' . $name))
-            . '<span>' . e($heading === $body ? $heading : $heading . ' / ' . $body) . '</span></span></label>';
-    }
-
-    return $html . '</div>';
-};
+require __DIR__ . '/fonts.php';
+/** @var Closure(string): string $fontPicker */
+/** @var Closure(): string $pairingTiles */
 
 /**
  * ANY GLOBAL DECISION AS ITS CONTROL (D-164), from the one table that defines it: a number

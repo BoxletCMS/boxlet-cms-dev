@@ -27,7 +27,7 @@ use App\Modules\Design\Vocabulary\Decisions;
  * this one.
  *
  * @phpstan-type SetComposition array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>, options: array<string, array<string, string>>}
- * @phpstan-type ParsedSet array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: SetComposition|null, patterns: list<Pattern>}
+ * @phpstan-type ParsedSet array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, dark: array<string, string>, look: array<string, string>, composition: SetComposition|null, patterns: list<Pattern>}
  * @phpstan-import-type Pattern from DesignSetPatterns
  */
 final class DesignSet
@@ -42,7 +42,7 @@ final class DesignSet
     public const ID_PATTERN = '~^[a-z0-9][a-z0-9-]{0,31}$~';
 
     /** Every top-level key, in the order export() writes them. */
-    private const KEYS = ['$schema', 'format', 'version', 'id', 'name', 'description', 'author', 'tags', 'decisions', 'look', 'composition', 'patterns'];
+    private const KEYS = ['$schema', 'format', 'version', 'id', 'name', 'description', 'author', 'tags', 'decisions', 'dark', 'look', 'composition', 'patterns'];
 
 
     /**
@@ -85,8 +85,9 @@ final class DesignSet
      * @param array<string, string> $look choice => value, '' following the character
      * @param array<string, mixed>|null $composition section, surfaces, dividers, layouts
      * @param list<array<string, mixed>> $patterns the set's starter sections (D-169)
+     * @param array<string, string> $dark the set's dark version (D-185), none if it has none
      */
-    public static function export(string $id, array $name, array $description, array $decisions, array $look, ?array $composition, string $author = '', array $patterns = []): string
+    public static function export(string $id, array $name, array $description, array $decisions, array $look, ?array $composition, string $author = '', array $patterns = [], array $dark = []): string
     {
         $neutral = Decisions::neutral();
         $kept = [];
@@ -113,6 +114,11 @@ final class DesignSet
             $set['author'] = $author;
         }
         $set['decisions'] = $kept;
+        // The dark version, in the vocabulary's order, only what it answers.
+        $darkKept = array_filter(array_replace(array_fill_keys(Decisions::DARK, ''), array_intersect_key($dark, array_flip(Decisions::DARK))), static fn (string $v): bool => $v !== '');
+        if ($darkKept !== []) {
+            $set['dark'] = $darkKept;
+        }
         $set['look'] = $ordered;
         if ($composition !== null) {
             $set['composition'] = [
@@ -188,7 +194,8 @@ final class DesignSet
             $composition = DesignSetParts::composition($raw['composition'], $registry, $errors, $warnings);
         }
         $patterns = DesignSetPatterns::read($raw['patterns'] ?? null, $registry, $errors, $warnings);
-        $decisions = DesignSetParts::decisions($raw['decisions'] ?? null, $errors, $warnings);
+        $dark = DesignSetParts::dark($raw['dark'] ?? null, $errors, $warnings);
+        $decisions = DesignSetParts::decisions($raw['decisions'] ?? null, $errors, $warnings, $dark);
         $look = DesignSetParts::look($raw['look'] ?? null, $errors, $warnings);
 
         if ($errors !== []) {
@@ -203,6 +210,7 @@ final class DesignSet
                 'author' => $author,
                 'tags' => $tags,
                 'decisions' => $decisions,
+                'dark' => $dark,
                 'look' => $look,
                 'composition' => $composition,
                 'patterns' => $patterns,

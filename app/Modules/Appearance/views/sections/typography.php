@@ -4,8 +4,8 @@ use App\Modules\Design\Tokens;
 use App\Support\Controls;
 
 /**
- * Typography (PLAN.md D-157): the pairing, the sizes, the headings, and the three nudges
- * folded away. Included by appearance.php inside its section, with the closures of
+ * Typography (PLAN.md D-157, D-185): the two families and the pairings, the sizes, the
+ * headings, and the three nudges folded away. Included by appearance.php inside its section, with the closures of
  * parts/controls.php in scope.
  *
  * @var array<string, string> $decisions
@@ -13,12 +13,17 @@ use App\Support\Controls;
  * @var Closure(string): string $control
  * @var Closure(string, string, array<string, mixed>=): array<string, mixed> $rowOptions
  * @var Closure(string, string, string, bool=): string $group
- * @var Closure(string=): string $typefaceCards
+ * @var Closure(string): string $fontPicker
+ * @var Closure(): string $pairingTiles
  */
 
 ob_start();
 ?>
-                    <?= Controls::row(t('design.typography'), $typefaceCards(), $rowOptions('typography', t('design.typography'), ['labelId' => 'design-typography-label'])) ?>
+                    <?php /* The two families, each from the library (D-185), and the pairings as
+                             shortcuts that set both. */ ?>
+                    <?= $fontPicker('heading_font') ?>
+                    <?= $fontPicker('body_font') ?>
+                    <?= Controls::row(t('design.pairings'), $pairingTiles(), ['hint' => field_hint('hint.design.pairings'), 'error' => '']) ?>
 <?php $typeface = (string) ob_get_clean(); ob_start(); ?>
                     <?php /* SIZE FIRST, THEN SCALE: how big the text is, then how much bigger each
                              heading is than the one under it (D-062, D-066). */ ?>
@@ -28,7 +33,7 @@ ob_start();
                     <?php /* THE SPECIMEN, DRAWN RATHER THAN DESCRIBED (D-065, D-075): the lines at
                              the sizes the page will really use, shrunk together to fit, in the
                              pairing being chosen. The numbers beside them are the server's. */ ?>
-                    <div class="specimen" data-typeface="<?= e($decisions['typography']) ?>" aria-hidden="true">
+                    <div class="specimen" data-heading-font="<?= e($decisions['heading_font']) ?>" data-body-font="<?= e($decisions['body_font']) ?>" aria-hidden="true">
 <?php foreach ([['4xl', 'design.specimen.hero', 'heading'], ['2xl', 'design.specimen.text_heading', 'heading'], ['base', 'design.specimen.text_body', 'body'], ['sm', 'design.specimen.small', 'body']] as [$step, $key, $half]): ?>
                         <p class="specimen-line specimen-<?= e($step) ?> specimen-<?= e($half) ?>" data-specimen="<?= e($step) ?>">
                             <span><?= e(t($key)) ?></span><em data-readout="specimen.<?= e($step) ?>" data-specimen-size="<?= e($step) ?>"><?= e($readouts['specimen.' . $step] ?? '') ?></em>

@@ -34,7 +34,7 @@ final class Overrides
             'contrast' => [],
         ],
         'typography' => [
-            'typeface' => ['typography'],
+            'typeface' => ['heading_font', 'body_font'],
             'sizes' => ['text_size', 'scale', 'line_height'],
             'headings' => ['heading_weight', 'tracking', 'caps'],
             'fine' => ['nudge_h1', 'nudge_h2', 'nudge_sm'],
@@ -77,18 +77,22 @@ final class Overrides
 
     /**
      * What each control is when the owner has not made it theirs: the character's value, the
-     * pairing's for a key that follows the typeface, '' for a colour by hand (the palette's).
+     * font's for a key that follows a family (D-185), '' for a colour by hand (the palette's).
      *
+     * @param string $heading the heading family the owner chose, '' for the character's
+     * @param string $body the text's family the owner chose, '' for the character's
      * @return array<string, string>
      */
-    public static function defaults(string $character, string $typography = ''): array
+    public static function defaults(string $character, string $heading = '', string $body = ''): array
     {
         $values = Characters::decisions($character);
-        $typography = $typography !== '' ? $typography : $values['typography'];
+        $heading = $heading !== '' ? $heading : $values['heading_font'];
+        $body = $body !== '' ? $body : $values['body_font'];
         $defaults = [];
         foreach (Decisions::ALL as $key => $definition) {
             $defaults[$key] = match (Decisions::follows($key)) {
-                'pairing' => Decisions::fromPairing($key, $typography),
+                // A character may pin one (Bold's line height, D-185): then it is the character's.
+                'font' => ($values[$key] ?? '') !== '' ? $values[$key] : Decisions::fromFont($key, $heading, $body),
                 // A colour that follows the palette follows the CHARACTER'S own colour where it
                 // names one (D-177). Brutalist names its footer's (D-172); counted as the
                 // owner's because the palette's answer is '', it was stored as theirs and kept
@@ -110,7 +114,7 @@ final class Overrides
      */
     public static function changed(array $values, string $character): array
     {
-        $defaults = self::defaults($character, $values['typography'] ?? '');
+        $defaults = self::defaults($character, $values['heading_font'] ?? '', $values['body_font'] ?? '');
         $changed = [];
         foreach (self::keys('all') ?? [] as $key) {
             $value = self::plain($key, $values[$key] ?? '', $defaults[$key] ?? '');
@@ -186,14 +190,14 @@ final class Overrides
     /**
      * The owner's values as stored (D-159, D-164): every value equal to what it would follow
      * is ''. The form posts what every control shows, which for a key nobody touched is the
-     * character's or the pairing's value; storing that would pin it.
+     * character's or the font's value; storing that would pin it.
      *
      * @param array<string, string> $values
      * @return array<string, string>
      */
     public static function settle(array $values, string $character): array
     {
-        $defaults = self::defaults($character, $values['typography'] ?? '');
+        $defaults = self::defaults($character, $values['heading_font'] ?? '', $values['body_font'] ?? '');
         foreach ($values as $key => $value) {
             $value = self::plain($key, $value, $defaults[$key] ?? '');
             $values[$key] = $value !== '' && isset($defaults[$key]) && self::same($value, $defaults[$key]) ? '' : $value;

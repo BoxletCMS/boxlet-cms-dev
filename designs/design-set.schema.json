@@ -155,18 +155,73 @@
                     "description": "Any colour for the footer, instead of its surface; its words are worked out from it.",
                     "default": ""
                 },
-                "typography": {
+                "heading_font": {
                     "enum": [
                         "",
-                        "editorial",
-                        "classic",
-                        "modern",
-                        "grotesk",
-                        "rounded",
-                        "mono"
+                        "playfair-display",
+                        "source-serif-4",
+                        "instrument-serif",
+                        "young-serif",
+                        "cormorant-garamond",
+                        "bodoni-moda",
+                        "newsreader",
+                        "eb-garamond",
+                        "libre-caslon-text",
+                        "inter",
+                        "space-grotesk",
+                        "nunito",
+                        "hanken-grotesk",
+                        "figtree",
+                        "manrope",
+                        "outfit",
+                        "archivo",
+                        "schibsted-grotesk",
+                        "bricolage-grotesque",
+                        "ibm-plex-sans",
+                        "big-shoulders-display",
+                        "unbounded",
+                        "syne",
+                        "baloo-2",
+                        "ibm-plex-mono",
+                        "jetbrains-mono",
+                        "space-mono"
                     ],
-                    "description": "The pair of typefaces for headings and text, each with its own weight, spacing and line height.",
-                    "default": "modern"
+                    "description": "The family headings are set in, from the font library; its own weight, letter spacing, line height and capitals apply unless set.",
+                    "default": "inter"
+                },
+                "body_font": {
+                    "enum": [
+                        "",
+                        "playfair-display",
+                        "source-serif-4",
+                        "instrument-serif",
+                        "young-serif",
+                        "cormorant-garamond",
+                        "bodoni-moda",
+                        "newsreader",
+                        "eb-garamond",
+                        "libre-caslon-text",
+                        "inter",
+                        "space-grotesk",
+                        "nunito",
+                        "hanken-grotesk",
+                        "figtree",
+                        "manrope",
+                        "outfit",
+                        "archivo",
+                        "schibsted-grotesk",
+                        "bricolage-grotesque",
+                        "ibm-plex-sans",
+                        "big-shoulders-display",
+                        "unbounded",
+                        "syne",
+                        "baloo-2",
+                        "ibm-plex-mono",
+                        "jetbrains-mono",
+                        "space-mono"
+                    ],
+                    "description": "The family running text is set in, from the font library; its own line height applies unless set.",
+                    "default": "inter"
                 },
                 "text_size": {
                     "type": [
@@ -189,7 +244,7 @@
                         "string",
                         "number"
                     ],
-                    "description": "The space between lines of running text, as a multiple of its size; '' takes the pairing's. (number, 1.3 – 1.9, step 0.05)",
+                    "description": "The space between lines of running text, as a multiple of its size; '' takes the text family's. (number, 1.3 – 1.9, step 0.05)",
                     "default": ""
                 },
                 "heading_weight": {
@@ -197,7 +252,7 @@
                         "string",
                         "number"
                     ],
-                    "description": "How heavy headings are; '' takes the pairing's. (number, 300 – 900, step 100)",
+                    "description": "How heavy headings are, the nearest weight the heading family has; '' takes the family's. (number, 300 – 900, step 100)",
                     "default": ""
                 },
                 "tracking": {
@@ -205,7 +260,7 @@
                         "string",
                         "number"
                     ],
-                    "description": "The space between a heading's letters, in em; '' takes the pairing's. (number em, -0.05 – 0.1, step 0.005)",
+                    "description": "The space between a heading's letters, in em; '' takes the heading family's. (number em, -0.05 – 0.1, step 0.005)",
                     "default": ""
                 },
                 "caps": {
@@ -214,7 +269,7 @@
                         "no",
                         "yes"
                     ],
-                    "description": "Whether headings are set in capitals; '' takes the pairing's.",
+                    "description": "Whether headings are set in capitals; '' takes the heading family's.",
                     "default": ""
                 },
                 "nudge_h1": {
@@ -433,6 +488,94 @@
                     ],
                     "description": "Whether a button's words are set in capitals.",
                     "default": "no"
+                }
+            }
+        },
+        "dark": {
+            "type": "object",
+            "description": "The set's dark version (D-185): in dark mode these stand for the light ones. A colour left out is worked out by the palette; anything else left out is the light version's. With it, both versions are checked for contrast.",
+            "additionalProperties": false,
+            "properties": {
+                "seed": {
+                    "type": "string",
+                    "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+                    "description": "The main colour: buttons, links and the start of a gradient; the rest of the palette is worked out from it."
+                },
+                "secondary": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "A second colour for contrast bands; without one, a deep shade of the main colour is used.",
+                    "default": ""
+                },
+                "surface_contrast": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "How far the tinted surface and cards stand from the page, from none to strong. (number %, 0 – 100, step 1)",
+                    "default": 20
+                },
+                "color_background": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "The page colour set by hand instead of worked out; the contrast check measures what is read on it.",
+                    "default": ""
+                },
+                "color_card": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "A card's colour set by hand instead of half a step from the page.",
+                    "default": ""
+                },
+                "color_surface": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "The tinted surface set by hand instead of a step from the page.",
+                    "default": ""
+                },
+                "color_border": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "The colour of rules and outlines set by hand.",
+                    "default": ""
+                },
+                "color_text": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "The text colour set by hand; it must read at 4.5:1 on the page, a card and the tinted surface.",
+                    "default": ""
+                },
+                "color_muted": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "The quieter text (leads, captions, a card's lines) set by hand; it must read at 4.5:1 on the page, a card and the tinted surface.",
+                    "default": ""
+                },
+                "color_link": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "The colour of links in running text, set by hand instead of the main colour.",
+                    "default": ""
+                },
+                "header_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "Any colour for the header bar, instead of its surface; its words are worked out from it.",
+                    "default": ""
+                },
+                "footer_colour": {
+                    "type": "string",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "description": "Any colour for the footer, instead of its surface; its words are worked out from it.",
+                    "default": ""
+                },
+                "shadow_strength": {
+                    "type": [
+                        "string",
+                        "number"
+                    ],
+                    "description": "How dark the shadow is, in percent. (number %, 0 – 100, step 1)",
+                    "default": 40
                 }
             }
         },

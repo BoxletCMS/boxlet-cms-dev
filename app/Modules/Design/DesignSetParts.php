@@ -30,11 +30,16 @@ final class DesignSetParts
      * optional keys with a default, so an unknown key is one a later Boxlet added, and leaving
      * it out is that default: refusing it would make every set written later unreadable here.
      *
+     * WITH A DARK VERSION BOTH ARE CHECKED (D-185, the owner): the decisions as the light one,
+     * and the dark one as a site in dark mode draws it, every pair of each at 4.5:1, a
+     * failure of the dark one named `dark.<key>`.
+     *
      * @param list<string> $errors
      * @param list<string> $warnings
+     * @param array<string, string> $dark the set's dark version, read by dark()
      * @return array<string, string>
      */
-    public static function decisions(mixed $raw, array &$errors, array &$warnings = []): array
+    public static function decisions(mixed $raw, array &$errors, array &$warnings = [], array $dark = []): array
     {
         if (!is_array($raw)) {
             $errors[] = self::field('decisions', t('designset.missing'));
@@ -66,12 +71,64 @@ final class DesignSetParts
         // Contrast failures arrive here like any other error, and refuse the set (D-154). A
         // key the set leaves out means what the vocabulary gives it, not the default
         // character's: a set is drawn from itself.
-        $result = Tokens::validate($given + Decisions::neutral());
+        $light = $dark !== [] ? ['mode' => 'light'] + $given : $given;
+        $result = Tokens::validate($light + Decisions::neutral());
         foreach ($result['errors'] as $key => $message) {
             $errors[] = self::field('decisions.' . $key, $message);
         }
+        if ($dark !== []) {
+            foreach (Tokens::validate(Tokens::inDark($given + Decisions::neutral(), $dark))['errors'] as $key => $message) {
+                $errors[] = self::field('dark.' . $key, $message);
+            }
+        }
 
         return array_intersect_key($result['decisions'], array_flip($known));
+    }
+
+    /**
+     * A set's dark version (D-185): only the keys of Decisions::DARK, each checked as the
+     * decision it stands for; a key it does not know is left out with a warning, as anywhere.
+     *
+     * @param list<string> $errors
+     * @param list<string> $warnings
+     * @return array<string, string>
+     */
+    public static function dark(mixed $raw, array &$errors, array &$warnings): array
+    {
+        if ($raw === null) {
+            return [];
+        }
+        if (!is_array($raw)) {
+            $errors[] = self::field('dark', t('designset.missing'));
+
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $key => $value) {
+            $key = (string) $key;
+            if (!in_array($key, Decisions::DARK, true)) {
+                $warnings[] = t('designset.unknown_key', ['key' => 'dark.' . $key]);
+                continue;
+            }
+            $clean = Decisions::clean($key, is_int($value) || is_float($value) ? (string) $value : $value);
+            if ($clean === null) {
+                $errors[] = self::field('dark.' . $key, Decisions::ALL[$key]['type'] === 'colour' ? t('design.error.color') : t('design.error.choice'));
+                continue;
+            }
+            if ($clean !== '') {
+                $out[$key] = $clean;
+            }
+        }
+
+        // In the vocabulary's order, as export writes it.
+        $ordered = [];
+        foreach (Decisions::DARK as $key) {
+            if (isset($out[$key])) {
+                $ordered[$key] = $out[$key];
+            }
+        }
+
+        return $ordered;
     }
 
     /**

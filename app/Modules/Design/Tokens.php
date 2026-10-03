@@ -40,6 +40,7 @@ final class Tokens
      */
     public static function validate(array $input, string $character = ''): array
     {
+        $input = self::upgraded($input);
         $decisions = [];
         $errors = [];
         foreach (Decisions::ALL as $key => $definition) {
@@ -72,8 +73,33 @@ final class Tokens
     }
 
     /**
+     * A PAIRING STORED BEFORE THE TWO FONTS (D-185): `typography`, one of six pairings, is
+     * read as the two families and the treatment it set (Typography::pairing()), where the
+     * values do not already say otherwise. Rows, kept designs and a screen's draft written
+     * before keep the faces they had.
+     *
+     * @param array<mixed> $values
+     * @return array<mixed>
+     */
+    public static function upgraded(array $values): array
+    {
+        $old = $values['typography'] ?? null;
+        unset($values['typography']);
+        if (!is_string($old) || !isset(Typography::PAIRINGS[$old]) || ($values['heading_font'] ?? '') !== '' || ($values['body_font'] ?? '') !== '') {
+            return $values;
+        }
+        foreach (Typography::pairing($old) as $key => $value) {
+            if (($values[$key] ?? '') === '') {
+                $values[$key] = $value;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
      * EVERY KEY ANSWERED: the owner's value where there is one, the character's where it is
-     * ''. Keys that follow the pairing or the palette stay '' — Derived and Palette read them
+     * ''. Keys that follow the font or the palette stay '' — Derived and Palette read them
      * that way — and `none` for the second colour is no second colour.
      *
      * @param array<string, string> $decisions as validate() returns them
@@ -81,17 +107,49 @@ final class Tokens
      */
     public static function resolve(array $decisions, string $character = ''): array
     {
-        $base = Characters::decisions($character !== '' ? $character : Presets::DEFAULT);
+        $id = $character !== '' ? $character : Presets::DEFAULT;
+        $base = Characters::decisions($id);
         $resolved = [];
         foreach (Decisions::ALL as $key => $definition) {
             $value = $decisions[$key] ?? '';
             $resolved[$key] = $value !== '' ? $value : ($base[$key] ?? $definition['neutral']);
+        }
+        // In dark mode a character's dark version stands for its light one (D-185), where the
+        // owner has not set the key; the owner's values hold in both modes until they are
+        // given dark ones of their own (the model the owner is to decide).
+        $dark = Characters::dark($id);
+        if (($resolved['mode'] ?? '') === 'dark' && $dark !== []) {
+            $resolved = self::inDark($resolved, $dark, array_keys(array_filter($decisions, static fn (string $v): bool => $v !== '')));
         }
         if (($resolved['secondary'] ?? '') === 'none') {
             $resolved['secondary'] = '';
         }
 
         return $resolved;
+    }
+
+    /**
+     * A DESIGN IN ITS DARK VERSION (D-185): mode dark, and each key a dark version may hold
+     * taken from it — a colour it leaves out is the palette's (''), anything else it leaves out
+     * the light version's. Keys in `$kept` (the owner's own) are left as they are.
+     *
+     * @param array<string, string> $decisions
+     * @param array<string, string> $dark
+     * @param list<string> $kept
+     * @return array<string, string>
+     */
+    public static function inDark(array $decisions, array $dark, array $kept = []): array
+    {
+        $decisions['mode'] = 'dark';
+        foreach (Decisions::DARK as $key) {
+            if (in_array($key, $kept, true)) {
+                continue;
+            }
+            $colour = Decisions::ALL[$key]['type'] === 'colour' && !in_array($key, ['seed', 'secondary'], true);
+            $decisions[$key] = $dark[$key] ?? ($colour ? '' : $decisions[$key]);
+        }
+
+        return $decisions;
     }
 
     /**

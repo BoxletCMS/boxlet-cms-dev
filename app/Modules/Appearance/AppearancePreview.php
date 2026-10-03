@@ -12,6 +12,7 @@ use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Design\Design;
 use App\Modules\Design\Derived;
+use App\Modules\Design\Fonts;
 use App\Modules\Design\Palette;
 use App\Modules\Design\PalettePairs;
 use App\Modules\Design\Presets;
@@ -149,45 +150,34 @@ final class AppearancePreview
     public function stylesheet(Request $request, string $locale, array $params): Response
     {
         $decisions = $this->decisions($request->query);
-        $fonts = Typography::fontFaces($decisions['typography'], Url::asset('assets/fonts'));
+        $fonts = Typography::fontFaces([$decisions['heading_font'], $decisions['body_font']], Url::asset('assets/fonts'));
         $css = (new TokenCompiler())->css(Derived::from($decisions, Composition::section($this->character($request->query), [])['width']), $fonts);
 
         return new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'no-store']);
     }
 
     /**
-     * The six typefaces, for the cards that choose between them (PLAN.md D-065).
+     * The library's faces, for the pickers that choose between them (PLAN.md D-065, D-185).
      *
-     * THE ONE PLACE THE ADMIN LOADS THE SITE'S FONTS, and it is not a leak of the site's
-     * design into the tool: these faces are the thing being CHOSEN, and a list of six names
-     * is not a choice anybody can make. Nothing else on the screen uses them — the sample is
-     * two letters wide.
+     * THE ONE PLACE THE ADMIN LOADS THE SITE'S FONTS, and it is not a leak of the site's design
+     * into the tool: these faces are the thing being CHOSEN, and a list of names is not a choice
+     * anybody can make. Nothing else on the screen uses them. A browser fetches a face only when
+     * text is drawn in it, so a closed picker costs nothing.
      *
-     * Served rather than written into a stylesheet by hand, because Typography already knows
-     * where the files are and what weights they come in; a second copy of that would drift
-     * the first time a family changed.
+     * Served rather than written into a stylesheet by hand, because Fonts already knows where
+     * the files are and what weights they come in; a second copy of that would drift.
      *
      * @param array<string, string> $params
      */
     public function typefaces(Request $request, string $locale, array $params): Response
     {
-        $css = '';
-        foreach (array_keys(Typography::PAIRINGS) as $pairing) {
-            $css .= Typography::fontFaces($pairing, Url::asset('assets/fonts'));
-        }
-        /*
-         * And what each card's sample is set in — and, since D-075, the SPECIMEN too. The
-         * stack is Typography's, so neither can ever show a face the site would not use.
-         *
-         * The specimen is the one place on this screen where both halves of a pairing are
-         * shown: a pairing is a heading face AND a body face, and two lines of each is the
-         * only way to see whether they belong together.
-         */
-        foreach (Typography::PAIRINGS as $name => $pairing) {
-            $heading = Typography::stack($pairing['heading']);
-            $css .= '.typeface-sample[data-typeface="' . $name . '"] { font-family: ' . $heading . "; }\n";
-            $css .= '.specimen[data-typeface="' . $name . '"] .specimen-heading { font-family: ' . $heading . "; }\n";
-            $css .= '.specimen[data-typeface="' . $name . '"] .specimen-body { font-family: ' . Typography::stack($pairing['body']) . "; }\n";
+        $css = Typography::fontFaces(array_keys(Fonts::ALL), Url::asset('assets/fonts'));
+        // What each sample is set in, and the specimen's two halves: the stack is Fonts', so
+        // none can show a face the site would not use.
+        foreach (Fonts::ALL as $font => $definition) {
+            $css .= '.font-sample[data-font="' . $font . '"] { font-family: ' . $definition['stack'] . "; }\n";
+            $css .= '.specimen[data-heading-font="' . $font . '"] .specimen-heading { font-family: ' . $definition['stack'] . "; }\n";
+            $css .= '.specimen[data-body-font="' . $font . '"] .specimen-body { font-family: ' . $definition['stack'] . "; }\n";
         }
 
         return new Response($css, 200, ['Content-Type' => 'text/css; charset=utf-8', 'Cache-Control' => 'max-age=3600']);

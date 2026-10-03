@@ -3,7 +3,7 @@
 namespace App\Modules\Design\Vocabulary;
 
 use App\Modules\Design\CssNumber;
-use App\Modules\Design\Typography;
+use App\Modules\Design\Fonts;
 
 /**
  * EVERY GLOBAL DECISION, DEFINED ONCE (PLAN.md D-164; the rebuild's README 1.1–1.2).
@@ -18,14 +18,22 @@ use App\Modules\Design\Typography;
  * labels for values, never values.
  *
  * '' MEANS "FOLLOW" for every key (D-158, D-159): the character's value (`follow:
- * character`), the typeface pairing's (`pairing`), or the palette's (`palette`, a colour by
- * hand). The site stores only what the owner set; changing the character keeps all of it.
+ * character`), the font's (`font`, D-185: a heading's family for its treatment, the text's for
+ * its line height), or the palette's (`palette`, a colour by hand). The site stores only what the owner set; changing the character keeps all of it.
  *
  * `part` says which half of a design-set file a key is written in — `decisions` or `look`,
  * the header and footer — which is the file's grouping and nothing more: one store holds both.
  */
 final class Decisions
 {
+    /** The font library's families, as Fonts lists them (a test holds the two equal). */
+    public const FONTS = [
+        'playfair-display', 'source-serif-4', 'instrument-serif', 'young-serif', 'cormorant-garamond', 'bodoni-moda', 'newsreader', 'eb-garamond', 'libre-caslon-text',
+        'inter', 'space-grotesk', 'nunito', 'hanken-grotesk', 'figtree', 'manrope', 'outfit', 'archivo', 'schibsted-grotesk', 'bricolage-grotesque', 'ibm-plex-sans',
+        'big-shoulders-display', 'unbounded', 'syne', 'baloo-2',
+        'ibm-plex-mono', 'jetbrains-mono', 'space-mono',
+    ];
+
     /** Every decision: group, file part, kind, its range or set, its neutral value, what '' follows. */
     public const ALL = [
         // ---- colour ---------------------------------------------------------------------
@@ -46,13 +54,16 @@ final class Decisions
         'footer_colour' => ['group' => 'colour', 'part' => 'decisions', 'type' => 'colour', 'follow' => 'palette', 'neutral' => ''],
 
         // ---- type -----------------------------------------------------------------------
-        'typography' => ['group' => 'type', 'part' => 'decisions', 'type' => 'choice', 'values' => ['editorial', 'classic', 'modern', 'grotesk', 'rounded', 'mono'], 'neutral' => 'modern'],
+        // Two families from the library (D-185), where one of six pairings stood; a pairing is
+        // a shortcut that sets both (Typography::pairing()).
+        'heading_font' => ['group' => 'type', 'part' => 'decisions', 'type' => 'choice', 'values' => self::FONTS, 'neutral' => 'inter'],
+        'body_font' => ['group' => 'type', 'part' => 'decisions', 'type' => 'choice', 'values' => self::FONTS, 'neutral' => 'inter'],
         'text_size' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => 14, 'max' => 20, 'step' => 0.5, 'unit' => 'px', 'neutral' => '16', 'marks' => ['small' => 15, 'normal' => 16, 'large' => 17, 'larger' => 18]],
         'scale' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => 1.1, 'max' => 1.6, 'step' => 0.005, 'neutral' => '1.2', 'marks' => ['gentle' => 1.125, 'clear' => 1.25, 'dramatic' => 1.414]],
-        'line_height' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => 1.3, 'max' => 1.9, 'step' => 0.05, 'follow' => 'pairing', 'neutral' => ''],
-        'heading_weight' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => 300, 'max' => 900, 'step' => 100, 'follow' => 'pairing', 'neutral' => ''],
-        'tracking' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => -0.05, 'max' => 0.1, 'step' => 0.005, 'unit' => 'em', 'follow' => 'pairing', 'neutral' => '', 'marks' => ['tight' => -0.03, 'normal' => 0, 'wide' => 0.06]],
-        'caps' => ['group' => 'type', 'part' => 'decisions', 'type' => 'choice', 'values' => ['no', 'yes'], 'follow' => 'pairing', 'neutral' => ''],
+        'line_height' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => 1.3, 'max' => 1.9, 'step' => 0.05, 'follow' => 'font', 'neutral' => ''],
+        'heading_weight' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => 300, 'max' => 900, 'step' => 100, 'follow' => 'font', 'neutral' => ''],
+        'tracking' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => -0.05, 'max' => 0.1, 'step' => 0.005, 'unit' => 'em', 'follow' => 'font', 'neutral' => '', 'marks' => ['tight' => -0.03, 'normal' => 0, 'wide' => 0.06]],
+        'caps' => ['group' => 'type', 'part' => 'decisions', 'type' => 'choice', 'values' => ['no', 'yes'], 'follow' => 'font', 'neutral' => ''],
         'nudge_h1' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => -30, 'max' => 40, 'step' => 1, 'unit' => 'px', 'neutral' => '0'],
         'nudge_h2' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => -12, 'max' => 20, 'step' => 1, 'unit' => 'px', 'neutral' => '0'],
         'nudge_sm' => ['group' => 'type', 'part' => 'decisions', 'type' => 'number', 'min' => -3, 'max' => 5, 'step' => 1, 'unit' => 'px', 'neutral' => '0'],
@@ -108,6 +119,14 @@ final class Decisions
         'footer_surface' => ['group' => 'footer', 'part' => 'look', 'type' => 'choice', 'values' => ['plain', 'tinted', 'contrast', 'gradient'], 'neutral' => 'plain'],
         'footer_edge' => ['group' => 'footer', 'part' => 'look', 'type' => 'choice', 'values' => ['none', 'line', 'slant', 'curve'], 'neutral' => 'none'],
     ];
+
+    /**
+     * WHAT A SET'S DARK VERSION MAY SAY (D-185, the owner): its own main and second colour,
+     * colours by hand, the header's and footer's colours, the surface contrast and the
+     * shadow's strength. In dark mode they stand for the light ones; a colour left out is the
+     * palette's, and anything else left out the light version's.
+     */
+    public const DARK = ['seed', 'secondary', 'color_background', 'color_card', 'color_surface', 'color_border', 'color_text', 'color_muted', 'color_link', 'header_colour', 'footer_colour', 'surface_contrast', 'shadow_strength'];
 
     /** The colours that may be set by hand, '' while the palette decides. */
     public const BY_HAND = ['background', 'card', 'surface', 'border', 'text', 'muted', 'link'];
@@ -181,7 +200,7 @@ final class Decisions
     }
 
     /**
-     * What a key follows when it is '': the character's value, the pairing's, or the palette.
+     * What a key follows when it is '': the character's value, the font's, or the palette.
      */
     public static function follows(string $key): string
     {
@@ -189,18 +208,19 @@ final class Decisions
     }
 
     /**
-     * The typeface pairing's own value for a key that follows it, as stored would write it:
-     * what the screen shows on a slider nobody has moved.
+     * A font's own value for a key that follows it (D-185), as stored would write it: what the
+     * screen shows on a slider nobody has moved. A heading's treatment is its family's, a
+     * paragraph's line height the text's family's.
      */
-    public static function fromPairing(string $key, string $typography): string
+    public static function fromFont(string $key, string $heading, string $body): string
     {
-        $pairing = Typography::PAIRINGS[$typography] ?? Typography::PAIRINGS['modern'];
+        $face = Fonts::ALL[Fonts::known($heading)]['heading'];
 
         return match ($key) {
-            'line_height' => CssNumber::of((float) $pairing['leading_body']),
-            'heading_weight' => CssNumber::of(round((float) $pairing['heading_weight'] / 100) * 100),
-            'tracking' => CssNumber::of((float) $pairing['tracking']),
-            'caps' => $pairing['transform'] === 'uppercase' ? 'yes' : 'no',
+            'line_height' => CssNumber::of((float) Fonts::ALL[Fonts::known($body)]['leading']),
+            'heading_weight' => CssNumber::of(round($face[0] / 100) * 100),
+            'tracking' => CssNumber::of((float) $face[1]),
+            'caps' => $face[3] ? 'yes' : 'no',
             default => '',
         };
     }

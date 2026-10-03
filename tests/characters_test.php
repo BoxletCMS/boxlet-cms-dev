@@ -250,7 +250,7 @@ function withImports(App\Core\Db $db, Closure $body, array $files = []): void
  * A set as DesignSet::parse() hands it to addImported().
  *
  * @param array<string, mixed> $changes
- * @return array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, look: array<string, string>, composition: array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>, options: array<string, array<string, string>>}|null, patterns: list<array{id: string, name: array<string, string>, section: array{layout: string, style: array<string, string|int|null>}, blocks: list<array{type: string, layout: string, column: int, options: array<string, string>, content: array<string, mixed>}>}>}
+ * @return array{id: string, name: array<string, string>, description: array<string, string>, author: string, tags: list<string>, decisions: array<string, string>, dark: array<string, string>, look: array<string, string>, composition: array{section: array<string, string>, surfaces: array<string, string>, dividers: array<string, string>, layouts: array<string, string>, options: array<string, array<string, string>>}|null, patterns: list<array{id: string, name: array<string, string>, section: array{layout: string, style: array<string, string|int|null>}, blocks: list<array{type: string, layout: string, column: int, options: array<string, string>, content: array<string, mixed>}>}>}
  */
 function parsedSet(string $id, array $changes = []): array
 {

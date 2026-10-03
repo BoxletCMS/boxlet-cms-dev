@@ -81,6 +81,7 @@ final class DesignTransferController
             Characters::composition($id),
             Characters::source($id) === 'core' ? 'Boxlet' : '',
             Characters::patterns($id),
+            Characters::dark($id),
         ));
     }
 
@@ -121,7 +122,7 @@ final class DesignTransferController
             return $this->appearance()->withImport(null, $read['errors']);
         }
         $this->container->get('session')->set(self::PENDING, [
-            'json' => DesignSet::export($set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns']),
+            'json' => DesignSet::export($set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns'], $set['dark']),
             'warnings' => $read['warnings'],
         ]);
 

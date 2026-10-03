@@ -133,6 +133,19 @@ final class Characters
     }
 
     /**
+     * A character's dark version (D-185): the keys of Decisions::DARK it answers for dark mode,
+     * none for a character that has no dark version.
+     *
+     * @return array<string, string>
+     */
+    public static function dark(string $id): array
+    {
+        $all = self::all();
+
+        return ($all[$id] ?? $all[Presets::DEFAULT])['set']['dark'] ?? [];
+    }
+
+    /**
      * The starter sections a character offers (D-169), each with its words per language.
      *
      * @return list<array<string, mixed>>
@@ -246,7 +259,7 @@ final class Characters
         $now = gmdate('Y-m-d H:i:s');
         $db->query(
             'INSERT INTO design_characters (slug, set_json, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-            [$slug, DesignSet::export($slug, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns']), $source, $now, $now],
+            [$slug, DesignSet::export($slug, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns'], $set['dark']), $source, $now, $now],
         );
         self::reset();
 

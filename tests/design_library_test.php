@@ -28,7 +28,7 @@ testBothDrivers('a design is kept whole, and comes back as decisions rather than
     $row = $db->one('SELECT decisions_json FROM design_library WHERE id = ?', [$id]);
     $stored = json_decode((string) ($row['decisions_json'] ?? '{}'), true);
     assertEquals(null, $stored['accent'] ?? null, 'a derived colour was stored');
-    assertTrue(isset($stored['seed'], $stored['typography'], $stored['container']), 'the decisions are all there');
+    assertTrue(isset($stored['seed'], $stored['heading_font'], $stored['container']), 'the decisions are all there');
 });
 
 testBothDrivers('saving under a name that exists writes over it rather than making a second', function (string $driver) {

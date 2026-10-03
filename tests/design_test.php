@@ -186,7 +186,7 @@ test('a band\'s edge shadow has no sideways offset', function () {
 });
 
 test('the five presets differ in structure, not only in colour', function () {
-    $structural = ['typography', 'scale', 'spacing', 'radius', 'shadow', 'container', 'surface_contrast'];
+    $structural = ['heading_font', 'scale', 'spacing', 'radius', 'shadow', 'container', 'surface_contrast'];
     foreach (Presets::names() as $a) {
         $first = Presets::get($a);
         foreach (Presets::names() as $b) {
@@ -213,20 +213,20 @@ test('a main colour too light to read fails, naming the pair and the ratio', fun
 });
 
 test('invalid colours and choices are refused and named', function () {
-    $result = Tokens::validate(['seed' => 'red', 'secondary' => '#12', 'typography' => 'comic-sans'] + Presets::get('minimal'));
+    $result = Tokens::validate(['seed' => 'red', 'secondary' => '#12', 'heading_font' => 'comic-sans'] + Presets::get('minimal'));
 
     assertEquals(t('design.error.color'), $result['errors']['seed'] ?? null, 'seed');
     assertEquals(t('design.error.color'), $result['errors']['secondary'] ?? null, 'secondary');
-    assertEquals(t('design.error.choice'), $result['errors']['typography'] ?? null, 'typography');
+    assertEquals(t('design.error.choice'), $result['errors']['heading_font'] ?? null, 'a family the library does not have');
     // Refused values follow the character (D-164): '' is a value every key can hold.
-    assertEquals('', $result['decisions']['typography'], 'fallback typography');
+    assertEquals('', $result['decisions']['heading_font'], 'and it follows the character');
 });
 
 test('compiled tokens carry a content hash and include only the pairing\'s fonts', function () {
     $dir = tmpPath('compile');
     removeTree($dir);
     $editorial = Presets::get('editorial');
-    $file = (new TokenCompiler())->compile(Derived::from($editorial), $dir, Typography::fontFaces($editorial['typography'], '../assets/fonts'));
+    $file = (new TokenCompiler())->compile(Derived::from($editorial), $dir, Typography::fontFaces([$editorial['heading_font'], $editorial['body_font']], '../assets/fonts'));
     $css = (string) file_get_contents($dir . '/' . $file);
 
     assertTrue((bool) preg_match('~^tokens\.[0-9a-f]{12}\.css$~', $file), "file name {$file}");
@@ -261,7 +261,7 @@ testBothDrivers('saving the design recompiles, and pages link the new stylesheet
     $after = linkedStylesheet(dispatch('/about'));
     assertTrue($after !== $before, 'the page still links the old stylesheet');
     assertTrue(is_file(tmpPath('cache') . '/' . basename($after)), 'the linked stylesheet does not exist');
-    assertEquals('editorial', Design::load($db)['typography'], 'saved typography');
+    assertEquals('playfair-display', Design::load($db)['heading_font'], 'the heading family saved');
 });
 
 testBothDrivers('a design that fails contrast is refused and changes nothing', function (string $driver) {
@@ -776,13 +776,14 @@ test('a nudge moves one step and leaves the scale alone', function () {
 });
 
 test('the heading treatment follows the typeface until it is taken over', function () {
-    $grotesk = ['typography' => 'grotesk'] + Presets::get('minimal');
+    // The family's own since D-185, where it was the pairing's: Space Grotesk's are Grotesk's.
+    $grotesk = ['heading_font' => 'space-grotesk', 'body_font' => 'inter'] + Presets::get('minimal');
     $pairing = App\Modules\Design\Typography::PAIRINGS['grotesk'];
 
     $following = Derived::from($grotesk);
-    assertEquals($pairing['heading_weight'], $following['heading']['weight'], 'the pairing\'s weight');
-    assertEquals($pairing['tracking'], $following['heading']['tracking'], 'the pairing\'s letter spacing');
-    assertEquals($pairing['transform'], $following['heading']['transform'], 'the pairing\'s case');
+    assertEquals($pairing['heading_weight'], $following['heading']['weight'], 'the family\'s weight');
+    assertEquals($pairing['tracking'], $following['heading']['tracking'], 'the family\'s letter spacing');
+    assertEquals($pairing['transform'], $following['heading']['transform'], 'the family\'s case');
 
     $mine = Derived::from(['heading_weight' => '400', 'tracking' => '0.06', 'caps' => 'yes'] + $grotesk);
     assertEquals('400', $mine['heading']['weight'], 'the weight that was chosen');
@@ -790,7 +791,7 @@ test('the heading treatment follows the typeface until it is taken over', functi
     assertEquals('uppercase', $mine['heading']['transform'], 'and the case');
 
     // A choice survives changing the typeface; what was never chosen follows the new one.
-    $rounded = Derived::from(['typography' => 'rounded', 'heading_weight' => '400'] + $grotesk);
+    $rounded = Derived::from(['heading_font' => 'nunito', 'heading_weight' => '400'] + $grotesk);
     assertEquals('400', $rounded['heading']['weight'], 'the weight stayed the owner\'s');
     assertEquals(App\Modules\Design\Typography::PAIRINGS['rounded']['tracking'], $rounded['heading']['tracking'], 'the spacing followed');
 });

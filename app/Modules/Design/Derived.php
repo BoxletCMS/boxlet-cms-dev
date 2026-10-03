@@ -37,22 +37,25 @@ final class Derived
     public static function from(array $resolved, string $sectionWidth = 'normal'): array
     {
         $colors = Palette::forDecisions($resolved);
-        $pairing = Typography::PAIRINGS[$resolved['typography']] ?? Typography::PAIRINGS['modern'];
+        $heading = Fonts::known($resolved['heading_font']);
+        $body = Fonts::known($resolved['body_font']);
+        $face = Fonts::ALL[$heading]['heading'];
         $unit = (float) $resolved['spacing'];
 
         return [
             'color' => $colors,
-            'font' => ['heading' => Typography::stack($pairing['heading']), 'body' => Typography::stack($pairing['body'])],
-            // The pairing's own treatment, unless the owner has taken one over (D-066).
+            'font' => ['heading' => Fonts::stack($heading), 'body' => Fonts::stack($body)],
+            // The heading family's own treatment, unless the owner has taken one over (D-066,
+            // D-185); a weight its files do not have is the nearest one they do.
             'heading' => [
-                'weight' => $resolved['heading_weight'] !== '' ? $resolved['heading_weight'] : $pairing['heading_weight'],
-                'tracking' => $resolved['tracking'] !== '' ? CssNumber::of((float) $resolved['tracking']) . 'em' : $pairing['tracking'],
-                'transform' => Tokens::CAPS[$resolved['caps']] ?? $pairing['transform'],
+                'weight' => (string) Fonts::weight($heading, (int) ($resolved['heading_weight'] !== '' ? $resolved['heading_weight'] : $face[0])),
+                'tracking' => CssNumber::of((float) ($resolved['tracking'] !== '' ? $resolved['tracking'] : $face[1])) . 'em',
+                'transform' => Tokens::CAPS[$resolved['caps']] ?? ($face[3] ? 'uppercase' : 'none'),
             ],
-            'body' => ['weight' => $pairing['body_weight']],
+            'body' => ['weight' => '400'],
             'leading' => [
-                'body' => $resolved['line_height'] !== '' ? $resolved['line_height'] : $pairing['leading_body'],
-                'heading' => $pairing['leading_heading'],
+                'body' => $resolved['line_height'] !== '' ? $resolved['line_height'] : Fonts::ALL[$body]['leading'],
+                'heading' => $face[2],
             ],
             'text' => self::typeScale($resolved),
             'space' => self::spaceScale($unit) + [

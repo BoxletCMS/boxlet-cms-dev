@@ -36,7 +36,7 @@ Url::configure($request->basePath, '');
 $cache = $root . '/public/cache';
 if (!is_file($storage . '/install.lock') && is_dir($cache) && is_writable($cache)) {
     $defaults = Presets::get(Presets::DEFAULT);
-    $fonts = Typography::fontFaces($defaults['typography'], '../assets/fonts');
+    $fonts = Typography::fontFaces([$defaults['heading_font'], $defaults['body_font']], '../assets/fonts');
     Url::useStylesheet(Url::asset('cache/' . (new TokenCompiler())->compile(Derived::from($defaults), $cache, $fonts)));
 }
 

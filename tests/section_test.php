@@ -102,7 +102,8 @@ test('every section style, design choice, colour and pair has an admin label', f
     }
     // The header and footer's are labelled under chrome.look (chrome_look_test).
     foreach (array_diff_key(allChoices(), lookChoices()) as $key => $values) {
-        if ($key !== 'typography') {
+        // A family is named by its own name (Fonts), not by a label (D-185).
+        if (!in_array($key, ['heading_font', 'body_font'], true)) {
             foreach ($values as $value) {
                 $keys[] = "design.{$key}.{$value}";
             }

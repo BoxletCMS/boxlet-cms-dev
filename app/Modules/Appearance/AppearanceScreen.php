@@ -100,6 +100,7 @@ final class AppearanceScreen
                 'admin-appearance-picture.css',
                 'admin-appearance-sections.css',
                 'admin-appearance-inspector.css',
+                'admin-appearance-fonts.css',
                 'admin-appearance-colour.css',
                 'admin-appearance-contrast.css',
                 'admin-appearance-layout.css',
@@ -132,6 +133,12 @@ final class AppearanceScreen
             // What the owner has made theirs over that character, and what each control is
             // when they have not (D-158).
             'defaults' => $defaults,
+            // The keys that follow a family but the character pins (D-185): a family chosen
+            // does not move them.
+            'pinned' => array_keys(array_filter(
+                array_intersect_key(\App\Modules\Design\Characters::decisions($basis), array_flip(['heading_weight', 'tracking', 'caps', 'line_height'])),
+                static fn (string $value): bool => $value !== '',
+            )),
             'changed' => Overrides::changed($values, $basis),
             // The chrome half of the screen, as shown.
             'look' => array_intersect_key($shown, $lookKeys),
@@ -189,10 +196,10 @@ final class AppearanceScreen
     private static function shown(array $values, string $basis): array
     {
         $resolved = Tokens::resolve($values, $basis);
-        $defaults = Overrides::defaults($basis, $resolved['typography']);
+        $defaults = Overrides::defaults($basis, $resolved['heading_font'], $resolved['body_font']);
         $shown = $resolved;
         foreach ($shown as $key => $value) {
-            if ($value === '' && Decisions::follows($key) === 'pairing') {
+            if ($value === '' && Decisions::follows($key) === 'font') {
                 $shown[$key] = $defaults[$key];
             }
         }

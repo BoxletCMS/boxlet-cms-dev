@@ -59,10 +59,10 @@ testBothDrivers('without a script the screen is one column: the home, its links,
     assertEquals(0, preg_match('~\sstyle="~', $body), 'a style attribute');
 });
 
-testBothDrivers('each control is in the form once; Quick start repeats six, owned by a form that is never sent', function (string $driver) {
+testBothDrivers('each control is in the form once; Quick start repeats five (D-185: the pairings set the families), owned by a form that is never sent', function (string $driver) {
     adminSite($driver);
     $body = dispatch('/admin/appearance')->body;
-    $quick = ['seed', 'mode', 'typography', 'text_size', 'radius', 'spacing'];
+    $quick = ['seed', 'mode', 'text_size', 'radius', 'spacing'];
     foreach (Overrides::keys('all') ?? [] as $key) {
         assertEquals(in_array($key, $quick, true) ? 2 : 1, occurrences('data-control="' . $key . '"', $body), 'rows for ' . $key);
     }
@@ -293,7 +293,7 @@ testBothDrivers('the preview is drawn with the site\'s own character when none i
     assertTrue(isset($frame[1]), 'the preview frame');
     $src = html_entity_decode($frame[1] ?? '');
     parse_str((string) parse_url($src, PHP_URL_QUERY), $query);
-    assertEquals(App\Modules\Design\Characters::decisions('soft')['typography'], $query['typography'] ?? null, 'Soft\'s typeface in the picture');
+    assertEquals(App\Modules\Design\Characters::decisions('soft')['heading_font'], $query['heading_font'] ?? null, 'Soft\'s typeface in the picture');
     assertEquals(App\Modules\Design\Characters::decisions('soft')['seed'], $query['seed'] ?? null, 'and its colour');
 });
 

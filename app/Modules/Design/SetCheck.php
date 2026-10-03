@@ -44,9 +44,15 @@ final class SetCheck
         }
 
         $decisions = $set['decisions'];
-        $other = ($decisions['mode'] ?? '') === 'dark' ? 'light' : 'dark';
-        foreach (Tokens::validate(['mode' => $other] + $decisions)['errors'] as $key => $message) {
-            $out['warnings'][] = "in {$other} mode, {$key}: {$message}";
+        // A set with a dark version had both checked as errors on reading (D-185); one without
+        // is drawn in the other mode by derivation alone, and what that cannot mend is said here.
+        if ($set['dark'] === []) {
+            $other = ($decisions['mode'] ?? '') === 'dark' ? 'light' : 'dark';
+            foreach (Tokens::validate(['mode' => $other] + $decisions)['errors'] as $key => $message) {
+                $out['warnings'][] = "in {$other} mode, {$key}: {$message}";
+            }
+        } else {
+            $out['notes'][] = 'a dark version: ' . implode(', ', array_keys($set['dark']));
         }
 
         $resolved = Tokens::resolve($decisions);

@@ -23,7 +23,7 @@ function sampleSet(): array
         'name' => ['en' => 'Harbour', 'hr' => 'Luka'],
         'description' => ['en' => 'Navy and sand.'],
         'decisions' => [
-            'seed' => '#1d3557', 'secondary' => '#f1e3c6', 'typography' => 'classic', 'text_size' => '16', 'scale' => '1.25',
+            'seed' => '#1d3557', 'secondary' => '#f1e3c6', 'heading_font' => 'source-serif-4', 'body_font' => 'inter', 'text_size' => '16', 'scale' => '1.25',
             'spacing' => '1.25', 'radius' => '4', 'shadow' => 'soft', 'container' => '60', 'surface_contrast' => '50',
             'header_width' => 'content', 'boxed' => 'no', 'page_background' => 'surface',
         ],
@@ -126,7 +126,7 @@ test('what is refused, each with its field and reason', function () {
     $refused(['version' => 1] + $set, 'format version 1', 'and one from the past (D-162)');
     $refused(['id' => 'Harbour Design'] + $set, 'id:', 'an id that is not a slug');
     $refused(['name' => []] + $set, 'name:', 'no name');
-    $refused(array_replace_recursive($set, ['decisions' => ['typography' => 'comic']]), 'decisions.typography', 'an unknown typography');
+    $refused(array_replace_recursive($set, ['decisions' => ['heading_font' => 'comic']]), 'decisions.heading_font', 'a family the library does not have');
     $refused(array_replace_recursive($set, ['decisions' => ['seed' => 'navy']]), 'decisions.seed', 'a colour that is not a hex');
     $refused(array_replace_recursive($set, ['look' => ['nav_style' => 'neon']]), 'look.nav_style', 'a look value outside its set');
     $refused(array_replace_recursive($set, ['composition' => ['section' => ['surface' => 'image']]]), 'composition.section.surface', 'a picture surface');
@@ -218,7 +218,8 @@ test('names and descriptions are one clean line of bounded length', function () 
 
 test('the vocabulary is read off the code that validates', function () {
     $vocabulary = DesignVocabulary::vocabulary(blockRegistry());
-    assertEquals(array_keys(Typography::PAIRINGS), $vocabulary['decisions']['typography']['values'], 'typography');
+    assertEquals(array_keys(App\Modules\Design\Fonts::ALL), $vocabulary['decisions']['heading_font']['values'], 'the heading family');
+    assertEquals(array_keys(App\Modules\Design\Fonts::ALL), $vocabulary['decisions']['body_font']['values'], 'and the text\'s');
     assertEquals(ChromeLook::keys(), array_keys($vocabulary['look']), 'look');
     assertEquals(choicesOf('header_arrangement'), $vocabulary['look']['header_arrangement']['values'], 'a look choice\'s values');
     assertEquals(blockRegistry()->get('hero')['layouts'], $vocabulary['composition']['layouts']['hero'], 'a block\'s layouts');

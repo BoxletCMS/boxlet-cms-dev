@@ -64,7 +64,7 @@
 /* Two bands of one surface with no edge between them read as one band, and two full gaps
    one after the other as a hole in it: between them is HALF the space, the first's room
    below and the second's above each half the gap (D-185: only the second's was halved, which
-   left three quarters, 168px between Editorial's "Why us" and its call to action). Only
+   left three quarters of the space between Editorial's "Why us" and its call to action). Only
    where the padding is the character's — a padding the owner set is theirs (owner's review
    of phase 1). Not for pictures: two photographs are two bands whatever they share. */
 :is(

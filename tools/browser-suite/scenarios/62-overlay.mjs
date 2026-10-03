@@ -44,6 +44,12 @@ function crossings(page) {
       const b = bar.getBoundingClientRect();
       doc.querySelectorAll('[data-bx-field]').forEach((field) => {
         const f = field.getBoundingClientRect();
+        // Over its own block's picture is the last resort where there is no room outside it
+        // (D-185); words, anyone's, never.
+        const host = field.closest('[data-bx-key]');
+        const owner = host ? window.pb.block(host.getAttribute('data-bx-key')) : null;
+        const spec = owner ? window.pb.inline.spec(owner.type, field.getAttribute('data-bx-field')) : null;
+        if (bar.getAttribute('data-bx-side') === 'inside' && spec && spec.type === 'media' && owner && window.pb.selection && owner.key === window.pb.selection.key) { return; }
         if (f.width > 0 && f.height > 0 && b.left < f.right - 0.5 && f.left < b.right - 0.5 && b.top < f.bottom - 0.5 && f.top < b.bottom - 0.5) {
           found.push(`the block's toolbar × ${field.getAttribute('data-bx-field')}`);
         }

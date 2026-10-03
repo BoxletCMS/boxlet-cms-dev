@@ -158,29 +158,57 @@
 
   /**
    * THE BLOCK'S TOOLBAR NEVER COVERS WORDS (D-182): outside the block, above it, clear of its
-   * band's "+" and edge and of every field's words; where that is not to be had, under it;
-   * where neither is, above it all the same, which at least never covers its own block.
+   * band's "+" and edge and of every field's words and every "+ Card"; where that is not to be
+   * had, under it. Then (D-185: bands of one surface half the space apart left a gap no taller
+   * than the toolbar) above or under it again, slid along to the first place clear of words,
+   * "+ Card" and every "+" on a boundary; where none is, inside the block at its top, over its
+   * picture, if that covers no words; and only then above it all the same.
    */
   function placeBar(bar, node, block) {
     bar.style.transform = 'none';
     var b = box(node);
     var h = bar.offsetHeight;
+    var w = bar.offsetWidth;
     var gap = px(4);
     var band = box(pb.canvas.sectionEl(block.section) || node);
     var edge = layer.querySelector('[data-bx-insert="' + pb.sectionIndex(block.section) + '"]');
     var floor = Math.max(band.top, edge ? box(edge).top + box(edge).height : band.top) + gap;
-    var fields = Array.prototype.map.call(pb.canvas.main().querySelectorAll('[data-bx-field]'), box).filter(function (f) { return f.width > 0 && f.height > 0; });
-    var w = bar.offsetWidth;
-    function clear(top) {
-      return !fields.some(function (f) {
-        return b.left < f.left + f.width && f.left < b.left + w && top < f.top + f.height && f.top < top + h;
+    var main = box(pb.canvas.main());
+    var fieldEls = Array.prototype.slice.call(pb.canvas.main().querySelectorAll('[data-bx-field], .bx-add-item-cell'));
+    var obstacles = fieldEls.map(box)
+      .concat(Array.prototype.map.call(layer.querySelectorAll('.bx-plus, .bx-add-end'), box))
+      .map(function (f) { return f.width > 0 && f.height > 0 ? f : { top: -1e6, left: -1e6, width: 0, height: 0 }; });
+    function clear(top, left) {
+      return !obstacles.some(function (f) {
+        return left < f.left + f.width + gap && f.left < left + w + gap && top < f.top + f.height && f.top < top + h;
       });
     }
     var above = b.top - gap - h;
     var below = b.top + b.height + gap;
-    var top = above >= floor && clear(above) ? above : (clear(below) ? below : above);
-    at(bar, { top: top, left: b.left });
-    bar.setAttribute('data-bx-side', top === below ? 'below' : 'above');
+    var places = [{ top: above, left: b.left, side: 'above', ok: above >= floor }, { top: below, left: b.left, side: 'below', ok: true }];
+    // Slid along: to just past each obstacle, within the page.
+    var lefts = obstacles.map(function (f) { return f.left + f.width + gap * 2; })
+      .filter(function (l) { return l > b.left && l + w <= main.left + main.width; })
+      .sort(function (x, y) { return x - y; });
+    [['above', above], ['below', below]].forEach(function (pair) {
+      lefts.forEach(function (left) { places.push({ top: pair[1], left: left, side: pair[0], ok: true }); });
+    });
+    // The last resort (D-185): inside the block at its top, over its picture, when that covers
+    // no words and no control — a block packed between two bands with no room outside it.
+    var words = obstacles.filter(function (f, i) {
+      var field = i < fieldEls.length ? fieldEls[i] : null;
+      if (!field || !field.hasAttribute('data-bx-field')) { return true; }
+      var host = field.closest('[data-bx-key]');
+      var owner = host ? pb.block(host.getAttribute('data-bx-key')) : null;
+      var spec = owner && pb.inline && pb.inline.spec ? pb.inline.spec(owner.type, field.getAttribute('data-bx-field')) : null;
+      return !spec || spec.type !== 'media';
+    });
+    var inside = { top: b.top + gap, left: b.left + gap, side: 'inside', ok: !words.some(function (f) {
+      return b.left + gap < f.left + f.width && f.left < b.left + gap + w && b.top + gap < f.top + f.height && f.top < b.top + gap + h;
+    }) };
+    var chosen = places.filter(function (p) { return p.ok && clear(p.top, p.left); })[0] || (inside.ok ? inside : { top: above, left: b.left, side: 'above' });
+    at(bar, { top: chosen.top, left: chosen.left });
+    bar.setAttribute('data-bx-side', chosen.side);
   }
 
   /** The selected thing's toolbar. */

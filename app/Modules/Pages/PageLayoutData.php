@@ -140,7 +140,9 @@ final class PageLayoutData
             'noindex' => true,
             // The Appearance screen's picture, which marks an empty picture as one (D-170).
             'designPreview' => true,
-            'fontPreloads' => isset($trying['decisions']['heading_font']) ? self::fontPreloads($trying['decisions']) : [],
+            // None in the preview: its faces change with every family tried, and it is redrawn
+            // only for what changes its markup (appearance-stage.js).
+            'fontPreloads' => [],
         ] + self::chrome($container, $locale, Alternates::for($db, null, $container->get('locales')), '', $trying);
     }
 

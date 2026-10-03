@@ -342,7 +342,7 @@ export default {
     await openSection(page, 'typography');
     await new Promise((resolve) => { setTimeout(resolve, 400); });
     const specimen = () => page.evaluate(() => ({
-      face: document.querySelector('.specimen').getAttribute('data-typeface'),
+      face: `${document.querySelector('.specimen').getAttribute('data-heading-font')}/${document.querySelector('.specimen').getAttribute('data-body-font')}`,
       lines: [...document.querySelectorAll('[data-specimen]')].map((line) => ({
         drawn: Math.round(parseFloat(getComputedStyle(line).fontSize)),
         said: parseFloat(line.querySelector('[data-specimen-size]').textContent),
@@ -375,15 +375,14 @@ export default {
      * face and the body lines take the body face, and `classic` is a pairing where those two
      * can be told apart.
      */
+    // Since D-185 a pairing is a shortcut that sets the two families: Classic's tile.
     await page.evaluate(() => {
-      var card = document.querySelector('input[name="typography"][value="classic"]');
-      card.checked = true;
-      card.dispatchEvent(new Event('change', { bubbles: true }));
+      document.querySelector('[data-view="typography"] .pairing-tile[data-pairing*="source-serif-4"][data-pairing*="\\"body_font\\":\\"inter"]').click();
     });
     await new Promise((resolve) => { setTimeout(resolve, 400); });
     const paired = await specimen();
     report.verdict('the specimen is set in the pairing being chosen',
-      paired.face === 'classic'
+      paired.face === 'source-serif-4/inter'
         && paired.lines[0].family === paired.lines[1].family
         && paired.lines[2].family === paired.lines[3].family
         && paired.lines[0].family !== paired.lines[3].family,

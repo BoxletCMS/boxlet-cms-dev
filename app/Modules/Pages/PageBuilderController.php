@@ -59,7 +59,7 @@ final class PageBuilderController
             'title' => t('pages.edit'),
             'nav' => 'pages',
             'styles' => ['admin-richtext.css', 'admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css', 'builder.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css'],
-            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js', 'vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'repeater.js', 'vendor/sortable.min.js'],
+            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext-link.js', 'richtext.js', 'vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'repeater.js', 'vendor/sortable.min.js'],
             'wide' => true,
             'bare' => true,
             'page' => $page,
@@ -167,7 +167,7 @@ final class PageBuilderController
             'discard_confirm', 'structure.sections', 'structure.sections_one', 'structure.blocks', 'structure.blocks_one', 'structure.column', 'structure.empty', 'add.where_end', 'add.where_after', 'add.none_found',
             'canvas.add_here', 'canvas.add_end', 'canvas.insert_title', 'canvas.close', 'canvas.hidden_here', 'canvas.move_up', 'canvas.move_down',
             'canvas.copy', 'canvas.delete', 'canvas.layout', 'canvas.page', 'canvas.empty', 'section_n', 'pattern_name', 'pattern_saved', 'delete_confirm',
-            'page.restored', 'device.desktop', 'device.tablet', 'device.phone', 'add.mine', 'add.none_mine', 'add.from_set', 'inline.remove_item', 'inline.item_before', 'inline.item_after', 'inline.link_title', 'inline.link_page', 'inline.link_other', 'inline.link_url', 'inline.link_done', 'inline.link_remove',
+            'page.restored', 'device.desktop', 'device.tablet', 'device.phone', 'add.mine', 'add.none_mine', 'add.from_set', 'inline.remove_item', 'inline.item_before', 'inline.item_after', 'inline.link_title', 'inline.link_text', 'inline.link_page', 'inline.link_other', 'inline.link_url', 'inline.link_done', 'inline.link_remove',
         ];
         $strings = [];
         foreach ($keys as $key) {

@@ -40,9 +40,10 @@ $richInline = static function (string $name, string $value, string $code, string
         . '<button type="button" class="rt-button" data-rt="redo" title="' . e(t('richtext.redo')) . '"><span aria-hidden="true">&#8631;</span><span class="visually-hidden">' . e(t('richtext.redo')) . '</span></button>'
         . '</div></div>'
         . '<div class="richtext-link" data-richtext-link hidden>'
+        . '<input type="text" class="rt-link-text" placeholder="' . e(t('pages.field.link_label_part')) . '" aria-label="' . e(t('pages.field.link_label_part')) . '">'
         . '<select class="rt-link-page" aria-label="' . e(t('richtext.page')) . '"><option value="">' . e(t('pages.field.link_address')) . '</option>';
     foreach ($linkPages[$code] ?? [] as $group => $choice) {
-        $html .= '<option value="' . e(\App\Modules\Pages\PageLinks::to($group)) . '">' . e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) . '</option>';
+        $html .= '<option value="' . e(\App\Modules\Pages\PageLinks::to($group)) . '" data-title="' . e($choice['title']) . '">' . e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) . '</option>';
     }
     $html .= '</select>'
         . '<input type="text" inputmode="url" class="rt-link-input" placeholder="' . e(t('richtext.url_placeholder')) . '" aria-label="' . e(t('richtext.url')) . '">'

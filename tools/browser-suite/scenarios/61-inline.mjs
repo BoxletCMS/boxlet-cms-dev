@@ -100,6 +100,20 @@ export default {
       await wait(400);
       const led = await page.evaluate((k) => window.pb.block(k).content.cta.url, hero);
       report.verdict('a link opens where it leads, and a page chosen is kept as its reference', pages.length > 2 && led === about, `${led} of ${JSON.stringify(pages)}`);
+      // Its words in the popover too (D-182): a page fills them only when there are none, and
+      // Done waits for words and an address.
+      const words = async () => page.evaluate(() => ({ text: document.querySelector('[data-pb-link] [data-pb-link-text]').value, done: !document.querySelector('[data-pb-link-done]').disabled }));
+      const kept = await words();
+      await page.$eval('[data-pb-link] [data-pb-link-text]', (el) => { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); });
+      const emptied = await words();
+      const third = pages.find((v) => v.startsWith('page:') && v !== about && v !== pages[1]) || about;
+      await page.select('[data-pb-link] select', third);
+      await wait(300);
+      const refilled = await words();
+      const title = await page.evaluate((ref) => (window.pb.data.inline.pages.find((p) => p.ref === ref) || {}).title, third);
+      await shot(report, page, '03b-link-text');
+      report.verdict('the popover has the link\'s words; a page fills them only when empty, and Done waits for words',
+        kept.text !== '' && kept.done && !emptied.done && refilled.text === title && refilled.done, JSON.stringify({ kept, emptied, refilled, title }));
       await page.keyboard.press('Escape');
 
       // ---- an empty field, a card added and taken away ---------------------------------------------------
@@ -160,7 +174,7 @@ export default {
         for (let step = 0; step < 40; step += 1) {
           const at = doc.caretRangeFromPoint(x, y);
           const text = at && at.startContainer.nodeType === 3 ? at.startContainer.textContent : '';
-          if (/\w\w/.test(text.slice(Math.max(0, at.startOffset - 1), at.startOffset + 1))) { break; }
+          if (at && /\w\w/.test(text.slice(Math.max(0, at.startOffset - 1), at.startOffset + 1))) { break; }
           x += r.width / 80;
         }
         return { x: f.left + x * sc, y: f.top + y * sc };
@@ -195,6 +209,73 @@ export default {
           JSON.stringify({ first, second, word: word.words }));
         await page.keyboard.press('Escape');
         await page.mouse.click(10, 10);
+        await wait(400);
+      }
+
+      // ---- a link made in rich text: the selected word is its words (D-182) ------------------------
+      {
+        const textKey = await blockKey(page, 'text');
+        const s = `[data-bx-key="${textKey}"] [data-bx-field="body"]`;
+        await page.evaluate((q) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(q).scrollIntoView({ block: 'center' }), s);
+        await wait(300);
+        let p = await place(s, 0, 0.3);
+        await page.mouse.click(p.x, p.y);
+        await wait(900);
+        p = await place(s, 0, 0.3);
+        await page.mouse.click(p.x, p.y, { count: 2 });
+        await wait(400);
+        const chosen = (await caret()).words.trim();
+        await clickInCanvas(page, '.bx-rich-tools [data-rt="link"]');
+        await wait(400);
+        const offered = await page.$eval('[data-pb-link] [data-pb-link-text]', (el) => el.value).catch(() => null);
+        const target = await page.evaluate(() => window.pb.data.inline.pages.find((x) => x.depth === 0 && x.url !== '/').ref);
+        await page.select('[data-pb-link] select', target);
+        await page.click('[data-pb-link-done]');
+        await wait(600);
+        const body = await page.evaluate((k) => window.pb.block(k).content.body, textKey);
+        report.verdict('in rich text the selected word is the link\'s words, and becomes the link',
+          chosen.length > 1 && offered === chosen && body.includes(`<a href="${target}">${chosen}</a>`), JSON.stringify({ chosen, offered, body: body.slice(0, 200) }));
+        await page.keyboard.press('Escape');
+        await page.mouse.click(10, 10);
+        await wait(500);
+      }
+
+      // ---- the same in the inspector's rich text (D-182) -------------------------------------------
+      {
+        const textKey = await blockKey(page, 'text');
+        await page.evaluate((k) => window.pb.select('block', k), textKey);
+        await page.waitForSelector(`[data-pb-inspector] [data-block-fields="${textKey}"]`, { timeout: 10000 });
+        await page.$$eval('[data-pb-inspector] details', (all) => all.forEach((d) => { d.open = true; }));
+        await wait(400);
+        const editor = '[data-pb-inspector] [data-richtext] .ProseMirror';
+        const at = await page.$eval(editor, (el) => {
+          el.scrollIntoView({ block: 'center' });
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const r = [...range.getClientRects()].filter((x) => x.width > 4)[0];
+          return { x: r.left + 6, y: r.top + r.height / 2 };
+        });
+        await page.mouse.click(at.x, at.y, { count: 2 });
+        await wait(300);
+        const chosen = await page.evaluate(() => document.getSelection().toString().trim());
+        await page.click('[data-pb-inspector] [data-richtext] [data-rt="link"]');
+        await wait(300);
+        const panel = await page.evaluate(() => {
+          const link = document.querySelector('[data-pb-inspector] [data-richtext-link]:not([hidden])');
+          return link ? { text: link.querySelector('.rt-link-text').value, apply: !link.querySelector('[data-rt-link="apply"]').disabled } : null;
+        });
+        await page.$eval('[data-pb-inspector] [data-richtext-link]:not([hidden]) .rt-link-text', (el) => { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); });
+        const target = await page.$eval('[data-pb-inspector] [data-richtext-link]:not([hidden]) .rt-link-page option:nth-child(2)', (o) => ({ value: o.value, title: o.getAttribute('data-title') }));
+        await page.select('[data-pb-inspector] [data-richtext-link]:not([hidden]) .rt-link-page', target.value);
+        const refilled = await page.evaluate(() => {
+          const link = document.querySelector('[data-pb-inspector] [data-richtext-link]:not([hidden])');
+          return { text: link.querySelector('.rt-link-text').value, apply: !link.querySelector('[data-rt-link="apply"]').disabled };
+        });
+        await shot(report, page, '03c-inspector-link');
+        report.verdict('the inspector\'s rich text link has the selected words, a page fills them when empty, and Link waits for them',
+          panel !== null && chosen.length > 1 && panel.text === chosen && !panel.apply && refilled.text === target.title && refilled.apply, JSON.stringify({ chosen, panel, refilled, target }));
+        await page.keyboard.press('Escape');
+        await page.evaluate(() => window.pb.select(null));
         await wait(400);
       }
 

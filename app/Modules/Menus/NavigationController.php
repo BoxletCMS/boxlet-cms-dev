@@ -108,7 +108,7 @@ final class NavigationController
             'wide' => true,
             // The footer's words are rich text (D-113): TipTap and the field script that binds it.
             'styles' => ['admin-pages.css', 'admin-richtext.css', 'admin-navigation.css'],
-            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext.js'],
+            'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext-link.js', 'richtext.js'],
             'menu' => $state['menu'],
             'footerMenus' => $state['footer_menus'],
             'menuNames' => Menu::names($db),

@@ -322,7 +322,7 @@ return [
     'pages.field.link_page_draft' => '(draft)',
     'pages.field.link_page_gone' => 'A page that no longer exists',
     'pages.field.link_url_part' => 'Address',
-    'pages.field.link_label_part' => 'Text',
+    'pages.field.link_label_part' => 'Link text',
     'pages.field.link_hint' => 'Choose one of your pages, or “Another address…” for anything else. A chosen page fills in its address and title for you; change the text if you like. If the page’s address changes later, the link follows it.',
     'pages.field.link_gone_hint' => 'The page this link pointed at was deleted, so the site does not show the link. Choose another page or type an address.',
     'pages.field.link_draft_hint' => 'That page is a draft. The site hides the link until the page is published.',

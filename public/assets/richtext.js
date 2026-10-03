@@ -170,86 +170,9 @@
       });
     }
 
-    /*
-     * Editing a link without stealing the selection.
-     *
-     * The selection lives in the editor's state, not in the browser, so moving focus to a
-     * text input does not disturb it: ProseMirror simply stops rendering the cursor. When
-     * the address is applied, extendMarkRange('link') widens the stored selection to the
-     * whole link so editing one applies to all of it, and .focus() hands the caret back.
-     * Nothing has to be saved and restored by hand, which is what an editor that manages
-     * the browser's own selection forces on you.
-     */
-    function openLink() {
-      if (!link) {
-        return;
-      }
-      var input = link.querySelector('input');
-      var page = link.querySelector('select');
-      link.hidden = false;
-      // The address of the link the cursor is in, so editing one starts from what it is.
-      // extendMarkRange first: with only part of a link selected, getAttributes returns
-      // nothing and the field came back empty when reopening on an existing link.
-      editor.chain().extendMarkRange('link').run();
-      var href = editor.getAttributes('link').href || '';
-      // A link to a page opens on that page; anything else opens on its address. A page
-      // that is no longer offered falls back to the address, so it is seen rather than lost.
-      var offered = page && Array.prototype.some.call(page.options, function (option) {
-        return option.value !== '' && option.value === href;
-      });
-      if (page) {
-        page.value = offered ? href : '';
-      }
-      input.value = offered ? '' : href;
-      if (offered) {
-        page.focus();
-      } else {
-        input.focus();
-        input.select();
-      }
-    }
-
-    function closeLink(refocus) {
-      if (!link) {
-        return;
-      }
-      link.hidden = true;
-      if (refocus) {
-        editor.chain().focus().run();
-      }
-    }
-
-    if (link) {
-      link.addEventListener('click', function (event) {
-        var action = event.target.closest('[data-rt-link]');
-        if (!action) {
-          return;
-        }
-        event.preventDefault();
-        var page = link.querySelector('select');
-        var href = page && page.value !== '' ? page.value : link.querySelector('input').value.trim();
-        var chain = editor.chain().focus().extendMarkRange('link');
-        if (action.getAttribute('data-rt-link') === 'apply' && href !== '') {
-          chain.setLink({ href: href }).run();
-        } else {
-          chain.unsetLink().run();
-        }
-        // The address is in the mark now; the box is emptied so it holds nothing the form
-        // could stumble on, and opens clean next time (D-113).
-        link.querySelector('input').value = '';
-        closeLink(true);
-        refresh();
-      });
-      link.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          closeLink(true);
-        } else if (event.key === 'Enter') {
-          event.preventDefault();
-          link.querySelector('[data-rt-link="apply"]').click();
-        }
-      });
-    }
+    // The link panel is richtext-link.js's (D-182): the words, a page or an address.
+    var panel = link && window.boxletRichTextLink ? window.boxletRichTextLink(editor, link, refresh) : null;
+    function openLink() { if (panel) { panel.open(); } }
 
     // Ctrl+K opens it from the keyboard, and clicking back into the text puts it away:
     // the panel belongs to the selection, so returning to the writing ends it.
@@ -260,8 +183,8 @@
       }
     });
     host.addEventListener('mousedown', function () {
-      if (link && !link.hidden) {
-        closeLink(false);
+      if (panel && panel.isOpen()) {
+        panel.close(false);
       }
     });
 

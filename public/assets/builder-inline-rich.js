@@ -86,14 +86,26 @@
     if (name === 'link') {
       current.holding = true;
       var href = editor.getAttributes('link').href || '';
-      pb.inline.picker(current.el, href, function () {}, function (url) {
+      // The words the link is on: the selection, or the whole link the caret is in.
+      if (href) { editor.chain().extendMarkRange('link').run(); }
+      var from = editor.state.selection.from;
+      var to = editor.state.selection.to;
+      var said = editor.state.doc.textBetween(from, to, ' ');
+      pb.inline.picker(current.el, href, function () {}, function (url, words) {
         current.holding = false;
-        var chain = editor.chain().focus().extendMarkRange('link');
-        (url ? chain.setLink({ href: url }) : chain.unsetLink()).run();
+        var chain = editor.chain().focus().setTextSelection({ from: from, to: to });
+        if (!url) {
+          chain.extendMarkRange('link').unsetLink().run();
+        } else if (words && words !== said) {
+          // New words, or none were selected: the words are put in as the link.
+          chain.insertContent({ type: 'text', text: words, marks: [{ type: 'link', attrs: { href: url } }] }).run();
+        } else {
+          chain.setLink({ href: url }).run();
+        }
       }, href ? function () {
         current.holding = false;
-        editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      } : null);
+        editor.chain().focus().setTextSelection({ from: from, to: to }).extendMarkRange('link').unsetLink().run();
+      } : null, said);
       return;
     }
     rt.commands[name].run(editor.chain().focus()).run();

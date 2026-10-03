@@ -57,10 +57,14 @@
   }
 
   /**
-   * The popover under `anchor`, showing `url`. `onChange(url)` is told every change; `onDone`
-   * when it closes. `onRemove`, when given, offers taking the link away.
+   * The popover under `anchor`, showing `url` and the link's words, `text` (D-182: "Link
+   * text", for a page and for another address alike). `onChange(url, text)` is told every
+   * change; `onDone(url, text)` when it closes. `onRemove`, when given, offers taking the link
+   * away. Choosing a page fills the words with its title when there are none, or when they
+   * are still the title the last page chosen filled them with: words the owner wrote are
+   * never written over. Done waits for both words and an address.
    */
-  function picker(anchor, url, onChange, onDone, onRemove) {
+  function picker(anchor, url, onChange, onDone, onRemove, text) {
     close();
     var panel = el('div', 'pb-link');
     panel.setAttribute('role', 'dialog');
@@ -68,38 +72,42 @@
     panel.setAttribute('data-pb-link', '');
     panel.appendChild(el('p', 'pb-link-title', pb.t('inline.link_title')));
 
-    var pageField = el('div', 'field');
-    var pageLabel = el('label', '', pb.t('inline.link_page'));
-    pageLabel.htmlFor = 'pb-link-page';
+    function field(id, words, control) {
+      var holder = el('div', 'field');
+      var label = el('label', '', words);
+      label.htmlFor = id;
+      control.id = id;
+      holder.appendChild(label);
+      holder.appendChild(control);
+      return holder;
+    }
+    var words = el('input');
+    words.type = 'text';
+    words.setAttribute('data-pb-link-text', '');
+    words.value = text || '';
     var select = el('select');
-    select.id = 'pb-link-page';
     var other = el('option', '', pb.t('inline.link_other'));
     other.value = '';
     select.appendChild(other);
     pages.forEach(function (page) {
       var option = el('option', '', new Array(page.depth + 1).join('— ') + page.title);
       option.value = page.ref;
+      option.setAttribute('data-title', page.title);
       select.appendChild(option);
     });
-    pageField.appendChild(pageLabel);
-    pageField.appendChild(select);
-
-    var urlField = el('div', 'field');
-    var urlLabel = el('label', '', pb.t('inline.link_url'));
-    urlLabel.htmlFor = 'pb-link-url';
     var input = el('input');
-    input.id = 'pb-link-url';
     input.type = 'text';
     input.inputMode = 'url';
-    urlField.appendChild(urlLabel);
-    urlField.appendChild(input);
+    panel.appendChild(field('pb-link-text', pb.t('inline.link_text'), words));
+    panel.appendChild(field('pb-link-page', pb.t('inline.link_page'), select));
+    var urlField = field('pb-link-url', pb.t('inline.link_url'), input);
+    panel.appendChild(urlField);
 
     var isPage = /^page:\d+$/.test(url || '');
     select.value = isPage ? url : '';
     input.value = isPage ? '' : (url || '');
     urlField.hidden = isPage;
-    panel.appendChild(pageField);
-    panel.appendChild(urlField);
+    var filled = isPage && select.selectedOptions[0] ? select.selectedOptions[0].getAttribute('data-title') : null;
 
     var row = el('div', 'pb-link-actions');
     var done = el('button', 'button button-secondary', pb.t('inline.link_done'));
@@ -116,17 +124,29 @@
     panel.appendChild(row);
 
     function value() { return select.value !== '' ? select.value : input.value.trim(); }
+    function ready() { done.disabled = value() === '' || words.value.trim() === ''; }
+    function changed() { ready(); onChange(value(), words.value); }
     select.addEventListener('change', function () {
       urlField.hidden = select.value !== '';
-      onChange(value());
+      var title = select.value !== '' ? select.selectedOptions[0].getAttribute('data-title') : null;
+      if (title !== null && (words.value.trim() === '' || words.value === filled)) {
+        words.value = title;
+        filled = title;
+      }
+      changed();
     });
-    input.addEventListener('input', function () { onChange(value()); });
-    function finish() { var v = value(); close(); if (onDone) { onDone(v); } }
-    done.addEventListener('click', finish);
+    input.addEventListener('input', changed);
+    words.addEventListener('input', changed);
+    function finish() { var v = value(); var w = words.value; close(); if (onDone) { onDone(v, w); } }
+    done.addEventListener('click', function () { if (!done.disabled) { finish(); } });
     panel.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter' && event.target === input) { event.preventDefault(); finish(); }
+      if (event.key === 'Enter' && (event.target === input || event.target === words)) {
+        event.preventDefault();
+        if (!done.disabled) { finish(); }
+      }
       if (event.key === 'Escape') { event.preventDefault(); finish(); }
     });
+    ready();
 
     document.querySelector('[data-pb]').appendChild(panel);
     open = { panel: panel, anchor: anchor };
@@ -134,14 +154,19 @@
     return panel;
   }
 
-  /** A link field's address, from its words on the page. */
-  pb.inline.link = function (el, block, path) {
+  /** A link field's address and words, the words also typed where they are shown. */
+  pb.inline.link = function (anchor, block, path) {
     var now = pb.inline.get(block, path) || { label: '', url: '' };
-    picker(el, now.url || '', function (url) {
+    picker(anchor, now.url || '', function (url, text) {
       var b = pb.block(block.key);
       if (!b) { return; }
       var link = pb.copy(pb.inline.get(b, path) || { label: '', url: '' });
       link.url = url;
+      if (link.label !== text) {
+        link.label = text;
+        // The words on the page follow, unless they are the ones being typed.
+        if (anchor.ownerDocument.activeElement !== anchor) { anchor.textContent = text; }
+      }
       pb.inline.write(b, path, link);
     }, function () {
       pb.inline.check(block.key);
@@ -150,6 +175,16 @@
       if (!b) { return; }
       pb.change(function () { pb.inline.set(b, path, { label: '', url: '' }); }, { sections: [b.section] });
       pb.inline.check(block.key);
+    }, now.label || '');
+    // Words typed on the page reach the popover's (listened for once per element).
+    if (anchor.__bxLinkWords) { return; }
+    anchor.__bxLinkWords = true;
+    anchor.addEventListener('input', function () {
+      var words = document.querySelector('[data-pb-link] [data-pb-link-text]');
+      if (words && open && open.anchor === anchor) {
+        words.value = anchor.innerText.replace(/\s*\n\s*/g, ' ');
+        words.dispatchEvent(new Event('input'));
+      }
     });
   };
 

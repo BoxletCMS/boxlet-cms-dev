@@ -106,8 +106,9 @@
   border-radius: var(--ui-radius-m);
 }
 
-/* A page first, an address second (PLAN.md D-034): each takes a full row in the narrow
-   inspector, and the address is hidden while a page is chosen. */
+/* The link's words, then a page, then an address (PLAN.md D-034, D-182): each takes a full
+   row in the narrow inspector, and the address is hidden while a page is chosen. */
+.rt-link-text,
 .rt-link-page,
 .rt-link-input {
   flex: 1 1 100%;
@@ -128,6 +129,12 @@
 
 .richtext-link .button {
   font-size: var(--ui-text-sm);
+}
+
+/* Link waits for words and an address (D-182): faint ink, not faded. */
+.richtext-link .button[disabled] {
+  color: var(--ui-ink-faint);
+  cursor: default;
 }
 
 /* The editor itself, matching every other field on the panel. TipTap renders into a child

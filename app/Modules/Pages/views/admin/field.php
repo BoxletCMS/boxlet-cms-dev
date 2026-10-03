@@ -79,10 +79,13 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
                                      is INVALID to the browser — which then refuses to submit
                                      the whole form, silently. Measured: Publish did nothing
                                      after an address had been typed here. */ ?>
+                            <?php /* The words the link is on (D-182): the selection's, typed
+                                     afresh, or a chosen page's title when there are none. */ ?>
+                            <input type="text" class="rt-link-text" placeholder="<?= e(t('pages.field.link_label_part')) ?>" aria-label="<?= e(t('pages.field.link_label_part')) ?>">
                             <select class="rt-link-page" aria-label="<?= e(t('richtext.page')) ?>">
                                 <option value=""><?= e(t('pages.field.link_address')) ?></option>
 <?php foreach ($linkPages as $group => $choice): ?>
-                                <option value="<?= e(\App\Modules\Pages\PageLinks::to($group)) ?>"><?= e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) ?></option>
+                                <option value="<?= e(\App\Modules\Pages\PageLinks::to($group)) ?>" data-title="<?= e($choice['title']) ?>"><?= e(str_repeat('— ', $choice['depth']) . $choice['title'] . ($choice['published'] ? '' : ' ' . t('pages.field.link_page_draft'))) ?></option>
 <?php endforeach; ?>
                             </select>
                             <input type="text" inputmode="url" class="rt-link-input" placeholder="<?= e(t('richtext.url_placeholder')) ?>" aria-label="<?= e(t('richtext.url')) ?>">

@@ -19,11 +19,6 @@
   transform: translateX(-100%);
 }
 
-/* Over the words being written. */
-.bx-rich-tools {
-  transform: translateY(-100%);
-}
-
 .bx-rich-tools .bx-tool[aria-pressed="true"] {
   background: var(--bx-select);
 }

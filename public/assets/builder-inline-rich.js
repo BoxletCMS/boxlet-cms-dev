@@ -61,10 +61,47 @@
     if (!current.tools.isConnected) {
       o.layer().appendChild(current.tools);
     }
-    var b = o.box(current.el);
-    o.at(current.tools, { top: b.top - o.px(6), left: b.left });
+    spot(current.tools, current.el);
     refresh();
     if (o.apart) { o.apart(); }
+  }
+
+  /**
+   * THE SMALL TOOLBAR COVERS NO OTHER WORDS (D-183): above the field written in, at its start;
+   * where that would lie on another field, the block's toolbar or the page's "+ Card", under
+   * the field; where that would too, above the whole block at its start, over the block's
+   * toolbar when that stands above it. Never past the page's right edge.
+   */
+  function spot(tools, el) {
+    var gap = o.px(6);
+    var h = tools.offsetHeight;
+    var w = tools.offsetWidth;
+    var main = pb.canvas.main();
+    var right = o.box(main).left + o.box(main).width;
+    var others = Array.prototype.filter.call(main.querySelectorAll('[data-bx-field], .bx-add-item-cell'), function (n) {
+      return n !== el && !n.contains(el) && !el.contains(n);
+    }).map(o.box);
+    var bar = o.layer().querySelector('.bx-toolbar-block');
+    if (bar) { others.push(o.box(bar)); }
+    others = others.filter(function (r) { return r.width > 0 && r.height > 0; });
+    function clear(top, left) {
+      return !others.some(function (r) {
+        return left < r.left + r.width && r.left < left + w && top < r.top + r.height && r.top < top + h;
+      });
+    }
+    function fit(left) { return Math.max(0, Math.min(left, right - w)); }
+    var f = o.box(el);
+    var block = el.closest('[data-bx-key]');
+    var b = block ? o.box(block) : f;
+    var over = bar && bar.getAttribute('data-bx-side') === 'above' ? Math.min(b.top, o.box(bar).top) : b.top;
+    var places = [
+      { top: f.top - gap - h, left: fit(f.left) },
+      { top: f.top + f.height + gap, left: fit(f.left) },
+    ];
+    var chosen = places.filter(function (p) { return p.top >= 0 && clear(p.top, p.left); })[0]
+      || { top: Math.max(0, over - gap - h), left: fit(b.left) };
+    o.at(tools, chosen);
+    tools.setAttribute('data-bx-side', chosen === places[1] ? 'below' : (chosen === places[0] ? 'above' : 'block'));
   }
 
   function refresh() {

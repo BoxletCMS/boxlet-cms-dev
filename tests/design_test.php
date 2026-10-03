@@ -29,7 +29,7 @@ function expectedProperties(): array
         ['font-heading', 'font-body', 'heading-weight', 'heading-tracking', 'heading-transform', 'body-weight', 'leading-body', 'leading-heading'],
         array_map(static fn (string $s): string => "text-{$s}", ['sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', 'small']),
         array_map(static fn (string $s): string => "space-{$s}", ['xs', 's', 'm', 'l', 'xl', '2xl', '3xl']),
-        ['radius-s', 'radius-m', 'radius-l', 'radius-button', 'shadow-s', 'shadow-m', 'shadow-l', 'shadow-edge', 'border-width', 'border-card', 'container-width', 'container-narrow', 'container-wide'],
+        ['radius-s', 'radius-m', 'radius-l', 'radius-button', 'shadow-s', 'shadow-m', 'shadow-l', 'shadow-edge', 'border-width', 'border-card', 'container-width', 'container-narrow', 'container-wide', 'veil-least'],
     );
 }
 

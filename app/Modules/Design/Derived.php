@@ -85,6 +85,9 @@ final class Derived
                 'narrow' => self::rem((float) $resolved['container'] * 2 / 3),
                 'wide' => self::rem((float) $resolved['container'] * 7 / 6),
             ],
+            // The least veil that keeps words over a picture at 4.5:1 (O-33, D-183): a band
+            // with a picture and a cover hero's every strength never go under it.
+            'veil' => ['least' => CssNumber::of(Palette::veil($colors))],
             'page' => DerivedPage::page($resolved, $colors, $sectionWidth),
             'chrome' => DerivedPage::chrome($resolved, $colors),
         ];

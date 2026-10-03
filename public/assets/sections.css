@@ -34,9 +34,10 @@
   --placeholder-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M5.5 3h13A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5v-13A2.5 2.5 0 0 1 5.5 3Zm0 1.6a.9.9 0 0 0-.9.9v13a.9.9 0 0 0 .9.9h13a.9.9 0 0 0 .9-.9v-13a.9.9 0 0 0-.9-.9Z'/%3E%3Ccircle cx='9' cy='9' r='1.9'/%3E%3Cpath d='M5.6 18.4h12.8l-4.6-6-3 3.8-1.8-2.1z'/%3E%3C/svg%3E");
 
   /* How much of the surface's own colour is washed over a background picture, so the
-     words on top stay readable whatever the photograph is (D-024). A token rather than a
-     number in a rule: a character that needs more of it says so in one place. */
-  --section-picture-veil: 0.55;
+     words on top stay readable whatever the photograph is (D-024): the least that keeps them
+     at 4.5:1 over a pure white and a pure black picture, worked out from the palette
+     (--veil-least, O-33), never under the 0.55 it always was. */
+  --section-picture-veil: var(--veil-least, 0.55);
   /* The room above and below: the design's section gap, unless the owner gave this
      section its own (a pad-t-* or pad-b-* class, sections-steps.css, D-165). */
   --section-gap: var(--space-section, var(--space-xl));

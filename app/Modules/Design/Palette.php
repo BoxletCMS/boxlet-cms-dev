@@ -222,6 +222,44 @@ final class Palette
     }
 
     /**
+     * THE LEAST VEIL OVER A PICTURE (O-33, D-183): how much of the contrast colour must lie
+     * between a photograph and the words on it for the words to read at 4.5:1 whatever the
+     * photograph is. The worst photographs are a pure white and a pure black; the veil is
+     * composited over them as a browser composites opacity, channel by channel in sRGB.
+     *
+     * Never under 0.55, the veil every band with a picture has worn since D-024; above it only
+     * as far as the colours ask. At 1.0 the picture is gone and the pair is the contrast
+     * surface's own text, which the check measures and refuses on (text_on_contrast).
+     *
+     * @param array<string, string> $colors needs `contrast` and `on-contrast`
+     */
+    public static function veil(array $colors): float
+    {
+        for ($opacity = 0.55; $opacity < 1.0; $opacity = round($opacity + 0.01, 2)) {
+            $worst = min(array_map(
+                static fn (string $picture): float => Color::contrast($colors['on-contrast'], self::over($colors['contrast'], $picture, $opacity)),
+                ['#ffffff', '#000000'],
+            ));
+            if ($worst >= self::AA_BODY) {
+                return $opacity;
+            }
+        }
+
+        return 1.0;
+    }
+
+    /** `$veil` at `$opacity` over `$under`, as #rrggbb. */
+    public static function over(string $veil, string $under, float $opacity): string
+    {
+        $channels = [];
+        for ($i = 0; $i < 3; $i++) {
+            $channels[] = (int) round(hexdec(substr($veil, 1 + 2 * $i, 2)) * $opacity + hexdec(substr($under, 1 + 2 * $i, 2)) * (1 - $opacity));
+        }
+
+        return sprintf('#%02x%02x%02x', ...$channels);
+    }
+
+    /**
      * The palette's own light or dark text colour, whichever gives the higher worst-case
      * contrast across all of $backgrounds.
      *

@@ -161,20 +161,20 @@
   z-index: 1;
 }
 
-/* THE VEIL, in the contrast colour, at one of three strengths. The weakest is the least
-   that keeps the words at 4.5:1 over a picture of ANY brightness under every character —
-   measured, 0.65 is where Minimal reaches it (4.7:1); tests/hero_cover_test.php keeps it
-   so. Tokens, so a character can ask for more in one place. */
+/* THE VEIL, in the contrast colour, at one of three strengths, and never under the least
+   that keeps the words at 4.5:1 over a picture of ANY brightness, which the palette works out
+   (--veil-least, O-33): a fixed 0.65 held for the five characters in light mode only, and
+   not for a set's own colours, nor for Minimal in dark mode (0.68). */
 .hero.is-cover {
-  --hero-veil: 0.65;
+  --hero-veil: max(0.65, var(--veil-least, 0.65));
 }
 
 .hero.is-cover.veil-medium {
-  --hero-veil: 0.75;
+  --hero-veil: max(0.75, var(--veil-least, 0.75));
 }
 
 .hero.is-cover.veil-strong {
-  --hero-veil: 0.85;
+  --hero-veil: max(0.85, var(--veil-least, 0.85));
 }
 
 .hero-cover-picture::after {

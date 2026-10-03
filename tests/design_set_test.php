@@ -128,7 +128,6 @@ test('what is refused, each with its field and reason', function () {
     $refused(['name' => []] + $set, 'name:', 'no name');
     $refused(array_replace_recursive($set, ['decisions' => ['typography' => 'comic']]), 'decisions.typography', 'an unknown typography');
     $refused(array_replace_recursive($set, ['decisions' => ['seed' => 'navy']]), 'decisions.seed', 'a colour that is not a hex');
-    $refused(array_replace_recursive($set, ['decisions' => ['font_url' => 'https://example.com/f.woff2']]), 'decisions.font_url', 'a key that is no decision');
     $refused(array_replace_recursive($set, ['look' => ['nav_style' => 'neon']]), 'look.nav_style', 'a look value outside its set');
     $refused(array_replace_recursive($set, ['composition' => ['section' => ['surface' => 'image']]]), 'composition.section.surface', 'a picture surface');
     $refused(array_replace_recursive($set, ['composition' => ['surfaces' => ['hero' => 'neon']]]), 'composition.surfaces.hero', 'a surface outside its set');
@@ -188,6 +187,11 @@ test('too large and too deep are refused before anything is read', function () {
 test('what cannot be carried over is left out with a warning, and the rest is read', function () {
     $raw = sampleSet();
     $raw['made_with'] = 'an AI';
+    // A decision or a look choice Boxlet does not know is a later v2's optional key, left out
+    // (D-183). It was refused as "a key that is no decision": the rule changed on purpose
+    // with the format's freeze.
+    $raw['decisions']['font_url'] = 'https://example.com/f.woff2';
+    $raw['look']['header_glow'] = 'strong';
     $raw['composition']['layouts']['hero'] = 'diagonal';
     $raw['composition']['surfaces']['carousel'] = 'tinted';
     $read = parseSet($raw);
@@ -195,6 +199,9 @@ test('what cannot be carried over is left out with a warning, and the rest is re
     assertEquals([], $read['errors'], 'errors');
     $warnings = implode(' | ', $read['warnings']);
     assertContains('made_with', $warnings, 'an unknown top-level key');
+    assertContains('decisions.font_url', $warnings, 'an unknown decision');
+    assertContains('look.header_glow', $warnings, 'an unknown look choice');
+    assertTrue(!isset($read['set']['decisions']['font_url']), 'the unknown decision was kept');
     assertContains('composition.layouts.hero', $warnings, 'a layout the block does not offer');
     assertContains('composition.surfaces.carousel', $warnings, 'a block this site does not have');
     assertTrue(!isset($read['set']['composition']['layouts']['hero']), 'the layout was kept');

@@ -4,6 +4,7 @@ namespace App\Modules\Design;
 
 use App\Core\Blocks;
 use App\Modules\Design\Vocabulary\Decisions;
+use App\Modules\Design\Vocabulary\Descriptions;
 
 /**
  * Every key a design set may hold and every value it may take, read off the code that
@@ -79,12 +80,20 @@ final class DesignVocabulary
     {
         $vocabulary = self::vocabulary($registry);
 
-        // '' follows (the character, the pairing, the palette) for every key but the seed.
-        $property = static fn (string $key, array $rule): array => match ($rule['type']) {
-            'colour' => ['type' => 'string', 'pattern' => $key === 'seed' ? self::HEX : self::HEX_OR_EMPTY],
-            'choice' => ['enum' => array_merge([''], $rule['values'])],
-            'number' => ['type' => ['string', 'number'], 'description' => self::range($rule)],
-            default => ['type' => 'string'],
+        // '' follows (the character, the pairing, the palette) for every key but the seed. Each
+        // says what it does and what it is when left out (D-183), from Descriptions and the
+        // table of decisions.
+        $property = static function (string $key, array $rule): array {
+            $neutral = Decisions::ALL[$key]['neutral'];
+            $default = $rule['type'] === 'number' && $neutral !== '' ? (float) $neutral + 0 : $neutral;
+            $described = Descriptions::KEYS[$key] . ($rule['type'] === 'number' ? ' (' . self::range($rule) . ')' : '');
+
+            return match ($rule['type']) {
+                'colour' => ['type' => 'string', 'pattern' => $key === 'seed' ? self::HEX : self::HEX_OR_EMPTY],
+                'choice' => ['enum' => array_merge([''], $rule['values'])],
+                'number' => ['type' => ['string', 'number']],
+                default => ['type' => 'string'],
+            } + ['description' => $described] + ($key === 'seed' ? [] : ['default' => is_float($default) && floor($default) === $default ? (int) $default : $default]);
         };
         $decisions = [];
         foreach ($vocabulary['decisions'] as $key => $rule) {
@@ -98,8 +107,8 @@ final class DesignVocabulary
         foreach ($vocabulary['composition']['section'] as $key => $values) {
             // A stepped number, or for the padding '' — the design's section gap (D-165).
             $section[$key] = isset($values['step'])
-                ? ['type' => ['string', 'number'], 'description' => 'number px' . ($key === 'min_height' ? ' (% of the window)' : '') . ', ' . $values['min'] . ' – ' . $values['max'] . ', step ' . $values['step'] . (str_starts_with($key, 'pad_') ? "; '' is the section gap" : '')]
-                : ['enum' => $values];
+                ? ['type' => ['string', 'number'], 'description' => Descriptions::SECTION[$key] . ' (number ' . ($key === 'min_height' ? '%' : 'px') . ', ' . $values['min'] . ' – ' . $values['max'] . ', step ' . $values['step'] . ')']
+                : ['enum' => $values, 'description' => Descriptions::SECTION[$key]];
         }
         $layouts = [];
         foreach ($vocabulary['composition']['layouts'] as $type => $values) {

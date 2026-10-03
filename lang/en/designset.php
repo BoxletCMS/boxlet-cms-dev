@@ -11,8 +11,6 @@ return [
     'designset.name' => 'name: a design needs a name in at least one language.',
     'designset.field' => ':field: :reason',
     'designset.missing' => 'missing.',
-    'designset.unknown_decision' => 'not a decision Boxlet has.',
-    'designset.unknown_choice' => 'not a header or footer choice Boxlet has.',
     'designset.look_incomplete' => 'a character sets every header and footer choice, and this one is missing.',
     'designset.unknown_key' => 'Left out :key, which a Boxlet design does not have.',
     'designset.block_unknown' => 'Left out :field: this site has no such block.',

@@ -188,8 +188,8 @@ final class DesignSet
             $composition = DesignSetParts::composition($raw['composition'], $registry, $errors, $warnings);
         }
         $patterns = DesignSetPatterns::read($raw['patterns'] ?? null, $registry, $errors, $warnings);
-        $decisions = DesignSetParts::decisions($raw['decisions'] ?? null, $errors);
-        $look = DesignSetParts::look($raw['look'] ?? null, $errors);
+        $decisions = DesignSetParts::decisions($raw['decisions'] ?? null, $errors, $warnings);
+        $look = DesignSetParts::look($raw['look'] ?? null, $errors, $warnings);
 
         if ($errors !== []) {
             return ['set' => null, 'errors' => $errors, 'warnings' => $warnings];

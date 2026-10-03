@@ -23,13 +23,18 @@ final class DesignSetParts
 {
     /**
      * Every decision, validated, in the order design_tokens stores them. Keys a set leaves
-     * out take the neutral defaults; a key the format does not have is refused, because a
-     * decision this Boxlet does not know could be one whose meaning it would get wrong.
+     * out take the neutral defaults.
+     *
+     * A KEY THIS BOXLET DOES NOT KNOW IS LEFT OUT WITH A WARNING (D-183). It was refused, as a
+     * decision whose meaning could be got wrong. Since the format froze, v2 grows only by
+     * optional keys with a default, so an unknown key is one a later Boxlet added, and leaving
+     * it out is that default: refusing it would make every set written later unreadable here.
      *
      * @param list<string> $errors
+     * @param list<string> $warnings
      * @return array<string, string>
      */
-    public static function decisions(mixed $raw, array &$errors): array
+    public static function decisions(mixed $raw, array &$errors, array &$warnings = []): array
     {
         if (!is_array($raw)) {
             $errors[] = self::field('decisions', t('designset.missing'));
@@ -41,7 +46,7 @@ final class DesignSetParts
         foreach ($raw as $key => $value) {
             $key = (string) $key;
             if (!in_array($key, $known, true)) {
-                $errors[] = self::field('decisions.' . $key, t('designset.unknown_decision'));
+                $warnings[] = t('designset.unknown_key', ['key' => 'decisions.' . $key]);
                 continue;
             }
             if (is_string($value)) {
@@ -72,12 +77,14 @@ final class DesignSetParts
     /**
      * Every header and footer choice, each from its closed set or within its range. '' — or
      * a choice left out — follows: for a design, the character; for a character, what the
-     * vocabulary gives (D-164).
+     * vocabulary gives (D-164). A choice this Boxlet does not know is left out with a
+     * warning (D-183).
      *
      * @param list<string> $errors
+     * @param list<string> $warnings
      * @return array<string, string>
      */
-    public static function look(mixed $raw, array &$errors): array
+    public static function look(mixed $raw, array &$errors, array &$warnings = []): array
     {
         $look = array_fill_keys(Decisions::keys('look'), '');
         $raw = $raw ?? [];
@@ -89,7 +96,8 @@ final class DesignSetParts
         foreach ($raw as $key => $value) {
             $key = (string) $key;
             if (!array_key_exists($key, $look)) {
-                $errors[] = self::field('look.' . $key, t('designset.unknown_choice'));
+                // As a decision (D-183): a later v2's choice, left out with a warning.
+                $warnings[] = t('designset.unknown_key', ['key' => 'look.' . $key]);
                 continue;
             }
             $clean = Decisions::clean($key, is_int($value) || is_float($value) ? (string) $value : $value);

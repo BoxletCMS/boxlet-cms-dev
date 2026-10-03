@@ -6,6 +6,7 @@ parameters:
     phpVersion: 80100
     paths:
         - app
+        - bin
         - config
         - public
         - tests

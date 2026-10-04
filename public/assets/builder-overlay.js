@@ -161,8 +161,8 @@
    * band's "+" and edge and of every field's words and every "+ Card"; where that is not to be
    * had, under it. Then (D-185: bands of one surface half the space apart left a gap no taller
    * than the toolbar) above or under it again, slid along to the first place clear of words,
-   * "+ Card" and every "+" on a boundary; where none is, inside the block at its top, over its
-   * picture, if that covers no words; and only then above it all the same.
+   * "+ Card" and every "+" on a boundary; then the same places touching the block; then inside
+   * it at its top, over nothing but its own picture; and only then the place that lies on least.
    */
   function placeBar(bar, node, block) {
     bar.style.transform = 'none';
@@ -193,20 +193,33 @@
     [['above', above], ['below', below]].forEach(function (pair) {
       lefts.forEach(function (left) { places.push({ top: pair[1], left: left, side: pair[0], ok: true }); });
     });
-    // The last resort (D-185): inside the block at its top, over its picture, when that covers
-    // no words and no control — a block packed between two bands with no room outside it.
-    var words = obstacles.filter(function (f, i) {
-      var field = i < fieldEls.length ? fieldEls[i] : null;
-      if (!field || !field.hasAttribute('data-bx-field')) { return true; }
-      var host = field.closest('[data-bx-key]');
-      var owner = host ? pb.block(host.getAttribute('data-bx-key')) : null;
-      var spec = owner && pb.inline && pb.inline.spec ? pb.inline.spec(owner.type, field.getAttribute('data-bx-field')) : null;
-      return !spec || spec.type !== 'media';
+    // Then the same places with no air between, the toolbar touching the block (D-185: two
+    // bands of one surface half the space apart left Brutalist exactly a toolbar's height).
+    var touching = [{ top: b.top - h, left: b.left, side: 'above' }, { top: b.top + b.height, left: b.left, side: 'below' }];
+    [['above', b.top - h], ['below', b.top + b.height]].forEach(function (pair) {
+      lefts.forEach(function (left) { touching.push({ top: pair[1], left: left, side: pair[0] }); });
     });
-    var inside = { top: b.top + gap, left: b.left + gap, side: 'inside', ok: !words.some(function (f) {
-      return b.left + gap < f.left + f.width && f.left < b.left + gap + w && b.top + gap < f.top + f.height && f.top < b.top + gap + h;
-    }) };
-    var chosen = places.filter(function (p) { return p.ok && clear(p.top, p.left); })[0] || (inside.ok ? inside : { top: above, left: b.left, side: 'above' });
+    // A field of the block's own that is a picture, which the last two places may lie on.
+    function ownPicture(i) {
+      var field = i < fieldEls.length ? fieldEls[i] : null;
+      if (!field || !field.hasAttribute('data-bx-field') || !node.contains(field) || !pb.inline || !pb.inline.spec) { return false; }
+      var spec = pb.inline.spec(block.type, field.getAttribute('data-bx-field'));
+      return !!spec && spec.type === 'media';
+    }
+    function on(p, i) {
+      var f = obstacles[i];
+      return Math.max(0, Math.min(p.left + w, f.left + f.width) - Math.max(p.left, f.left)) * Math.max(0, Math.min(p.top + h, f.top + f.height) - Math.max(p.top, f.top));
+    }
+    function lies(p, picturesToo) {
+      return obstacles.reduce(function (sum, f, i) { return sum + (picturesToo || !ownPicture(i) ? on(p, i) : 0); }, 0);
+    }
+    var inside = { top: b.top + gap, left: b.left + gap, side: 'inside' };
+    // THE LAST RESORT: inside the block at its top, over nothing but its own picture; and only
+    // where even that is not to be had, the place that lies on least.
+    var chosen = places.filter(function (p) { return p.ok && clear(p.top, p.left); })[0]
+      || touching.filter(function (p) { return lies(p, true) === 0; })[0]
+      || (lies(inside, false) === 0 ? inside : null)
+      || places.concat(touching, [inside]).sort(function (x, y) { return lies(x, true) - lies(y, true); })[0];
     at(bar, { top: chosen.top, left: chosen.left });
     bar.setAttribute('data-bx-side', chosen.side);
   }

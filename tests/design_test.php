@@ -668,12 +668,18 @@ test('the palette is one list, and a colour the owner has taken can go back to i
     // the other roles" in the same group — still a row each.
     $paletteList = (string) substr($shut, (int) strpos($shut, 'id="group-colours-palette"'));
     $paletteList = (string) substr($paletteList, 0, (int) strpos($paletteList, 'id="group-colours-contrast"'));
+    // Since D-187 each colour by hand has a second row, its dark one, shown while Mode is Dark:
+    // counted apart, so the light rows are still one per role.
+    $rows = static fn (string $html): int => substr_count($html, '<li class="role') - substr_count($html, '<li class="role role-dark');
+    $darkRows = static fn (string $html): int => substr_count($html, '<li class="role role-dark');
     assertEquals(
         count(Palette::colors(Presets::get(Presets::DEFAULT)['seed'], '', 20.0)),
-        substr_count($paletteList, '<li class="role'),
+        $rows($paletteList),
         'every role the palette works out is a row',
     );
-    assertEquals(3, substr_count($shut, '<li class="role') - substr_count($paletteList, '<li class="role'), 'and the three colours of one\'s own are rows of the same shape');
+    assertEquals(count(Palette::BY_HAND), $darkRows($paletteList), 'and each one by hand its dark row');
+    assertEquals(3, $rows($shut) - $rows($paletteList), 'and the three colours of one\'s own are rows of the same shape');
+    assertEquals(2, $darkRows($shut) - $darkRows($paletteList), 'the header\'s and footer\'s with their dark rows; the page\'s has none');
     /*
      * EVERY WAY BACK IS ALWAYS DRAWN, and whether one SHOWS is a CSS question: the switches
      * flip under the owner's hand as colours are picked (D-065), so a button the server

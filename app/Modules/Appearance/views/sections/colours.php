@@ -12,6 +12,8 @@ use App\Support\Controls;
  *
  * @var array<string, string> $decisions
  * @var array<string, string> $colors
+ * @var array<string, string> $dark the owner's dark colours, '' for none (D-187)
+ * @var array<string, string> $darkColors the palette as dark mode draws it
  * @var list<array{pair: string, decision: string, ratio: float, required: float, passes: bool, foreground: string, background: string}> $pairs
  * @var list<string> $changed
  * @var Closure(string): string $error
@@ -75,6 +77,33 @@ $roleRow = static function (string $name, string $hex) use ($decisions, $error, 
         . '</li>';
 };
 
+/**
+ * THE SAME ROLE IN DARK (D-187, the owner): shown instead of the light row while Mode is Dark.
+ * A colour picked here is the owner's for dark mode only, and says so; "Use light value" gives
+ * it up, and dark mode draws the colour held for both modes, the character's dark version or
+ * the palette's. Its own field and switch, `dark_color_<role>`, so light mode keeps its own.
+ */
+$darkRow = static function (string $name) use ($dark, $darkColors, $error, $changed): string {
+    $key = 'color_' . $name;
+    $field = 'dark_' . $key;
+    $id = 'design-' . $field;
+    $taken = ($dark[$key] ?? '') !== '';
+    $value = $taken ? $dark[$key] : ($darkColors[$name] ?? '#000000');
+    $light = t('design.dark.use_light', ['role' => t('design.color.' . $name)]);
+
+    return '<li class="role role-dark' . (in_array($field, $changed, true) ? ' is-changed' : '') . '" data-control="' . e($field) . '" data-kind="by_hand" data-default="">'
+        . '<input type="color" class="role-swatch" id="' . e($id) . '" name="' . e($field) . '" value="' . e($value) . '"'
+        . ' data-by-hand="' . e($field) . '" aria-label="' . e(t('design.color.' . $name)) . '">'
+        . '<span class="role-name" aria-hidden="true" title="' . e(t('design.color.' . $name)) . '">' . e(t('design.color.' . $name))
+        . ' <span class="role-only-dark">' . e(t('design.dark.only')) . '</span> <span class="control-changed"></span></span>'
+        . '<code class="role-value" data-colour-for="' . e($id) . '" data-swatch-value="' . e($name) . '">' . e($value) . '</code>'
+        . '<input type="checkbox" name="' . e($field) . '_on" value="1"' . ($taken ? ' checked' : '') . ' data-by-hand-switch="' . e($field) . '" tabindex="-1" aria-hidden="true">'
+        . '<button type="submit" form="design-form" name="action" value="colour:light:' . e($name) . '" class="icon-button role-free" title="' . e($light) . '">'
+        . icon('history') . '<span class="visually-hidden">' . e($light) . '</span></button>'
+        . $error($field)
+        . '</li>';
+};
+
 $failing = array_values(array_filter($pairs, static fn (array $pair): bool => !$pair['passes']));
 // What "Fix automatically" can reach: a failing pair a colour by hand is blamed for (D-160).
 $freeable = array_filter($failing, static fn (array $pair): bool => Overrides::kind($pair['decision']) === 'by_hand');
@@ -105,11 +134,13 @@ ob_start();
                                  switches flip under the hand, faster than a round trip. */ ?>
                         <button type="submit" form="design-form" name="action" value="colour:free" class="button button-quiet palette-reset"><?= e(t('design.by_hand.free_all')) ?></button>
                     </div>
-                    <ul class="roles" role="list" aria-label="<?= e(t('design.palette')) ?>">
+                    <ul class="roles roles-palette" role="list" aria-label="<?= e(t('design.palette')) ?>">
 <?php foreach (Palette::BY_HAND as $name): ?>
                         <?= $roleRow($name, $colors[$name]) ?>
+                        <?= $darkRow($name) ?>
 <?php endforeach; ?>
                     </ul>
+                    <p class="hint role-dark-hint"><?= e(t('design.dark.hint')) ?></p>
                     <?php /* The roles nobody sets by hand are worked out from the ones above:
                              there, for whoever wants to read them, and out of the way. */ ?>
                     <details class="roles-more">

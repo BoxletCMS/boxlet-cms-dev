@@ -128,6 +128,14 @@ final class Decisions
      */
     public const DARK = ['seed', 'secondary', 'color_background', 'color_card', 'color_surface', 'color_border', 'color_text', 'color_muted', 'color_link', 'header_colour', 'footer_colour', 'surface_contrast', 'shadow_strength'];
 
+    /**
+     * The colours the owner may give a dark value of their own (D-187, the owner): the palette's
+     * roles and the header's and footer's own colours, every colour by hand that a dark version
+     * may hold. A hand colour holds in both modes until one is set while Appearance is in Dark;
+     * that one is for dark mode only.
+     */
+    public const DARK_OWN = ['color_background', 'color_card', 'color_surface', 'color_border', 'color_text', 'color_muted', 'color_link', 'header_colour', 'footer_colour'];
+
     /** The colours that may be set by hand, '' while the palette decides. */
     public const BY_HAND = ['background', 'card', 'surface', 'border', 'text', 'muted', 'link'];
 

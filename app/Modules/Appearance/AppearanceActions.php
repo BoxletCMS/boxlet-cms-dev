@@ -35,7 +35,7 @@ final class AppearanceActions
     /**
      * The screen after one of these actions, or null for an action that is not one of them.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>, errors: array<string, string>} $state
      * @param string $character the character loaded into the form, '' when none
      * @param string $basis what the screen measures against: that character, else the active one
      */
@@ -52,15 +52,23 @@ final class AppearanceActions
         if (str_starts_with($action, 'library:')) {
             return $this->library($request, $action, $state, $character);
         }
+        if (str_starts_with($action, 'colour:light:')) {
+            return $this->light(substr($action, strlen('colour:light:')), $state, $character);
+        }
         if (str_starts_with($action, 'colour:free')) {
             return $this->free($action, $state, $character, $basis);
         }
         if (str_starts_with($action, 'reset:')) {
-            $reset = Overrides::reset($state['decisions'] + $state['look'], substr($action, strlen('reset:')));
+            $scope = substr($action, strlen('reset:'));
+            $reset = Overrides::reset($state['decisions'] + $state['look'], $scope);
             if ($reset === null) {
                 return $this->screen->render($state, [], null, 404, $character);
             }
             $again = Tokens::validate($reset, $basis);
+            // Everything, or the colours, put back: the owner's dark colours with them (D-187).
+            if ($scope === 'all' || $scope === 'section:colours') {
+                $state['dark'] = [];
+            }
 
             return $this->screen->render(
                 self::split($again['decisions']) + $state,
@@ -79,7 +87,7 @@ final class AppearanceActions
      * value the owner set stays; only what follows the character changes, with it. Their words
      * and menus are not the character's either. Publish is still the confirmation.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>, errors: array<string, string>} $state
      */
     private function load(string $name, array $state): Response
     {
@@ -94,7 +102,7 @@ final class AppearanceActions
      * The owner's values in the two halves the screen's state keeps them in.
      *
      * @param array<string, string> $values
-     * @return array{decisions: array<string, string>, look: array<string, string>}
+     * @return array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>}
      */
     private static function split(array $values): array
     {
@@ -112,11 +120,12 @@ final class AppearanceActions
      * a person. RE-VALIDATED, NOT TRUSTED: the palette's own colour can fail a pair the
      * owner's colour passed, and the screen must keep saying so (D-063).
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>, errors: array<string, string>} $state
      */
     private function free(string $action, array $state, string $character, string $basis): Response
     {
         $decisions = $state['decisions'];
+        $dark = Tokens::darkOwn($state['dark'] ?? []);
         $freed = 0;
         if ($action === 'colour:free:failing') {
             /* ONLY WHAT THE OWNER SET AND WHAT FAILS. A failing pair names the control that
@@ -125,14 +134,23 @@ final class AppearanceActions
                ink can be enough and the background the owner chose should then stay theirs.
                A pair the main colour fails is left: no colour by hand caused it, and the
                screen says to change the main colour instead. */
-            while (($culprit = self::failingByHand(Tokens::resolve($decisions + $state['look'], $basis))) !== null) {
-                $decisions[$culprit] = '';
+            while (($culprit = self::failingByHand(Tokens::resolve($decisions + $state['look'], $basis, $dark))) !== null) {
+                // In dark mode the owner's dark colour is the one drawn, and the one freed (D-187).
+                if (($decisions['mode'] ?? '') === 'dark' && ($dark[$culprit] ?? '') !== '') {
+                    $dark[$culprit] = '';
+                } else {
+                    $decisions[$culprit] = '';
+                }
                 $freed++;
             }
         } else {
             /* The seven palette roles and the three places that may take a colour of their
                own (D-076) are one list here: "Free all" frees all ten. */
             $named = $action === 'colour:free' ? null : substr($action, strlen('colour:free:'));
+            // All of them: the owner's dark colours too (D-187).
+            if ($named === null) {
+                $dark = Tokens::darkOwn([]);
+            }
             foreach (array_merge(array_map(static fn (string $role): string => 'color_' . $role, Decisions::BY_HAND), Decisions::OWN_COLOURS) as $field) {
                 if ($named === null || $named === $field || $named === substr($field, strlen('color_'))) {
                     $decisions[$field] = '';
@@ -143,12 +161,32 @@ final class AppearanceActions
         $again = Tokens::validate($decisions + $state['look'], $basis);
 
         return $this->screen->render(
-            self::split($again['decisions']) + $state,
+            ['dark' => $dark] + self::split($again['decisions']) + $state,
             $again['errors'],
             $freed === 0 ? null : t($freed > 1 ? 'design.by_hand.all_freed' : 'design.by_hand.freed'),
             200,
             $character,
         );
+    }
+
+    /**
+     * "USE LIGHT VALUE" (D-187, the owner): a colour set while Appearance was in Dark given up,
+     * and dark mode draws what it would have without it — the colour held for both modes, the
+     * character's dark version, the palette's.
+     *
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>, errors: array<string, string>} $state
+     */
+    private function light(string $role, array $state, string $character): Response
+    {
+        // A palette role by its name (`text`), the header's or footer's colour by its key.
+        $key = in_array($role, Decisions::DARK_OWN, true) ? $role : 'color_' . $role;
+        if (!in_array($key, Decisions::DARK_OWN, true)) {
+            return $this->screen->render($state, [], null, 404, $character);
+        }
+        $dark = Tokens::darkOwn($state['dark'] ?? []);
+        $dark[$key] = '';
+
+        return $this->screen->render(['dark' => $dark] + $state, $state['errors'], t('design.dark.light_used'), 200, $character);
     }
 
     /**
@@ -171,7 +209,7 @@ final class AppearanceActions
     /**
      * The library (D-061): keep what is on the screen, bring one back, throw one away.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>, errors: array<string, string>} $state
      */
     private function library(Request $request, string $action, array $state, string $character): Response
     {
@@ -189,7 +227,7 @@ final class AppearanceActions
             if ($into === null) {
                 return $this->screen->render($state, [], null, 404, $character);
             }
-            DesignLibrary::save($db, $into['name'], $state['decisions'], $state['look'], $over);
+            DesignLibrary::save($db, $into['name'], $state['decisions'], $state['look'], $over, $state['dark'] ?? []);
             Activity::record($db, 'design', 'kept', null, $into['name']);
 
             return $this->screen->render($state, [], t('appearance.library.overwritten', ['name' => $into['name']]), 200, $character);
@@ -201,7 +239,7 @@ final class AppearanceActions
                 return $this->screen->render($state, ['library_name' => t('appearance.library.name_needed')], null, 422, $character);
             }
             $written = DesignLibrary::exists($db, $name);
-            DesignLibrary::save($db, $name, $state['decisions'], $state['look'], $over);
+            DesignLibrary::save($db, $name, $state['decisions'], $state['look'], $over, $state['dark'] ?? []);
             Activity::record($db, 'design', 'kept', null, $name);
 
             return $this->screen->render($state, [], t($written ? 'appearance.library.overwritten' : 'appearance.library.saved', ['name' => $name]), 200, $character);
@@ -223,7 +261,7 @@ final class AppearanceActions
         // Using one fills the screen with it: the design AND the header and footer it was
         // kept with. The menu and the words stay the site's own.
         return $this->screen->render(
-            ['decisions' => $saved['decisions'], 'look' => $saved['look']] + $state,
+            ['decisions' => $saved['decisions'], 'look' => $saved['look'], 'dark' => $saved['dark']] + $state,
             [],
             t('appearance.library.loaded', ['name' => $saved['name']]),
             200,

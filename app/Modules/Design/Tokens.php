@@ -103,9 +103,10 @@ final class Tokens
      * that way — and `none` for the second colour is no second colour.
      *
      * @param array<string, string> $decisions as validate() returns them
+     * @param array<string, string> $ownDark the owner's dark colours (D-187), '' for none
      * @return array<string, string>
      */
-    public static function resolve(array $decisions, string $character = ''): array
+    public static function resolve(array $decisions, string $character = '', array $ownDark = []): array
     {
         $id = $character !== '' ? $character : Presets::DEFAULT;
         $base = Characters::decisions($id);
@@ -114,18 +115,43 @@ final class Tokens
             $value = $decisions[$key] ?? '';
             $resolved[$key] = $value !== '' ? $value : ($base[$key] ?? $definition['neutral']);
         }
-        // In dark mode a character's dark version stands for its light one (D-185), where the
-        // owner has not set the key; the owner's values hold in both modes until they are
-        // given dark ones of their own (the model the owner is to decide).
-        $dark = Characters::dark($id);
-        if (($resolved['mode'] ?? '') === 'dark' && $dark !== []) {
-            $resolved = self::inDark($resolved, $dark, array_keys(array_filter($decisions, static fn (string $v): bool => $v !== '')));
+        // IN DARK MODE (D-185, D-187, the owner): the owner's dark colour, else the colour the
+        // owner holds for both modes, else the character's dark version, else what the palette
+        // works out for a dark page.
+        if (($resolved['mode'] ?? '') === 'dark') {
+            $dark = Characters::dark($id);
+            if ($dark !== []) {
+                $resolved = self::inDark($resolved, $dark, array_keys(array_filter($decisions, static fn (string $v): bool => $v !== '')));
+            }
+            foreach (self::darkOwn($ownDark) as $key => $value) {
+                if ($value !== '') {
+                    $resolved[$key] = $value;
+                }
+            }
         }
         if (($resolved['secondary'] ?? '') === 'none') {
             $resolved['secondary'] = '';
         }
 
         return $resolved;
+    }
+
+    /**
+     * The owner's dark colours in their one shape (D-187): each of Decisions::DARK_OWN, a colour
+     * it may hold or ''. Anything else is dropped.
+     *
+     * @param array<mixed> $given
+     * @return array<string, string>
+     */
+    public static function darkOwn(array $given): array
+    {
+        $out = [];
+        foreach (Decisions::DARK_OWN as $key) {
+            $value = $given[$key] ?? '';
+            $out[$key] = is_string($value) && $value !== '' ? (Decisions::clean($key, $value) ?? '') : '';
+        }
+
+        return $out;
     }
 
     /**

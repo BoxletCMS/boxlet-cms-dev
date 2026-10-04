@@ -98,7 +98,7 @@ final class DesignTransferController
             return Response::admin(e(t('appearance.export_missing')), 404);
         }
 
-        return $this->exported(self::slug($saved['name']), $saved['name'], $saved['decisions'], $saved['look'], $saved['character']);
+        return $this->exported(self::slug($saved['name']), $saved['name'], $saved['decisions'], $saved['look'], $saved['character'], $saved['dark']);
     }
 
     /**
@@ -159,8 +159,8 @@ final class DesignTransferController
      * screen, load the waiting import into it, or delete an imported character. Null for any
      * other action, which the form's controller answers itself.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>} $state
-     * @param Closure(array{decisions: array<string, string>, look: array<string, string>}, array<string, string>, ?string, int, string): Response $screen
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>, errors: array<string, string>} $state
+     * @param Closure(array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>}, array<string, string>, ?string, int, string): Response $screen
      */
     public function fromScreen(string $action, array $state, string $character, Closure $screen): ?Response
     {
@@ -170,7 +170,7 @@ final class DesignTransferController
                 return $screen($state, $state['errors'], t('design.not_saved'), 422, $character);
             }
 
-            return $this->exported('my-design', t('appearance.export_name'), $state['decisions'], $state['look'], $character !== '' ? $character : Composition::active($db));
+            return $this->exported('my-design', t('appearance.export_name'), $state['decisions'], $state['look'], $character !== '' ? $character : Composition::active($db), $state['dark'] ?? []);
         }
 
         if ($action === 'import:load') {
@@ -214,11 +214,27 @@ final class DesignTransferController
      * from, it is a character, and a character sets every header and footer choice: a choice
      * the design left to its character is written as what that character gives.
      *
+     * Its dark version is the character's with the owner's dark colours over it (D-187): what
+     * dark mode draws, made the set's own.
+     *
      * @param array<string, string> $decisions
      * @param array<string, string> $look
+     * @param array<string, string> $ownDark the owner's dark colours
      */
-    private function exported(string $id, string $name, array $decisions, array $look, string $character): Response
+    private function exported(string $id, string $name, array $decisions, array $look, string $character, array $ownDark = []): Response
     {
+        $dark = Characters::exists($character) ? Characters::dark($character) : [];
+        $ownDark = array_filter(\App\Modules\Design\Tokens::darkOwn($ownDark), static fn (string $v): bool => $v !== '');
+        if ($dark !== [] || $ownDark !== []) {
+            // On the site a value the owner holds for both modes stands over the character's
+            // dark one; in the file the dark version says so, or it would win there.
+            foreach (\App\Modules\Design\Vocabulary\Decisions::DARK as $key) {
+                if (($decisions[$key] ?? '') !== '') {
+                    $dark[$key] = $decisions[$key];
+                }
+            }
+            $dark = $ownDark + $dark;
+        }
         $composition = null;
         if (Characters::exists($character)) {
             $composition = Characters::composition($character);
@@ -227,7 +243,7 @@ final class DesignTransferController
             }
         }
 
-        return $this->file($id, $name, DesignSet::export($id, ['en' => $name], [], $decisions, $look, $composition));
+        return $this->file($id, $name, DesignSet::export($id, ['en' => $name], [], $decisions, $look, $composition, '', [], $dark));
     }
 
     /** The file itself, to be saved rather than shown. */

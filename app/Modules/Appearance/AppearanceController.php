@@ -73,7 +73,7 @@ final class AppearanceController
             $state,
             $character,
             /**
-             * @param array{decisions: array<string, string>, look: array<string, string>} $state
+             * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>} $state
              * @param array<string, string> $errors
              */
             fn (array $state, array $errors, ?string $notice, int $status, string $character): Response => $this->screen->render($state, $errors, $notice, $status, $character),
@@ -109,7 +109,7 @@ final class AppearanceController
         if ($character !== '') {
             Composition::remember($db, $character);
         }
-        Design::save($db, $state['decisions'] + $state['look'], (string) $this->container->get('config')->get('app.cache_path'));
+        Design::save($db, $state['decisions'] + $state['look'], (string) $this->container->get('config')->get('app.cache_path'), $state['dark'] ?? []);
         // The header's and footer's words and menus are Navigation's (D-180): nothing here
         // writes them, so publishing a design never takes them away (appearance_navigation_test).
 

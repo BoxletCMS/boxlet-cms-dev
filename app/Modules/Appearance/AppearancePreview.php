@@ -194,7 +194,7 @@ final class AppearancePreview
     {
         $character = $this->character($request->query);
         $result = Tokens::validate(self::fields($request->query), $character);
-        $decisions = Tokens::resolve($result['decisions'], $character);
+        $decisions = Tokens::resolve($result['decisions'], $character, AppearanceForm::dark($request->query));
         $colors = Palette::forDecisions($decisions);
         $pairs = PalettePairs::pairs($colors, $decisions['secondary'] !== '', Tokens::byHand($decisions), Tokens::ownChrome($decisions));
         $body = json_encode([
@@ -230,7 +230,7 @@ final class AppearancePreview
         }
         $character = $this->character($query);
 
-        return Tokens::resolve(Tokens::validate(self::fields($query), $character)['decisions'], $character);
+        return Tokens::resolve(Tokens::validate(self::fields($query), $character)['decisions'], $character, AppearanceForm::dark($query));
     }
 
     /**

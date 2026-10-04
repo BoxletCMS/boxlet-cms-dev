@@ -218,10 +218,44 @@
   display: none;
 }
 
-.own-colour:has(input[type="checkbox"]:checked) .role-value {
+/* By the row's own switch: a place's light and dark rows (D-187) are each the owner's or not. */
+.own-colour .role:has(input[type="checkbox"]:checked) .role-value {
   display: inline;
 }
 
-.own-colour:has(input[type="checkbox"]:checked) .role-derived {
+.own-colour .role:has(input[type="checkbox"]:checked) .role-derived {
   display: none;
+}
+
+/* THE OWNER'S DARK COLOURS (D-187): while Mode is Dark, each role set by hand shows its dark
+   row instead of its light one — a colour picked there is for dark mode only. Driven by the
+   Mode control itself, so the rows change as it is pressed, without a round trip. */
+.role-dark,
+.role-dark-hint {
+  display: none;
+}
+
+[data-design-form]:has(input[name="mode"][value="dark"]:checked) .role-dark {
+  display: grid;
+}
+
+[data-design-form]:has(input[name="mode"][value="dark"]:checked) .role-dark-hint {
+  display: block;
+}
+
+[data-design-form]:has(input[name="mode"][value="dark"]:checked) .roles-palette > .role:not(.role-dark) {
+  display: none;
+}
+
+/* "only in dark": said while the colour is the owner's for dark, beside its name. */
+.role-only-dark {
+  display: none;
+  color: var(--ui-ink-muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.role-dark:has(input[type="checkbox"]:checked) .role-only-dark {
+  display: inline;
 }

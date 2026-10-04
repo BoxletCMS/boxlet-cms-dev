@@ -60,10 +60,18 @@
      * rearranged to prevent, this time on the screen.
      *
      * A role the owner has taken over is never touched: that colour is theirs.
+     *
+     * The answer is the palette of the mode the screen is in, so it is written to that mode's
+     * rows only: a dark row (`dark_color_…`, D-187) in Dark, a light one in Light.
      */
+    var mode = form.querySelector('input[name="mode"]:checked');
+    var inDark = !!mode && mode.value === 'dark';
     form.querySelectorAll('[data-by-hand]').forEach(function (input) {
       var field = input.getAttribute('data-by-hand');
-      var role = field.replace(/^color_/, '');
+      if ((field.indexOf('dark_') === 0) !== inDark) {
+        return;
+      }
+      var role = field.replace(/^(dark_)?color_/, '');
       var mine = form.querySelector('[data-by-hand-switch="' + field + '"]');
       if (mine && !mine.checked && colors[role]) {
         input.value = colors[role];

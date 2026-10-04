@@ -137,7 +137,8 @@ final class Overrides
             ? array_merge(...array_values(self::SECTIONS[$section] ?? [[]]))
             : (self::SECTIONS[$section][$group] ?? []);
 
-        return count(array_intersect($changed, $keys));
+        // A dark colour of the owner's (D-187) counts where its colour does.
+        return count(array_intersect(array_map(static fn (string $key): string => str_starts_with($key, 'dark_') ? substr($key, 5) : $key, $changed), $keys));
     }
 
     /**

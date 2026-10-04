@@ -36,7 +36,7 @@ final class AppearanceScreen
     /**
      * What the site is published with: the state the screen opens on.
      *
-     * @return array{decisions: array<string, string>, look: array<string, string>}
+     * @return array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>}
      */
     public function published(): array
     {
@@ -48,6 +48,7 @@ final class AppearanceScreen
         return [
             'decisions' => array_diff_key($values, $look),
             'look' => $look,
+            'dark' => Design::dark($db),
         ];
     }
 
@@ -64,7 +65,7 @@ final class AppearanceScreen
     }
 
     /**
-     * @param array{decisions: array<string, string>, look: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>} $state
      * @param array<string, string> $errors
      * @param string $character the character loaded into the form, if any
      * @param array{confirm?: bool, restyled?: int, import?: array{set: array<string, mixed>, warnings: list<string>}|null, importErrors?: list<string>} $extra
@@ -79,7 +80,8 @@ final class AppearanceScreen
         // the site was composed with. Every dot, count and reset on the screen reads this one.
         $basis = $character !== '' ? $character : $active;
         $values = $state['decisions'] + $state['look'];
-        [$resolved, $defaults, $shown] = self::shown($values, $basis);
+        $dark = Tokens::darkOwn($state['dark'] ?? []);
+        [$resolved, $defaults, $shown] = self::shown($values, $basis, $dark);
         $published = Design::load($db);
         $colors = Palette::forDecisions($resolved);
         $pairs = PalettePairs::pairs($colors, $resolved['secondary'] !== '', Tokens::byHand($resolved), Tokens::ownChrome($resolved));
@@ -127,6 +129,11 @@ final class AppearanceScreen
             'hasBlocks' => Composition::hasBlocks($db),
             'library' => DesignLibrary::all($db),
             'colors' => $colors,
+            // THE OWNER'S DARK COLOURS (D-187): what each is, '' for none, and what dark mode
+            // shows where there is none — the colour held for both modes, else the
+            // character's dark version, else the palette's.
+            'dark' => $dark,
+            'darkColors' => Palette::forDecisions(Tokens::resolve(['mode' => 'dark'] + $values, $basis, $dark)),
             'pairs' => $pairs,
             'readable' => Tokens::readable($resolved),
             'readouts' => AppearanceForm::readouts($shown) + SectionSummaries::of($resolved, $pairs),
@@ -139,7 +146,8 @@ final class AppearanceScreen
                 array_intersect_key(\App\Modules\Design\Characters::decisions($basis), array_flip(['heading_weight', 'tracking', 'caps', 'line_height'])),
                 static fn (string $value): bool => $value !== '',
             )),
-            'changed' => Overrides::changed($values, $basis),
+            // The owner's dark colours (D-187) as `dark_<key>`: each its own dot, and counted.
+            'changed' => array_merge(Overrides::changed($values, $basis), array_map(static fn (string $key): string => 'dark_' . $key, array_keys(array_filter($dark, static fn (string $v): bool => $v !== '')))),
             // The chrome half of the screen, as shown.
             'look' => array_intersect_key($shown, $lookKeys),
             'locales' => $this->container->get('locales'),
@@ -152,7 +160,7 @@ final class AppearanceScreen
             // What the published site's controls show, by field (D-181): the bar counts
             // the keys the screen differs on, a character loaded included.
             'keywords' => self::keywords(),
-            'publishedFields' => AppearanceForm::fields(self::shown($published, $active)[2]),
+            'publishedFields' => AppearanceForm::fields(self::shown($published, $active)[2], Design::dark($db)),
             'previewUrl' => Url::withQuery(Url::admin('appearance', 'preview'), AppearanceForm::query($state, $shownLocale, $character, $basis)),
             // Design files (D-152): one brought in and waiting, why one was refused, the custom
             // files left out, and a character the site was composed with that is gone (D-156).
@@ -191,11 +199,12 @@ final class AppearanceScreen
      * typeface the pairing's own value, so a slider nobody moved stands where the page is.
      *
      * @param array<string, string> $values
+     * @param array<string, string> $dark the owner's dark colours
      * @return array{0: array<string, string>, 1: array<string, string>, 2: array<string, string>} resolved, defaults, shown
      */
-    private static function shown(array $values, string $basis): array
+    private static function shown(array $values, string $basis, array $dark = []): array
     {
-        $resolved = Tokens::resolve($values, $basis);
+        $resolved = Tokens::resolve($values, $basis, $dark);
         $defaults = Overrides::defaults($basis, $resolved['heading_font'], $resolved['body_font']);
         $shown = $resolved;
         foreach ($shown as $key => $value) {

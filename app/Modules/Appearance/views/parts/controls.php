@@ -23,6 +23,8 @@ use App\Support\Controls;
  * @var array<string, string> $look
  * @var array<string, string> $characterLook
  * @var array<string, string> $colors
+ * @var array<string, string> $dark the owner's dark colours, '' for none (D-187)
+ * @var array<string, string> $darkColors the palette as dark mode draws it
  */
 $error = static fn (string $key): string => isset($errors[$key])
     ? '<p class="field-error" data-error-for="' . e($key) . '" role="alert">' . e($errors[$key]) . '</p>'
@@ -155,7 +157,7 @@ $lookGroup = static function (string $choice) use ($look, $characterLook, $rowOp
  * rendered — a starting point for the picker — and the row says "palette" where the hex
  * would be, because that hex does not follow the palette live.
  */
-$ownColour = static function (string $key) use ($decisions, $error, $colors, $look, $characterLook, $changed): string {
+$ownColour = static function (string $key) use ($decisions, $error, $colors, $look, $characterLook, $changed, $dark, $darkColors): string {
     $id = 'design-' . $key;
     $taken = ($decisions[$key] ?? '') !== '';
     $label = t('design.' . $key);
@@ -165,11 +167,31 @@ $ownColour = static function (string $key) use ($decisions, $error, $colors, $lo
         $part = str_replace('_colour', '_surface', $key);
         $surface = ($look[$part] ?? '') !== '' ? $look[$part] : ($characterLook[$part] ?? 'plain');
         $showing = $colors[['plain' => 'background', 'tinted' => 'surface', 'contrast' => 'contrast', 'gradient' => 'gradient-start'][$surface] ?? 'background'];
+        $showingDark = $darkColors[['plain' => 'background', 'tinted' => 'surface', 'contrast' => 'contrast', 'gradient' => 'gradient-start'][$surface] ?? 'background'] ?? $showing;
     }
     $free = t('design.by_hand.free', ['role' => $label]);
+    // ITS DARK ROW (D-187): the header's and footer's own colours are colours by hand too, and
+    // follow the palette's roles — shown instead of the light row while Mode is Dark.
+    $darkRow = '';
+    if (in_array($key, \App\Modules\Design\Vocabulary\Decisions::DARK_OWN, true)) {
+        $field = 'dark_' . $key;
+        $own = ($dark[$key] ?? '') !== '';
+        $value = $own ? $dark[$key] : ($showingDark ?? $showing);
+        $light = t('design.dark.use_light', ['role' => $label]);
+        $darkRow = '<li class="role role-dark' . (in_array($field, $changed, true) ? ' is-changed' : '') . '" data-control="' . e($field) . '" data-kind="by_hand" data-default="">'
+            . '<input type="color" class="role-swatch" id="design-' . e($field) . '" name="' . e($field) . '" value="' . e($value) . '" data-by-hand="' . e($field) . '" aria-label="' . e($label) . '">'
+            . '<span class="role-name" aria-hidden="true" title="' . e($label) . '">' . e($label) . ' <span class="role-only-dark">' . e(t('design.dark.only')) . '</span> <span class="control-changed"></span></span>'
+            . '<code class="role-value" data-colour-for="design-' . e($field) . '">' . e($value) . '</code>'
+            . '<span class="role-derived">' . e(t('design.by_hand.palette')) . '</span>'
+            . '<input type="checkbox" name="' . e($field) . '_on" value="1"' . ($own ? ' checked' : '') . ' data-by-hand-switch="' . e($field) . '" tabindex="-1" aria-hidden="true">'
+            . '<button type="submit" form="design-form" name="action" value="colour:light:' . e($key) . '" class="icon-button role-free own-colour-free" title="' . e($light) . '">'
+            . icon('history') . '<span class="visually-hidden">' . e($light) . '</span></button>'
+            . $error($field)
+            . '</li>';
+    }
 
     return '<div class="field own-colour' . ($taken ? ' own-colour-taken' : '') . '">'
-        . '<ul class="roles" role="list"><li class="role' . (in_array($key, $changed, true) ? ' is-changed' : '') . '" data-control="' . e($key) . '" data-kind="by_hand" data-default="">'
+        . '<ul class="roles' . ($darkRow !== '' ? ' roles-palette' : '') . '" role="list"><li class="role' . (in_array($key, $changed, true) ? ' is-changed' : '') . '" data-control="' . e($key) . '" data-kind="by_hand" data-default="">'
         . '<input type="color" class="role-swatch" id="' . e($id) . '" name="' . e($key) . '"'
         . ' value="' . e($taken ? $decisions[$key] : $showing) . '" data-by-hand="' . e($key) . '" aria-label="' . e($label) . '">'
         . '<span class="role-name" aria-hidden="true" title="' . e($label) . '">' . e($label) . ' <span class="control-changed"></span></span>'
@@ -180,7 +202,7 @@ $ownColour = static function (string $key) use ($decisions, $error, $colors, $lo
         . '<button type="submit" form="design-form" name="action" value="colour:free:' . e($key) . '"'
         . ' class="icon-button role-free own-colour-free" title="' . e($free) . '">'
         . icon('history') . '<span class="visually-hidden">' . e($free) . '</span></button>'
-        . '</li></ul>'
+        . '</li>' . $darkRow . '</ul>'
         . field_hint('hint.design.' . $key)
         . $error($key)
         . '</div>';

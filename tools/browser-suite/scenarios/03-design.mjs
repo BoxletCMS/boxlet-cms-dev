@@ -419,10 +419,14 @@ export default {
     const palette = await page.evaluate(() => {
       // The palette's own rows: since D-111 the three colours of one's own are rows of the
       // same shape under their own groups, and they are not roles the palette works out.
-      const rows = [...document.querySelectorAll('#group-colours-palette .role')];
+      // Seen ones only: since D-187 each role by hand has its dark row too, shown instead of the
+      // light one while Mode is Dark, and counted apart.
+      const all = [...document.querySelectorAll('#group-colours-palette .role')];
+      const rows = all.filter((r) => getComputedStyle(r).display !== 'none');
       const reset = document.querySelector('.palette-reset');
       return {
         rows: rows.length,
+        darkRows: all.filter((r) => r.classList.contains('role-dark') && getComputedStyle(r).display === 'none').length,
         editable: rows.filter((r) => r.querySelector('input[type="color"]')).length,
         said: rows.filter((r) => r.querySelector('.role-derived')).length,
         // The old shapes: a read-only swatch list, and the folded panel beside it.
@@ -441,7 +445,7 @@ export default {
       };
     });
     report.verdict('the palette is one list, and every role is in it',
-      palette.rows === 16 && palette.editable === 7 && palette.said === 9
+      palette.rows === 16 && palette.editable === 7 && palette.said === 9 && palette.darkRows === 7
         && palette.oldLists === 0 && palette.square,
       JSON.stringify(palette));
     // Nothing is taken over yet, so nothing offers to give anything back.

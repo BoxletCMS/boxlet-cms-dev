@@ -56,6 +56,11 @@ return [
     'design.by_hand.free' => 'Let the palette work out :role again',
     'design.by_hand.free_all' => 'Reset all',
     'design.by_hand.free_short' => 'Use the palette',
+    // The owner's colours for dark mode only (D-187).
+    'design.dark.only' => 'only in dark',
+    'design.dark.use_light' => 'Use the light value for :role',
+    'design.dark.light_used' => 'Dark mode uses the light value again.',
+    'design.dark.hint' => 'In Dark, a colour you pick is for dark mode only. Light mode keeps its own.',
     'design.by_hand.freed' => 'That colour is the palette\'s again.',
     'design.by_hand.all_freed' => 'Every colour is the palette\'s again.',
     'design.color.background' => 'Background',

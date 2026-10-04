@@ -45,35 +45,57 @@ final class Design
     }
 
     /**
+     * The owner's colours for dark mode only (D-187): each of Decisions::DARK_OWN, '' where the
+     * owner has none and the colour they hold for both modes, or the character's, stands.
+     * Rows `dark.<key>` of design_tokens.
+     *
+     * @return array<string, string>
+     */
+    public static function dark(Db $db): array
+    {
+        $stored = [];
+        foreach ($db->all("SELECT group_key, value_json FROM design_tokens WHERE group_key LIKE 'dark.%'") as $row) {
+            $stored[substr((string) $row['group_key'], 5)] = json_decode((string) $row['value_json'], true);
+        }
+
+        return Tokens::darkOwn($stored);
+    }
+
+    /**
      * The design as drawn: the owner's values over the character's.
      *
      * @return array<string, string>
      */
     public static function resolved(Db $db, ?string $character = null): array
     {
-        return Tokens::resolve(self::load($db), $character ?? Composition::active($db));
+        return Tokens::resolve(self::load($db), $character ?? Composition::active($db), self::dark($db));
     }
 
     /**
      * Stores the owner's values — every key that is not '' — and publishes the stylesheet.
      *
      * @param array<string, string> $values key => value, '' or absent for "follow"
+     * @param array<string, string>|null $dark the owner's dark colours; null keeps those stored
      * @return string the new stylesheet's file name
      */
-    public static function save(Db $db, array $values, string $cacheDirectory): string
+    public static function save(Db $db, array $values, string $cacheDirectory, ?array $dark = null): string
     {
-        self::store($db, $values);
+        self::store($db, $values, $dark);
 
         return self::publish($db, $cacheDirectory);
     }
 
     /**
-     * Writes the owner's values without compiling: every row replaced by the keys given.
+     * Writes the owner's values without compiling: every row replaced by the keys given. The
+     * owner's dark colours with them when given; a caller that knows nothing of them — a
+     * header's look saved alone — keeps them as they are.
      *
      * @param array<string, string> $values
+     * @param array<string, string>|null $dark
      */
-    public static function store(Db $db, array $values): void
+    public static function store(Db $db, array $values, ?array $dark = null): void
     {
+        $dark = Tokens::darkOwn($dark ?? self::dark($db));
         $pdo = $db->pdo();
         $pdo->beginTransaction();
         try {
@@ -82,6 +104,11 @@ final class Design
                 $value = (string) ($values[$key] ?? '');
                 if ($value !== '') {
                     $db->query('INSERT INTO design_tokens (group_key, value_json) VALUES (?, ?)', [$key, json_encode($value, JSON_THROW_ON_ERROR)]);
+                }
+            }
+            foreach ($dark as $key => $value) {
+                if ($value !== '') {
+                    $db->query('INSERT INTO design_tokens (group_key, value_json) VALUES (?, ?)', ['dark.' . $key, json_encode($value, JSON_THROW_ON_ERROR)]);
                 }
             }
             $pdo->commit();

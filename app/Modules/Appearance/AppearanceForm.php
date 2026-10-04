@@ -24,7 +24,7 @@ final class AppearanceForm
      * and the words are Navigation's since D-180, and never read or written here.
      *
      * @param list<string> $locales
-     * @return array{decisions: array<string, string>, look: array<string, string>, errors: array<string, string>}
+     * @return array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>, errors: array<string, string>}
      */
     public static function read(Request $request, array $locales): array
     {
@@ -40,8 +40,29 @@ final class AppearanceForm
         return [
             'decisions' => array_diff_key($design['decisions'], $look),
             'look' => $look,
+            'dark' => self::dark($request->body),
             'errors' => $design['errors'],
         ];
+    }
+
+    /**
+     * THE OWNER'S DARK COLOURS (D-187), as the form carries them: `dark_color_text` with its
+     * switch `dark_color_text_on`, as every colour by hand. Set while Appearance is in Dark,
+     * for dark mode only; '' where there is none.
+     *
+     * @param array<mixed> $fields
+     * @return array<string, string>
+     */
+    public static function dark(array $fields): array
+    {
+        $given = [];
+        foreach (Decisions::DARK_OWN as $key) {
+            if (($fields['dark_' . $key . '_on'] ?? '') === '1') {
+                $given[$key] = $fields['dark_' . $key] ?? '';
+            }
+        }
+
+        return Tokens::darkOwn($given);
     }
 
     /**
@@ -51,7 +72,7 @@ final class AppearanceForm
      * The header's and footer's words and menus are not in it: they are Navigation's (D-180),
      * and the preview draws them as stored.
      *
-     * @param array{decisions: array<string, string>, look: array<string, string>} $state
+     * @param array{decisions: array<string, string>, look: array<string, string>, dark?: array<string, string>} $state
      * @param string $basis the character the screen measures against: the loaded one, else
      *        the site's
      * @return array<string, string>
@@ -63,7 +84,7 @@ final class AppearanceForm
         // one's, else the site's own ($basis). Resolved against the default character
         // (Minimal) when none was loaded, the picture showed Minimal's values over a site on
         // any other character (found reviewing phase 1).
-        $resolved = Tokens::resolve($state['decisions'] + $state['look'], $character !== '' ? $character : $basis);
+        $resolved = Tokens::resolve($state['decisions'] + $state['look'], $character !== '' ? $character : $basis, $state['dark'] ?? []);
         $query = [];
         foreach ($resolved as $key => $value) {
             $query[in_array($key, ChromeLook::keys(), true) ? ChromeLook::field($key) : $key] = $value;
@@ -76,6 +97,11 @@ final class AppearanceForm
         }
         foreach (Decisions::OWN_COLOURS as $field) {
             $query[$field . '_on'] = $resolved[$field] !== '' ? '1' : '0';
+        }
+        // The owner's dark colours, which the design drawn in light mode does not show.
+        foreach (Tokens::darkOwn($state['dark'] ?? []) as $key => $value) {
+            $query['dark_' . $key] = $value;
+            $query['dark_' . $key . '_on'] = $value !== '' ? '1' : '0';
         }
         if ($character !== '') {
             $query['character'] = $character;
@@ -90,9 +116,10 @@ final class AppearanceForm
      * unpublished changes compares the screen against.
      *
      * @param array<string, string> $shown every key as the controls show it
+     * @param array<string, string> $dark the owner's dark colours, the switch of each with it
      * @return array<string, string>
      */
-    public static function fields(array $shown): array
+    public static function fields(array $shown, array $dark = []): array
     {
         $fields = [];
         foreach ($shown as $key => $value) {
@@ -104,6 +131,12 @@ final class AppearanceForm
         }
         foreach (Decisions::OWN_COLOURS as $field) {
             $fields[$field . '_on'] = ($shown[$field] ?? '') !== '' ? '1' : '0';
+        }
+        // Every one, set or not: the bar counts the keys it is handed, and a dark colour set on
+        // the screen over none published is a change.
+        foreach (Tokens::darkOwn($dark) as $key => $value) {
+            $fields['dark_' . $key . '_on'] = $value !== '' ? '1' : '0';
+            $fields['dark_' . $key] = $value;
         }
 
         return $fields;

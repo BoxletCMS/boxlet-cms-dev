@@ -87,6 +87,9 @@ final class DesignReference
         $out[] = '';
         $out[] = '`dark` is optional. When a site shows the set in dark mode, these keys stand for the light ones: ' . implode(', ', array_map(static fn (string $k): string => '`' . $k . '`', Decisions::DARK)) . '. A colour left out (`color_*`, `header_colour`, `footer_colour`) is worked out by the palette for the dark page, not carried over from the light version; anything else left out is the light version\'s, and a main colour that does not read on the dark page is lifted until it does. With a dark version both versions are checked, and a pair under 4.5:1 in either refuses the set (`dark.<key>` for the dark one). Without one, the dark version is derived alone, and `bin/check-set.php` warns of what that cannot mend.';
         $out[] = '';
+        // The owner's colours over the set's dark version (D-187, the owner's model).
+        $out[] = 'On a site, the owner\'s own colours stand over a dark version: a colour set by hand holds in both modes, over `dark`; one set while Appearance is in Dark is for dark mode only, over that. A design exported from a site carries both in its `dark` block.';
+        $out[] = '';
 
         $out[] = '## Composition';
         $out[] = '';

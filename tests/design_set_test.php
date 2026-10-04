@@ -207,6 +207,29 @@ test('what cannot be carried over is left out with a warning, and the rest is re
     assertTrue(!isset($read['set']['composition']['layouts']['hero']), 'the layout was kept');
 });
 
+test('an option its layout does nothing with is kept, and said (D-187)', function () {
+    $raw = sampleSet();
+    $raw['composition']['layouts']['cards'] = 'list';
+    $raw['composition']['options']['cards'] = ['per_row' => 4];
+    $read = parseSet($raw);
+    assertEquals([], $read['errors'], 'errors');
+    assertContains('composition.options.cards.per_row', implode(' | ', $read['warnings']), 'the row of a list of cards');
+    assertEquals('4', $read['set']['composition']['options']['cards']['per_row'] ?? null, 'kept for a page that chooses the grid');
+
+    // In the grid it acts, and nothing is said.
+    $raw['composition']['layouts']['cards'] = 'grid';
+    assertTrue(!str_contains(implode(' | ', parseSet($raw)['warnings']), 'per_row'), 'a row of a grid of cards');
+
+    // A pattern's block the same, and the pattern keeps its own name.
+    $raw['patterns'] = [['id' => 'rows', 'name' => ['en' => 'A list'], 'section' => ['layout' => 'one'], 'blocks' => [
+        ['type' => 'cards', 'layout' => 'list', 'options' => ['per_row' => 2], 'content' => ['items' => [['heading' => ['en' => 'One']]]]],
+    ]]];
+    $read = parseSet($raw);
+    assertContains('patterns.0.blocks.0.options.per_row', implode(' | ', $read['warnings']), 'the row of a pattern\'s list');
+    assertEquals(['en' => 'A list'], $read['set']['patterns'][0]['name'] ?? null, 'the pattern\'s name');
+    assertEquals(['per_row' => '2'], $read['set']['patterns'][0]['blocks'][0]['options'] ?? null, 'kept');
+});
+
 test('names and descriptions are one clean line of bounded length', function () {
     $raw = sampleSet();
     $raw['name'] = ['en' => "  Har\x07bour\n\tnavy  ", 'not a locale' => 'x'];

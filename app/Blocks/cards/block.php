@@ -37,7 +37,8 @@ return [
     'defaults' => ['layout' => 'grid'],
     // How it is presented, '' following the character (D-166).
     'options' => [
-        'per_row' => ['min' => 2, 'max' => 4, 'step' => 1, 'default' => 3],
+        // How many stand in a row: a list has one to a row (D-187).
+        'per_row' => ['min' => 2, 'max' => 4, 'step' => 1, 'default' => 3, 'layouts' => ['grid']],
         // The picture area is part of a card (README 1.6): drawn as a placeholder until a
         // picture is chosen, unless the shape is none — a card of words.
         'image_shape' => ['values' => ['wide', 'square', 'round', 'none'], 'default' => 'wide'],

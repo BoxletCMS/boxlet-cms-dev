@@ -117,7 +117,8 @@ final class DesignReference
             foreach ($registry->get($type)['options'] as $name => $spec) {
                 $options[] = '`' . $name . '`: ' . ($spec['type'] === 'choice'
                     ? implode(', ', $spec['values'])
-                    : self::number($spec['min']) . ' – ' . self::number($spec['max']) . ', step ' . self::number($spec['step'])) . ' (default ' . $spec['default'] . ')';
+                    : self::number($spec['min']) . ' – ' . self::number($spec['max']) . ', step ' . self::number($spec['step'])) . ' (default ' . $spec['default'] . ')'
+                    . ($spec['layouts'] !== [] ? ', only in ' . implode(', ', $spec['layouts']) : '');
             }
             $out[] = '| `' . $type . '` | ' . implode(', ', $registry->get($type)['layouts']) . ' | ' . implode('; ', $options) . ' |';
         }

@@ -98,6 +98,10 @@ $malformed = [
     'an option with no default among its values' => [fn () => ['options' => ['shape' => ['values' => ['a', 'b'], 'default' => 'c']]] + validBlock(), "option 'shape': 'default' must be one of its values"],
     'an option with a free value' => [fn () => ['options' => ['size' => ['default' => 3]]] + validBlock(), "option 'size': a number takes integer 'min', 'max' and 'step'"],
     'a number option defaulting outside its range' => [fn () => ['options' => ['per_row' => ['min' => 2, 'max' => 4, 'step' => 1, 'default' => 5]]] + validBlock(), "option 'per_row': 'default' must lie within"],
+    // Where an option acts (D-187): the block's own layouts, at least one, each once.
+    'an option acting in a layout the block has not got' => [fn () => ['options' => ['shape' => ['values' => ['a', 'b'], 'default' => 'a', 'layouts' => ['three']]]] + validBlock(), "option 'shape': 'layouts' must be a non-empty list of this block's own layouts"],
+    'an option acting in no layout' => [fn () => ['options' => ['shape' => ['values' => ['a', 'b'], 'default' => 'a', 'layouts' => []]]] + validBlock(), "option 'shape': 'layouts' must be"],
+    'an option naming a layout twice' => [fn () => ['options' => ['shape' => ['values' => ['a', 'b'], 'default' => 'a', 'layouts' => ['one', 'one']]]] + validBlock(), "option 'shape': 'layouts' must be"],
     'allow on a text field' => [fn () => ['fields' => ['x' => ['type' => 'text', 'allow' => ['bold']]]] + validBlock(), "only rich text fields take 'allow'"],
     'allow naming what rich text cannot hold' => [fn () => ['fields' => ['x' => ['type' => 'richtext', 'allow' => ['tables']]]] + validBlock(), "'allow' must be a list from"],
     'default layout not offered' => [fn () => ['defaults' => ['layout' => 'three']] + validBlock(), "Block sample: 'defaults' must be"],

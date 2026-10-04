@@ -228,7 +228,7 @@ final class DesignSetParts
                 $out['layouts'][$type] = $layout;
             }
         }
-        $out['options'] = self::options($raw['options'] ?? [], $registry, $warnings);
+        $out['options'] = self::options($raw['options'] ?? [], $out['layouts'], $registry, $warnings);
 
         return $out;
     }
@@ -239,10 +239,14 @@ final class DesignSetParts
      * hold, is left out with a warning rather than refusing the set: it is a set made for a
      * site with other blocks, not a broken one.
      *
+     * One that does nothing in the layout the set gives that block type — its own, else the
+     * block's default — is kept, for a page that chooses another, and said (D-187).
+     *
+     * @param array<string, string> $layouts the set's layout for each block type
      * @param list<string> $warnings
      * @return array<string, array<string, string>>
      */
-    private static function options(mixed $raw, Blocks $registry, array &$warnings): array
+    private static function options(mixed $raw, array $layouts, Blocks $registry, array &$warnings): array
     {
         $out = [];
         foreach (is_array($raw) ? $raw : [] as $type => $options) {
@@ -257,8 +261,12 @@ final class DesignSetParts
                 $clean = isset($specs[$name]) ? BlockOptions::clean($specs[$name], is_int($value) ? (string) $value : $value) : '';
                 if ($clean === '') {
                     $warnings[] = t('designset.option_unknown', ['field' => 'composition.options.' . $type . '.' . $name]);
-                } else {
-                    $out[$type][$name] = $clean;
+                    continue;
+                }
+                $out[$type][$name] = $clean;
+                $layout = $layouts[$type] ?? $registry->get($type)['defaults']['layout'];
+                if (!BlockOptions::applies($specs[$name], $layout)) {
+                    $warnings[] = t('designset.option_idle', ['field' => 'composition.options.' . $type . '.' . $name, 'layout' => $layout]);
                 }
             }
         }

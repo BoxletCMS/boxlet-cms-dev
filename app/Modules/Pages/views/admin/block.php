@@ -146,7 +146,11 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
 <?php foreach ($optionSpecs as $optionName => $optionSpec):
     $optionLabel = $idPrefix . 'option-' . $optionName . '-label';
     $optionKey = 'block.' . $block['type'] . '.option.' . $optionName;
+    // Not shown where its layout does not act on it (D-187), and kept as it is stored.
+    if (!\App\Core\BlockOptions::applies($optionSpec, $block['layout'])):
 ?>
+                <input type="hidden" name="<?= e($prefix) ?>[options][<?= e($optionName) ?>]" value="<?= e($optionsStored[$optionName]) ?>">
+<?php continue; endif; ?>
                 <div class="field">
 <?php if ($optionSpec['type'] === 'choice'):
     $optionLabels = ['' => t('style.auto', ['value' => short_label($optionKey, $optionsShown[$optionName])])];

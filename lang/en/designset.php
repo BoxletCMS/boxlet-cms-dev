@@ -20,4 +20,5 @@ return [
     'designset.pattern_blocks' => 'a pattern needs at least one block this site has.',
     'designset.pattern_field' => 'Left out :field: a pattern carries words and links, not pictures, files or forms.',
     'designset.option_unknown' => 'Left out :field: that block has no such option, or not that value.',
+    'designset.option_idle' => 'Kept :field, which does nothing in the :layout layout: it acts only in the layouts its block names.',
 ];

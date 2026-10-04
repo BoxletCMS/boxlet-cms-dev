@@ -31,6 +31,7 @@ return [
     // character (tests/hero_cover_test.php), so none of them is a way to make it unreadable.
     'options' => [
         'height' => ['values' => ['auto', 'tall', 'screen'], 'default' => 'auto'],
-        'veil' => ['values' => ['light', 'medium', 'strong'], 'default' => 'light'],
+        // Over a cover's picture; no other layout lays one (D-187).
+        'veil' => ['values' => ['light', 'medium', 'strong'], 'default' => 'light', 'layouts' => ['cover-center', 'cover-left', 'cover-right', 'cover-low']],
     ],
 ];

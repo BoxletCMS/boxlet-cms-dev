@@ -104,6 +104,30 @@ testBothDrivers('the editor draws a new Cards block with its three cards outline
     assertContains('name="blocks[n1][items][2][heading]"', $inspector, 'the third item\'s fields in the inspector');
 });
 
+/*
+ * AN OPTION ITS LAYOUT DOES NOTHING WITH IS NOT SHOWN (PLAN.md D-187, the owner): "Cards in a
+ * row" in a list of cards. The value set in the grid is kept, carried by the form unseen, so
+ * the grid has it again when it is chosen again.
+ */
+testBothDrivers('Cards in a row is offered in the grid, not in the list, and its value is kept', function (string $driver) {
+    $db = adminSite($driver);
+    $page = createPage($db, 'en', 'rows', 'Rows', true, [['type' => 'text', 'content' => ['body' => '<p>x</p>']]]);
+    [, $section] = builderBand($page);
+    $block = ['key' => 'n1', 'id' => null, 'type' => 'cards', 'content' => blockRegistry()->fresh('cards'), 'style' => [], 'options' => ['per_row' => '4'], 'layout' => 'grid', 'section' => $section['key'], 'column' => 0];
+    $inspect = static fn (array $b): string => json_decode(builderRequest("/admin/pages/{$page}/inspect", ['kind' => 'block', 'key' => 'n1', 'section' => $section, 'blocks' => [$b]])->body, true)['html'] ?? '';
+
+    $grid = $inspect($block);
+    assertContains('id="ins-b-n1-option-per_row"', $grid, 'the grid offers how many in a row');
+    $list = $inspect(['layout' => 'list'] + $block);
+    assertTrue(!str_contains($list, 'id="ins-b-n1-option-per_row"'), 'the list offers how many in a row');
+    assertContains('<input type="hidden" name="blocks[n1][options][per_row]" value="4">', $list, 'the value set in the grid, carried unseen');
+    assertContains('ins-b-n1-option-image_shape', $list, 'the picture shape, which a list has too');
+
+    // And what the form sends back keeps it.
+    $parsed = BlockForm::parse(blockRegistry(), ['n1' => ['type' => 'cards', 'layout' => 'list', 'options' => ['per_row' => '4'], 'items' => [['heading' => 'A']]]], []);
+    assertEquals('4', $parsed['blocks'][0]['options']['per_row'] ?? null, 'the row kept through a save in the list');
+});
+
 test('a Cards block with no cards is refused on save', function () {
     $parsed = BlockForm::parse(blockRegistry(), [['type' => 'cards', 'heading' => 'Empty']], []);
 

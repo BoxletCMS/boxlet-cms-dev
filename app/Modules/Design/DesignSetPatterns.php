@@ -76,11 +76,19 @@ final class DesignSetPatterns
                     continue 2;
                 }
                 $definition = $registry->get($type);
+                $blockLayout = $registry->layout($type, $block['layout'] ?? null);
+                $options = array_filter(BlockOptions::normalize($definition['options'], $block['options'] ?? []), static fn (string $v): bool => $v !== '');
+                // An option its layout does nothing with is kept, and said (D-187).
+                foreach (array_keys($options) as $option) {
+                    if (!BlockOptions::applies($definition['options'][$option], $blockLayout)) {
+                        $warnings[] = t('designset.option_idle', ['field' => $field . '.blocks.' . $b . '.options.' . $option, 'layout' => $blockLayout]);
+                    }
+                }
                 $blocks[] = [
                     'type' => $type,
-                    'layout' => $registry->layout($type, $block['layout'] ?? null),
+                    'layout' => $blockLayout,
                     'column' => SectionLayout::clamp(is_int($block['column'] ?? null) ? $block['column'] : 0, $layout),
-                    'options' => array_filter(BlockOptions::normalize($definition['options'], $block['options'] ?? []), static fn (string $v): bool => $v !== ''),
+                    'options' => $options,
                     'content' => self::content($definition['fields'], is_array($block['content'] ?? null) ? $block['content'] : [], $field . '.blocks.' . $b, $warnings),
                 ];
             }

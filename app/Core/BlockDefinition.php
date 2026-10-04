@@ -126,7 +126,7 @@ final class BlockDefinition
             'pictograms' => $pictograms,
             'defaults' => $defaults,
             // How the block is presented, '' following the character (D-166).
-            'options' => BlockOptions::validate($type, $definition['options'] ?? []),
+            'options' => BlockOptions::validate($type, $definition['options'] ?? [], $layouts),
         ];
     }
 

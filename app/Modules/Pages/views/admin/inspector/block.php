@@ -54,10 +54,19 @@ $layoutGroup = count($tiles) > 1
 $specs = $definition['options'];
 $shown = BlockOptions::effective($specs, $block['options'], Composition::options($character, $type));
 $optionsGroup = '';
+$optionsKept = '';
+$optionsSet = 0;
 foreach ($specs as $name => $spec) {
     $label = 'block.' . $type . '.option.' . $name;
     $stored = $block['options'][$name] ?? '';
     $path = 'b.options.' . $name;
+    // An option this layout does not act on is not shown (D-187); its value goes with the form,
+    // kept for the layout it was set in.
+    if (!BlockOptions::applies($spec, $block['layout'])) {
+        $optionsKept .= '<input type="hidden" name="' . e($prefix . '[options][' . $name . ']') . '" value="' . e($stored) . '">';
+        continue;
+    }
+    $optionsSet += $stored !== '' ? 1 : 0;
     if ($spec['type'] === 'choice') {
         $labels = [];
         foreach ($spec['values'] as $value) {
@@ -139,8 +148,9 @@ $staleFrom = $translation !== null && $block['id'] !== null ? ($translation['sta
 <?php else: ?>
     <?= $layoutGroup ?>
 <?php endif; ?>
+<?= $optionsKept ?>
 <?php if ($optionsGroup !== ''): ?>
-    <?= Controls::group('ins-options', t('builder.group.options'), $optionsGroup, ['changed' => count(array_filter($block['options'], static fn (string $v): bool => $v !== ''))]) ?>
+    <?= Controls::group('ins-options', t('builder.group.options'), $optionsGroup, ['changed' => $optionsSet]) ?>
 <?php endif; ?>
 <?php if ($hidden !== ''): ?>
     <?= Controls::group('ins-hidden', t('builder.group.not_shown'), '<p class="hint-line">' . e(t('builder.not_shown_hint')) . '</p>' . $hidden) ?>

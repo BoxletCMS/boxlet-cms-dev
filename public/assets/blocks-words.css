@@ -176,11 +176,16 @@
   gap: var(--space-m);
 }
 
+/* A card in every character, as a Cards block's card is (D-189, the owner): its edge and its
+   shadow, not only the card colour. On --border-card, 0 in four characters, the card colour
+   alone was all it had — 1.05:1 to the page in Editorial, 1.03:1 in its dark mode — and the
+   questions read as plain text. */
 .layout-cards .accordion-item {
   padding-inline: var(--space-l);
   background: var(--section-card);
-  border: var(--border-card) solid var(--section-border);
+  border: var(--border-width) solid var(--section-border);
   border-radius: var(--radius-m);
+  box-shadow: var(--shadow-s);
 }
 
 /* Call to action (D-105)

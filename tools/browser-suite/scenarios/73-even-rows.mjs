@@ -4,7 +4,8 @@
  * evenly: four across are four, two and two, or one under another — never three and one;
  * three across are three or one under another. A Logos grid takes as many across as leave no
  * mark by itself in the last row, and where none can, the last stands centred across the
- * row. A Gallery "four" is four or two and two.
+ * row. A Gallery "four" is four or two and two. Questions as cards are cards in every character,
+ * an edge and a shadow (D-189), and the inspector says when items leave one alone.
  *
  * Measured on the page a visitor gets (the draft's preview), under each of the five
  * characters, from a wide screen to a phone: how many stand in each row, and whether a
@@ -13,7 +14,7 @@
  * On the copy, in a draft that is discarded; the copy's character is put back at the end.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, applyCharacter, settle } from '../harness.mjs';
+import { login, openBuilder, applyCharacter, clickInCanvas, settle } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
@@ -51,7 +52,23 @@ function rows(page) {
       return range.getBoundingClientRect().width > v.getBoundingClientRect().width + 1;
     }).map((v) => v.textContent.trim());
     const size = values.length ? Math.round(parseFloat(getComputedStyle(values[0]).fontSize)) : 0;
+    // A question as a card: an edge all round, and the shadow a Cards block's card has in this
+    // character — none in the flat ones (D-189).
+    // The Cards block's card, drawn beside the question for the measure and taken away again:
+    // the page of every block has no Cards block.
+    const question = document.querySelector('.block-accordion.layout-cards .accordion-item');
+    let card = null;
+    if (question) {
+      const qs = getComputedStyle(question);
+      const cardOf = document.createElement('div');
+      cardOf.className = 'cards-item';
+      question.parentElement.appendChild(cardOf);
+      const shadow = getComputedStyle(cardOf).boxShadow;
+      cardOf.remove();
+      card = { edge: ['Top', 'Right', 'Bottom', 'Left'].every((side) => parseFloat(qs[`border${side}Width`]) > 0), shadow: qs.boxShadow === shadow, as: shadow.slice(0, 30) };
+    }
     return {
+      card,
       stats: pick('.block-stats .stats-grid'),
       logos: pick('.block-logos.layout-grid .logos-row'),
       gallery: pick('.block-gallery.layout-four .gallery-grid'),
@@ -101,7 +118,8 @@ export default {
             const stats = blocks.find((b) => b.type === 'stats');
             const logos = blocks.find((b) => b.type === 'logos' && b.layout === 'grid') || blocks.filter((b) => b.type === 'logos')[1];
             const gallery = blocks.find((b) => b.type === 'gallery' && b.layout === 'four') || blocks.filter((b) => b.type === 'gallery')[2];
-            if (!stats || !logos || !gallery) { return false; }
+            const questions = blocks.find((b) => b.type === 'accordion');
+            if (!stats || !logos || !gallery || !questions) { return false; }
             const sized = (items, n) => Array.from({ length: n }, (_, i) => window.pb.copy(items[i % items.length]));
             window.pb.change(() => {
               stats.layout = p.stats[0];
@@ -110,10 +128,31 @@ export default {
               logos.content.items = sized(logos.content.items, p.logos);
               gallery.layout = 'four';
               gallery.content.items = sized(gallery.content.items, p.gallery);
-            }, { sections: [stats.section, logos.section, gallery.section] });
+              questions.layout = 'cards';
+            }, { sections: [stats.section, logos.section, gallery.section, questions.section] });
             return true;
           }, pass);
-          if (!set) { report.fail('even rows: the page of every block', 'it has no Numbers, Logos or Gallery'); return; }
+          if (!set) { report.fail('even rows: the page of every block', 'it has no Numbers, Logos, Gallery or Questions'); return; }
+          if (character === CHARACTERS[0] && pass === PASSES[1]) {
+            // Three across with four: the inspector says one is left alone, and stops saying
+            // it once a fifth is added on the page (D-189).
+            const key = await page.evaluate(() => {
+              const b = window.pb.doc.blocks.find((x) => x.type === 'stats');
+              window.pb.change(() => { b.content.items.push(window.pb.copy(b.content.items[0])); }, { sections: [b.section] });
+              window.pb.select('block', b.key);
+              return b.key;
+            });
+            await page.waitForSelector(`[data-pb-inspector] [data-block-fields="${key}"]`, { timeout: 10000 }).catch(() => {});
+            await wait(800);
+            const said = await page.$eval('[data-pb-inspector] [data-layout-alone]', (n) => n.textContent.trim()).catch(() => '');
+            await report.shot(page, 'inspector-one-alone', { fullPage: false });
+            await clickInCanvas(page, `[data-bx-key="${key}"] [data-bx-add-item]`);
+            await page.waitForFunction(() => !document.querySelector('[data-pb-inspector] [data-layout-alone]'), { timeout: 8000 }).catch(() => {});
+            const after = await page.$('[data-pb-inspector] [data-layout-alone]') === null;
+            report.verdict('the inspector says "4 numbers in 3 across leave one alone in the last row", and not once a fifth is added on the page',
+              said === '4 numbers in 3 across leave one alone in the last row.' && after, JSON.stringify({ said, gone: after }));
+            await page.evaluate((k) => { const b = window.pb.block(k); window.pb.change(() => { b.content.items = b.content.items.slice(0, 3); }, { sections: [b.section] }); }, key);
+          }
           await settle(page);
           for (const width of WIDTHS) {
             await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
@@ -128,6 +167,7 @@ export default {
             if (r.spill.length) { bad.push(`Numbers ${at}: ${r.spill.join(', ')} wider than its column`); }
             const logos = uneven(r.logos, pass.logos, 6);
             if (logos) { bad.push(`Logos grid of ${pass.logos}, ${width}px: ${logos}`); }
+            if (!r.card || !r.card.edge || !r.card.shadow) { bad.push(`Questions as cards, ${width}px: ${JSON.stringify(r.card)}, not a card`); }
             const gallery = uneven(r.gallery, pass.gallery, 4);
             if (gallery) { bad.push(`Gallery four, ${width}px: ${gallery}`); }
             seen.push(`${at} ${r.stats ? r.stats.rows.join('+') : '-'} @${r.size}px · logos ${pass.logos} ${r.logos ? r.logos.rows.join('+') : '-'}`);
@@ -136,9 +176,10 @@ export default {
               // page has them — the four Numbers in three columns, the six logos in five, as
               // auto-fit drew them in the canvas.
               await page.addStyleTag({ content: '.block-stats .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } .block-logos.layout-grid .logos-row { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }' });
+              await page.addStyleTag({ content: '.block-accordion .accordion-item { border-width: 0 0 1px !important; box-shadow: none !important; }' });
               const forced = await rows(page);
-              const caught = [uneven(forced.stats, 4, 4), uneven(forced.logos, 6, 6)];
-              report.verdict('the control: three and one, and five and one, forced onto the page, are caught', caught.every((c) => c !== ''), caught.join(' | ') || JSON.stringify(forced));
+              const caught = [uneven(forced.stats, 4, 4), uneven(forced.logos, 6, 6), forced.card && forced.card.edge ? '' : 'questions as lines'];
+              report.verdict('the control: three and one, five and one, and questions drawn as lines, forced onto the page, are caught', caught.every((c) => c !== ''), caught.join(' | ') || JSON.stringify(forced));
               await page.goto(`${BASE}/admin/pages/${id}/preview`, { waitUntil: 'networkidle2' });
             }
             if (character === 'bold' && pass === PASSES[0] && (width === 1440 || width === 1024)) {
@@ -149,7 +190,7 @@ export default {
           }
           await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
         }
-        report.verdict(`${character}: Numbers, a Logos grid and a Gallery "four" break their rows evenly at every width, and no number spills from its column`, bad.length === 0, bad.slice(0, 8).join(' | ') || seen.join('; '));
+        report.verdict(`${character}: Numbers, a Logos grid and a Gallery "four" break their rows evenly at every width, no number spills from its column, and Questions as cards are cards`, bad.length === 0, bad.slice(0, 8).join(' | ') || seen.join('; '));
       }
     } finally {
       await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });

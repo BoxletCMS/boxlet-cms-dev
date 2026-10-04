@@ -78,7 +78,7 @@
       return;
     }
     doc.__bxPress = true;
-    // Writing on the page: the block's toolbar steps back (canvas.css).
+    // Writing on the page: the block's toolbar and an item's tools are put away (canvas.css).
     var writing = function () {
       var layer = pb.overlay.layer();
       if (layer) { layer.classList.toggle('is-writing', !!(doc.activeElement && pb.inline && pb.inline.within && pb.inline.within(doc.activeElement))); }

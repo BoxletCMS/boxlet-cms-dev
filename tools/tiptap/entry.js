@@ -1,6 +1,9 @@
 /*
  * What the admin gets on window.BoxletTipTap. Nothing else is exposed.
  *
+ * BubbleMenu (D-186) is the canvas's rich text toolbar: shown over a selection, placed by
+ * Floating UI, which comes with it.
+ *
  * The schema is exactly the storage whitelist (SPEC §5.3): paragraph, h2-h4, bold,
  * italic, link, bullet and ordered lists, blockquote, hard break, plus undo/redo. Every
  * StarterKit node outside that list is switched off where the editor is built, so the
@@ -13,3 +16,4 @@
 export { Editor } from '@tiptap/core';
 export { default as StarterKit } from '@tiptap/starter-kit';
 export { default as Link } from '@tiptap/extension-link';
+export { default as BubbleMenu } from '@tiptap/extension-bubble-menu';

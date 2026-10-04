@@ -343,7 +343,10 @@ export default {
           await wait(800);
           await page.mouse.click(inside.x, inside.y);
           await wait(500);
-          await clickInCanvas(page, '.bx-rich-tools [data-rt="link"]').catch(() => {});
+          // A caret alone has no toolbar (D-186): Ctrl+K opens the link it is in.
+          await page.keyboard.down('Control');
+          await page.keyboard.press('k');
+          await page.keyboard.up('Control');
           await wait(400);
           reopened = await page.$eval('[data-pb-link] [data-pb-link-text]', (el) => el.value).catch(() => null);
         }

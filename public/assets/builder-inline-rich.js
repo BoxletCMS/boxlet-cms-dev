@@ -1,10 +1,15 @@
 /*
  * RICH TEXT ON THE PAGE (PLAN.md D-178, README 4.4): the inspector's editor — the same TipTap,
- * the same schema, the same commands (richtext.js) — mounted where the words are shown, with a
- * small toolbar over them offering only what the field allows (its `allow`, the list the
+ * the same schema, the same commands (richtext.js) — mounted on the element that shows the
+ * words, with a small toolbar offering only what the field allows (its `allow`, the list the
  * sanitiser keeps). TipTap is the page's, loaded once with the builder; it is started on the
  * element the first time it is pressed, and put away when the writing leaves it, when the band
  * is drawn again from the document as a visitor will get it.
+ *
+ * THE TOOLBAR IS A BUBBLE OVER THE SELECTION (D-186, the owner; Notion's model, TipTap's
+ * BubbleMenu): nothing while there is only a caret; words selected, the toolbar 8px above
+ * them, centred on them, kept inside the canvas, and under them where there is no room above.
+ * ⌘B, ⌘I and ⌘K work with or without it; ⌘K opens the link popover beside the selection.
  *
  * Measured before it was built: an editor made in the builder's window edits an element of the
  * canvas's document, typing and bold included (D-178).
@@ -14,7 +19,8 @@
 
   var pb = window.pb;
   var rt = window.boxletRichText;
-  if (!pb || !pb.inline || !pb.overlay || !window.BoxletTipTap || !rt || !rt.extensions) {
+  var T = window.BoxletTipTap;
+  if (!pb || !pb.inline || !pb.overlay || !T || !T.BubbleMenu || !rt || !rt.extensions) {
     return;
   }
   var o = pb.overlay;
@@ -54,67 +60,32 @@
     return tools;
   }
 
-  function place() {
-    if (!current) {
-      return;
+  /**
+   * Where the bubble lives: a layer of its own over the page, beside the editor's layer rather
+   * than in it — that one is emptied and drawn again on every change, and would take the
+   * bubble with it as each letter is typed.
+   */
+  function host() {
+    var doc = pb.canvas.doc();
+    var layer = doc.querySelector('.bx-layer.bx-bubble-layer');
+    if (!layer) {
+      layer = o.el('div', 'bx-layer bx-bubble-layer');
+      doc.body.appendChild(layer);
     }
-    if (!current.tools.isConnected) {
-      o.layer().appendChild(current.tools);
-    }
-    spot(current.tools, current.el);
-    refresh();
-    if (o.apart) { o.apart(); }
+    return layer;
   }
 
-  /**
-   * THE SMALL TOOLBAR COVERS NO OTHER WORDS (D-183): above the field written in, at its start;
-   * where that would lie on another field, the block's toolbar or the page's "+ Card", under
-   * the field; where that would too, above the whole block at its start, over the block's
-   * toolbar when that stands above it; then under the whole block; then the nearest clear
-   * place up or down from the field; and only when there is none, above the block all the
-   * same. Never past the page's right edge.
-   */
-  function spot(tools, el) {
-    var gap = o.px(6);
-    var h = tools.offsetHeight;
-    var w = tools.offsetWidth;
-    var main = pb.canvas.main();
-    var right = o.box(main).left + o.box(main).width;
-    var others = Array.prototype.filter.call(main.querySelectorAll('[data-bx-field], .bx-add-item-cell'), function (n) {
-      return n !== el && !n.contains(el) && !el.contains(n);
-    }).map(o.box);
-    var bar = o.layer().querySelector('.bx-toolbar-block');
-    if (bar) { others.push(o.box(bar)); }
-    others = others.filter(function (r) { return r.width > 0 && r.height > 0; });
-    // Clear by the gap, not by a hair: a band that slides in as it is drawn moves the fields
-    // a few pixels after they were measured, and a toolbar placed flush lay 2px on a picture.
-    function clear(top, left) {
-      return !others.some(function (r) {
-        return left < r.left + r.width + gap && r.left < left + w + gap && top < r.top + r.height + gap && r.top < top + h + gap;
-      });
-    }
-    function fit(left) { return Math.max(0, Math.min(left, right - w)); }
-    var f = o.box(el);
-    var block = el.closest('[data-bx-key]');
-    var b = block ? o.box(block) : f;
-    var over = bar && bar.getAttribute('data-bx-side') === 'above' ? Math.min(b.top, o.box(bar).top) : b.top;
-    var places = [
-      { top: f.top - gap - h, left: fit(f.left) },
-      { top: f.top + f.height + gap, left: fit(f.left) },
-      { top: over - gap - h, left: fit(b.left) },
-      // Under the whole block, where above it lies on the band's picture or the block over it.
-      { top: b.top + b.height + gap, left: fit(b.left) },
-    ];
-    // None of those: the nearest clear place up or down from the field, at its start, within
-    // the page shown around it — a block packed between a cover picture and the next band.
-    for (var d = gap; d < o.px(600); d += gap) {
-      places.push({ top: f.top - gap - h - d, left: fit(f.left) }, { top: f.top + f.height + gap + d, left: fit(f.left) });
-    }
-    var chosen = places.filter(function (p) { return p.top >= 0 && clear(p.top, p.left); })[0]
-      || { top: Math.max(0, over - gap - h), left: fit(b.left) };
-    o.at(tools, chosen);
-    var at = places.indexOf(chosen);
-    tools.setAttribute('data-bx-side', at < 0 ? 'block' : (['above', 'below', 'block', 'under-block'][at] || 'nearest'));
+  /** The selected words, as the link popover places itself beside them. */
+  function selected(editor, from, to, el) {
+    return {
+      get isConnected() { return el.isConnected && !editor.isDestroyed; },
+      contains: function (node) { return el.contains(node); },
+      getBoundingClientRect: function () {
+        var a = editor.view.coordsAtPos(from);
+        var b = editor.view.coordsAtPos(to);
+        return { top: Math.min(a.top, b.top), bottom: Math.max(a.bottom, b.bottom), left: Math.min(a.left, b.left), right: Math.max(a.right, b.right) };
+      },
+    };
   }
 
   function refresh() {
@@ -131,7 +102,7 @@
     });
   }
 
-  function run(name) {
+  function run(name, typed) {
     var editor = current.editor;
     if (name === 'link') {
       current.holding = true;
@@ -141,7 +112,7 @@
       var from = editor.state.selection.from;
       var to = editor.state.selection.to;
       var said = editor.state.doc.textBetween(from, to, ' ');
-      pb.inline.picker(current.el, href, function () {}, function (url, words) {
+      var panel = pb.inline.picker(selected(editor, from, to, current.el), href, function () {}, function (url, words) {
         current.holding = false;
         var chain = editor.chain().focus().setTextSelection({ from: from, to: to });
         if (!url) {
@@ -156,6 +127,12 @@
         current.holding = false;
         editor.chain().focus().setTextSelection({ from: from, to: to }).extendMarkRange('link').unsetLink().run();
       } : null, said, said !== '');
+      // From the keyboard, the address is typed next: the caret goes there, as ⌘K does in any
+      // editor, and Escape in the popover is the popover's.
+      if (typed) {
+        var address = panel.querySelector('#pb-link-url');
+        (address && !address.closest('[hidden]') ? address : panel.querySelector('select')).focus();
+      }
       return;
     }
     rt.commands[name].run(editor.chain().focus()).run();
@@ -167,7 +144,6 @@
     }
     var done = current;
     current = null;
-    done.tools.remove();
     done.editor.destroy();
     // Drawn again from the document, as a visitor will have it, and the server's word on it.
     pb.canvas.draw(done.section);
@@ -202,19 +178,46 @@
     // a div of its own the paragraphs were no longer the field's first and last children, took
     // back the margins the page takes from those, and the words grew up and down as they were
     // pressed. Now the page's rules for the field hold while it is written in.
-    var editor = new window.BoxletTipTap.Editor({
+    current = { editor: null, el: el, key: block.key, section: block.section, path: path, field: field, holding: false, tools: null };
+    current.tools = bar();
+    var win = el.ownerDocument.defaultView;
+    var editor = new T.Editor({
       element: { mount: el },
-      extensions: rt.extensions(window.BoxletTipTap),
+      extensions: rt.extensions(T).concat([T.BubbleMenu.configure({
+        element: current.tools,
+        appendTo: host,
+        updateDelay: 0,
+        // Words selected in the field being written, and nothing else: a caret has no bubble.
+        shouldShow: function (props) {
+          var sel = props.state.selection;
+          return props.view.hasFocus() && !sel.empty && props.state.doc.textBetween(sel.from, sel.to).length > 0;
+        },
+        options: { placement: 'top', offset: 8, flip: { padding: 8 }, shift: { padding: 8 }, scrollTarget: win },
+      })]),
       injectCSS: false,
       content: html,
+      editorProps: {
+        handleKeyDown: function (view, event) {
+          // ⌘K, bubble or no bubble: the link popover, beside the selection.
+          if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'k') {
+            event.preventDefault();
+            if ((current.field.allow || ['link']).indexOf('link') >= 0) { run('link', true); }
+            return true;
+          }
+          // Escape leaves the words, as it leaves a line: the block's toolbar comes back.
+          if (event.key === 'Escape') {
+            editor.commands.blur();
+            return true;
+          }
+          return false;
+        },
+      },
       onUpdate: function () {
         var now = pb.block(block.key);
         if (now) { pb.inline.write(now, path, editor.getHTML()); }
       },
     });
-    current = { editor: editor, el: el, key: block.key, section: block.section, path: path, field: field, holding: false, tools: null };
-    current.tools = bar();
-    place();
+    current.editor = editor;
     editor.on('selectionUpdate', refresh);
     editor.on('transaction', refresh);
     editor.on('blur', function () {
@@ -236,8 +239,6 @@
     }
   };
 
-  // The layer drawn again keeps the toolbar over the words being written.
-  pb.on('painted', place);
   // Undo, Discard or a restore replace the document: whatever was being written goes with it.
   pb.on('replace', function () {
     if (current) {

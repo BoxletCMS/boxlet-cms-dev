@@ -1,7 +1,7 @@
 /*
  * NOTHING THE EDITOR DRAWS LIES OVER ANOTHER (PLAN.md D-179): once the layer is drawn, what
  * stands where it must — the selection's toolbar — stays, and everything that only has to be
- * somewhere along its line — the rich text toolbar, an item's tools, the "+" on a boundary,
+ * somewhere along its line — an item's tools, the "+" on a boundary,
  * "Add section at the end", a band's badges — moves sideways to the first place
  * that crosses nothing already placed, nor the page's own "+ Card". Right first, then left;
  * a band's badges, which say what the page says elsewhere, are put away where neither fits.
@@ -17,7 +17,9 @@
     return;
   }
   var FIXED = '.bx-toolbar';
-  var MOVING = ['.bx-rich-tools', '.bx-item-tools', '.bx-plus', '.bx-add-end', '.bx-badges'];
+  // The rich text bubble is not among them: TipTap's BubbleMenu places it over the selection
+  // (D-186), in a layer of its own.
+  var MOVING = ['.bx-item-tools', '.bx-plus', '.bx-add-end', '.bx-badges'];
 
   function crosses(a, b, gap) {
     return a.left < b.right + gap && b.left < a.right + gap && a.top < b.bottom + gap && b.top < a.bottom + gap;

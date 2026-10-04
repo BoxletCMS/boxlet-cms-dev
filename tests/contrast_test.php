@@ -526,9 +526,8 @@ test('opacity is never what makes a control quiet', function () {
         '.is-dragging',
         '.library-card[aria-busy="true"]',
         '.media-browser-results[aria-busy="true"]',
-        // The block's toolbar while words are written on the page (D-182, the owner's ask):
-        // transient, it lasts as long as the typing, and it takes no press while faint.
-        '.bx-layer.is-writing > .bx-toolbar-block',
+        // The block's toolbar while words are written on the page faded here from D-182 until
+        // D-186, when the owner had it put away instead: it no longer fades, so it left the list.
     ];
 
     foreach (adminStylesheets() as $file) {

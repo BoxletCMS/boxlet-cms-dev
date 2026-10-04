@@ -113,16 +113,19 @@
   background: var(--bx-select);
 }
 
-/* While words are written, the block's toolbar steps back: seen, faint, and never in the way
-   of a press (D-182). */
-.bx-layer.is-writing > .bx-toolbar-block {
-  opacity: 0.3;
-  pointer-events: none;
+/* While words are written, the block's toolbar and an item's tools are put away (D-186, the
+   owner; D-182 had them faint): the words and their bubble are what is being worked in. They
+   come back with Escape or a press elsewhere. */
+.bx-layer.is-writing > .bx-toolbar-block,
+.bx-layer.is-writing > .bx-item-tools {
+  visibility: hidden;
 }
 
-/* While a link's popover is open, the block's toolbar is put away (D-183): the popover is
-   what is being worked in, and the toolbar stood beside it, faint, saying nothing of use. */
-.bx-layer.is-linking > .bx-toolbar-block {
+/* While a link's popover is open, the block's toolbar and an item's tools are put away (D-183,
+   D-186): the popover is what is being worked in, and they stood beside it saying nothing of
+   use. */
+.bx-layer.is-linking > .bx-toolbar-block,
+.bx-layer.is-linking > .bx-item-tools {
   visibility: hidden;
 }
 

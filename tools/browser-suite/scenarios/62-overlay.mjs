@@ -84,70 +84,6 @@ async function everySelection(page) {
   return { checked: all.length + 1, marks, bad };
 }
 
-/** The small rich text toolbar over no other field (D-183), on desktop and phone. */
-async function richEverywhere(page, report, where) {
-  for (const device of ['desktop', 'phone']) {
-    await page.click(`[data-device="${device}"]`);
-    await wait(900);
-    const seen = await richClear(page, report, device);
-    report.verdict(`${where}, ${device}: the small rich text toolbar covers no other field, nor the block's toolbar, in every rich field (${seen.checked}: ${seen.types})`,
-      seen.checked >= 2 && seen.bad.length === 0, seen.bad.join(' | ') || `none cross; ${seen.sides}`);
-  }
-  await page.click('[data-device="desktop"]');
-  await wait(600);
-}
-
-/** Each rich field of each block (an item's in its first item) written in turn: the small
- *  toolbar against every other field and the block's toolbar. */
-async function richClear(page, report, device) {
-  const fields = await page.evaluate(() => {
-    const doc = document.querySelector('[data-pb-canvas]').contentDocument;
-    const out = [];
-    window.pb.doc.blocks.forEach((b) => {
-      const seen = new Set();
-      doc.querySelectorAll(`[data-bx-key="${b.key}"] [data-bx-field]`).forEach((el) => {
-        const path = el.getAttribute('data-bx-field');
-        const spec = window.pb.inline.spec(b.type, path);
-        const name = path.replace(/\.\d+\./, '.n.');
-        if (!spec || spec.type !== 'richtext' || seen.has(name)) { return; }
-        seen.add(name);
-        out.push({ key: b.key, type: b.type, path });
-      });
-    });
-    return out;
-  });
-  const bad = [];
-  const sides = {};
-  for (const f of fields) {
-    const selector = `[data-bx-key="${f.key}"] [data-bx-field="${f.path}"]`;
-    // Selected first: an empty field is shown only in the selected block.
-    await page.evaluate((k) => window.pb.select('block', k), f.key);
-    await wait(400);
-    await clickInCanvas(page, selector, { at: 'top', side: 'left' });
-    await page.waitForFunction(() => !!document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-rich-tools'), { timeout: 5000 }).catch(() => {});
-    await wait(500);
-    const c = await page.evaluate((sel) => {
-      const doc = document.querySelector('[data-pb-canvas]').contentDocument;
-      const tools = doc.querySelector('.bx-rich-tools');
-      const own = doc.querySelector(sel);
-      if (!tools) { return { tools: false }; }
-      const t = tools.getBoundingClientRect();
-      const hit = (r) => r.width > 0 && r.height > 0 && t.left < r.right - 0.5 && r.left < t.right - 0.5 && t.top < r.bottom - 0.5 && r.top < t.bottom - 0.5;
-      const over = [...doc.querySelectorAll('[data-bx-field]')].filter((n) => n !== own && !n.contains(own) && !own.contains(n) && hit(n.getBoundingClientRect())).map((n) => n.getAttribute('data-bx-field'));
-      const bar = doc.querySelector('.bx-toolbar-block');
-      if (bar && hit(bar.getBoundingClientRect())) { over.push('the block\'s toolbar'); }
-      return { tools: true, over, side: tools.getAttribute('data-bx-side') };
-    }, selector);
-    if (!c.tools) { bad.push(`${f.type} ${f.path}: no toolbar`); } else if (c.over.length) { bad.push(`${f.type} ${f.path}: over ${c.over.join(', ')}`); }
-    if (c.side) { sides[c.side] = (sides[c.side] || 0) + 1; }
-    if (device === 'desktop' && f.type === 'image_text' && f.path === 'body') { await shot(report, page, '05-rich-tools-under-heading'); }
-    await page.keyboard.press('Escape');
-    await page.mouse.click(10, 10);
-    await wait(400);
-  }
-  return { checked: fields.length, bad, sides: JSON.stringify(sides), types: [...new Set(fields.map((f) => f.type))].join(', ') };
-}
-
 export default {
   name: 'overlay',
   copy: true,
@@ -205,28 +141,7 @@ export default {
       const tools = await crossings(page);
       report.verdict('an item\'s tools cross nothing', tools.found.length === 0, tools.found.join('; ') || 'none cross');
 
-      // ---- writing rich text: the block's toolbar steps back, and the small one keeps clear ------
-      const imageText = await blockKey(page, 'image_text');
-      await clickInCanvas(page, `[data-bx-key="${imageText}"] [data-bx-field="body"]`, { at: 'top', side: 'left' });
-      await wait(800);
-      const writing = await page.evaluate(() => {
-        const doc = document.querySelector('[data-pb-canvas]').contentDocument;
-        const layer = doc.querySelector('.bx-layer');
-        const bar = layer.querySelector('.bx-toolbar-block');
-        const tools = layer.querySelector('.bx-rich-tools');
-        if (!bar || !tools) { return { bar: !!bar, tools: !!tools }; }
-        const a = bar.getBoundingClientRect();
-        const b = tools.getBoundingClientRect();
-        const style = doc.defaultView.getComputedStyle(bar);
-        return { cross: a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom, faint: Number(style.opacity) < 1, presses: style.pointerEvents };
-      });
-      await shot(report, page, '02b-writing');
-      report.verdict('writing rich text, the block\'s toolbar is faint and takes no press, and the small toolbar does not sit on it',
-        writing.cross === false && writing.faint && writing.presses === 'none', JSON.stringify(writing));
-      await page.keyboard.press('Escape');
-      await page.mouse.click(10, 10);
-      await wait(500);
-      await richEverywhere(page, report, 'home page');
+      // Writing rich text, its bubble and the toolbars put away: 68-bubble.mjs (D-186).
 
       // ---- an error: under its field, over nothing, and its field shown in the inspector ---------------
       const cta = await blockKey(page, 'cta');
@@ -313,7 +228,6 @@ export default {
     }
     await page.evaluate(() => window.pb.select(null));
 
-    await richEverywhere(page, report, 'every-block page');
     await settle(page).catch(() => {});
     if (await page.$('[data-pb-discard]:not([hidden])')) {
       await page.click('[data-pb-discard]');

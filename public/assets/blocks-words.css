@@ -1,8 +1,8 @@
-/* The blocks of words and figures PLAN.md D-105 added: quote, space, questions, call to
-   action, numbers. Split from blocks.css when it passed the hard size limit (D-117), under
-   exactly its rule: only custom properties from
-   tokens.css and the --section-* properties each section sets in sections.css. No literal
-   colours, pixel values, fonts or shadows. Linked straight after blocks.css. */
+/* The blocks of words PLAN.md D-105 added: quote, space, questions, call to action (numbers
+   are blocks-stats.css's, D-188). Split from blocks.css when it passed the hard size limit
+   (D-117), under exactly its rule: only custom properties from tokens.css and the --section-*
+   properties each section sets in sections.css. No literal colours, pixel values, fonts or
+   shadows. Linked straight after blocks.css. */
 
 /* Quote (D-105)
 
@@ -243,70 +243,6 @@
 .cta-quiet {
   color: var(--section-link);
   font-weight: var(--heading-weight);
-}
-
-/* Numbers (D-105)
-
-   The number is the content, so it is set at display size and the word under it is not.
-   That relationship is the block: three Text blocks in a row cannot have it, because a
-   heading is sized as a heading. */
-
-.stats-heading {
-  margin: 0 0 var(--space-l);
-}
-
-/* THE BLOCK MEASURES ITS OWN ROOM, not the window's (D-125). Three or four numbers side by
-   side need a width a narrow column does not have: measured, three in a column of 211 pixels,
-   "120+" 110 wide in a track of 70, running into its neighbour. The rule for a narrow window
-   below could not see that — the window was wide. */
-.stats {
-  container-type: inline-size;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-l);
-  margin: 0;
-}
-
-.layout-four .stats-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.stats-item {
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.stats-value {
-  font-family: var(--font-heading);
-  font-size: var(--text-3xl);
-  font-weight: var(--heading-weight);
-  line-height: var(--leading-heading);
-  letter-spacing: var(--heading-tracking);
-}
-
-.stats-label {
-  margin: 0;
-  color: var(--section-muted);
-  font-size: var(--text-sm);
-}
-
-/* Numbers in fewer columns as their own room narrows, whether a phone or a column made it
-   narrow (D-125): two, then one. */
-@container (max-width: 36rem) {
-  .stats-grid,
-  .layout-four .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@container (max-width: 18rem) {
-  .stats-grid,
-  .layout-four .stats-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* On a narrow screen everything else that was a row becomes one column. */

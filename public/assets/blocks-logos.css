@@ -18,10 +18,16 @@
      rows left a mark that wrapped standing alone a screen's worth further down. */
   gap: var(--space-m) var(--space-xl);
   align-items: center;
-  justify-content: center;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* The row stands where the section's words stand (D-188, the owner): from the left edge in a
+   section set left, centred only in one set centred. It was centred always, under a heading
+   at the left. */
+.align-center .logos-row {
+  justify-content: center;
 }
 
 /* AN EVEN GRID, NEVER ONE LEFT ALONE (D-188, the owner): as many across as leave no mark by

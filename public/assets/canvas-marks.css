@@ -125,16 +125,13 @@
   display: inline-block;
 }
 
-/* What is being typed in: a quiet edge of the selection's colour, the caret its own. */
-.bx-canvas [data-bx-field][contenteditable],
-.bx-canvas [data-bx-field]:has(> .ProseMirror) {
+/* What is being typed in: a quiet edge of the selection's colour, the caret its own. An outline,
+   never a border or a padding: pressing a field to write in it moves nothing (D-186). Rich
+   text is mounted on the field itself, so this one rule is the edge for every kind. */
+.bx-canvas [data-bx-field][contenteditable] {
   outline: 2px solid var(--bx-hover);
   outline-offset: 3px;
   border-radius: 0.125rem;
-}
-
-.bx-canvas [data-bx-field] .ProseMirror {
-  outline: none;
 }
 
 .bx-canvas [data-bx-field]:not([contenteditable]) {

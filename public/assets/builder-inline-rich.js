@@ -198,8 +198,12 @@
     finish();
     var html = pb.inline.get(block, path) || '';
     el.innerHTML = '';
+    // THE FIELD ITSELF IS THE EDITOR (D-186): mounted on it, not in a <div> made inside it. In
+    // a div of its own the paragraphs were no longer the field's first and last children, took
+    // back the margins the page takes from those, and the words grew up and down as they were
+    // pressed. Now the page's rules for the field hold while it is written in.
     var editor = new window.BoxletTipTap.Editor({
-      element: el,
+      element: { mount: el },
       extensions: rt.extensions(window.BoxletTipTap),
       injectCSS: false,
       content: html,

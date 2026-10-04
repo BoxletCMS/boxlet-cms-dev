@@ -147,6 +147,13 @@
   font-weight: 600;
 }
 
+/* The bar drawn short where no place is 4px clear of words (builder-overlay-place.js, D-189):
+   its icon stands for the block's name, and the layout menu is the inspector's alone. */
+.bx-toolbar-block.is-short .bx-toolbar-label,
+.bx-toolbar-block.is-short .bx-toolbar-layout {
+  display: none;
+}
+
 /* The selected item's segment of the block's bar (D-188): "Logo 2 · ← → ×", set off from the
    block's own actions by a line. */
 .bx-toolbar-item {

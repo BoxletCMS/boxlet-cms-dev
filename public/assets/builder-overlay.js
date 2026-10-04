@@ -170,7 +170,8 @@
       var bar = el('div', 'bx-toolbar bx-toolbar-block');
       var name = el('span', 'bx-toolbar-name');
       name.appendChild(icon(item.icon));
-      name.appendChild(cdoc().createTextNode(item.label));
+      name.appendChild(el('span', 'bx-toolbar-label', item.label));
+      name.title = item.label;
       bar.appendChild(name);
       var layouts = (pb.data.layouts || {})[block.type] || [];
       if (layouts.length > 1) {

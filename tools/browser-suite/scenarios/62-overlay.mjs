@@ -13,7 +13,7 @@
  * ON THE COPY. Nothing is published: the draft the builder saves by itself is discarded.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, clickInCanvas, selectItem, blockKey, settle } from '../harness.mjs';
+import { login, openBuilder, clickInCanvas, selectItem, blockKey, applyCharacter, settle } from '../harness.mjs';
 
 const HOME = 1;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -48,7 +48,11 @@ function crossings(page) {
       const t = bar.getBoundingClientRect();
       const b = { left: t.left - near, right: t.right + near, top: t.top - near, bottom: t.bottom + near };
       doc.querySelectorAll('[data-bx-field]').forEach((field) => {
-        const f = field.getBoundingClientRect();
+        // The words themselves, where the field has any (D-189): a heading's element is the
+        // band's whole width.
+        const range = doc.createRange();
+        range.selectNodeContents(field);
+        const f = field.textContent.trim() !== '' && !field.querySelector('img, picture, .media-placeholder') ? range.getBoundingClientRect() : field.getBoundingClientRect();
         // Over its own block's picture is the last resort where there is no room outside it
         // (D-185); words, anyone's, never.
         const host = field.closest('[data-bx-key]');
@@ -245,6 +249,21 @@ export default {
     const all = await everySelection(page);
     report.verdict(`the page of every block: the block's toolbar stands 4px clear of all words and crosses no mark, with each band and block selected (${all.checked} states)`,
       all.bad.length === 0, all.bad.join(' | ') || 'none near');
+    // And under each character, whose spacing decides how much room a band leaves: Brutalist's
+    // 48px between bands found the places where nothing was 4px clear (D-189).
+    await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+    const was = await page.$eval('.character-tile.is-current .tile-use', (b) => b.value.replace('preset:', '')).catch(() => '');
+    try {
+      for (const character of ['editorial', 'minimal', 'bold', 'soft', 'brutalist']) {
+        await applyCharacter(page, BASE, character, 'save');
+        await openBuilder(page, BASE, Number(every.slice(5)));
+        const seen = await everySelection(page);
+        report.verdict(`${character}, the page of every block: the toolbar 4px clear of all words and on no mark (${seen.checked} states)`, seen.bad.length === 0, seen.bad.join(' | ') || 'none near');
+      }
+    } finally {
+      if (was !== '') { await applyCharacter(page, BASE, was, 'save'); }
+    }
+    await openBuilder(page, BASE, Number(every.slice(5)));
     const keys = await page.evaluate(() => window.pb.doc.blocks.map((b) => [b.key, b.type]));
     const tiles = [];
     for (const [key, type] of keys) {

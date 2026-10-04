@@ -91,7 +91,8 @@
 
 /* Where five or six would fall under 8rem each, four at most; under 34rem, two; under 16rem,
    one. Here a number that no count across divides — thirteen, an odd one in two columns —
-   leaves one in the last row, and it stands centred under the rest, the row's whole width. */
+   leaves one in the last row, and it takes the row's whole width: centred under the rest in
+   a centred section, at the start of the row in one set left. */
 @container (max-width: 52rem) {
   .layout-grid .logos-row:has(> :nth-child(10 of .logos-item:not(.bx-add-item-cell))) {
     --logos-across: 4;
@@ -129,6 +130,17 @@
   block-size: 3.5rem;
   color: var(--section-muted);
   text-decoration: none;
+}
+
+/* In a grid each mark stands where the section's words do (D-189, the owner): at the start of
+   its cell in a section set left, so the first column is on the heading's edge; centred in
+   its cell only in a section set centred. */
+.layout-grid .logos-mark {
+  justify-content: flex-start;
+}
+
+.align-center .layout-grid .logos-mark {
+  justify-content: center;
 }
 
 /* THE <picture> STEPS ASIDE (PLAN.md D-117). The img's height is a share of the mark's,

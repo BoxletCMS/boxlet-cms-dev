@@ -128,23 +128,51 @@ final class Design
             Derived::from($resolved, Composition::section(Composition::active($db), [])['width']),
             $cacheDirectory,
             Typography::fontFaces([$resolved['heading_font'], $resolved['body_font']], self::FONTS_FROM_CACHE),
+            self::code(),
         );
         Settings::set($db, 'tokens_css', $file);
+        Settings::set($db, 'tokens_code', self::code());
 
         return $file;
     }
 
     /**
-     * The stylesheet file every page links. Normally a settings read; it compiles only when
-     * the recorded file is missing, so a site never renders unstyled.
+     * The stylesheet file every page links. Normally a settings read; it compiles when the
+     * recorded file is missing, so a site never renders unstyled, and when it was compiled by
+     * other code (D-189, O-53): code put on the server by FTP or git, not by the admin's
+     * update, changed what the tokens derive and the site kept the old file until its design
+     * was next published.
      */
     public static function stylesheet(Db $db, string $cacheDirectory): string
     {
         $file = Settings::get($db, 'tokens_css');
-        if (is_string($file) && preg_match('~^tokens\.[0-9a-f]{12}\.css$~', $file) && is_file($cacheDirectory . '/' . $file)) {
+        if (is_string($file) && preg_match('~^tokens\.[0-9a-f]{12}\.css$~', $file) && is_file($cacheDirectory . '/' . $file)
+            && Settings::get($db, 'tokens_code') === self::code()) {
             return $file;
         }
 
         return self::publish($db, $cacheDirectory);
+    }
+
+    /**
+     * The version of the code that turns a design into tokens.css: a hash of this module's
+     * sources and the core characters', read once a request. xxh128, not a release number,
+     * so a fix put on the server any way at all counts.
+     */
+    public static function code(): string
+    {
+        static $code = null;
+        if ($code === null) {
+            $root = dirname(__DIR__, 3);
+            $files = array_merge(
+                glob(__DIR__ . '/*.php') ?: [],
+                glob(__DIR__ . '/Vocabulary/*.php') ?: [],
+                glob($root . '/designs/core/*.json') ?: [],
+            );
+            sort($files);
+            $code = hash('xxh128', implode('', array_map(static fn (string $f): string => (string) hash_file('xxh128', $f), $files)));
+        }
+
+        return $code;
     }
 }

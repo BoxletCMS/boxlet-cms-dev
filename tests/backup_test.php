@@ -176,9 +176,10 @@ testBothDrivers('a restore brings back every row and file as the backup had them
 
     assertTrue($steps > 3, "{$steps} steps");
     $after = everyRow($db);
-    // The one row a restore writes of its own: finish() compiles the design's stylesheet and
-    // records its file name, which this test site, never rendered, did not have yet.
-    $after['settings'] = array_values(array_filter($after['settings'], static fn (array $r): bool => $r['key'] !== 'tokens_css'));
+    // The rows a restore writes of its own: finish() compiles the design's stylesheet and
+    // records its file name and the code that made it (D-189), which this test site, never
+    // rendered, did not have yet.
+    $after['settings'] = array_values(array_filter($after['settings'], static fn (array $r): bool => !in_array($r['key'], ['tokens_css', 'tokens_code'], true)));
     assertEquals(array_keys($before), array_keys($after), 'tables');
     foreach ($before as $table => $rows) {
         assertEquals(count($rows), count($after[$table]), "{$table}: how many rows");

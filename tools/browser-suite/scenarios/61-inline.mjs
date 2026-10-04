@@ -8,7 +8,7 @@
  * saves by itself is discarded at the end, and the page is checked to be as it was.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, clickInCanvas, blockKey, settle } from '../harness.mjs';
+import { login, openBuilder, clickInCanvas, selectItem, blockKey, settle } from '../harness.mjs';
 
 const PAGE = 1;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -223,17 +223,12 @@ export default {
       const added = await page.evaluate((k) => ({ items: window.pb.block(k).content.items.length, drawn: document.querySelector('[data-pb-canvas]').contentDocument.querySelectorAll(`[data-bx-key="${k}"] [data-bx-item]`).length }), cards);
       await shot(report, page, '05-card');
       report.verdict('"+ Card" adds a card on the page', added.items === before + 1 && added.drawn === before + 1, `${before} → ${JSON.stringify(added)}`);
-      await page.mouse.move(10, 10);
-      const last = await inCanvas(page, (k, n) => {
-        const el = document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-item="items.${n}"]`);
-        el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
-        return !!el;
-      }, cards, before);
-      await wait(400);
-      await clickInCanvas(page, '.bx-item-tools [data-bx-action="item-remove"]');
+      await selectItem(page, cards, before);
+      const last = await page.evaluate(() => !!document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-toolbar-item [data-bx-action="item-remove"]'));
+      await clickInCanvas(page, '.bx-toolbar-item [data-bx-action="item-remove"]');
       await wait(1500);
       const removed = await page.evaluate((k) => window.pb.block(k).content.items.length, cards);
-      report.verdict('a card is taken away by its own tools', last && removed === before, `${added.items} → ${removed}`);
+      report.verdict('a card is taken away by its actions in the block\'s bar', last && removed === before, `${added.items} → ${removed}`);
 
       // ---- a picture opens the picker ---------------------------------------------------------------------
       await clickInCanvas(page, `[data-bx-key="${imageText}"] [data-bx-field="image"]`);

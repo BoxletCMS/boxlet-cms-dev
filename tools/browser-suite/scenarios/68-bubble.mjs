@@ -70,7 +70,7 @@ function state(page) {
       room: { left: 0, right: win.innerWidth },
       crossed,
       blockBar: visible(layer && layer.querySelector('.bx-toolbar-block')),
-      itemTools: visible(layer && layer.querySelector('.bx-item-tools')),
+      itemTools: visible(layer && layer.querySelector('.bx-toolbar-item')),
     };
   });
 }
@@ -87,7 +87,7 @@ function judged(s) {
   if (!pushed && Math.abs(s.bubble.centre - s.selection.centre) > 1.5) { out.push(`centred ${Math.round(s.bubble.centre - s.selection.centre)}px off the selection`); }
   if (s.crossed.length) { out.push(`crosses ${s.crossed.join(', ')}`); }
   if (s.blockBar) { out.push('the block\'s toolbar is shown'); }
-  if (s.itemTools) { out.push('an item\'s tools are shown'); }
+  if (s.itemTools) { out.push('an item\'s actions are shown'); }
   return out.join(', ');
 }
 

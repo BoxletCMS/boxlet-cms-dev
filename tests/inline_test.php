@@ -82,6 +82,10 @@ test('the builder knows what each field is, what a repeater\'s "+" adds, and whe
     assertEquals('New card', $inline['items']['cards']['items']['heading'] ?? null, 'a new card says it is new');
     assertEquals('<p>A short description.</p>', $inline['items']['cards']['items']['body'] ?? null, 'and what goes under it');
     assertEquals(['label' => '', 'url' => ''], $inline['items']['cards']['items']['link'] ?? null, 'a link stays empty: words without an address are an error');
+    // What one item is called, which the block's bar names the selected one by (D-188).
+    foreach (['cards' => 'Card', 'logos' => 'Logo', 'stats' => 'Number', 'gallery' => 'Picture', 'accordion' => 'Question', 'downloads' => 'File'] as $type => $noun) {
+        assertEquals($noun, $inline['fields'][$type]['items']['item'] ?? null, "{$type}: its item's name");
+    }
     assertTrue(count(array_filter($inline['pages'] ?? [], static fn (array $p): bool => (bool) preg_match('~^page:\d+$~', $p['ref']))) > 0, 'pages, by reference');
 });
 

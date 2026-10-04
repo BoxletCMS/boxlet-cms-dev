@@ -26,6 +26,8 @@ final class InlineFields
             foreach ($registry->get($type)['fields'] as $name => $field) {
                 $fields[$type][$name] = self::describe($type, (string) $name, $field);
                 if ($field['type'] === 'repeater') {
+                    // What one of them is called: the block's bar names the selected one, "Logo 2" (D-188).
+                    $fields[$type][$name]['item'] = t('block.' . $type . '.' . $name . '.item');
                     foreach ($field['fields'] as $sub => $declared) {
                         $fields[$type][$name]['fields'][$sub] = self::describe($type, $name . '.' . $sub, $declared);
                     }

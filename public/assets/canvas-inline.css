@@ -1,9 +1,9 @@
-/* What typing on the page draws in the canvas's layer (PLAN.md D-178): a repeater item's tools,
- * an error's words and the rich text toolbar. The link popover is the admin's (builder-inspector.css). canvas.css's rule holds here:
- * literals and --bx- values, never a site token; every size in em of the layer's, which keeps
- * it its size on screen at any scale. Dark faces in a white edge, as every control in there. */
+/* What typing on the page draws in the canvas's layer (PLAN.md D-178): an error's words and
+ * the rich text toolbar. The link popover is the admin's (builder-inspector.css). canvas.css's
+ * rule holds here: literals and --bx- values, never a site token; every size in em of the
+ * layer's, which keeps it its size on screen at any scale. Dark faces in a white edge, as
+ * every control in there. */
 
-.bx-item-tools,
 .bx-rich-tools {
   display: flex;
   gap: 2px;

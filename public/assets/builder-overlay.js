@@ -62,7 +62,7 @@
   }
 
   /** What builder-inserter.js draws with: the same layer, the same pieces. */
-  pb.overlay = { el: el, icon: icon, button: button, box: box, at: at, px: px, layer: function () { return layer; } };
+  pb.overlay = { el: el, icon: icon, button: button, box: box, at: at, px: px, paint: paint, layer: function () { return layer; } };
 
   /** Every mark drawn again from the document and the page as it stands. */
   function paint() {
@@ -257,6 +257,8 @@
       bar.appendChild(button('block-down', 'arrow-down', pb.t('canvas.move_down')));
       bar.appendChild(button('block-copy', 'copy', pb.t('canvas.copy')));
       bar.appendChild(button('block-delete', 'trash-2', pb.t('canvas.delete')));
+      // The selected item's actions, a second segment of the same bar (builder-inline-items.js).
+      if (pb.overlay.itemSegment) { pb.overlay.itemSegment(bar, block, node); }
       layer.appendChild(bar);
       placeBar(bar, node, block);
     } else if (sel.kind === 'section') {

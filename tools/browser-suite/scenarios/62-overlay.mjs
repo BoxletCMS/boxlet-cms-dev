@@ -1,9 +1,10 @@
 /*
  * NOTHING THE EDITOR DRAWS LIES OVER ANOTHER (PLAN.md D-179), measured rather than looked at:
  * every mark of the canvas's layer — the selection's toolbar, the "+" on each boundary, "Add
- * section at the end", a band's badges, an item's tools — and the page's own "+ Card", as
- * rectangles, with every band and every block of the demo's home page selected in turn, on
- * desktop, tablet and phone, and with a card added. No two may cross.
+ * section at the end", a band's badges — and the page's own "+ Card", as rectangles, with every
+ * band, every block and every repeater's first and last item of the demo's home page selected
+ * in turn, on desktop, tablet and phone, and with a card added. No two may cross, and the
+ * block's bar, with a selected item's actions (D-188), lies on no words.
  *
  * And the rest of the owner's review of phase 5: an error's words never over the words beside
  * them and its field shown in the inspector; the layout tiles of every block told apart and
@@ -12,7 +13,7 @@
  * ON THE COPY. Nothing is published: the draft the builder saves by itself is discarded.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, clickInCanvas, blockKey, settle } from '../harness.mjs';
+import { login, openBuilder, clickInCanvas, selectItem, blockKey, settle } from '../harness.mjs';
 
 const HOME = 1;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -84,6 +85,30 @@ async function everySelection(page) {
   return { checked: all.length + 1, marks, bad };
 }
 
+/**
+ * Every repeater's first and last item selected (D-188): its actions are the block's bar's, and
+ * nothing of that bar crosses the item's words, the block's heading, or any other mark.
+ */
+async function everyItem(page) {
+  const blocks = await page.evaluate(() => window.pb.doc.blocks.filter((b) => Array.isArray((b.content || {}).items) && b.content.items.length).map((b) => [b.key, b.type, b.content.items.length]));
+  const bad = [];
+  let checked = 0;
+  for (const [key, type, count] of blocks) {
+    await page.evaluate((k) => window.pb.select('block', k), key);
+    await wait(400);
+    for (const n of [...new Set([0, count - 1])]) {
+      await selectItem(page, key, n);
+      const segment = await page.evaluate(() => !!document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-toolbar-block .bx-toolbar-item'));
+      const c = await crossings(page);
+      checked += 1;
+      if (!segment) { bad.push(`${type} item ${n}: no actions in the bar`); }
+      if (c.found.length) { bad.push(`${type} item ${n}: ${c.found.join('; ')}`); }
+    }
+  }
+  await page.mouse.click(10, 10);
+  return { checked, bad };
+}
+
 export default {
   name: 'overlay',
   copy: true,
@@ -104,6 +129,9 @@ export default {
         const seen = await everySelection(page);
         report.verdict(`${device}: no two of the editor's marks cross, the block's toolbar covers no words, and every "+" is on its boundary, with each band and block selected (${seen.checked} states, ${seen.marks} marks)`,
           seen.bad.length === 0 && seen.marks > seen.checked, seen.bad.join(' | ') || 'none cross');
+        const items = await everyItem(page);
+        report.verdict(`${device}: an item selected, its actions in the block's bar, and the bar on none of its words nor the block's heading (${items.checked} items)`,
+          items.checked > 0 && items.bad.length === 0, items.bad.join(' | ') || 'none cross');
       }
       await page.click('[data-device="desktop"]');
       await wait(900);
@@ -133,13 +161,10 @@ export default {
       await shot(report, page, '02-card-added');
       report.verdict('a card added: nothing crosses "+ Card"', added.found.length === 0, added.found.join('; ') || 'none cross');
       report.verdict('a new card says it is new', sample.heading === 'New card' && /A short description\./.test(sample.body), JSON.stringify(sample));
-      await page.evaluate((k, n) => {
-        const el = document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-item="items.${n}"]`);
-        el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
-      }, cards, before);
-      await wait(300);
+      await selectItem(page, cards, before);
       const tools = await crossings(page);
-      report.verdict('an item\'s tools cross nothing', tools.found.length === 0, tools.found.join('; ') || 'none cross');
+      await shot(report, page, '02b-card-selected');
+      report.verdict('the new card selected: the bar with its actions crosses nothing', tools.found.length === 0, tools.found.join('; ') || 'none cross');
 
       // Writing rich text, its bubble and the toolbars put away: 68-bubble.mjs (D-186).
 

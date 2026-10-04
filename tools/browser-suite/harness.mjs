@@ -606,6 +606,29 @@ export async function blockKey(page, type, nth = 0) {
   }, type, nth);
 }
 
+/**
+ * An item of a repeater selected as the owner selects it (D-188): pressed, on its first field —
+ * its words, which are then being written, or its picture, whose picker opens — and Escape,
+ * which leaves the words or closes the picker. Its actions are then the block's bar's.
+ */
+export async function selectItem(page, key, n) {
+  const field = await page.evaluate((k, i) => {
+    const f = document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-item="items.${i}"] [data-bx-field]`);
+    return f ? f.getAttribute('data-bx-field') : null;
+  }, key, n);
+  if (!field) {
+    throw new Error(`item ${n} of ${key} has no field to press`);
+  }
+  await clickInCanvas(page, `[data-bx-key="${key}"] [data-bx-field="${field}"]`);
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  await page.keyboard.press('Escape');
+  await page.waitForFunction((k, i) => {
+    const seg = document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-toolbar-block .bx-toolbar-item');
+    return window.pb.item && window.pb.item.key === k && window.pb.item.at === i && seg;
+  }, { timeout: 5000 }, key, n).catch(() => {});
+  await new Promise((resolve) => setTimeout(resolve, 300));
+}
+
 /** A block chosen on the canvas, and its inspector drawn: the form its fields are in. */
 export async function selectBlock(page, key) {
   // The middle: a block's top edge may be its band's, where the "+" lies.

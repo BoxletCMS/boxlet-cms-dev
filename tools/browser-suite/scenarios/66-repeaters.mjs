@@ -10,13 +10,14 @@
  * the inspector, and the new cards were gone — the inspector's form, drawn before them, was
  * sent back whole and written over the block.
  *
- * And the item an item's tools act on is outlined, the tools in its top right corner (D-187,
- * replacing D-186's "on no words"). A question's space is typed, never opening it.
+ * And the item selected is outlined, its actions a second segment of the block's bar (D-188,
+ * the owner, replacing D-187's tools in its corner). A question's space is typed, never
+ * opening it.
  *
  * Nothing is published: each page's draft is discarded at the end.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, clickInCanvas, settle } from '../harness.mjs';
+import { login, openBuilder, clickInCanvas, selectItem, settle } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const TYPES = ['cards', 'accordion', 'gallery', 'logos', 'stats', 'downloads'];
@@ -32,40 +33,38 @@ function seen(page, key) {
 }
 
 /**
- * The item pointed at, and where its tools stand (D-187, the owner): the item outlined, the
- * tools in its top right corner inside it — or, where the item is smaller than the tools, a tab
- * on that corner — and always within the block. What is wrong, if anything.
+ * The item selected (D-188, the owner): pressed as the owner presses it, it alone outlined, and
+ * its actions the block's bar's second segment, named for it ("Logo 2"). Nothing of the bar
+ * crosses the words of the block — its items' and its heading — save, as the last resort, its
+ * own picture (D-185). What is wrong, if anything.
  */
-async function pointAt(page, key, n) {
-  await page.evaluate((k, i) => {
-    const el = document.querySelector('[data-pb-canvas]').contentDocument.querySelectorAll(`[data-bx-key="${k}"] [data-bx-item]`)[i];
-    el.scrollIntoView({ block: 'center' });
-    el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
-  }, key, n);
-  await wait(400);
+async function selectedItem(page, key, n) {
+  await selectItem(page, key, n);
   return page.evaluate((k, i) => {
     const doc = document.querySelector('[data-pb-canvas]').contentDocument;
     const block = doc.querySelector(`[data-bx-key="${k}"]`);
-    const item = block.querySelectorAll('[data-bx-item]')[i];
-    const tools = doc.querySelector('.bx-item-tools');
-    const type = window.pb.block(k).type;
-    if (!tools) { return [`${type} item ${i}: no tools`]; }
-    const t = tools.getBoundingClientRect();
-    const r = item.getBoundingClientRect();
-    const b = block.getBoundingClientRect();
+    const b = window.pb.block(k);
+    const item = block.querySelector(`[data-bx-item="items.${i}"]`);
     const out = [];
-    if (!item.hasAttribute('data-bx-pointed') || doc.querySelectorAll('[data-bx-pointed]').length !== 1) { out.push(`${type} item ${i}: not the one item outlined`); }
-    const tab = tools.getAttribute('data-bx-side') === 'tab';
-    const inside = t.left >= r.left - 0.5 && t.right <= r.right + 0.5 && t.top >= r.top - 0.5 && t.bottom <= r.bottom + 0.5;
-    // Inside: within 8px of the corner. A tab, wider than its item and kept within the block:
-    // over the corner, its foot on the item's top edge (or on the block's top, where it is).
-    const corner = tab
-      ? t.left <= r.right + 0.5 && r.right <= t.right + 0.5 && (Math.abs(t.bottom - r.top) <= 1 || Math.abs(t.top - b.top) <= 1)
-      : Math.abs(r.right - t.right) <= 8 && Math.abs(t.top - r.top) <= 8;
-    if (tab ? (t.width <= r.width && t.height <= r.height) : !inside) { out.push(`${type} item ${i}: tools ${tab ? 'a tab on an item that holds them' : 'not inside the item'}`); }
-    const at = (x) => `${Math.round(x.left)},${Math.round(x.top)}–${Math.round(x.right)},${Math.round(x.bottom)}`;
-    if (!corner) { out.push(`${type} item ${i}: tools ${at(t)} not at the top right corner of ${at(r)}${tab ? ' (a tab)' : ''}`); }
-    if (t.left < b.left - 0.5 || t.right > b.right + 0.5 || t.top < b.top - 0.5 || t.bottom > b.bottom + 0.5) { out.push(`${type} item ${i}: tools outside the block`); }
+    const outlined = doc.querySelectorAll('[data-bx-item-selected]');
+    if (outlined.length !== 1 || outlined[0] !== item) { out.push(`${b.type} item ${i}: not the one item outlined (${outlined.length})`); }
+    const bar = doc.querySelector('.bx-toolbar-block');
+    const segment = bar ? bar.querySelector('.bx-toolbar-item') : null;
+    const noun = window.pb.data.inline.fields[b.type].items.item;
+    if (!segment) { out.push(`${b.type} item ${i}: no segment of the block's bar`); return out; }
+    const name = segment.querySelector('.bx-toolbar-name').textContent.trim();
+    if (name !== `${noun} ${i + 1}`) { out.push(`${b.type} item ${i}: the segment says "${name}"`); }
+    if (['item-before', 'item-after', 'item-remove'].some((a) => !segment.querySelector(`[data-bx-action="${a}"]`))) { out.push(`${b.type} item ${i}: an action missing`); }
+    if (doc.querySelector('.bx-layer > :not(.bx-toolbar) [data-bx-action^="item-"], .bx-layer > [data-bx-item-tools]')) { out.push(`${b.type} item ${i}: tools on the page besides the bar`); }
+    const r = bar.getBoundingClientRect();
+    block.querySelectorAll('[data-bx-field]').forEach((f) => {
+      const spec = window.pb.inline.spec(b.type, f.getAttribute('data-bx-field')) || {};
+      if (bar.getAttribute('data-bx-side') === 'inside' && spec.type === 'media') { return; }
+      const q = f.getBoundingClientRect();
+      if (q.width > 0 && q.height > 0 && r.left < q.right - 0.5 && q.left < r.right - 0.5 && r.top < q.bottom - 0.5 && q.top < r.bottom - 0.5) {
+        out.push(`${b.type} item ${i}: the bar crosses ${f.getAttribute('data-bx-field')}`);
+      }
+    });
     return out;
   }, key, n);
 }
@@ -112,11 +111,14 @@ export default {
           const added = await seen(page, key);
           if (added.count !== start.count + 2) { bad.push(`added: ${added.count}, expected ${start.count + 2}`); }
           const covered = [];
-          covered.push(...await pointAt(page, key, added.count - 1));
-          await clickInCanvas(page, '.bx-item-tools [data-bx-action="item-before"]').catch(() => bad.push('no tools to move with'));
+          covered.push(...await selectedItem(page, key, added.count - 1));
+          await clickInCanvas(page, '.bx-toolbar-item [data-bx-action="item-before"]').catch(() => bad.push('no action to move with'));
           await wait(900);
-          covered.push(...await pointAt(page, key, 0));
-          await clickInCanvas(page, '.bx-item-tools [data-bx-action="item-remove"]').catch(() => bad.push('no tools to remove with'));
+          // Moved, it stays selected where it went.
+          const moved = await page.evaluate(() => (window.pb.item || {}).at);
+          if (moved !== added.count - 2) { bad.push(`after the move the selected item is ${moved}, expected ${added.count - 2}`); }
+          covered.push(...await selectedItem(page, key, 0));
+          await clickInCanvas(page, '.bx-toolbar-item [data-bx-action="item-remove"]').catch(() => bad.push('no action to remove with'));
           await wait(900);
           // And words typed on the page, in an item's line.
           const line = await page.evaluate((k) => {
@@ -127,7 +129,6 @@ export default {
             return el ? el.getAttribute('data-bx-field') : null;
           }, key);
           if (line) {
-            // Where the words start: the item's tools stand in its right corner, over it (D-187).
             await clickInCanvas(page, `[data-bx-key="${key}"] [data-bx-field="${line}"]`, { side: 'left' });
             await wait(400);
             await page.keyboard.press('End');
@@ -169,7 +170,7 @@ export default {
           await check('opened again', expected, last);
           report.verdict(`${type}: items added, moved and removed on the page survive every layout, undo, redo and the draft opened again`,
             bad.length === 0, bad.join('; ') || `${expected.count} items through ${layouts.length} layouts`);
-          report.verdict(`${type}: the item pointed at is outlined, its tools in its top right corner and within the block`, covered.length === 0, covered.join('; ') || 'the first item and the last, pointed at');
+          report.verdict(`${type}: the item selected is outlined, its actions the block's bar's, named for it, and the bar on none of the block's words`, covered.length === 0, covered.join('; ') || 'the first item and the last, selected');
         }
       } finally {
         await settle(page).catch(() => {});

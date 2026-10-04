@@ -1,7 +1,12 @@
 /*
  * A REPEATER'S ITEMS ON THE PAGE (PLAN.md D-178, README 4.4): "+ Card" where the next item
- * would stand adds one, saying it is new (D-179), and the item pointed at in the selected
- * block has its own tools — before, after, remove. Moved by buttons rather than dragged (O-50).
+ * would stand adds one, saying it is new (D-179), and the item pressed in the selected block is
+ * the selected item — before, after, remove. Moved by buttons rather than dragged (O-50).
+ *
+ * THE ITEM'S ACTIONS ARE THE BLOCK TOOLBAR'S (D-188, the owner): the selected item is outlined
+ * and nothing more stands on the page; its actions are a second segment of the block's bar,
+ * named for it — "Logo 2 · ← → ×". Tools in the item's corner covered its words and the
+ * block's heading wherever an item was smaller than they were (D-187).
  */
 (function () {
   'use strict';
@@ -12,7 +17,8 @@
   }
   var o = pb.overlay;
   var inline = pb.data.inline;
-  var pointed = null;
+  // The selected item: its block's key, its repeater and its place, or null.
+  pb.item = null;
 
   function addItem(block, field) {
     var declared = (inline.fields[block.type] || {})[field] || {};
@@ -28,6 +34,8 @@
     if (to < 0 || to >= items.length) {
       return;
     }
+    // The item stays selected where it went.
+    pb.item = { key: block.key, field: field, at: to };
     pb.change(function () {
       var copy = items.slice();
       var moved = copy.splice(at, 1)[0];
@@ -36,63 +44,45 @@
     }, { sections: [block.section] });
   }
   function removeItem(block, field, at) {
+    pb.item = null;
     pb.change(function () { block.content[field] = (block.content[field] || []).filter(function (_, i) { return i !== at; }); }, { sections: [block.section] });
   }
 
-  /** The tools of the item pointed at, in the selected block: before, after, remove. */
-  function itemTools(itemEl) {
-    if (!itemEl || !o.layer()) {
-      outline(null);
-      return;
-    }
-    var block = pb.inline.blockOf(itemEl);
+  /** The selected item's element in the canvas, when its block is the one selected. */
+  function selectedEl() {
     var sel = pb.selection;
-    if (!block || !sel || sel.kind !== 'block' || sel.key !== block.key) {
-      outline(null);
+    var it = pb.item;
+    if (!it || !sel || sel.kind !== 'block' || sel.key !== it.key) {
+      return null;
+    }
+    var host = pb.canvas.blockEl(it.key);
+    return host ? host.querySelector('[data-bx-item="' + it.field + '.' + it.at + '"]') : null;
+  }
+
+  /** The second segment of the block's bar: the item's name, then before, after, remove. */
+  o.itemSegment = function (bar, block) {
+    var itemEl = selectedEl();
+    if (!itemEl || pb.item.key !== block.key) {
       return;
     }
-    var bar = o.el('div', 'bx-item-tools');
-    bar.setAttribute('data-bx-item-tools', itemEl.getAttribute('data-bx-item'));
-    bar.appendChild(o.button('item-before', 'arrow-left', pb.t('inline.item_before')));
-    bar.appendChild(o.button('item-after', 'arrow-right', pb.t('inline.item_after')));
-    bar.appendChild(o.button('item-remove', 'x', pb.t('inline.remove_item')));
-    o.layer().appendChild(bar);
-    placeTools(bar, itemEl);
-    outline(itemEl);
-  }
+    var segment = o.el('span', 'bx-toolbar-item');
+    segment.setAttribute('data-bx-item-tools', pb.item.field + '.' + pb.item.at);
+    var noun = ((inline.fields[block.type] || {})[pb.item.field] || {}).item || '';
+    segment.appendChild(o.el('span', 'bx-toolbar-name', noun + ' ' + (pb.item.at + 1)));
+    segment.appendChild(o.button('item-before', 'arrow-left', pb.t('inline.item_before')));
+    segment.appendChild(o.button('item-after', 'arrow-right', pb.t('inline.item_after')));
+    segment.appendChild(o.button('item-remove', 'x', pb.t('inline.remove_item')));
+    bar.appendChild(segment);
+  };
 
-  /**
-   * THE TOOLS ARE THE ITEM'S (D-187, the owner): the item they act on is outlined, and they
-   * stand in its top right corner, inside it, over what it shows — never between two items,
-   * never outside the block. An item smaller than the tools (a logo's name alone measures
-   * 31 × 27 in the canvas) cannot hold them: there they sit on that corner as a tab over its
-   * outline, kept within the block.
-   */
-  function placeTools(bar, itemEl) {
-    var b = o.box(itemEl);
-    var w = bar.offsetWidth;
-    var h = bar.offsetHeight;
-    var gap = o.px(4);
-    var at = { top: b.top + gap, left: b.left + b.width - w - gap };
-    if (w + gap * 2 > b.width || h + gap * 2 > b.height) {
-      var host = itemEl.closest('[data-bx-key]');
-      var block = host ? o.box(host) : b;
-      at = {
-        top: Math.max(block.top, b.top - h),
-        left: Math.min(Math.max(block.left, b.left + b.width - w), block.left + block.width - w),
-      };
-      bar.setAttribute('data-bx-side', 'tab');
-    }
-    o.at(bar, at);
-  }
-
-  /** The item the tools act on, outlined; one at a time. */
-  function outline(itemEl) {
+  /** The selected item outlined, and no other. */
+  function outline() {
     var doc = pb.canvas.doc();
-    Array.prototype.forEach.call(doc ? doc.querySelectorAll('[data-bx-pointed]') : [], function (n) {
-      if (n !== itemEl) { n.removeAttribute('data-bx-pointed'); }
+    var itemEl = selectedEl();
+    Array.prototype.forEach.call(doc ? doc.querySelectorAll('[data-bx-item-selected]') : [], function (n) {
+      if (n !== itemEl) { n.removeAttribute('data-bx-item-selected'); }
     });
-    if (itemEl) { itemEl.setAttribute('data-bx-pointed', ''); }
+    if (itemEl) { itemEl.setAttribute('data-bx-item-selected', ''); }
   }
 
   function onClick(event) {
@@ -116,24 +106,37 @@
       addItem(owner, add.getAttribute('data-bx-add-item'));
     }
   }
-  function onMove(event) {
-    var item = event.target.closest ? event.target.closest('[data-bx-item]') : null;
-    if (item === pointed || (event.target.closest && event.target.closest('.bx-item-tools'))) {
-      return;
+
+  /**
+   * A press on an item selects it, whatever in it was pressed — its words, which are then
+   * written, or its picture, whose picker opens. A press anywhere else on the page lets it go;
+   * one on the editor's own marks keeps it.
+   */
+  function onPress(event) {
+    var t = event.target;
+    if (!t.closest || t.closest('.bx-layer')) { return; }
+    var itemEl = t.closest('[data-bx-item]');
+    var host = itemEl ? itemEl.closest('[data-bx-key]') : null;
+    var was = JSON.stringify(pb.item);
+    if (host && !itemEl.closest('.bx-add-item-cell')) {
+      var path = itemEl.getAttribute('data-bx-item').split('.');
+      pb.item = { key: host.getAttribute('data-bx-key'), field: path[0], at: Number(path[1]) };
+    } else {
+      pb.item = null;
     }
-    pointed = item;
-    var old = o.layer() ? o.layer().querySelector('[data-bx-item-tools]') : null;
-    if (old) { old.remove(); }
-    itemTools(item);
+    // Its block already selected, nothing else draws the bar again.
+    if (JSON.stringify(pb.item) !== was) { setTimeout(o.paint, 0); }
   }
 
-  // A layer drawn again keeps the tools of the item still pointed at.
-  pb.on('painted', function () { if (pointed && pointed.isConnected) { itemTools(pointed); } });
+  pb.on('select', function (sel) {
+    if (pb.item && (!sel || sel.kind !== 'block' || sel.key !== pb.item.key)) { pb.item = null; }
+  });
+  pb.on('painted', outline);
   pb.on('canvas', function () {
     var doc = pb.canvas.doc();
     if (!doc || doc.__bxItems) { return; }
     doc.__bxItems = true;
+    doc.addEventListener('mousedown', onPress, true);
     doc.addEventListener('click', onClick, true);
-    doc.addEventListener('mousemove', onMove);
   });
 })();

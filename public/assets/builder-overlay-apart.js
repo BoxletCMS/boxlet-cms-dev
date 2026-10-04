@@ -17,8 +17,8 @@
     return;
   }
   var FIXED = '.bx-toolbar';
-  // Neither the rich text bubble, which TipTap's BubbleMenu places over the selection (D-186),
-  // nor an item's tools, which stand in their item's corner and nowhere else (D-187).
+  // Not the rich text bubble, which TipTap's BubbleMenu places over the selection (D-186). A
+  // selected item's actions are the block's bar's (D-188), which stays where it is.
   var MOVING = ['.bx-plus', '.bx-add-end', '.bx-badges'];
 
   function crosses(a, b, gap) {

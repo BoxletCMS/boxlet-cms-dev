@@ -89,9 +89,10 @@
   box-shadow: inset 0 0 0 3px var(--bx-paper);
 }
 
-/* The item an item's tools act on (D-187): the selected block's outline, thinner, with its
-   light edge. Inside the block's own outline, so the two never sit on one line. */
-.bx-canvas [data-bx-item][data-bx-pointed] {
+/* The selected item (D-187, D-188): the selected block's outline, thinner, with its light
+   edge. Inside the block's own outline, so the two never sit on one line. Its actions are the
+   block's bar's. */
+.bx-canvas [data-bx-item][data-bx-item-selected] {
   outline: 1px solid var(--bx-select);
   outline-offset: 0;
   box-shadow: 0 0 0 2px var(--bx-paper);
@@ -121,19 +122,16 @@
   background: var(--bx-select);
 }
 
-/* While words are written, the block's toolbar and an item's tools are put away (D-186, the
-   owner; D-182 had them faint): the words and their bubble are what is being worked in. They
-   come back with Escape or a press elsewhere. */
-.bx-layer.is-writing > .bx-toolbar-block,
-.bx-layer.is-writing > .bx-item-tools {
+/* While words are written, the block's toolbar, the selected item's actions with it, is put
+   away (D-186, the owner; D-182 had it faint): the words and their bubble are what is being
+   worked in. It comes back with Escape or a press elsewhere. */
+.bx-layer.is-writing > .bx-toolbar-block {
   visibility: hidden;
 }
 
-/* While a link's popover is open, the block's toolbar and an item's tools are put away (D-183,
-   D-186): the popover is what is being worked in, and they stood beside it saying nothing of
-   use. */
-.bx-layer.is-linking > .bx-toolbar-block,
-.bx-layer.is-linking > .bx-item-tools {
+/* While a link's popover is open, the block's toolbar is put away (D-183, D-186): the popover
+   is what is being worked in, and it stood beside it saying nothing of use. */
+.bx-layer.is-linking > .bx-toolbar-block {
   visibility: hidden;
 }
 
@@ -147,6 +145,17 @@
   gap: 0.35em;
   padding: 0 0.5em;
   font-weight: 600;
+}
+
+/* The selected item's segment of the block's bar (D-188): "Logo 2 · ← → ×", set off from the
+   block's own actions by a line. */
+.bx-toolbar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: 3px;
+  padding-inline-start: 3px;
+  border-inline-start: 1px solid rgb(255 255 255 / 0.45);
 }
 
 .bx-toolbar-layout {

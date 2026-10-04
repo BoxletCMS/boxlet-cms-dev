@@ -34,4 +34,7 @@ return [
         'four' => ['logo' => [[4, 7, 7, 4], [15, 7, 7, 4], [26, 7, 7, 4], [37, 7, 7, 4]], 'line' => [[4, 13, 8, 1], [15, 13, 8, 1], [26, 13, 8, 1], [37, 13, 8, 1]]],
     ],
     'defaults' => ['layout' => 'three'],
+    // How many stand side by side in each layout (D-189): the inspector says when the items
+    // leave one alone in the last row.
+    'across' => ['three' => 3, 'four' => 4],
 ];

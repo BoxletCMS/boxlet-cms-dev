@@ -30,7 +30,7 @@ final class BlockDefinition
     public const NAME = '~^[a-z][a-z0-9_]*$~';
     public const SLUG = '~^[a-z][a-z0-9_-]*$~';
 
-    private const KEYS = ['type', 'icon', 'group', 'version', 'fields', 'layouts', 'defaults', 'options'];
+    private const KEYS = ['type', 'icon', 'group', 'version', 'fields', 'layouts', 'defaults', 'options', 'across'];
 
     /**
      * OPTIONAL, because the site's chrome goes through this too. A header and a footer are
@@ -39,7 +39,7 @@ final class BlockDefinition
      * say so by leaving it out; a page block that leaves it out is caught by a test, where
      * a made-up shelf would be caught by nobody.
      */
-    private const OPTIONAL = ['group', 'options'];
+    private const OPTIONAL = ['group', 'options', 'across'];
 
     /**
      * WHICH SHELF A BLOCK SITS ON in the library (PLAN.md D-104, and the design artifact).
@@ -115,6 +115,22 @@ final class BlockDefinition
             self::fail($type, "'defaults' must be ['layout' => one of 'layouts']");
         }
 
+        // HOW MANY STAND SIDE BY SIDE in a layout of a fixed count across (D-189): layout =>
+        // columns, for a block whose items are one repeater. Not what a layout wants of the
+        // content (D-186 removed that): the inspector only says when the items leave one alone.
+        $across = $definition['across'] ?? [];
+        if (!is_array($across)) {
+            self::fail($type, "'across' must map layouts to how many stand side by side");
+        }
+        foreach ($across as $layout => $count) {
+            if (!in_array($layout, $layouts, true) || !is_int($count) || $count < 2) {
+                self::fail($type, "'across' must map layouts to how many stand side by side");
+            }
+        }
+        if ($across !== [] && count(array_filter($fields, static fn (array $f): bool => $f['type'] === 'repeater')) !== 1) {
+            self::fail($type, "'across' needs exactly one repeater to count");
+        }
+
         return [
             'type' => $type,
             'icon' => $definition['icon'],
@@ -127,6 +143,7 @@ final class BlockDefinition
             'defaults' => $defaults,
             // How the block is presented, '' following the character (D-166).
             'options' => BlockOptions::validate($type, $definition['options'] ?? [], $layouts),
+            'across' => $across,
         ];
     }
 

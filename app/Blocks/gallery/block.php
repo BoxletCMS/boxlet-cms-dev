@@ -36,6 +36,9 @@ return [
         'four' => ['image' => [[4, 7, 9, 10], [14, 7, 9, 10], [25, 7, 9, 10], [35, 7, 9, 10]]],
     ],
     'defaults' => ['layout' => 'three'],
+    // How many stand side by side in each layout (D-189): the inspector says when the items
+    // leave one alone in the last row.
+    'across' => ['two' => 2, 'three' => 3, 'four' => 4],
     'options' => [
         // One shape for all of them: pictures taken on different days in different
         // proportions make a ragged grid, and cropping them to agree is the whole point. An

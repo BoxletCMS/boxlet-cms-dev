@@ -49,6 +49,16 @@ $layoutChanged = $block['layout'] !== $composedLayout;
 $layoutGroup = count($tiles) > 1
     ? Controls::row(t('pages.layout'), Controls::tiles($prefix . '[layout]', $tiles, $block['layout'], $idPrefix . 'layout-label', $idPrefix . 'layout-'), ['key' => 'b.layout', 'labelId' => $idPrefix . 'layout-label', 'changed' => $layoutChanged, 'readout' => t('block.' . $type . '.layout.' . $block['layout'])] + ($layoutChanged ? ['reset' => $reset('b.layout:' . $composedLayout)] : []))
     : '<input type="hidden" name="' . e($prefix) . '[layout]" value="' . e($block['layout']) . '">';
+// ONE LEFT ALONE, SAID (D-189, the owner): a layout of a fixed count across keeps the items it
+// is given (D-186), so four numbers in three across are three and one. Said under Layout.
+$across = $definition['across'][$block['layout']] ?? 0;
+if ($across > 0) {
+    $repeater = (string) array_key_first(array_filter($definition['fields'], static fn (array $f): bool => $f['type'] === 'repeater'));
+    $count = is_array($block['content'][$repeater] ?? null) ? count($block['content'][$repeater]) : 0;
+    if ($count > $across && $count % $across === 1) {
+        $layoutGroup .= '<p class="hint-line" data-layout-alone>' . e(t('block.' . $type . '.alone', ['count' => (string) $count, 'across' => (string) $across])) . '</p>';
+    }
+}
 
 // ---- Options --------------------------------------------------------------------------------
 $specs = $definition['options'];

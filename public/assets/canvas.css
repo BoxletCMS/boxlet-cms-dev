@@ -89,6 +89,14 @@
   box-shadow: inset 0 0 0 3px var(--bx-paper);
 }
 
+/* The item an item's tools act on (D-187): the selected block's outline, thinner, with its
+   light edge. Inside the block's own outline, so the two never sit on one line. */
+.bx-canvas [data-bx-item][data-bx-pointed] {
+  outline: 1px solid var(--bx-select);
+  outline-offset: 0;
+  box-shadow: 0 0 0 2px var(--bx-paper);
+}
+
 /* Links on the page do nothing while it is edited; the press selects (builder-overlay.js). */
 .bx-canvas main a {
   cursor: pointer;

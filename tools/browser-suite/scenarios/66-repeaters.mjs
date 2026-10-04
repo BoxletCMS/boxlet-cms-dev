@@ -10,8 +10,8 @@
  * the inspector, and the new cards were gone — the inspector's form, drawn before them, was
  * sent back whole and written over the block.
  *
- * And an item's tools lie on no words (D-186): on a logo or a number they did, and a press on
- * the name removed the item. A question's space is typed, never opening it.
+ * And the item an item's tools act on is outlined, the tools in its top right corner (D-187,
+ * replacing D-186's "on no words"). A question's space is typed, never opening it.
  *
  * Nothing is published: each page's draft is discarded at the end.
  */
@@ -32,9 +32,9 @@ function seen(page, key) {
 }
 
 /**
- * The item pointed at, and what its tools lie on: every field whose words — its lines of text,
- * or the field itself while empty and showing a placeholder — the tools cross, of any item or
- * block: a press meant for the words would press a tool instead.
+ * The item pointed at, and where its tools stand (D-187, the owner): the item outlined, the
+ * tools in its top right corner inside it — or, where the item is smaller than the tools, a tab
+ * on that corner — and always within the block. What is wrong, if anything.
  */
 async function pointAt(page, key, n) {
   await page.evaluate((k, i) => {
@@ -43,23 +43,31 @@ async function pointAt(page, key, n) {
     el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
   }, key, n);
   await wait(400);
-  return page.evaluate((k) => {
+  return page.evaluate((k, i) => {
     const doc = document.querySelector('[data-pb-canvas]').contentDocument;
+    const block = doc.querySelector(`[data-bx-key="${k}"]`);
+    const item = block.querySelectorAll('[data-bx-item]')[i];
     const tools = doc.querySelector('.bx-item-tools');
-    if (!tools) { return ['no tools']; }
-    const t = tools.getBoundingClientRect();
     const type = window.pb.block(k).type;
-    return [...doc.querySelectorAll('[data-bx-field]')].filter((f) => {
-      const owner = f.closest('[data-bx-key]');
-      const spec = owner ? window.pb.inline.spec(window.pb.block(owner.getAttribute('data-bx-key')).type, f.getAttribute('data-bx-field')) : null;
-      if (!spec || spec.type === 'media') { return false; }
-      // Its words, line by line; the element itself while it is empty and shows a placeholder.
-      const range = doc.createRange();
-      range.selectNodeContents(f);
-      const lines = f.textContent.trim() === '' ? [f.getBoundingClientRect()] : [...range.getClientRects()];
-      return lines.some((r) => r.width > 0 && r.height > 0 && r.left < t.right && t.left < r.right && r.top < t.bottom && t.top < r.bottom);
-    }).map((f) => `${type} tools over ${f.getAttribute('data-bx-field')}`);
-  }, key);
+    if (!tools) { return [`${type} item ${i}: no tools`]; }
+    const t = tools.getBoundingClientRect();
+    const r = item.getBoundingClientRect();
+    const b = block.getBoundingClientRect();
+    const out = [];
+    if (!item.hasAttribute('data-bx-pointed') || doc.querySelectorAll('[data-bx-pointed]').length !== 1) { out.push(`${type} item ${i}: not the one item outlined`); }
+    const tab = tools.getAttribute('data-bx-side') === 'tab';
+    const inside = t.left >= r.left - 0.5 && t.right <= r.right + 0.5 && t.top >= r.top - 0.5 && t.bottom <= r.bottom + 0.5;
+    // Inside: within 8px of the corner. A tab, wider than its item and kept within the block:
+    // over the corner, its foot on the item's top edge (or on the block's top, where it is).
+    const corner = tab
+      ? t.left <= r.right + 0.5 && r.right <= t.right + 0.5 && (Math.abs(t.bottom - r.top) <= 1 || Math.abs(t.top - b.top) <= 1)
+      : Math.abs(r.right - t.right) <= 8 && Math.abs(t.top - r.top) <= 8;
+    if (tab ? (t.width <= r.width && t.height <= r.height) : !inside) { out.push(`${type} item ${i}: tools ${tab ? 'a tab on an item that holds them' : 'not inside the item'}`); }
+    const at = (x) => `${Math.round(x.left)},${Math.round(x.top)}–${Math.round(x.right)},${Math.round(x.bottom)}`;
+    if (!corner) { out.push(`${type} item ${i}: tools ${at(t)} not at the top right corner of ${at(r)}${tab ? ' (a tab)' : ''}`); }
+    if (t.left < b.left - 0.5 || t.right > b.right + 0.5 || t.top < b.top - 0.5 || t.bottom > b.bottom + 0.5) { out.push(`${type} item ${i}: tools outside the block`); }
+    return out;
+  }, key, n);
 }
 
 export default {
@@ -119,7 +127,8 @@ export default {
             return el ? el.getAttribute('data-bx-field') : null;
           }, key);
           if (line) {
-            await clickInCanvas(page, `[data-bx-key="${key}"] [data-bx-field="${line}"]`);
+            // Where the words start: the item's tools stand in its right corner, over it (D-187).
+            await clickInCanvas(page, `[data-bx-key="${key}"] [data-bx-field="${line}"]`, { side: 'left' });
             await wait(400);
             await page.keyboard.press('End');
             await page.keyboard.type(' typed', { delay: 30 });
@@ -160,7 +169,7 @@ export default {
           await check('opened again', expected, last);
           report.verdict(`${type}: items added, moved and removed on the page survive every layout, undo, redo and the draft opened again`,
             bad.length === 0, bad.join('; ') || `${expected.count} items through ${layouts.length} layouts`);
-          report.verdict(`${type}: an item's tools lie on no words`, covered.length === 0, covered.join('; ') || 'the first item and the last, pointed at');
+          report.verdict(`${type}: the item pointed at is outlined, its tools in its top right corner and within the block`, covered.length === 0, covered.join('; ') || 'the first item and the last, pointed at');
         }
       } finally {
         await settle(page).catch(() => {});

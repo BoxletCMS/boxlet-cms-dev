@@ -23,6 +23,15 @@
   var COMPOSED = ['surface', 'pad_top', 'pad_bottom', 'min_height', 'v_align', 'width', 'align', 'divider', 'animation'];
   var LAYOUT_COLUMNS = { one: 1, halves: 2, thirds: 3, quarters: 4, 'wide-left': 2, 'wide-right': 2, sidebar: 2 };
   var drawTimers = {};
+  // THE BLOCK AS THE INSPECTOR WAS DRAWN FROM IT (D-186): its content, as text. The form holds
+  // that content and no later one; sent back once the document has moved on — items added,
+  // moved or removed on the page, an undo — it wrote the old content over the new, and three
+  // cards added on the page were gone at the next layout chosen here.
+  var drawnFrom = null;
+  function contentOf(key) {
+    var block = pb.block(key);
+    return block ? JSON.stringify(block.content) : null;
+  }
 
   function redraw(sectionKey, now) {
     clearTimeout(drawTimers[sectionKey]);
@@ -42,11 +51,16 @@
       pb.select(null);
       return;
     }
+    // What the form will be drawn from is what is sent now, not what the document holds when the
+    // answer comes back: a change on the way would otherwise pass for one the form knows.
+    var sent = sel.kind === 'block' ? { key: sel.key, content: contentOf(sel.key) } : null;
     pb.api(pb.data.endpoints.inspect, { kind: sel.kind, key: sel.key, section: section, blocks: pb.blocksIn(sectionKey), number: pb.sectionIndex(sectionKey) + 1 }).then(function (answer) {
       if (mine !== ticket || answer.status !== 200) {
         return;
       }
       panel.innerHTML = answer.json.html;
+      drawnFrom = sent;
+      if (sent && sent.content !== contentOf(sent.key)) { fresh(); }
       if (window.boxletRichText) { window.boxletRichText.scan(panel); }
       if (window.boxletPicker) { window.boxletPicker.scan(panel); }
       // An error found while typing on the page is said here too (README 4.4).
@@ -92,6 +106,17 @@
     clearTimeout(fieldTimer);
     fieldTimer = setTimeout(function () {
       var key = form.getAttribute('data-block-fields');
+      // A form no longer on screen — the inspector drawn again while this waited — is never
+      // sent: it held the content it was drawn from, and wrote it back over the page's.
+      if (!form.isConnected) {
+        return;
+      }
+      // A form drawn from content the document no longer has is never sent: it is drawn again
+      // from the document instead, and nothing the page did is lost.
+      if (!drawnFrom || drawnFrom.key !== key || drawnFrom.content !== contentOf(key)) {
+        inspect();
+        return;
+      }
       var body = new URLSearchParams(new FormData(form));
       fetch(pb.data.endpoints.fields, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': pb.csrf, Accept: 'application/json' }, body: body })
         .then(function (r) { return r.json(); })
@@ -100,11 +125,17 @@
           if (!block || !json.block) {
             return;
           }
+          // The document moved on while the form was on its way: drawn again, nothing written.
+          if (!drawnFrom || drawnFrom.key !== key || drawnFrom.content !== contentOf(key)) {
+            inspect();
+            return;
+          }
           pb.change(function () {
             block.content = json.block.content;
             block.options = json.block.options;
             block.layout = json.block.layout;
           }, { coalesce: 'fields:' + key, quiet: true });
+          drawnFrom = { key: key, content: contentOf(key) };
           redraw(block.section, true);
           errors(form, json.errors || {});
           pb.errors[key] = json.errors || {};
@@ -156,7 +187,8 @@
       return;
     }
     var form = t.closest('[data-block-fields]');
-    if (form) { sendFields(form, false); }
+    // A layout or an option goes into the document on change, never with the form's words.
+    if (form && !/\[(layout|options)\]/.test(t.name || '')) { sendFields(form, false); }
   });
   panel.addEventListener('change', function (event) {
     var t = event.target;
@@ -165,7 +197,26 @@
       return;
     }
     var form = t.closest('[data-block-fields]');
-    if (form) { sendFields(form, /\[(layout|options)\]/.test(t.name || '')); }
+    // A layout or an option is the block's look, never its content (D-186): written into the
+    // document as it is, without the form's words going with it.
+    var look = form ? /\[(layout|options)\](?:\[([a-z_]+)\])?$/.exec(t.name || '') : null;
+    if (look) {
+      var block = pb.block(form.getAttribute('data-block-fields'));
+      if (block) {
+        pb.change(function () {
+          if (look[1] === 'layout') {
+            block.layout = t.value;
+          } else {
+            block.options = block.options || {};
+            block.options[look[2]] = t.value;
+          }
+        }, { sections: [block.section] });
+        redraw(block.section, true);
+        inspect();
+      }
+      return;
+    }
+    if (form) { sendFields(form, false); }
   });
   panel.addEventListener('submit', function (event) { event.preventDefault(); });
 
@@ -208,6 +259,27 @@
       if (acts[name]) { acts[name](); }
     }
   });
+
+  // The document changed elsewhere — typed on the page, an item added there: the inspector is
+  // drawn again from it once the change has settled, unless it or the page is being written in
+  // (drawing it mounts its rich text again, which took the focus from words on the page).
+  var freshTimer = null;
+  function fresh() {
+    clearTimeout(freshTimer);
+    freshTimer = setTimeout(function () {
+      if (!drawnFrom || drawnFrom.content === contentOf(drawnFrom.key)) {
+        return;
+      }
+      var doc = pb.canvas.doc();
+      var writing = (pb.inline && pb.inline.editing && pb.inline.editing()) || (doc && doc.activeElement && doc.activeElement.closest && doc.activeElement.closest('[contenteditable="true"], [contenteditable="plaintext-only"]'));
+      if (writing || panel.contains(document.activeElement)) {
+        fresh();
+        return;
+      }
+      inspect();
+    }, 700);
+  }
+  pb.on('change', fresh);
 
   pb.on('select', inspect);
   pb.on('inspect', inspect);

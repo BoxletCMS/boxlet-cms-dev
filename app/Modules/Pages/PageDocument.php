@@ -139,7 +139,7 @@ final class PageDocument
                 'type' => $type,
                 // Through the form's own checks, so a document is never a way around the
                 // sanitiser: the store is what templates trust (BlockForm::clean).
-                'content' => $knownType ? BlockForm::clean($registry, $type, is_array($block['content'] ?? null) ? $block['content'] : [], $registry->layout($type, $block['layout'] ?? null)) : null,
+                'content' => $knownType ? BlockForm::clean($registry, $type, is_array($block['content'] ?? null) ? $block['content'] : []) : null,
                 'style' => $style,
                 'options' => $knownType ? BlockOptions::normalize($registry->get($type)['options'], $block['options'] ?? null) : [],
                 'layout' => $knownType ? $registry->layout($type, $block['layout'] ?? null) : '',

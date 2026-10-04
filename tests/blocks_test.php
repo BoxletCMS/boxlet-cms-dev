@@ -391,41 +391,26 @@ test('every shipped block says in one line what it is for', function () {
 });
 
 /*
- * A repeater may say how many items each of its block's layouts wants (D-091, SPEC §5.3).
- * It is optional, it is checked against the block's own layouts, and it cannot ask for more
- * than the repeater holds.
+ * A LAYOUT NEVER ASKS FOR ITEMS (PLAN.md D-186, replacing D-091). A repeater once said how many
+ * items each layout wanted, and the server added them as the layout was chosen — content the
+ * builder's document never knew, drawn on the page, saved in the draft, and out of reach of
+ * undo. A layout arranges what there is; `per_layout` is refused as the unknown key it now is.
  */
-test('per_layout is refused when it asks for the impossible', function () {
-    $withRepeater = static fn (array $repeater): array => [
-        'type' => 'sample',
-        'icon' => 'image',
-        'version' => 1,
-        'fields' => ['items' => ['type' => 'repeater', 'max' => 4, 'fields' => ['heading' => ['type' => 'text']]] + $repeater],
-        'layouts' => ['two' => ['image' => [[4, 4, 18, 16], [26, 4, 18, 16]]], 'four' => ['image' => [[4, 7, 9, 10], [14, 7, 9, 10], [25, 7, 9, 10], [35, 7, 9, 10]]]],
-        'defaults' => ['layout' => 'two'],
-    ];
-
-    $cases = [
-        'not a map' => [['per_layout' => 'four'], "'per_layout' must be a map"],
-        'empty' => [['per_layout' => []], "'per_layout' must be a map"],
-        'past the maximum' => [['per_layout' => ['four' => 9]], 'between 1 and the repeater\'s max of 4'],
-        'not a number' => [['per_layout' => ['four' => 'four']], 'between 1 and the repeater\'s max of 4'],
-        'a layout this block has not got' => [['per_layout' => ['five' => 4]], "is not one of this block's layouts"],
-    ];
-    foreach ($cases as $name => [$repeater, $expected]) {
-        $thrown = null;
-        try {
-            Blocks::validate('sample', $withRepeater($repeater));
-        } catch (Throwable $e) {
-            $thrown = $e->getMessage();
-        }
-        assertTrue($thrown !== null && str_contains($thrown, $expected), "{$name}: got " . var_export($thrown, true));
+test('a repeater cannot say how many items a layout wants', function () {
+    $thrown = null;
+    try {
+        Blocks::validate('sample', [
+            'type' => 'sample',
+            'icon' => 'image',
+            'version' => 1,
+            'fields' => ['items' => ['type' => 'repeater', 'max' => 4, 'per_layout' => ['four' => 4], 'fields' => ['heading' => ['type' => 'text']]]],
+            'layouts' => ['two' => ['image' => [[4, 4, 18, 16], [26, 4, 18, 16]]], 'four' => ['image' => [[4, 7, 9, 10], [14, 7, 9, 10], [25, 7, 9, 10], [35, 7, 9, 10]]]],
+            'defaults' => ['layout' => 'two'],
+        ]);
+    } catch (Throwable $e) {
+        $thrown = $e->getMessage();
     }
-
-    // And the shipped Gallery, which tops its pictures up to a row (Cards, which needed this
-    // first, has an option for how many stand in a row since D-166).
-    $gallery = Blocks::discover(dirname(__DIR__) . '/app/Blocks')->get('gallery');
-    assertEquals(['two' => 2, 'three' => 3, 'four' => 4], $gallery['fields']['items']['per_layout'], 'what Gallery declares');
+    assertTrue($thrown !== null && str_contains($thrown, "unknown key 'per_layout'"), 'got ' . var_export($thrown, true));
 });
 
 test('every block a page can hold says which shelf it sits on', function () {

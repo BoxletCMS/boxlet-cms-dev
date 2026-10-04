@@ -13,7 +13,7 @@ final class BlockField
     private const FIELD_KEYS = ['type', 'required', 'translatable', 'options', 'sample', 'inline', 'allow'];
 
     /** A repeater's own fields cannot hold another repeater, and it must say how many items it takes. */
-    private const REPEATER_KEYS = ['type', 'required', 'translatable', 'fields', 'max', 'per_layout', 'inline'];
+    private const REPEATER_KEYS = ['type', 'required', 'translatable', 'fields', 'max', 'inline'];
 
     /**
      * What a field is edited in place on the canvas by default (README 1.4, D-166): the words,
@@ -164,37 +164,8 @@ final class BlockField
                 $items[(string) $itemName] = self::validate($type, $itemName, $itemField);
             }
 
-            /*
-             * HOW MANY ITEMS A LAYOUT WANTS (PLAN.md D-091, SPEC §5.3).
-             *
-             * Optional. Choosing "four in a row" on a Columns block with three columns left
-             * an empty cell and no way to fill it except knowing to press Add; the owner
-             * read that as the control not working, and he was right. With this the block
-             * SAYS what a layout asks for, so nothing generic has to guess that "four"
-             * means four — the editor and the save both read it from here.
-             *
-             * Only ever tops up. Going back to "two in a row" keeps the four columns, since
-             * a row size is a choice about arrangement and deleting somebody's writing is
-             * not one of its consequences.
-             */
-            $perLayout = $field['per_layout'] ?? null;
-            if ($perLayout !== null) {
-                if (!is_array($perLayout) || $perLayout === []) {
-                    BlockDefinition::fail($type, "{$at}: 'per_layout' must be a map of layout name => how many items it wants");
-                }
-                foreach ($perLayout as $layout => $wanted) {
-                    if (!is_string($layout) || !preg_match(BlockDefinition::SLUG, $layout)) {
-                        BlockDefinition::fail($type, "{$at}: 'per_layout' keys must be layout names matching [a-z][a-z0-9_-]*");
-                    }
-                    if (!is_int($wanted) || $wanted < 1 || $wanted > $max) {
-                        BlockDefinition::fail($type, "{$at}: 'per_layout[{$layout}]' must be an integer between 1 and the repeater's max of {$max}");
-                    }
-                }
-            }
-
             $normalized['fields'] = $items;
             $normalized['max'] = $max;
-            $normalized['per_layout'] = is_array($perLayout) ? $perLayout : [];
         }
 
         return $normalized;

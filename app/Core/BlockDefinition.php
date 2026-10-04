@@ -110,16 +110,6 @@ final class BlockDefinition
             $layouts[] = $layout;
             $pictograms[$layout] = Pictogram::validate($type . ' layout ' . $layout, $parts);
         }
-        // A per_layout naming a layout this block does not have would silently never apply,
-        // which is the kind of typo that is found months later by somebody wondering why a
-        // control does nothing. Checked here because it needs both halves.
-        foreach ($fields as $name => $field) {
-            foreach (array_keys($field['per_layout'] ?? []) as $layout) {
-                if (!in_array($layout, $layouts, true)) {
-                    self::fail($type, "field '{$name}': 'per_layout' names '{$layout}', which is not one of this block's layouts");
-                }
-            }
-        }
         $defaults = $definition['defaults'];
         if (!is_array($defaults) || array_keys($defaults) !== ['layout'] || !in_array($defaults['layout'], $layouts, true)) {
             self::fail($type, "'defaults' must be ['layout' => one of 'layouts']");

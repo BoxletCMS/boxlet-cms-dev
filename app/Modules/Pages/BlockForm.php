@@ -106,7 +106,7 @@ final class BlockForm
                 'key' => $name,
                 'id' => $id,
                 'type' => $type,
-                'content' => self::fillRows($registry, $type, $content, $layout),
+                'content' => $content,
                 'style' => SectionStyle::normalize($raw['style'] ?? null),
                 // How it is presented, typed at blocks[key][options][name]; '' or a missing
                 // one is the character's (D-166).
@@ -116,41 +116,6 @@ final class BlockForm
         }
 
         return ['blocks' => $blocks, 'errors' => $errors];
-    }
-
-    /**
-     * A repeater that says how many items its block's layout wants gets them (D-091).
-     *
-     * "Four in a row" with three columns left an empty cell in the grid and no obvious way
-     * to fill it. The block declares what each row size asks for, so this has no idea that
-     * "four" means four; it reads the number the block wrote down.
-     *
-     * TOPS UP, NEVER TRIMS. Going back to a smaller row keeps every column: a row size is a
-     * choice about arrangement, and throwing away what somebody wrote is not one of its
-     * consequences. Only a row that is not even filled once is topped up — seven items in
-     * rows of four is a full row and a short one, which is ordinary and left alone.
-     *
-     * Here rather than in the save alone, because the canvas redraws through this same
-     * parser: the column appears as the row size is chosen, not after the page is saved.
-     *
-     * @param array<string, mixed> $content
-     * @return array<string, mixed>
-     */
-    private static function fillRows(Blocks $registry, string $type, array $content, string $layout): array
-    {
-        foreach ($registry->get($type)['fields'] as $name => $field) {
-            $wanted = is_array($field['per_layout'] ?? null) ? ($field['per_layout'][$layout] ?? null) : null;
-            if (!is_int($wanted) || !is_array($content[$name] ?? null)) {
-                continue;
-            }
-            $items = array_values($content[$name]);
-            while (count($items) < $wanted) {
-                $items[] = Blocks::emptyItem($field);
-            }
-            $content[$name] = $items;
-        }
-
-        return $content;
     }
 
     /**
@@ -165,7 +130,7 @@ final class BlockForm
      * @param array<string, mixed> $content
      * @return array<string, mixed>
      */
-    public static function clean(Blocks $registry, string $type, array $content, string $layout): array
+    public static function clean(Blocks $registry, string $type, array $content): array
     {
         $clean = [];
         foreach ($registry->get($type)['fields'] as $name => $declared) {
@@ -173,7 +138,7 @@ final class BlockForm
             $clean[$name] = BlockValues::linked($declared, $value);
         }
 
-        return self::fillRows($registry, $type, $clean, $layout);
+        return $clean;
     }
 
     /**

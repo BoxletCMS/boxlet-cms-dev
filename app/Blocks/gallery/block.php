@@ -23,7 +23,6 @@ return [
             // Six rows of four. Past that it is an album, which wants paging and a lightbox
             // and is a module rather than a block.
             'max' => 24,
-            'per_layout' => ['two' => 2, 'three' => 3, 'four' => 4],
             'fields' => [
                 'image' => ['type' => 'media'],
                 'caption' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.gallery.caption'],

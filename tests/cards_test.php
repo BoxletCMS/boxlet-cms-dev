@@ -112,46 +112,33 @@ test('a Cards block with no cards is refused on save', function () {
 });
 
 /*
- * A ROW SIZE ASKS FOR ITS COLUMNS (PLAN.md D-091).
+ * A LAYOUT IS AN ARRANGEMENT, NEVER CONTENT (PLAN.md D-186, the owner; it replaces D-091).
  *
- * Choosing "four in a row" on a block with three items drew three and an empty
- * cell, and gave no fourth field to type into. The owner reported it as the control not
- * working, and he was right. The block declares what each row size wants; nothing generic
- * knows that a layout called "four" means four.
+ * "Four in a row" with three pictures once had the server add a fourth: in the canvas it
+ * drew, in the draft it saved — and never in the builder's document, so the canvas showed an
+ * item the document did not hold and undo could not take it back. A layout or an option
+ * chosen now changes the layout or the option and nothing else; "+" at the end of the row is
+ * how a fourth is added, and it adds it to the document.
  */
-test('choosing a wider gallery row adds the cells it asks for, and a narrower one keeps them', function () {
+test('a wider gallery row keeps the pictures it was given, no more and no fewer', function () {
     $registry = blockRegistry();
     $three = [['caption' => 'One'], ['caption' => 'Two'], ['caption' => 'Three']];
-
-    $parsed = BlockForm::parse($registry, [['type' => 'gallery', 'layout' => 'four', 'items' => $three]], []);
-    $items = $parsed['blocks'][0]['content']['items'] ?? [];
-    assertEquals(4, count($items), 'four in a row, with three pictures given');
-    assertEquals('', $items[3]['caption'] ?? null, 'the cell it added is empty');
-    assertEquals('Three', $items[2]['caption'] ?? null, 'the cells that were there are untouched');
-
-    // Going back to a smaller row is a choice about arrangement. Deleting somebody's
-    // writing is not one of its consequences.
-    $back = BlockForm::parse($registry, [['type' => 'gallery', 'layout' => 'two', 'items' => $items]], []);
-    assertEquals(4, count($back['blocks'][0]['content']['items'] ?? []), 'two in a row threw pictures away');
+    foreach (['two', 'three', 'four'] as $layout) {
+        $parsed = BlockForm::parse($registry, [['type' => 'gallery', 'layout' => $layout, 'items' => $three]], []);
+        assertEquals(['One', 'Two', 'Three'], array_column($parsed['blocks'][0]['content']['items'] ?? [], 'caption'), "three pictures at {$layout}");
+    }
+    $parsed = BlockForm::parse($registry, [['type' => 'stats', 'layout' => 'four', 'items' => [['value' => '12', 'label' => 'years']]]], []);
+    assertEquals(1, count($parsed['blocks'][0]['content']['items'] ?? []), 'one number at four in a row');
 });
 
-test('a row that is already full is left alone', function () {
-    $registry = blockRegistry();
-    // Seven pictures at four in a row is a full row and a short one, which is ordinary.
-    $seven = array_fill(0, 7, ['caption' => 'x']);
-    $parsed = BlockForm::parse($registry, [['type' => 'gallery', 'layout' => 'four', 'items' => $seven]], []);
-
-    assertEquals(7, count($parsed['blocks'][0]['content']['items'] ?? []), 'items after parsing seven');
-});
-
-test('a row size chosen in the inspector brings the cells it asks for', function () {
+test('a row size chosen in the inspector and a draft saved with it hold the items sent', function () {
     $page = builderPage();
-    // The inspector sends the block's fields whole when its layout changes (D-175), and the
-    // form's own parser adds the cells: nothing in the browser needs to know what "four" means.
     $answer = json_decode(dispatch("/admin/pages/{$page}/fields", null, 'POST', ['_csrf' => (new App\Core\Session())->csrfToken(), 'blocks' => ['n2' => [
         'type' => 'gallery', 'layout' => 'four', 'items' => [['caption' => 'One'], ['caption' => 'Two'], ['caption' => 'Three']],
     ]]])->body, true);
+    assertEquals(['One', 'Two', 'Three'], array_column($answer['block']['content']['items'] ?? [], 'caption'), 'what /fields gives back');
 
-    assertEquals(4, count($answer['block']['content']['items'] ?? []), 'four in a row, with three pictures given');
-    assertEquals('Three', $answer['block']['content']['items'][2]['caption'] ?? null, 'the cells that were there are untouched');
+    // The draft goes through PageDocument, which cleans each block with the form's checks.
+    $clean = BlockForm::clean(blockRegistry(), 'gallery', ['items' => [['caption' => 'One'], ['caption' => 'Two'], ['caption' => 'Three']]]);
+    assertEquals(3, count($clean['items'] ?? []), 'what a draft keeps');
 });

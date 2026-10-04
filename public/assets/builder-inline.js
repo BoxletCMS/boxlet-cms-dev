@@ -52,8 +52,19 @@
   }
 
   // ---- a line or a paragraph ---------------------------------------------------------------------
+  /**
+   * The words as written, never as drawn (D-186): innerText gave them as the design draws
+   * them, and under a heading set in capitals "Homes" typed on was stored as "HOMES". A line
+   * break, as a <br> or a new block the browser makes, is a new line.
+   */
+  function written(el) {
+    var copy = el.cloneNode(true);
+    Array.prototype.forEach.call(copy.querySelectorAll('br'), function (br) { br.replaceWith('\n'); });
+    Array.prototype.forEach.call(copy.querySelectorAll('div, p'), function (block) { if (block.previousSibling) { block.prepend('\n'); } });
+    return copy.textContent;
+  }
   function words(el, kind) {
-    var text = el.innerText.replace(/ /g, ' ');
+    var text = written(el).replace(/ /g, ' ');
     return kind === 'textarea' ? text.replace(/\n$/, '') : text.replace(/\s*\n\s*/g, ' ');
   }
 
@@ -77,6 +88,13 @@
       }
     }
     function keys(event) {
+      // A question's words are its <summary>, whose space opens and closes it and is never
+      // typed (D-186): written here instead, and the question stays as it was.
+      if (event.key === ' ' && el.closest('summary')) {
+        event.preventDefault();
+        el.ownerDocument.execCommand('insertText', false, ' ');
+        return;
+      }
       if (event.key === 'Escape' || (event.key === 'Enter' && field.type !== 'textarea')) {
         event.preventDefault();
         if (event.key === 'Escape' && pb.inline.closeLink) { pb.inline.closeLink(); }
@@ -185,6 +203,10 @@
     }
   }
   function onClick(event) {
+    // A press in a question being written places the caret; it does not open the answer.
+    if (event.target.closest && event.target.closest('summary') && within(event.target)) {
+      event.preventDefault();
+    }
     var el = event.target.closest ? event.target.closest('[data-bx-field]') : null;
     var block = el ? blockOf(el) : null;
     if (el && block && !event.target.closest('.bx-layer')) {

@@ -14,11 +14,6 @@
   box-shadow: 0 0 0 1px var(--bx-paper), 0 6px 18px rgb(0 0 0 / 0.22);
 }
 
-/* At the item's top right, inside it. */
-.bx-item-tools {
-  transform: translateX(-100%);
-}
-
 .bx-rich-tools .bx-tool[aria-pressed="true"] {
   background: var(--bx-select);
 }

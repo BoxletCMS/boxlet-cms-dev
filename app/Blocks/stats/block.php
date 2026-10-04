@@ -22,7 +22,6 @@ return [
             'type' => 'repeater',
             'required' => true,
             'max' => 8,
-            'per_layout' => ['three' => 3, 'four' => 4],
             'fields' => [
                 'value' => ['type' => 'text', 'required' => true, 'translatable' => true, 'sample' => 'preview.stats.value'],
                 'label' => ['type' => 'text', 'translatable' => true, 'sample' => 'preview.stats.label'],

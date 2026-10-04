@@ -86,23 +86,24 @@ body {
   margin-inline: auto;
 }
 
-/* THE TEXT BLOCK'S MEASURE (D-187, the owner): how wide its lines run, its own option rather
-   than the 38em above, which held every paragraph to one width whatever the section's — and
-   Width looked broken. On the block, so the heading keeps the body's edge; in ch of the body's
-   own face, so a line holds about as many letters in every character. */
-.text[class*="measure-"] .richtext > :is(p, ul, ol) {
+/* A BLOCK'S MEASURE (D-187, D-188, the owner): how wide the lines of a Text block, Questions or
+   a Quote run, their own option rather than the 38em above, which held every paragraph to one
+   width whatever the section's — and Width looked broken. On the block, so the heading keeps
+   the body's edge; in ch of the body's own face, so a line holds about as many letters in every
+   character. */
+:is(.text, .accordion, .quote)[class*="measure-"] .richtext > :is(p, ul, ol) {
   max-inline-size: none;
 }
 
-.text.measure-comfortable {
+:is(.text, .accordion, .quote).measure-comfortable {
   max-inline-size: 65ch;
 }
 
-.text.measure-wide {
+:is(.text, .accordion, .quote).measure-wide {
   max-inline-size: 85ch;
 }
 
-.align-center .text[class*="measure-"] {
+.align-center :is(.text, .accordion, .quote)[class*="measure-"] {
   margin-inline: auto;
 }
 

@@ -29,4 +29,10 @@ return [
         'card' => ['image' => [[6, 3, 36, 18]], 'line' => [[10, 7, 26, 2], [10, 11, 22, 2], [10, 16, 10, 1]]],
     ],
     'defaults' => ['layout' => 'plain'],
+    'options' => [
+        // How wide its lines run (D-188, the owner): wide by default, a quotation's words being
+        // larger than a paragraph's. It followed the section's Width without limit, lines of
+        // 1136px at Full.
+        'measure' => ['values' => ['comfortable', 'wide', 'full'], 'default' => 'wide'],
+    ],
 ];

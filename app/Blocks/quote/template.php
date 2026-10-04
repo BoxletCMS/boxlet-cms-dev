@@ -13,12 +13,13 @@
  * @var string $layout
  * @var array<int, array{id: int, filename: string, width: int, height: int, focalX: int, focalY: int, variants: array<string, array{width: int, height: int, formats: list<string>}>, alt: string, version: string}> $media
  * @var bool $eager
+ * @var array<string, string> $options measure comfortable/wide/full (D-188)
  */
 $picture = is_int($content['portrait'] ?? null) ? ($media[$content['portrait']] ?? null) : null;
 $tag = \App\Modules\Media\MediaPicture::tag($picture, ['thumb', 'card'], '4rem', $eager);
 $says = trim((string) $content['attribution']) !== '' || trim((string) $content['role']) !== '';
 ?>
-<figure class="quote">
+<figure class="quote measure-<?= e($options['measure']) ?>">
 <?php if ($tag !== ''): ?>
     <div class="quote-portrait"<?= edit_attr('portrait') ?>><?= $tag ?></div>
 <?php endif; ?>

@@ -75,6 +75,8 @@ return [
     'hint.block.cards.items.body' => 'A few lines about it.',
     'hint.block.cards.items.link' => 'An optional link under the text, such as “Read more”.',
     'hint.block.text.option.measure' => 'How long a line of the text runs: comfortable to read, wider, or the full width of the section. The heading keeps the same edge.',
+    'hint.block.accordion.option.measure' => 'How long a line of the questions and answers runs: comfortable to read, wider, or the full width of the section. The heading keeps the same edge.',
+    'hint.block.quote.option.measure' => 'How long a line of the quotation runs: comfortable, wide, or the full width of the section.',
     'hint.block.cards.option.per_row' => 'How many cards stand side by side on a wide screen. A phone shows one at a time.',
     'hint.block.cards.option.image_shape' => 'The same shape for every picture in the block, so the row lines up. Round suits portraits of people.',
 

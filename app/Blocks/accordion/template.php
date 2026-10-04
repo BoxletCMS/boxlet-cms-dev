@@ -14,9 +14,10 @@
  * @var array<string, mixed> $content
  * @var array<string, mixed> $style
  * @var string $layout
+ * @var array<string, string> $options measure comfortable/wide/full (D-188)
  */
 ?>
-<div class="accordion">
+<div class="accordion measure-<?= e($options['measure']) ?>">
 <?php if (edit_show($content['heading'] !== '')): ?>
     <h2 class="accordion-heading"<?= edit_attr('heading') ?>><?= e($content['heading']) ?></h2>
 <?php endif; ?>

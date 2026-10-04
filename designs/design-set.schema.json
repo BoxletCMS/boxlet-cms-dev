@@ -1033,6 +1033,19 @@
                 "options": {
                     "type": "object",
                     "properties": {
+                        "accordion": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "measure": {
+                                    "enum": [
+                                        "comfortable",
+                                        "wide",
+                                        "full"
+                                    ]
+                                }
+                            }
+                        },
                         "cards": {
                             "type": "object",
                             "additionalProperties": false,
@@ -1098,6 +1111,19 @@
                                         "wide",
                                         "square",
                                         "round"
+                                    ]
+                                }
+                            }
+                        },
+                        "quote": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "measure": {
+                                    "enum": [
+                                        "comfortable",
+                                        "wide",
+                                        "full"
                                     ]
                                 }
                             }

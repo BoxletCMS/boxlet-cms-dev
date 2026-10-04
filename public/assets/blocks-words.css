@@ -146,9 +146,8 @@
   gap: var(--space-s);
 }
 
+/* How wide the rows run is the block's measure (D-188), centred with it. */
 .align-center .accordion-items {
-  max-inline-size: var(--container-narrow);
-  margin-inline: auto;
   text-align: start;
 }
 

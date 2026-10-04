@@ -36,4 +36,9 @@ return [
         'cards' => ['image' => [[4, 2, 40, 6], [4, 9, 40, 6], [4, 16, 40, 6]], 'line' => [[7, 4, 24, 2], [7, 11, 24, 2], [7, 18, 24, 2]]],
     ],
     'defaults' => ['layout' => 'list'],
+    'options' => [
+        // How wide its lines run (D-188, the owner, as the Text block's): its answers were held to
+        // 38em whatever the section's Width. The heading keeps the same edge.
+        'measure' => ['values' => ['comfortable', 'wide', 'full'], 'default' => 'comfortable'],
+    ],
 ];

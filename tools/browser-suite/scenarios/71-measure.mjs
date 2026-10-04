@@ -1,10 +1,10 @@
 /*
- * THE TEXT BLOCK'S LINE LENGTH (PLAN.md D-187, the owner): Width had no visible effect on a
- * Text block, its paragraphs held to 38em whatever the section. Now the block's `measure` holds
- * it, and for every Width × measure, under each of the five characters, the text is as wide as
- * min(its column, the measure): 65 or 85 of the body face's "0", or the column whole. Its
- * heading keeps the body's edge. And the section's Width says so, its link leading to the
- * block's option.
+ * A BLOCK'S LINE LENGTH (PLAN.md D-187, D-188, the owner): Width had no visible effect on a
+ * Text block, its paragraphs held to 38em whatever the section; Questions' answers the same;
+ * a Quote ran as wide as any section. Now each block's `measure` holds it, and for every Width ×
+ * measure, under each of the five characters, the block is as wide as min(its column, the
+ * measure): 65 or 85 of the body face's "0", or the column whole. Its words fill it, its heading
+ * keeps their edge. And the section's Width says so, its link leading to the block's option.
  *
  * On the copy, in a draft that is discarded; the copy's character is put back at the end.
  */
@@ -16,19 +16,27 @@ const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
 const WIDTHS = ['narrow', 'normal', 'wide', 'full'];
 const MEASURES = { comfortable: 65, wide: 85, full: 0 };
 
-function measured(page, key) {
-  return page.evaluate((k) => {
+/** Each block, its root, the words that must fill it and the heading on their edge. */
+const BLOCKS = {
+  text: { root: '.text', words: '.richtext > p', heading: '.text-heading', layout: 'single' },
+  accordion: { root: '.accordion', words: '.accordion-answer > p', heading: '.accordion-heading', layout: 'list' },
+  quote: { root: '.quote', words: '.quote-words', heading: null, layout: 'plain' },
+};
+const LONG = 'A longer text runs as wide as its line length allows, and no wider, whatever the section around it. ';
+
+function measured(page, key, type) {
+  return page.evaluate((k, b) => {
     const doc = document.querySelector('[data-pb-canvas]').contentDocument;
     const host = doc.querySelector(`[data-bx-key="${k}"]`);
-    const text = host.querySelector('.text');
-    const p = text.querySelector('.richtext > p');
-    const heading = text.querySelector('.text-heading');
+    const text = host.querySelector(b.root);
+    const p = text.querySelector(b.words);
+    const heading = b.heading ? text.querySelector(b.heading) : null;
     // The room the section gives: its column, not the block's own box, which a centred
     // section shrinks to the words (a short sentence passed for a held measure).
     const column = text.closest('.section-column') || text.parentElement;
     const cs = getComputedStyle(column);
     const room = column.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    // One "0" of the face the text is set in: what ch is.
+    // One "0" of the face the block is set in: what ch is.
     const zero = doc.createElement('span');
     zero.textContent = '0';
     zero.style.position = 'absolute';
@@ -38,8 +46,9 @@ function measured(page, key) {
     zero.remove();
     const t = text.getBoundingClientRect();
     const h = heading ? heading.getBoundingClientRect() : null;
-    return { room, ch, text: t.width, para: p.getBoundingClientRect().width, left: t.left, headingLeft: h ? h.left : t.left, headingRight: h ? h.right : t.right, right: t.right };
-  }, key);
+    const w = p.getBoundingClientRect();
+    return { room, ch, text: t.width, para: w.right - t.left, left: t.left, headingLeft: h ? h.left : t.left, headingRight: h ? h.right : t.right, right: t.right };
+  }, key, BLOCKS[type]);
 }
 
 export default {
@@ -60,34 +69,47 @@ export default {
       for (const character of CHARACTERS) {
         await applyCharacter(page, BASE, character, 'save_composition');
         await openBuilder(page, BASE, id);
-        // A Text block alone in its band, in one column.
-        const key = await page.evaluate(() => {
-          const b = window.pb.doc.blocks.find((x) => x.type === 'text' && window.pb.doc.blocks.filter((y) => y.section === x.section).length === 1);
-          // Words enough to fill any measure: a sentence is narrower than all of them.
-          const words = 'A longer text runs as wide as its line length allows, and no wider, whatever the section around it. ';
-          window.pb.change(() => { b.layout = 'single'; b.content.body = '<p>' + words.repeat(8) + '</p>'; window.pb.section(b.section).layout = 'one'; }, { sections: [b.section] });
-          return b.key;
-        });
-        await wait(1500);
-        const bad = [];
-        const seen = [];
-        for (const width of WIDTHS) {
-          for (const [measure, chars] of Object.entries(MEASURES)) {
-            await page.evaluate((k, w, m) => {
-              const b = window.pb.block(k);
-              const s = window.pb.section(b.section);
-              window.pb.change(() => { s.style.width = w; b.options.measure = m; }, { sections: [s.key] });
-            }, key, width, measure);
-            await wait(1300);
-            const m = await measured(page, key);
-            const expected = chars ? Math.min(m.room, chars * m.ch) : m.room;
-            seen.push(`${width}/${measure} ${Math.round(m.text)}`);
-            if (Math.abs(m.text - expected) > 1) { bad.push(`${width}/${measure}: ${Math.round(m.text)}px, expected ${Math.round(expected)}px (column ${Math.round(m.room)}, ${chars}ch = ${Math.round(chars * m.ch)})`); }
-            if (Math.abs(m.para - m.text) > 1) { bad.push(`${width}/${measure}: the paragraph ${Math.round(m.para)}px in a text of ${Math.round(m.text)}px`); }
-            if (Math.abs(m.headingLeft - m.left) > 1 || m.headingRight > m.right + 1) { bad.push(`${width}/${measure}: the heading leaves the body's edge`); }
+        let textKey = null;
+        for (const type of Object.keys(BLOCKS)) {
+          // The block alone in its band, in one column, with words enough to fill any measure:
+          // a sentence is narrower than all of them.
+          const key = await page.evaluate((t, layout, words) => {
+            const b = window.pb.doc.blocks.find((x) => x.type === t && window.pb.doc.blocks.filter((y) => y.section === x.section).length === 1);
+            if (!b) { return null; }
+            window.pb.change(() => {
+              b.layout = layout;
+              if (t === 'text') { b.content.body = '<p>' + words.repeat(8) + '</p>'; }
+              if (t === 'accordion') { b.content.items[0].answer = '<p>' + words.repeat(8) + '</p>'; }
+              if (t === 'quote') { b.content.quote = words.repeat(6); }
+              window.pb.section(b.section).layout = 'one';
+            }, { sections: [b.section] });
+            return b.key;
+          }, type, BLOCKS[type].layout, LONG);
+          if (!key) { report.fail(`measure: a ${type} block alone in its band`, 'the demo has none'); continue; }
+          if (type === 'text') { textKey = key; }
+          await wait(1500);
+          const bad = [];
+          const seen = [];
+          for (const width of WIDTHS) {
+            for (const [measure, chars] of Object.entries(MEASURES)) {
+              await page.evaluate((k, w, m) => {
+                const b = window.pb.block(k);
+                const s = window.pb.section(b.section);
+                window.pb.change(() => { s.style.width = w; b.options.measure = m; }, { sections: [s.key] });
+              }, key, width, measure);
+              await wait(1300);
+              const m = await measured(page, key, type);
+              const expected = chars ? Math.min(m.room, chars * m.ch) : m.room;
+              seen.push(`${width}/${measure} ${Math.round(m.text)}`);
+              if (Math.abs(m.text - expected) > 1) { bad.push(`${width}/${measure}: ${Math.round(m.text)}px, expected ${Math.round(expected)}px (column ${Math.round(m.room)}, ${chars}ch = ${Math.round(chars * m.ch)})`); }
+              // The words run to the block's far edge: no rule of their own holds them short.
+              if (Math.abs(m.para - m.text) > 1) { bad.push(`${width}/${measure}: the words end ${Math.round(m.text - m.para)}px short of the block's edge`); }
+              if (Math.abs(m.headingLeft - m.left) > 1 || m.headingRight > m.right + 1) { bad.push(`${width}/${measure}: the heading leaves the body's edge`); }
+            }
           }
+          report.verdict(`${character}, ${type}: for every Width × line length the block is min(its column, the measure), its words filling it${BLOCKS[type].heading ? ', its heading on their edge' : ''}`, bad.length === 0, bad.slice(0, 6).join(' | ') || seen.join(', '));
         }
-        report.verdict(`${character}: for every Width × line length the text is min(its column, the measure), its heading on the same edge`, bad.length === 0, bad.slice(0, 6).join(' | ') || seen.join(', '));
+        const key = textKey;
 
         if (character === 'editorial') {
           // The section's Width says it, and its link leads to the option.

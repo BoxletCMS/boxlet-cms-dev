@@ -98,12 +98,13 @@
 /* ---- typing on the page (PLAN.md D-178) ---------------------------------------------------- */
 
 /* A FIELD THAT IS EMPTY, said where it would be: "+ Add subheading", in the page's own type.
-   Drawn in the canvas only (edit_show()); a visitor's page has no such element. Shown in the
+   Drawn in the canvas only (edit_show()); a visitor's page has no such element. Seen in the
    selected block, not across the whole page, where a "+ Add link" on every card read as
-   clutter on the demo's home page (D-178); and not on pointing, which would move the page
-   under the pointer as it passed over a block. */
+   clutter on the demo's home page (D-178). Elsewhere it keeps its place unseen (D-187, the
+   owner): taken out of the page, it came back as the block was selected and moved the page
+   under the first press. */
 .bx-canvas [data-bx-key]:not([data-bx-selected], :has([contenteditable], .ProseMirror)) [data-bx-placeholder]:empty {
-  display: none;
+  visibility: hidden;
 }
 
 .bx-canvas [data-bx-placeholder]:empty::before {

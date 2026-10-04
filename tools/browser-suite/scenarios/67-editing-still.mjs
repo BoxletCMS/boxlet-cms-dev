@@ -6,8 +6,9 @@
  * margins.
  *
  * Every field that shows words, in every block of the demo's home page and of its page of
- * every block, measured with its block already selected (selecting shows the empty fields'
- * placeholders, which is the selection's doing, not the editor's) and then pressed.
+ * every block, measured with its block already selected and then pressed. And the first press
+ * on each block with nothing selected (D-187): selecting showed the empty fields' places and
+ * moved the page under the press; now they keep their place unseen.
  *
  * Nothing is typed. The drafts the builder may save are discarded at the end.
  */
@@ -61,6 +62,7 @@ export default {
     await openBuilder(page, BASE, 1);
     const every = await page.evaluate(() => (window.pb.data.inline.pages.find((p) => /\/blocks\/?$/.test(p.url)) || {}).ref || '');
     const byType = {};
+    const first = {};
     for (const pageId of [1, Number(every.slice(5))]) {
       await openBuilder(page, BASE, pageId);
       try {
@@ -119,6 +121,45 @@ export default {
           await page.evaluate(() => { const a = document.querySelector('[data-pb-canvas]').contentDocument.activeElement; if (a && a.blur) { a.blur(); } });
           await wait(500);
         }
+        // THE FIRST PRESS, ON A BLOCK NOT SELECTED (D-187, the owner): selecting it shows its
+        // empty fields' places, and the page moved under the press. Each block's first field
+        // that shows at rest, nothing selected before it.
+        const firsts = await page.evaluate(() => {
+          const doc = document.querySelector('[data-pb-canvas]').contentDocument;
+          return window.pb.doc.blocks.map((b) => {
+            const host = doc.querySelector(`[data-bx-key="${b.key}"]`);
+            const f = host ? [...host.querySelectorAll('[data-bx-field]')].find((el) => ['text', 'textarea', 'richtext', 'link'].includes((window.pb.inline.spec(b.type, el.getAttribute('data-bx-field')) || {}).type)
+              && el.closest('[data-bx-key]') === host && el.getBoundingClientRect().height > 0 && el.textContent.trim() !== '') : null;
+            return f ? [b.key, b.type, f.getAttribute('data-bx-field')] : null;
+          }).filter(Boolean);
+        });
+        for (const [key, type, path] of firsts) {
+          first[type] = first[type] || { blocks: 0, moved: [] };
+          await page.evaluate(() => window.pb.select(null));
+          await wait(500);
+          await page.evaluate((k, p) => document.querySelector('[data-pb-canvas]').contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-field="${p}"]`).scrollIntoView({ block: 'center' }), key, path);
+          await wait(300);
+          const before = await measure(page, key, path);
+          const point = await page.evaluate((k, p) => {
+            const frame = document.querySelector('[data-pb-canvas]');
+            const el = frame.contentDocument.querySelector(`[data-bx-key="${k}"] [data-bx-field="${p}"]`);
+            const f = frame.getBoundingClientRect();
+            const r = el.getBoundingClientRect();
+            const s = window.pb.canvas.scale;
+            return { x: f.left + (r.left + Math.min(r.width / 2, 12)) * s, y: f.top + (r.top + r.height / 2) * s };
+          }, key, path);
+          await page.mouse.click(point.x, point.y);
+          await wait(700);
+          const after = await measure(page, key, path);
+          first[type].blocks += 1;
+          if (before && after) {
+            const m = moved(before, after);
+            if (m.length) { first[type].moved.push(`${key} ${path} (next: ${before.nextName}): ${m.join(', ')}`); }
+          }
+          await page.keyboard.press('Escape');
+          await page.evaluate(() => { const a = document.querySelector('[data-pb-canvas]').contentDocument.activeElement; if (a && a.blur) { a.blur(); } });
+          await wait(400);
+        }
       } finally {
         await settle(page).catch(() => {});
         await openBuilder(page, BASE, pageId);
@@ -133,6 +174,10 @@ export default {
       report.verdict(`${type}: pressing a field to write in it moves nothing, the field, what follows or the block (${t.fields} fields)`,
         t.fields > 0 && t.moved.length === 0, t.moved.join('; ') || `${t.fields} fields, none moved by more than ${TOLERANCE}px`);
     }
+    const unmoved = Object.keys(first).sort().filter((t) => first[t].moved.length === 0);
+    const movedFirst = Object.keys(first).sort().flatMap((t) => first[t].moved.map((m) => `${t} ${m}`));
+    report.verdict(`the first press on a block not selected moves nothing (${Object.values(first).reduce((n, t) => n + t.blocks, 0)} blocks)`,
+      unmoved.length > 0 && movedFirst.length === 0, movedFirst.slice(0, 10).join('; ') || unmoved.join(', '));
     // Every block type with a field of words — a line, a paragraph, rich text, a link's — from
     // what the builder knows of each.
     const wordy = await page.evaluate(() => Object.keys(window.pb.data.inline.fields).filter((type) => Object.values(window.pb.data.inline.fields[type])

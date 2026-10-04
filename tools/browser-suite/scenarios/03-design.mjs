@@ -883,6 +883,22 @@ export default {
     // No panel to open any more: the seven roles that can be the owner's are rows in the one
     // palette list, in the open (D-074).
     const inkBefore = await page.$eval('#design-color_text', (el) => el.value);
+    /*
+     * O-26, FOUND (D-187): this check waited for the link's hex to read #8ab4f8 and took that
+     * for the server's answer. It is not: since D-063 that element is also the hex beside the
+     * input, written the moment the colour is typed. The preview's stylesheet could land first
+     * too. So on a slow answer — a cold server just after install — the check read the palette
+     * a few milliseconds before the answer drew it: 3 failures in 14 runs measured.
+     *
+     * Held back here 800ms, every time, as a cold server holds it: the old waits failed on
+     * every run, and the check now waits for the answer itself.
+     */
+    await page.evaluate(() => {
+      window.__answers = [];
+      document.addEventListener('appearance:answer', (e) => window.__answers.push((e.detail && e.detail.colors) || {}));
+      const of = window.fetch;
+      window.fetch = (url, opts) => (String(url).includes('/check') ? new Promise((r) => setTimeout(r, 800)).then(() => of(url, opts)) : of(url, opts));
+    });
     // Choosing a colour is taking the role over, so no switch is pressed here: that is the
     // product's rule now (D-065), and it exists because pressing them separately lost the
     // owner's colour to the next refresh.
@@ -892,17 +908,9 @@ export default {
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }, colour);
     }
-    /*
-     * WAITED FOR, NOT SLEPT THROUGH. A fixed 1500ms passed once and failed once, on a check
-     * whose whole subject is whether the dependent colours were worked out again: the answer
-     * would have depended on how busy the machine was. The frame's address carries both
-     * switches, and the ink changing is the server's answer having landed.
-     */
-    // The server's answer about THE LINK — the second of the two changes, and the one a
-    // wait on the first would have missed, which is how this check passed once and failed
-    // once with the same code.
+    // The server's answer to both changes, drawn: the page dark and the link the owner's.
     await page.waitForFunction(
-      () => (document.querySelector('[data-swatch-value="link"]') || {}).textContent?.trim().toLowerCase() === '#8ab4f8',
+      () => (window.__answers || []).some((c) => (c.link || '').toLowerCase() === '#8ab4f8' && (c.background || '').toLowerCase() === '#0d0d10'),
       { timeout: 15000 },
     );
     // And the picture, once the frame it is drawn in has actually loaded it.

@@ -20,7 +20,6 @@
   }
   var nothing = panel.innerHTML;
   var ticket = 0;
-  var COMPOSED = ['surface', 'pad_top', 'pad_bottom', 'min_height', 'v_align', 'width', 'align', 'divider', 'animation'];
   var LAYOUT_COLUMNS = { one: 1, halves: 2, thirds: 3, quarters: 4, 'wide-left': 2, 'wide-right': 2, sidebar: 2 };
   var drawTimers = {};
   // THE BLOCK AS THE INSPECTOR WAS DRAWN FROM IT (D-186): its content, as text. The form holds
@@ -219,46 +218,6 @@
     if (form) { sendFields(form, false); }
   });
   panel.addEventListener('submit', function (event) { event.preventDefault(); });
-
-  panel.addEventListener('click', function (event) {
-    var reset = event.target.closest('button[name="reset"]');
-    var all = event.target.closest('[data-reset-all]');
-    var action = event.target.closest('[data-action]');
-    var sel = pb.selection;
-    if (!sel || !(reset || all || action)) {
-      return;
-    }
-    event.preventDefault();
-    var section = selectedSection();
-    var block = sel.kind === 'block' ? pb.block(sel.key) : null;
-    if (reset) {
-      var path = reset.value.split(':')[0].split('.');
-      pb.change(function () {
-        if (path[0] === 's') { if (path[1] === 'style') { section.style[path[2]] = ''; } else { section[path[1]] = ''; } }
-        if (path[0] === 'b' && block) { if (path[1] === 'options') { block.options[path[2]] = ''; } else { block.layout = reset.value.split(':')[1]; } }
-      }, { sections: [section.key] });
-      inspect();
-    } else if (all) {
-      pb.change(function () {
-        if (all.getAttribute('data-reset-all') === 'section') {
-          COMPOSED.forEach(function (k) { section.style[k] = ''; });
-        } else if (block) {
-          Object.keys(block.options || {}).forEach(function (k) { block.options[k] = ''; });
-          block.layout = all.getAttribute('data-layout');
-        }
-      }, { sections: [section.key] });
-      inspect();
-    } else {
-      var name = action.getAttribute('data-action');
-      var acts = {
-        'select-section': function () { pb.select('section', section.key); },
-        duplicate: function () { if (block) { pb.duplicateBlock(block.key); } else { pb.duplicateSection(section.key); } },
-        delete: function () { if (block) { pb.deleteBlock(block.key); } else { pb.deleteSection(section.key); } },
-        pattern: function () { pb.savePattern(section.key); },
-      };
-      if (acts[name]) { acts[name](); }
-    }
-  });
 
   // The document changed elsewhere — typed on the page, an item added there: the inspector is
   // drawn again from it once the change has settled, unless it or the page is being written in

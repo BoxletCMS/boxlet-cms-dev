@@ -1,0 +1,34 @@
+<?php
+
+/*
+ * THE TEXT BLOCK'S LINE LENGTH (PLAN.md D-187, the owner). Its paragraphs were held to 38em
+ * whatever the section's Width, and Width looked broken. The block now has a `measure` —
+ * comfortable, wide, full — in one column, and the section's Width says when the text there
+ * keeps its own.
+ */
+
+testBothDrivers('a Text block in one column draws its line length; in two columns it has none', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'words', 'Words', true, [['type' => 'text', 'content' => ['body' => '<p>Words</p>']]]);
+    [, $section, $blocks] = builderBand($id);
+    $draw = static fn (array $block): string => json_decode(builderRequest("/admin/pages/{$id}/render", ['section' => $section, 'blocks' => [$block]])->body, true)['html'] ?? '';
+
+    $block = ['layout' => 'single', 'options' => []] + $blocks[0];
+    assertContains('class="text measure-comfortable"', $draw($block), 'the default, comfortable');
+    assertContains('class="text measure-full"', $draw(['options' => ['measure' => 'full']] + $block), 'the owner\'s full width');
+    assertContains('class="text"', $draw(['layout' => 'columns', 'options' => ['measure' => 'wide']] + $block), 'two columns, each its own measure');
+});
+
+testBothDrivers('the section\'s Width says when the text keeps its line length, and leads to it', function (string $driver) {
+    $db = adminSite($driver);
+    $id = createPage($db, 'en', 'words', 'Words', true, [['type' => 'text', 'content' => ['body' => '<p>Words</p>']]]);
+    [, $section, $blocks] = builderBand($id);
+    $inspect = static fn (array $held): string => json_decode(builderRequest("/admin/pages/{$id}/inspect", ['kind' => 'section', 'key' => $section['key'], 'section' => $section, 'blocks' => $held, 'number' => 1])->body, true)['html'] ?? fail('no inspector');
+
+    $block = ['layout' => 'single', 'options' => []] + $blocks[0];
+    $held = $inspect([$block]);
+    assertContains('data-width-measure', $held, 'a comfortable line under a section of any width');
+    assertContains('data-action="select-block" data-key="' . $block['key'] . '" data-focus="measure"', $held, 'the way to the block\'s option');
+    assertTrue(!str_contains($inspect([['options' => ['measure' => 'full']] + $block]), 'data-width-measure'), 'a text as wide as its section');
+    assertTrue(!str_contains($inspect([['layout' => 'columns'] + $block]), 'data-width-measure'), 'a text in two columns');
+});

@@ -17,4 +17,10 @@ return [
         'columns' => ['line' => [[4, 6, 18, 1], [4, 9, 17, 1], [4, 12, 18, 1], [4, 15, 14, 1], [26, 6, 18, 1], [26, 9, 17, 1], [26, 12, 18, 1], [26, 15, 12, 1]]],
     ],
     'defaults' => ['layout' => 'single'],
+    'options' => [
+        // How wide a line of the text runs (D-187, the owner): about 65 characters, 85, or the
+        // section's whole width. The heading keeps the same edge. In two columns each column is
+        // its own measure, so it acts in one.
+        'measure' => ['values' => ['comfortable', 'wide', 'full'], 'default' => 'comfortable', 'layouts' => ['single']],
+    ],
 ];

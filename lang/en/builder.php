@@ -128,4 +128,6 @@ return [
     'builder.duplicate_block' => 'Duplicate block',
     'builder.delete_block' => 'Delete block',
     'builder.delete_confirm' => 'Delete it? Undo brings it back.',
+    'builder.width_measure' => 'The text here keeps its line length (:measure), so a wider section widens it only up to that.',
+    'builder.width_measure_link' => 'Change the line length',
 ];

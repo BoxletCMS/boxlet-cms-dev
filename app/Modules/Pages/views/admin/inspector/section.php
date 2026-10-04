@@ -22,6 +22,7 @@ use App\Support\Controls;
  * @var int $gap the design's section gap in px, which a padding left to the character falls to
  * @var array<string, string> $design the design's resolved decisions: a section of columns
  *      composes wide where its columns need it (D-184)
+ * @var \App\Core\Blocks $registry
  */
 $style = $section['style'];
 $composed = \App\Modules\Pages\SectionRender::composed($character, $blocks, \App\Modules\Pages\SectionLayout::normalize($section['layout']), $design);
@@ -102,6 +103,22 @@ foreach (['width', 'align', 'divider'] as $key) {
         $labels[$value] = short_label('style.' . $key, $value);
     }
     $content .= $row(t('style.' . $key), segmented_group('s.style.' . $key, $labels, (string) $effective[$key], $labelOf($key), 'ins-s-' . $key . '-'), 's.style.' . $key, $own($key));
+    // WIDTH THAT THE TEXT DOES NOT FOLLOW (D-187, the owner): a Text block held to a line length
+    // widens with the section only up to it, and Width looked broken. Said here, with the way
+    // to the block's own option.
+    if ($key === 'width') {
+        foreach ($blocks as $held) {
+            if (($held['type'] ?? '') !== 'text' || ($held['layout'] ?? '') !== 'single') {
+                continue;
+            }
+            $specs = $registry->get('text')['options'];
+            $measure = \App\Core\BlockOptions::effective($specs, \App\Core\BlockOptions::normalize($specs, $held['options'] ?? []), \App\Modules\Design\Composition::options($character, 'text'))['measure'];
+            if ($measure !== 'full') {
+                $content .= '<p class="hint-line" data-width-measure>' . e(t('builder.width_measure', ['measure' => t('block.text.option.measure.' . $measure)])) . ' <button type="button" class="link-button" data-action="select-block" data-key="' . e((string) $held['key']) . '" data-focus="measure">' . e(t('builder.width_measure_link')) . '</button></p>';
+                break;
+            }
+        }
+    }
 }
 
 // ---- Advanced -----------------------------------------------------------------------------------

@@ -39,10 +39,14 @@ function crossings(page) {
         }
       }
     }
-    // The block's toolbar over no field's words, of its block or any other (D-182).
+    // The block's toolbar over no field's words, of its block or any other (D-182), and 4px on
+    // screen clear of them, above and below as at the sides (D-189): measured as a distance,
+    // the canvas being drawn at its scale.
     const bar = layer ? layer.querySelector('.bx-toolbar-block') : null;
     if (bar) {
-      const b = bar.getBoundingClientRect();
+      const near = 4 / (window.pb.canvas.scale || 1) - 0.25;
+      const t = bar.getBoundingClientRect();
+      const b = { left: t.left - near, right: t.right + near, top: t.top - near, bottom: t.bottom + near };
       doc.querySelectorAll('[data-bx-field]').forEach((field) => {
         const f = field.getBoundingClientRect();
         // Over its own block's picture is the last resort where there is no room outside it
@@ -50,9 +54,17 @@ function crossings(page) {
         const host = field.closest('[data-bx-key]');
         const owner = host ? window.pb.block(host.getAttribute('data-bx-key')) : null;
         const spec = owner ? window.pb.inline.spec(owner.type, field.getAttribute('data-bx-field')) : null;
-        if (bar.getAttribute('data-bx-side') === 'inside' && spec && spec.type === 'media' && owner && window.pb.selection && owner.key === window.pb.selection.key) { return; }
-        if (f.width > 0 && f.height > 0 && b.left < f.right - 0.5 && f.left < b.right - 0.5 && b.top < f.bottom - 0.5 && f.top < b.bottom - 0.5) {
-          found.push(`the block's toolbar × ${field.getAttribute('data-bx-field')}`);
+        // A cover hero's own picture reaches past the block on every side, so no place is
+        // clear of it (D-187: over its own picture only where nothing else is to be had).
+        const own = spec && spec.type === 'media' && owner && window.pb.selection && owner.key === window.pb.selection.key;
+        const hr = host ? host.getBoundingClientRect() : null;
+        const beyond = own && hr && f.top < hr.top - 1 && f.bottom > hr.bottom + 1;
+        if (own && (bar.getAttribute('data-bx-side') === 'inside' || beyond)) { return; }
+        if (f.width > 0 && f.height > 0 && b.left < f.right && f.left < b.right && b.top < f.bottom && f.top < b.bottom) {
+          const gapY = Math.max(f.top - t.bottom, t.top - f.bottom);
+          const gapX = Math.max(f.left - t.right, t.left - f.right);
+          const apart = Math.max(gapX, gapY) * (window.pb.canvas.scale || 1);
+          found.push(apart < 0 ? `the block's toolbar × ${field.getAttribute('data-bx-field')}` : `the block's toolbar ${apart.toFixed(1)}px from ${field.getAttribute('data-bx-field')}`);
         }
       });
     }
@@ -127,10 +139,10 @@ export default {
         await page.click(`[data-device="${device}"]`);
         await wait(900);
         const seen = await everySelection(page);
-        report.verdict(`${device}: no two of the editor's marks cross, the block's toolbar covers no words, and every "+" is on its boundary, with each band and block selected (${seen.checked} states, ${seen.marks} marks)`,
+        report.verdict(`${device}: no two of the editor's marks cross, the block's toolbar stands 4px clear of all words, and every "+" is on its boundary, with each band and block selected (${seen.checked} states, ${seen.marks} marks)`,
           seen.bad.length === 0 && seen.marks > seen.checked, seen.bad.join(' | ') || 'none cross');
         const items = await everyItem(page);
-        report.verdict(`${device}: an item selected, its actions in the block's bar, and the bar on none of its words nor the block's heading (${items.checked} items)`,
+        report.verdict(`${device}: an item selected, its actions in the block's bar, and the bar 4px clear of its words and the block's heading (${items.checked} items)`,
           items.checked > 0 && items.bad.length === 0, items.bad.join(' | ') || 'none cross');
       }
       await page.click('[data-device="desktop"]');
@@ -228,6 +240,11 @@ export default {
       return;
     }
     await openBuilder(page, BASE, Number(every.slice(5)));
+    // Every block of every kind selected, its bar 4px clear of all words (D-189): the home page
+    // has six kinds, this one all of them — Numbers among them, where the owner saw it close.
+    const all = await everySelection(page);
+    report.verdict(`the page of every block: the block's toolbar stands 4px clear of all words and crosses no mark, with each band and block selected (${all.checked} states)`,
+      all.bad.length === 0, all.bad.join(' | ') || 'none near');
     const keys = await page.evaluate(() => window.pb.doc.blocks.map((b) => [b.key, b.type]));
     const tiles = [];
     for (const [key, type] of keys) {

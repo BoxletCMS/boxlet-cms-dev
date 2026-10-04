@@ -88,6 +88,7 @@ $pageId = (int) $page['id'];
 <script src="<?= e(Url::versioned('assets/builder-actions.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-canvas.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-overlay.js')) ?>" defer></script>
+<script src="<?= e(Url::versioned('assets/builder-overlay-place.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-overlay-press.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inserter.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inline.js')) ?>" defer></script>

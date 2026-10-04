@@ -117,7 +117,13 @@ final class Derived
             }
         }
 
-        return max(0.5, $base * $ratio ** self::TYPE_STEPS[$step] + $nudge);
+        $size = max(0.5, $base * $ratio ** self::TYPE_STEPS[$step] + $nudge);
+
+        // NOTHING ON THE PAGE IS SMALLER THAN SMALL TEXT (D-187, the owner): the step under the
+        // body is never under 0.875 of it. Bold's scale of 1.5 drew a caption, a number's
+        // label and the footer at 10.7px; Brutalist's at 11.3. Here, so the page, the
+        // specimen and the nudge's readout say one size.
+        return $step === 'sm' ? max($size, $base * 0.875) : $size;
     }
 
     /** What a heading of $size rem comes to on a phone. */
@@ -133,6 +139,9 @@ final class Derived
     private static function typeScale(array $resolved): array
     {
         $sizes = [];
+        // Small text, a share of the body size rather than a step of the scale: 14px under
+        // the default set (README 1.6), still readable on a wide scale where `sm` is not.
+        $small = self::sizeOf($resolved, 'base') * 0.875;
         foreach (self::TYPE_STEPS as $name => $step) {
             $size = self::sizeOf($resolved, $name);
             if ($step < 3) {
@@ -147,9 +156,7 @@ final class Derived
         }
         // The lead paragraph under a heading (README 1.6: 18px at a 16px body).
         $sizes['lead'] = self::rem(self::sizeOf($resolved, 'base') * 1.125);
-        // Small text, a share of the body size rather than a step of the scale: 14px under
-        // the default set (README 1.6), still readable on a wide scale where `sm` is not.
-        $sizes['small'] = self::rem(self::sizeOf($resolved, 'base') * 0.875);
+        $sizes['small'] = self::rem($small);
 
         return $sizes;
     }

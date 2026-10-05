@@ -237,18 +237,40 @@
 @media (min-width: 40rem) {
   .layout-cover-left .hero-cover-picture::after {
     background: none;
-    background-image: linear-gradient(90deg, var(--color-contrast) 0%, var(--color-contrast) 55%, transparent 100%);
+    background-image: var(--hero-veil-top, none), linear-gradient(90deg, var(--color-contrast) 0%, var(--color-contrast) 55%, transparent 100%);
   }
 
   .layout-cover-right .hero-cover-picture::after {
     background: none;
-    background-image: linear-gradient(270deg, var(--color-contrast) 0%, var(--color-contrast) 55%, transparent 100%);
+    background-image: var(--hero-veil-top, none), linear-gradient(270deg, var(--color-contrast) 0%, var(--color-contrast) 55%, transparent 100%);
   }
 
   .layout-cover-low .hero.is-cover:not(.height-auto) .hero-cover-picture::after {
     background: none;
-    background-image: linear-gradient(0deg, var(--color-contrast) 0%, var(--color-contrast) 50%, transparent 100%);
+    background-image: var(--hero-veil-top, none), linear-gradient(0deg, var(--color-contrast) 0%, var(--color-contrast) 50%, transparent 100%);
   }
+}
+
+/* UNDER A HEADER LAID OVER IT, THE VEIL REACHES THE TOP (D-194, the owner). A veil that clears
+   away from the words cleared from under the header's too: Gallery's menu, light for the
+   contrast surface, stood at 1.3:1 over the pale top of its picture. Where the header is laid
+   over a cover hero alone in the first band (chrome-header.css), the veil is also dense from
+   the top to the header's foot — its words end low in it: Minimal's links at 66 of 74 px, and
+   seven tenths of it left them at 4.37:1 — and clears, eased, over nearly three heights more,
+   so it ends in no edge. A layer of the same veil: where the two meet it is no darker than
+   either. The header's words have the guarantee the hero's have. Both of the band's shapes,
+   as above. */
+.page-sheet:has(> .block-header .behaviour-over) > main > .block-hero:first-child > .container > .hero.is-cover,
+.page-sheet:has(> .block-header .behaviour-over) > main > .block:first-child > .container > .section-cols > .section-column:only-child > :only-child > .hero.is-cover {
+  --hero-header: var(--chrome-header-height, 4.5rem);
+  --hero-veil-top: linear-gradient(180deg,
+    var(--color-contrast) 0%,
+    var(--color-contrast) var(--hero-header),
+    color-mix(in srgb, var(--color-contrast) 80%, transparent) calc(var(--hero-header) * 1.35),
+    color-mix(in srgb, var(--color-contrast) 50%, transparent) calc(var(--hero-header) * 1.9),
+    color-mix(in srgb, var(--color-contrast) 22%, transparent) calc(var(--hero-header) * 2.6),
+    color-mix(in srgb, var(--color-contrast) 6%, transparent) calc(var(--hero-header) * 3.2),
+    transparent calc(var(--hero-header) * 3.7));
 }
 
 /* ---- how tall ------------------------------------------------------------------------------ */

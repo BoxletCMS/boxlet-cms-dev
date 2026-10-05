@@ -99,19 +99,28 @@
       .filter(function (p) { return p !== null; });
     // THE LAST RESORT: inside the block, over nothing but its own picture; and only where even
     // that is not to be had, the place that lies on least.
-    var chosen = places.filter(function (p) { return p.ok && clear(p.top, p.left); })[0]
+    var outside = places.filter(function (p) { return p.ok && clear(p.top, p.left); })[0]
       || beside.filter(function (p) { return clear(p.top, p.left); })[0]
-      || touching.filter(function (p) { return lies(p, true) === 0; })[0]
-      || [inside].concat(onPictures).filter(function (p) { return lies(p, false) === 0; })[0];
-    // NOWHERE 4PX CLEAR: the bar drawn short — its icon for the name, no layout menu, which the
-    // inspector still has — and placed again (D-189: Brutalist's call to action, its layout
-    // "Buttons beside the words", left a bar 746px wide no room above or below).
-    if (!chosen && !bar.classList.contains('is-short')) {
+      || touching.filter(function (p) { return lies(p, true) === 0; })[0];
+    // NOWHERE OUTSIDE 4PX CLEAR: the bar drawn short — its icon for the name, no layout menu,
+    // which the inspector still has — and placed again, before anything goes over the block's
+    // own picture (D-187, D-189: Brutalist's call to action, "Buttons beside the words", left a
+    // bar 746px wide no room above or below).
+    if (!outside && !bar.classList.contains('is-short')) {
       bar.classList.add('is-short');
       pb.overlay.placeBar(bar, node, block);
       return;
     }
-    chosen = chosen || places.concat(touching, beside, [inside]).sort(function (x, y) { return lies(x, true) - lies(y, true); })[0];
+    // Then inside it, over its own picture: at its top, on a picture's corner, or in one of its
+    // corners, where a cover hero's words leave room.
+    var corners = [
+      { top: b.top + gap, left: b.left + b.width - w - gap, side: 'inside' },
+      { top: b.top + b.height - h - gap, left: b.left + gap, side: 'inside' },
+      { top: b.top + b.height - h - gap, left: b.left + b.width - w - gap, side: 'inside' },
+    ];
+    var chosen = outside
+      || [inside].concat(onPictures, corners).filter(function (p) { return lies(p, false) === 0; })[0]
+      || places.concat(touching, beside, [inside]).sort(function (x, y) { return lies(x, true) - lies(y, true); })[0];
     o.at(bar, { top: chosen.top, left: chosen.left });
     bar.setAttribute('data-bx-side', chosen.side);
   };

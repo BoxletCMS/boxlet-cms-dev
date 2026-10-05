@@ -79,6 +79,16 @@
   border: 0;
 }
 
+/* LARGE AND ON A CARD, A QUOTATION IS SET AS A HEADING IS (D-193, the owner): the heading
+   family, its weight and its letter spacing. In Terra the pull quote stood in Inter, the
+   body's sans, under Source Serif headings. Plain keeps the body's face beside its rule;
+   a question of Questions keeps it too. */
+:is(.layout-big, .layout-card) .quote-words {
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-tracking);
+}
+
 .quote-said {
   display: flex;
   flex-wrap: wrap;

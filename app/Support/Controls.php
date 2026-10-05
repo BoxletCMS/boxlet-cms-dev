@@ -75,8 +75,8 @@ final class Controls
         $html .= '<span class="control-changed" title="' . e(t('controls.changed')) . '"><span class="visually-hidden">' . e(t('controls.changed')) . '</span></span>';
 
         if ($text('readout') !== '' || $text('readoutKey') !== '') {
-            // The whole phrase in the title: a readout gives way at the end when the row is
-            // short, and a phrase that is cut has to be readable somewhere (D-110).
+            // The whole phrase in the title as well: a readout gives way to its label (D-110),
+            // onto a second line since D-195, never cut.
             $for = $text('readoutFor');
             $tag = $for !== '' ? 'output' : 'span';
             $html .= '<' . $tag . ' class="readout"'
@@ -169,10 +169,10 @@ final class Controls
      * script, arrow keys move between them, and the posted name and values are the same, so
      * swapping one for the other changes nothing a save reads.
      *
-     * @param array<array-key, array{label: string, picture: string, title?: string, name?: string}> $options value
+     * @param array<array-key, array{label: string, picture: string, title?: string, name?: string, tag?: string}> $options value
      *        => its name, its drawing as markup (an SVG built from attributes, never a style),
-     *        its full name when the name shown is a short one (D-179), and what it is when its
-     *        value does not say (D-191)
+     *        its full name when the name shown is a short one (D-179), what it is when its
+     *        value does not say (D-191), and a word shown on it (D-195)
      * @param string $form the form the radios belong to, when it is not the one they stand in
      */
     public static function tiles(string $name, array $options, string $current, string $labelledBy, string $idPrefix, string $form = ''): string
@@ -189,7 +189,11 @@ final class Controls
                 . ($title !== '' ? ' aria-label="' . e($title) . '"' : '')
                 . ($form !== '' ? ' form="' . e($form) . '"' : '') . ($value === $current ? ' checked' : '') . '>'
                 . '<span class="tile-picture" aria-hidden="true">' . $option['picture'] . '</span>'
-                . '<span class="tile-label">' . e($option['label']) . '</span></label>';
+                . '<span class="tile-label">' . e($option['label']) . '</span>'
+                // A word on the tile itself, never a change: the layout a block gets when it
+                // follows its character is its "Default" (D-195).
+                . (($option['tag'] ?? '') !== '' ? '<span class="tile-tag">' . e($option['tag']) . '</span>' : '')
+                . '</label>';
         }
 
         return $html . '</div>';

@@ -212,7 +212,7 @@
         var drawn = block.layout || composed;
         layouts.forEach(function (l) {
           var mine = l.value === drawn;
-          var o = el('option', '', (mine ? '✓ ' : '') + l.label + (l.value === composed ? ' · ' + pb.t('layout_character') : ''));
+          var o = el('option', '', (mine ? '✓ ' : '') + l.label + (l.value === composed ? ' · ' + pb.t('layout_default') : ''));
           o.value = l.value === composed ? '' : l.value;
           o.selected = mine;
           select.appendChild(o);

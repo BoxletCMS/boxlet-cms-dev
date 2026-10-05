@@ -374,7 +374,7 @@ export default {
           const w = await page.evaluate(() => [...document.querySelectorAll('[data-pb-inspector], [data-pb-inspector] *')]
             .filter((n) => !n.matches('.visually-hidden') && n.scrollWidth > n.clientWidth + 1 && n.clientWidth > 0 && getComputedStyle(n).overflowX !== 'visible'
               // Cut short with an ellipsis on purpose, its whole words its title: it widens
-              // nothing. A layout's readout, "One column · the character's", is (D-191).
+              // nothing, whatever the readout says.
               && getComputedStyle(n).textOverflow !== 'ellipsis')
             .map((n) => `${n.className || n.tagName} ${n.scrollWidth}>${n.clientWidth}`)
             .concat((() => { const i = document.querySelector('[data-pb-inspector]'); return i.scrollWidth > i.clientWidth ? [`inspector ${i.scrollWidth}>${i.clientWidth}`] : []; })()));

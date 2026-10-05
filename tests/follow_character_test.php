@@ -55,7 +55,11 @@ testBothDrivers('the inspector shows the character\'s layout as the one followed
 
     $following = $inspect(['layout' => ''] + $block);
     assertTrue(preg_match('~value="" data-tile="' . $composed . '"[^>]* checked~', $following) === 1, 'the character\'s tile, its value following');
-    assertContains(e(t('builder.layout_character')), $following, 'named as the character\'s');
+    // Marked "Default" on its tile, and the readout the layout's name alone (CHANGED
+    // DELIBERATELY, D-195: "· the character's" after the name was cut short in the inspector).
+    assertTrue(preg_match('~data-tile="' . $composed . '"[^>]*>.*?<span class="tile-tag">' . preg_quote(e(t('builder.layout_default')), '~') . '</span></label>~s', $following) === 1, 'the character\'s tile says Default');
+    assertEquals(1, substr_count($following, 'class="tile-tag"'), 'and no other tile');
+    assertContains('class="readout" title="' . e(t('block.stats.layout.' . $composed)) . '">', $following, 'the readout, the layout\'s name alone');
     assertTrue(!str_contains($following, 'value="b.layout:"'), 'no way back from where it already is');
 
     $own = $inspect(['layout' => 'four'] + $block);

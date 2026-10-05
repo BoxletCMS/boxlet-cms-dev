@@ -47,11 +47,13 @@ $effectiveLayout = $block['layout'] !== '' ? $block['layout'] : $composedLayout;
 $tiles = [];
 foreach ($definition['layouts'] as $layout) {
     // Shown short and told apart (D-179): "Behind · left", its full name the tooltip.
-    $title = t('block.' . $type . '.layout.' . $layout) . ($layout === $composedLayout ? ' · ' . t('builder.layout_character') : '');
-    $tiles[$layout === $composedLayout ? '' : $layout] = ['label' => short_label('block.' . $type . '.layout', $layout), 'title' => $title, 'picture' => Pictogram::svg($definition['pictograms'][$layout] ?? []), 'name' => $layout];
+    $tiles[$layout === $composedLayout ? '' : $layout] = ['label' => short_label('block.' . $type . '.layout', $layout), 'title' => t('block.' . $type . '.layout.' . $layout), 'picture' => Pictogram::svg($definition['pictograms'][$layout] ?? []), 'name' => $layout]
+        // The character's own is marked on its tile, "Default" (D-195, the owner).
+        + ($layout === $composedLayout ? ['tag' => t('builder.layout_default')] : []);
 }
 $layoutChanged = $block['layout'] !== '';
-$readout = t('block.' . $type . '.layout.' . $effectiveLayout) . ($layoutChanged ? '' : ' · ' . t('builder.layout_character'));
+// The layout's name alone (D-195): "· the character's" after it was cut short in the inspector.
+$readout = t('block.' . $type . '.layout.' . $effectiveLayout);
 $layoutGroup = count($tiles) > 1
     ? Controls::row(t('pages.layout'), Controls::tiles($prefix . '[layout]', $tiles, $effectiveLayout === $composedLayout ? '' : $effectiveLayout, $idPrefix . 'layout-label', $idPrefix . 'layout-'), ['key' => 'b.layout', 'labelId' => $idPrefix . 'layout-label', 'changed' => $layoutChanged, 'readout' => $readout] + ($layoutChanged ? ['reset' => $reset('b.layout:')] : []))
     : '<input type="hidden" name="' . e($prefix) . '[layout]" value="' . e($block['layout']) . '">';

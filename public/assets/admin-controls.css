@@ -47,7 +47,7 @@
 }
 
 /* The readout is admin-choices.css's own .readout; in a row it sits at the end, before the
-   reset, and gives way first (D-110). */
+   reset, and gives way first (D-110), onto a second line rather than cut (D-195). */
 .control-head .readout {
   margin-inline-start: auto;
 }
@@ -269,4 +269,26 @@
   -webkit-line-clamp: 2;
   line-height: var(--ui-leading-tight);
   overflow-wrap: anywhere;
+}
+
+/* "DEFAULT" ON THE CHARACTER'S OWN TILE (D-195, the owner): a word, not a change, so no dot.
+   Said as the Appearance tiles say "Custom" (admin-appearance-tiles.css): small capitals in
+   the quiet ink inside an edge, on the panel. It sits on the tile's top edge, half in the gap
+   above it: inside the tile it covered the drawing — a Text's lines, a Split's picture. */
+.tile-tag {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: var(--ui-2);
+  transform: translateY(-50%);
+  padding: 0 var(--ui-1);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-control-line);
+  border-radius: var(--ui-radius-s);
+  color: var(--ui-ink-muted);
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: var(--ui-leading-tight);
+  text-transform: uppercase;
+  white-space: nowrap;
 }

@@ -7,7 +7,7 @@ use App\Core\Db;
 use Throwable;
 
 /**
- * Where characters come from, and which of them can be used (PLAN.md D-152, D-155): the five
+ * Where characters come from, and which of them can be used (PLAN.md D-152, D-155): the
  * files Boxlet ships, the files an owner drops into designs/custom/, and the sets imported in
  * the admin into design_characters.
  *
@@ -19,7 +19,7 @@ use Throwable;
 final class CharacterSources
 {
     /**
-     * The five, read as they are: trusted, not validated, because validating asks for the
+     * Boxlet's own, read as they are: trusted, not validated, because validating asks for the
      * default character, which is one of them (tests hold them instead).
      *
      * @return array<string, array{source: string, set: array<string, mixed>}>

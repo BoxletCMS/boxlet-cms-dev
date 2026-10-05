@@ -406,6 +406,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/appearance/export/library/{id:\d+}', [\App\Modules\Appearance\DesignTransferController::class, 'exportLibrary'], $requireAdmin);
     $router->post('/admin/appearance/import', [\App\Modules\Appearance\DesignTransferController::class, 'import'], $requireAdmin);
     $router->post('/admin/appearance/import/add', [\App\Modules\Appearance\DesignTransferController::class, 'add'], $requireAdmin);
+    // The sets Boxlet ships to add as characters (D-195), each one by its file's id.
+    $router->get('/admin/appearance/browse', [\App\Modules\Appearance\SetLibraryController::class, 'browse'], $requireAdmin);
+    $router->post('/admin/appearance/browse/{id:' . \App\Modules\Design\SetLibrary::ID . '}', [\App\Modules\Appearance\SetLibraryController::class, 'add'], $requireAdmin);
     // The six typefaces, for the cards that choose between them (D-065).
     $router->get('/admin/appearance/typefaces', [AppearancePreview::class, 'typefaces'], $requireAdmin);
 

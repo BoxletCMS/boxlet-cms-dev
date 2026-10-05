@@ -8,12 +8,13 @@ namespace App\Modules\Design;
  * its composition, its header and footer — is in designs/core/*.json and the sets an owner
  * adds, and Characters is the one reader of them.
  *
- * The five Boxlet ships differ in structure, not only hue. Tokens change type, text size,
- * scale, spacing, radius, shadow, content width and surface contrast; composition changes
- * the shape of the page itself: measure, vertical rhythm, alignment, section boundaries and
- * hero arrangement. Every one derives its whole palette and nudges nothing: a colour set by
- * hand, a nudged step, a colour of its own are the owner's exceptions (D-063, D-066, D-076),
- * which a set an owner imports may carry (D-153) and one Boxlet ships does not.
+ * The characters Boxlet ships differ in structure, not only hue. Tokens change type, text
+ * size, scale, spacing, radius, shadow, content width and surface contrast; composition
+ * changes the shape of the page itself: measure, vertical rhythm, alignment, section
+ * boundaries and hero arrangement. The first five derive their whole palette and nudge
+ * nothing: a colour set by hand, a nudged step, a colour of its own are the owner's
+ * exceptions (D-063, D-066, D-076), which a set an owner imports may carry (D-153), and so do
+ * the owner's own sets Boxlet ships since D-195 — Terra's sand page is Terra.
  */
 final class Presets
 {

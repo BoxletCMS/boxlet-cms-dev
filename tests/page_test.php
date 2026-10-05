@@ -72,7 +72,9 @@ test('an unboxed page has no frame at all, so nothing surrounds it', function ()
 test('the page background is a palette colour, never a free one', function (): void {
     foreach (Presets::names() as $name) {
         $decisions = Tokens::validate(Presets::get($name))['decisions'];
-        $colors = Palette::colors($decisions['seed'], $decisions['secondary'], (float) $decisions['surface_contrast']);
+        // The palette as the site has it, a colour set by hand included: Terra's sand page is
+        // its own background colour (D-195), and the page around the sheet takes from it.
+        $colors = Palette::forDecisions(Tokens::resolve($decisions, $name));
         $derived = Derived::from($decisions);
 
         assertTrue(

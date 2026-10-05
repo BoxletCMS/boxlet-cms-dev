@@ -129,11 +129,18 @@ test('in dark mode every character passes, its links and buttons a lighter varia
     foreach (App\Modules\Design\Characters::CORE as $name) {
         $dark = Presets::get($name);
         $dark['mode'] = 'dark';
+        // A character with a dark version is drawn in dark mode through it (D-185), as the
+        // site resolves it: the owner's sets in core name their own lighter main colour (D-195).
+        if (App\Modules\Design\Characters::dark($name) !== []) {
+            $dark = Tokens::resolve(['mode' => 'dark'] + array_fill_keys(array_keys(Presets::get($name)), ''), $name);
+        }
         assertEquals([], Tokens::validate($dark)['errors'], "{$name} in dark mode");
         $colors = Palette::forDecisions($dark);
         [$seedLightness, , $seedHue] = Color::toOklch($dark['seed']);
         [$lightness, , $hue] = Color::toOklch($colors['link']);
-        assertTrue($lightness > $seedLightness, "{$name}: the link is lighter than the seed");
+        // Lifted where the seed does not read on the dark page; kept where it already does.
+        $reads = min(array_map(static fn (string $g): float => Color::contrast($dark['seed'], $colors[$g]), ['background', 'card', 'surface'])) >= 4.5;
+        assertTrue($reads ? $colors['link'] === Color::normalizeHex($dark['seed']) : $lightness > $seedLightness, "{$name}: the link is lighter than the seed, or the seed where it already reads");
         assertTrue(abs($hue - $seedHue) < 3 || abs($hue - $seedHue) > 357 || Color::toOklch($colors['link'])[1] < 0.02, "{$name}: the link keeps the seed's hue");
         assertEquals($colors['link'], $colors['accent'], "{$name}: the buttons take the same variant");
         foreach (['background', 'card', 'surface'] as $ground) {
@@ -142,7 +149,7 @@ test('in dark mode every character passes, its links and buttons a lighter varia
         assertTrue(Color::contrast($colors['on-accent'], $colors['accent']) >= 4.5, "{$name}: a button's words");
 
         $light = Palette::forDecisions(Presets::get($name));
-        assertEquals(Color::normalizeHex($dark['seed']), $light['accent'], "{$name}: a light page keeps the seed");
+        assertEquals(Color::normalizeHex(Presets::get($name)['seed']), $light['accent'], "{$name}: a light page keeps the seed");
     }
 
     // A seed with almost no hue goes to the text's ink, not to a middle grey (D-185, the

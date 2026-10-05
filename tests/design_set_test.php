@@ -351,9 +351,26 @@ test('a pattern without an id of its own or without a block is refused', functio
 });
 
 test('every core character offers the mockup\'s four starter sections, in Croatian and English', function () {
-    foreach (App\Modules\Design\Characters::CORE as $id) {
+    // The five Boxlet began with offer the mockup's (D-169); the owner's sets in core offer
+    // their own (CHANGED DELIBERATELY, D-195), held below.
+    foreach (['editorial', 'minimal', 'bold', 'soft', 'brutalist'] as $id) {
         $patterns = App\Modules\Design\Characters::patterns($id);
         assertEquals(['hero-button', 'three-cards', 'text-quote', 'call-to-action'], array_column($patterns, 'id'), "{$id}'s patterns");
         assertEquals('Spremni za početak?', App\Modules\Design\DesignSetPatterns::in($patterns[3]['blocks'][0]['content'], 'hr')['heading'], "{$id} in Croatian");
+    }
+});
+
+test('every set the owner took into core offers starter sections of its own, in Croatian and English', function () {
+    $own = array_diff(App\Modules\Design\Characters::CORE, ['editorial', 'minimal', 'bold', 'soft', 'brutalist']);
+    assertTrue(count($own) >= 7, 'the owner\'s sets in core');
+    foreach ($own as $id) {
+        $patterns = App\Modules\Design\Characters::patterns($id);
+        assertTrue(count($patterns) >= 4, "{$id}: its starter sections");
+        foreach ($patterns as $pattern) {
+            assertTrue(str_starts_with((string) $pattern['id'], $id . '-'), "{$id}: {$pattern['id']} is named for it");
+            $en = App\Modules\Design\DesignSetPatterns::in($pattern['blocks'][0]['content'], 'en');
+            $hr = App\Modules\Design\DesignSetPatterns::in($pattern['blocks'][0]['content'], 'hr');
+            assertTrue($en !== $hr, "{$id}: {$pattern['id']} in Croatian as well");
+        }
     }
 });

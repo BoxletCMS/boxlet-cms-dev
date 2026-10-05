@@ -8,7 +8,7 @@ use App\Modules\Design\Vocabulary\Decisions;
 use Closure;
 
 /**
- * Every character a site can choose, wherever it comes from (PLAN.md D-152): the five
+ * Every character a site can choose, wherever it comes from (PLAN.md D-152): those
  * Boxlet ships in designs/core/, sets an owner dropped into designs/custom/ over FTP
  * (D-155), and sets imported in the admin, kept in design_characters (migration 0032).
  *
@@ -17,7 +17,7 @@ use Closure;
  * all three, read once per request; Presets, Composition and ChromeLook ask it.
  *
  * CORE IS TRUSTED, NOT VALIDATED, AS IT LOADS. Tokens::validate() falls back to the default
- * character, so validating the characters on the way in would call itself. The five files
+ * character, so validating the characters on the way in would call itself. The core files
  * are held instead by a test: Tokens::validate() and DesignSet::parse() read each without an
  * error, a warning or a changed value (characters_test.php). Everything else is read
  * through DesignSet::parse(), and a file it refuses is left out — never the site.
@@ -31,8 +31,12 @@ use Closure;
  */
 final class Characters
 {
-    /** The five Boxlet ships, in the order the screen has always shown them. */
-    public const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
+    /**
+     * The characters Boxlet ships, in the order the screen shows them: the first five, then
+     * the owner's sets taken into core (D-195), in the order the owner named them. The other
+     * sets the owner made are in designs/library/, to add from Appearance (SetLibrary).
+     */
+    public const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist', 'terra', 'clinic', 'gallery', 'launch', 'commons', 'couture', 'riso'];
 
     /** @var array<string, array{source: string, set: array<string, mixed>}>|null id => where it came from and what it is */
     private static ?array $all = null;
@@ -44,7 +48,7 @@ final class Characters
 
     /**
      * Where custom files are, and how to reach the block registry and the database, set once
-     * by the bootstrap. Without it — a script, a test that never booted — only the five core
+     * by the bootstrap. Without it — a script, a test that never booted — only the core
      * characters exist.
      *
      * @param Closure(): Blocks $registry

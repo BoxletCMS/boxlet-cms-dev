@@ -53,7 +53,7 @@ function customFile(string $id, array $changes = []): string
 
 // The owner's review, point 3: core is not validated as it loads, because validating asks for
 // the default character. So it is held here instead, every file, every value.
-test('the five core files pass validation and the format\'s own reader, changing nothing', function () {
+test('the core files pass validation and the format\'s own reader, changing nothing', function () {
     foreach (Characters::CORE as $id) {
         $decisions = Presets::get($id);
         $validated = Tokens::validate($decisions);
@@ -70,17 +70,21 @@ test('the five core files pass validation and the format\'s own reader, changing
         assertEquals(Characters::composition($id), $read['set']['composition'] ?? null, "{$id}: composition");
         // What export writes is the file, byte for byte: the core files are in canonical form.
         $set = $read['set'] ?? fail("{$id}: nothing was read");
-        assertEquals($file, DesignSet::export($id, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns']), "{$id}: not in canonical form");
+        assertEquals($file, DesignSet::export($id, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns'], $set['dark']), "{$id}: not in canonical form");
 
-        // A character Boxlet ships makes none of the owner's exceptions (D-063, D-066, D-076) —
-        // but the one the owner made for it: Brutalist's near-black footer (D-172).
+        // The five Boxlet began with make none of the owner's exceptions (D-063, D-066, D-076) —
+        // but the one the owner made for it: Brutalist's near-black footer (D-172). The sets
+        // the owner made and took into core carry the colours and nudges given them (CHANGED
+        // DELIBERATELY, D-195): Terra's sand page is Terra.
         $exceptions = array_merge(
             array_map(static fn (string $role): string => 'color_' . $role, App\Modules\Design\Vocabulary\Decisions::BY_HAND),
             App\Modules\Design\Vocabulary\Decisions::OWN_COLOURS,
             array_keys(Tokens::NUDGES),
         );
         $own = array_intersect_key((array) json_decode($file, true)['decisions'], array_flip($exceptions));
-        assertEquals($id === 'brutalist' ? ['footer_colour' => '#111318'] : [], $own, "{$id} ships a decision that is the owner's to make");
+        if (in_array($id, ['editorial', 'minimal', 'bold', 'soft', 'brutalist'], true)) {
+            assertEquals($id === 'brutalist' ? ['footer_colour' => '#111318'] : [], $own, "{$id} ships a decision that is the owner's to make");
+        }
         assertEquals('core', Characters::source($id), "{$id}: source");
     }
     assertTrue(Characters::exists(Presets::DEFAULT), 'the default character');
@@ -143,11 +147,13 @@ test('a custom file that cannot be used is skipped, with the file and the reason
 });
 
 // D-155 and the owner's review, point 2: an update never carries designs/custom/ off.
-test('an update swaps designs/ child by child and leaves designs/custom/ where it is', function () {
+test('an update swaps designs/ child by child, the library with core, and leaves designs/custom/ where it is', function () {
     [$root, $db] = oldSite();
     mkdir($root . '/designs/core', 0700, true);
     mkdir($root . '/designs/custom', 0700, true);
+    mkdir($root . '/designs/library', 0700, true);
     file_put_contents($root . '/designs/core/minimal.json', 'old core');
+    file_put_contents($root . '/designs/library/coast.json', 'old library');
     file_put_contents($root . '/designs/custom/harbour.json', 'the owner\'s own');
 
     $storage = $root . '/storage';
@@ -159,6 +165,8 @@ test('an update swaps designs/ child by child and leaves designs/custom/ where i
     $zip = new ZipArchive();
     $zip->open($package) === true || fail('cannot reopen the package');
     $zip->addFromString('boxlet/designs/core/minimal.json', 'new core');
+    // The library is Boxlet's as core is, and an update touches it the same way (D-195).
+    $zip->addFromString('boxlet/designs/library/coast.json', 'new library');
     $zip->addFromString('boxlet/designs/.htaccess', 'Require all denied');
     $zip->close();
 
@@ -171,10 +179,12 @@ test('an update swaps designs/ child by child and leaves designs/custom/ where i
 
     assertTrue($result['done'], 'never done');
     assertEquals('new core', (string) file_get_contents($root . '/designs/core/minimal.json'), 'core is the release\'s');
+    assertEquals('new library', (string) file_get_contents($root . '/designs/library/coast.json'), 'and so is the library');
     assertEquals('the owner\'s own', textOf($root . '/designs/custom/harbour.json'), 'custom/ after the update');
 
     $upgrade->rollBack();
     assertEquals('old core', (string) file_get_contents($root . '/designs/core/minimal.json'), 'core after rolling back');
+    assertEquals('old library', (string) file_get_contents($root . '/designs/library/coast.json'), 'the library after rolling back');
     assertEquals('the owner\'s own', textOf($root . '/designs/custom/harbour.json'), 'custom/ after rolling back');
     removeTree($root);
 });

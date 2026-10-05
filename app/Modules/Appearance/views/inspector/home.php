@@ -88,6 +88,8 @@ ob_start();
                                 </li>
 <?php endforeach; ?>
                             </ul>
+                            <?php /* MORE OF THEM (D-195): the sets Boxlet ships beside these, added one by one. */ ?>
+                            <a class="button button-secondary library-browse" href="<?= e(Url::admin('appearance', 'browse')) ?>"><?= icon('palette') ?> <?= e(t('browse.button')) ?></a>
                         </div>
                         <div class="quick-mirrors" data-quick hidden>
                             <?= Controls::row(t('design.seed'), '<div class="colour-field"><input type="color" class="colour-input" id="quick-seed" name="seed" form="appearance-quick" value="' . e($decisions['seed']) . '">'

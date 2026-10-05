@@ -39,10 +39,11 @@ testBothDrivers('a stored layout the definition no longer declares renders as th
     assertEquals('center', $document['blocks'][0]['layout'] ?? null, 'the builder\'s document');
 });
 
-test('new blocks start in their default layout', function () {
+// CHANGED DELIBERATELY with D-191 (the owner): a new block follows the character, '' stored.
+test('new blocks start following the character', function () {
     $db = adminSite('sqlite');
     adminPost('/admin/pages', ['title' => 'Landing', 'locale' => 'en', 'template' => templateId($db, 'landing')]);
 
     $layouts = array_map(static fn (array $b): string => $b['layout'], blocksWithStyle($db));
-    assertEquals(['center', 'image-left', 'single'], $layouts, 'layouts of hero, image_text, text');
+    assertEquals(['', '', ''], $layouts, 'layouts of hero, image_text, text');
 });

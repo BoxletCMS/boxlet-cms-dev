@@ -116,9 +116,12 @@ final class DemoSite
                     'type' => $type,
                     'content' => $registry->normalize($type, $content),
                     'style' => SectionStyle::normalize([]),
-                    'options' => self::ownOptions($registry, $type, $options),
-                    // '' is the character's own layout for the type (the owner, D-176).
-                    'layout' => $layout === '' ? Composition::layout($registry, self::CHARACTER, $type) : $registry->layout($type, $layout),
+                    // The page of every block keeps every option it shows, as it keeps every
+                    // layout (D-191, the owner): it shows them under every character.
+                    'options' => $page['key'] === 'blocks' ? BlockOptions::normalize($registry->get($type)['options'], $options) : self::ownOptions($registry, $type, $options),
+                    // '' follows the character (D-176, D-191): stored as '', so it changes with
+                    // the character; any other is kept by hand, through Apply too.
+                    'layout' => $registry->own($type, $layout),
                     'section' => $key,
                     'column' => $column,
                 ];

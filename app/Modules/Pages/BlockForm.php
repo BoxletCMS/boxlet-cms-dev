@@ -101,7 +101,7 @@ final class BlockForm
                     $errors["{$name}.{$field}"] = $error;
                 }
             }
-            $layout = $registry->layout($type, $raw['layout'] ?? null);
+            $layout = $registry->own($type, $raw['layout'] ?? null);
             $blocks[] = $where + [
                 'key' => $name,
                 'id' => $id,

@@ -110,7 +110,10 @@ foreach (['width', 'align', 'divider'] as $key) {
         foreach ($blocks as $held) {
             $type = (string) ($held['type'] ?? '');
             $specs = $registry->has($type) ? $registry->get($type)['options'] : [];
-            if (!isset($specs['measure']) || !\App\Core\BlockOptions::applies($specs['measure'], (string) ($held['layout'] ?? ''))) {
+            // The layout it is drawn in: its own, or the character's where it follows (D-191).
+            $heldLayout = (string) ($held['layout'] ?? '');
+            $heldLayout = $heldLayout !== '' || !isset($specs['measure']) ? $heldLayout : \App\Modules\Design\Composition::layout($registry, $character, $type);
+            if (!isset($specs['measure']) || !\App\Core\BlockOptions::applies($specs['measure'], $heldLayout)) {
                 continue;
             }
             $measure = \App\Core\BlockOptions::effective($specs, \App\Core\BlockOptions::normalize($specs, $held['options'] ?? []), \App\Modules\Design\Composition::options($character, $type))['measure'];

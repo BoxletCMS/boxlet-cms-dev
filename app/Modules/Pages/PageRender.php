@@ -30,8 +30,8 @@ final class PageRender
      *        the document's blocks and sections; nothing else of it is read
      * @param array{pageId?: int|null, sent?: int|null, layouts?: array<string, string>, editor?: bool, stale?: array<int, mixed>, design?: array<string, string>} $how
      *        pageId and sent: the form a visitor just sent (D-046); layouts: block type => the
-     *        layout to draw it in instead of its own, what Apply would give it, for a preview
-     *        of a character not yet applied; editor: the canvas's drawing (below); stale: the
+     *        layout a block following the character is drawn in, for a preview of a
+     *        character not yet applied; editor: the canvas's drawing (below); stale: the
      *        translation's blocks that have fallen behind their source, by id
      * @return array{html: string, firstSurface: string} the sections, and what the first one
      *         stands on — the ink on a header laid over it is that section's (D-112)
@@ -45,10 +45,11 @@ final class PageRender
         $layouts = $how['layouts'] ?? [];
         $blocks = [];
         foreach ($document['blocks'] as $block) {
-            // A cover hero keeps its cover, as Apply keeps it (D-120).
-            $cover = $block['type'] === 'hero' && str_starts_with((string) $block['layout'], 'cover-');
-            if (isset($layouts[$block['type']]) && !$cover) {
-                $block['layout'] = $layouts[$block['type']];
+            // A block that follows the character ('') is drawn in the layout its composition
+            // names — or, in a preview of a character not yet applied, that character's. The
+            // owner's own layout is drawn as it is (D-191).
+            if ((string) $block['layout'] === '' && $registry->has((string) $block['type'])) {
+                $block['layout'] = $layouts[$block['type']] ?? \App\Modules\Design\Composition::layout($registry, $character, (string) $block['type']);
             }
             $blocks[] = $block;
         }

@@ -39,19 +39,25 @@ $sectionName = (string) ($section['style'][SectionStyle::NAME] ?? '');
 $sectionName = $sectionName !== '' ? $sectionName : t('builder.section_n', ['n' => $number]);
 
 // ---- Layout ---------------------------------------------------------------------------------
+// '' FOLLOWS THE CHARACTER (D-191, the owner): the character's layout is the tile whose value is
+// '', marked as the character's and never as a change; choosing it is following, never a layout
+// kept by hand. Any other is the owner's own, which Apply keeps.
 $composedLayout = Composition::layout($registry, $character, $type);
+$effectiveLayout = $block['layout'] !== '' ? $block['layout'] : $composedLayout;
 $tiles = [];
 foreach ($definition['layouts'] as $layout) {
     // Shown short and told apart (D-179): "Behind · left", its full name the tooltip.
-    $tiles[$layout] = ['label' => short_label('block.' . $type . '.layout', $layout), 'title' => t('block.' . $type . '.layout.' . $layout), 'picture' => Pictogram::svg($definition['pictograms'][$layout] ?? [])];
+    $title = t('block.' . $type . '.layout.' . $layout) . ($layout === $composedLayout ? ' · ' . t('builder.layout_character') : '');
+    $tiles[$layout === $composedLayout ? '' : $layout] = ['label' => short_label('block.' . $type . '.layout', $layout), 'title' => $title, 'picture' => Pictogram::svg($definition['pictograms'][$layout] ?? []), 'name' => $layout];
 }
-$layoutChanged = $block['layout'] !== $composedLayout;
+$layoutChanged = $block['layout'] !== '';
+$readout = t('block.' . $type . '.layout.' . $effectiveLayout) . ($layoutChanged ? '' : ' · ' . t('builder.layout_character'));
 $layoutGroup = count($tiles) > 1
-    ? Controls::row(t('pages.layout'), Controls::tiles($prefix . '[layout]', $tiles, $block['layout'], $idPrefix . 'layout-label', $idPrefix . 'layout-'), ['key' => 'b.layout', 'labelId' => $idPrefix . 'layout-label', 'changed' => $layoutChanged, 'readout' => t('block.' . $type . '.layout.' . $block['layout'])] + ($layoutChanged ? ['reset' => $reset('b.layout:' . $composedLayout)] : []))
+    ? Controls::row(t('pages.layout'), Controls::tiles($prefix . '[layout]', $tiles, $effectiveLayout === $composedLayout ? '' : $effectiveLayout, $idPrefix . 'layout-label', $idPrefix . 'layout-'), ['key' => 'b.layout', 'labelId' => $idPrefix . 'layout-label', 'changed' => $layoutChanged, 'readout' => $readout] + ($layoutChanged ? ['reset' => $reset('b.layout:')] : []))
     : '<input type="hidden" name="' . e($prefix) . '[layout]" value="' . e($block['layout']) . '">';
 // ONE LEFT ALONE, SAID (D-189, the owner): a layout of a fixed count across keeps the items it
 // is given (D-186), so four numbers in three across are three and one. Said under Layout.
-$across = $definition['across'][$block['layout']] ?? 0;
+$across = $definition['across'][$effectiveLayout] ?? 0;
 if ($across > 0) {
     $repeater = (string) array_key_first(array_filter($definition['fields'], static fn (array $f): bool => $f['type'] === 'repeater'));
     $count = is_array($block['content'][$repeater] ?? null) ? count($block['content'][$repeater]) : 0;
@@ -72,7 +78,7 @@ foreach ($specs as $name => $spec) {
     $path = 'b.options.' . $name;
     // An option this layout does not act on is not shown (D-187); its value goes with the form,
     // kept for the layout it was set in.
-    if (!BlockOptions::applies($spec, $block['layout'])) {
+    if (!BlockOptions::applies($spec, $effectiveLayout)) {
         $optionsKept .= '<input type="hidden" name="' . e($prefix . '[options][' . $name . ']') . '" value="' . e($stored) . '">';
         continue;
     }
@@ -126,7 +132,7 @@ $changed = count(array_filter($block['options'], static fn (string $v): bool => 
         <p class="inspector-context"><?= e(t('builder.block_context', ['section' => $sectionName])) ?></p>
     </div>
 <?php if ($changed > 0): ?>
-    <button type="button" class="link-button inspector-reset" data-reset-all="block" data-layout="<?= e($composedLayout) ?>"><?= icon('history') ?> <?= e(t('builder.reset_to_character')) ?></button>
+    <button type="button" class="link-button inspector-reset" data-reset-all="block" data-layout=""><?= icon('history') ?> <?= e(t('builder.reset_to_character')) ?></button>
 <?php endif; ?>
 </div>
 <?php

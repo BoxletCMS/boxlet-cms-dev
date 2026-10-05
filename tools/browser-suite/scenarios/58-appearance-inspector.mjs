@@ -11,7 +11,7 @@
  * rule of 2026-10-02: checks on the copy, never on the owner's site).
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openSection } from '../harness.mjs';
+import { login, openSection, openBuilder, publish } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const shot = (report, page, name) => report.shot(page, name, { fullPage: false });
@@ -192,6 +192,17 @@ export default {
     await shot(report, page, '04-layout');
 
     // ---- the question Publish asks, where the answer is given ----------------------------------
+    // A SECTION STYLED BY HAND, made here (D-191): Apply hands back section styles only, and an
+    // earlier scenario's Apply (03) leaves the demo with none, so the question had nothing to
+    // count. The home page's last band given its own top room, put back at the end.
+    await openBuilder(page, BASE, 1);
+    const tuned = await page.evaluate(() => {
+      const s = window.pb.doc.sections[window.pb.doc.sections.length - 1];
+      const was = (s.style || {}).pad_top || '';
+      window.pb.change(() => { s.style.pad_top = was === '120' ? '96' : '120'; }, { sections: [s.key] });
+      return { key: s.key, was };
+    });
+    await publish(page);
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     const other2 = await page.$$eval('.character-tile', (tiles) => {
       const free = tiles.find((t) => !t.classList.contains('is-current'));
@@ -237,5 +248,9 @@ export default {
       asked !== null && /styled by hand/.test(asked.restyled) && asked.cancel !== null && /\/admin\/appearance$/.test(asked.cancel), JSON.stringify(asked));
     // Not answered: leaving the screen publishes nothing.
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle2' });
+    // The band's own top room put back as it was.
+    await openBuilder(page, BASE, 1);
+    await page.evaluate((t) => { const s = window.pb.section(t.key); if (s) { window.pb.change(() => { s.style.pad_top = t.was; }, { sections: [s.key] }); } }, tuned);
+    await publish(page);
   },
 };

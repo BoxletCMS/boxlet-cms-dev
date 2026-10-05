@@ -94,13 +94,13 @@ final class AppearanceController
          * PUBLISH ASKS ONCE, when the answer is destructive (D-068, handoff §2.1).
          *
          * Applying a character to a site that already has blocks can rewrite every section's
-         * style and layout, so that has always needed two explicit buttons. They used to sit
+         * style, so that has always needed two explicit buttons. They used to sit
          * in the bar permanently — three buttons for a choice that matters on the rare
          * publish after loading a character — so the bar is one Publish now and the question
          * is asked at the moment it applies.
          */
         if ($action === 'save' && $character !== '' && Composition::hasBlocks($db)) {
-            return $this->screen->render($state, [], null, 200, $character, ['confirm' => true, 'restyled' => Composition::styledByHand($db)]);
+            return $this->screen->render($state, [], null, 200, $character, ['confirm' => true, 'restyled' => Composition::styledByHand($db), 'ownLayouts' => Composition::ownLayouts($db, $this->container->get('blocks'))]);
         }
         $composing = $action === 'save_composition';
 

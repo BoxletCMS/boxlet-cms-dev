@@ -110,13 +110,11 @@ final class PageDraft
 
     /**
      * Every draft handed back to a character, as Composition::apply() hands back the published
-     * pages (D-163 point 5): each section's composed keys to '', each block's options too, and
-     * each block's layout to the character's — a cover hero keeping its cover (D-120). Never
-     * content. Each draft's version moves on, so a tab still open on it is told it changed.
-     *
-     * @param \Closure(string): string $layout block type => the character's layout for it
+     * pages (D-163 point 5): each section's composed keys to ''. A block's layout and options
+     * stay (D-191). Never content. Each draft's version moves on, so a tab still open on it is
+     * told it changed.
      */
-    public static function handBack(Db $db, Blocks $registry, \Closure $layout): void
+    public static function handBack(Db $db, Blocks $registry): void
     {
         $now = gmdate('Y-m-d H:i:s');
         foreach ($db->all('SELECT page_id, draft_json, version FROM page_drafts') as $row) {
@@ -126,15 +124,6 @@ final class PageDraft
             }
             foreach ($document['sections'] as $at => $section) {
                 $document['sections'][$at]['style'] = SectionStyle::reset($section['style']);
-            }
-            foreach ($document['blocks'] as $at => $block) {
-                if ($block['content'] === null) {
-                    continue;
-                }
-                $document['blocks'][$at]['options'] = array_map(static fn (): string => '', $block['options']);
-                if (!($block['type'] === 'hero' && str_starts_with($block['layout'], 'cover-'))) {
-                    $document['blocks'][$at]['layout'] = $layout($block['type']);
-                }
             }
             $json = PageDocument::encode($document);
             if ($json !== null) {

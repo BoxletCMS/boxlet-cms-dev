@@ -122,8 +122,10 @@ testBothDrivers('a new section stores nothing, and is drawn as the character the
     foreach ($blocks as $block) {
         assertTrue(!SectionStyle::overridden(SectionStyle::normalize($block['style'])), "{$block['type']} stored a style");
     }
-    assertEquals('split', (string) $blocks[0]['layout'], 'hero layout');
+    // CHANGED DELIBERATELY with D-191: a new block stores '' and follows the character.
+    assertEquals('', (string) $blocks[0]['layout'], 'hero layout, following');
     assertContains('width-full', dispatch('/' . $slug)->body, 'drawn as Brutalist');
+    assertContains('layout-split', dispatch('/' . $slug)->body, 'in Brutalist\'s hero layout');
 
     // Another character, published as design only: the sections nobody touched follow it.
     Composition::remember($db, 'editorial');
@@ -165,7 +167,9 @@ testBothDrivers('applying a character hands back what was set by hand only when 
     assertEquals('top', $reset['anchor'] ?? null, 'the anchor stays');
     assertEquals('yes', $reset['hide_mobile'] ?? null, 'and where it is hidden');
     assertEquals(0, Composition::styledByHand($db), 'nothing left styled by hand');
-    assertEquals('left', (string) ($db->one('SELECT layout FROM page_blocks')['layout'] ?? ''), 'the layout was not reset');
+    // CHANGED DELIBERATELY with D-191 (the owner): a layout the owner chose is theirs, and
+    // Apply keeps it; one that follows the character follows it already.
+    assertEquals('center', (string) ($db->one('SELECT layout FROM page_blocks')['layout'] ?? ''), 'the owner\'s layout, kept');
     $body = dispatch('/about')->body;
     assertContains(implode(' ', SectionStyle::classes(SectionStyle::effective(SectionStyle::normalize($reset), Composition::style('editorial', 'hero')))), $body, 'the rendered section, as Editorial composes it');
     assertContains('id="top"', $body, 'still answering to its anchor');
@@ -201,7 +205,8 @@ test('the choice between design and composition is asked at Publish, never taken
 
 test('the preview shows the character composition, not only its palette', function () {
     $db = adminSite('sqlite');
-    createPage($db, 'en', '', 'Home', true, [['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['width' => 'narrow'], 'layout' => 'center']]);
+    // Following the character (D-191): the preview draws it in the character being tried.
+    createPage($db, 'en', '', 'Home', true, [['type' => 'hero', 'content' => ['heading' => 'Hi'], 'style' => ['width' => 'narrow'], 'layout' => '']]);
 
     $plain = dispatch('/admin/appearance/preview')->body;
     assertContains('width-narrow', $plain, 'the stored section style');

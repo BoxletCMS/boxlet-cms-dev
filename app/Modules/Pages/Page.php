@@ -4,7 +4,6 @@ namespace App\Modules\Pages;
 
 use App\Core\Blocks;
 use App\Core\Db;
-use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Media\MediaReference;
 use App\Modules\Redirects\Redirects;
@@ -120,7 +119,7 @@ final class Page
                 'content' => $known ? $registry->normalize($block['type'], $block['content']) : null,
                 'style' => SectionStyle::normalize($block['style']),
                 'options' => $known ? \App\Core\BlockOptions::normalize($registry->get($block['type'])['options'], $block['options']) : [],
-                'layout' => $known ? $registry->layout($block['type'], $block['layout']) : '',
+                'layout' => $known ? $registry->own($block['type'], $block['layout']) : '',
                 'section' => SectionForm::key($block['section'] > 0 ? $block['section'] : null, 0),
                 'column' => $block['column'],
             ];
@@ -157,17 +156,15 @@ final class Page
     }
 
     /**
-     * Creates a draft page with empty blocks of the given types, each composed as the
-     * active character composes that block type (SPEC §5.4). The page and each block
-     * start their own groups.
+     * Creates a draft page with empty blocks of the given types, each following the
+     * character: drawn as whatever character the site has composes that block type (SPEC
+     * §5.4, D-191). The page and each block start their own groups.
      *
      * @param list<string> $blockTypes
-     * @param string|null  $character   the character new blocks start from; null for the
-     *                                  block's own defaults
      */
-    public static function create(Db $db, Blocks $registry, string $locale, string $title, string $slug, ?int $templateId, array $blockTypes, ?string $character = null): int
+    public static function create(Db $db, Blocks $registry, string $locale, string $title, string $slug, ?int $templateId, array $blockTypes): int
     {
-        return $db->transaction(static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes, $character): int {
+        return $db->transaction(static function () use ($db, $registry, $locale, $title, $slug, $templateId, $blockTypes): int {
             $now = gmdate('Y-m-d H:i:s');
             // A new page goes last among its siblings. Without this every page keeps the
             // column's default of 0, they all tie, and the order a drag just set is
@@ -190,7 +187,8 @@ final class Page
                     'type' => $type,
                     'content' => $registry->fresh($type),
                     'style' => \App\Modules\Design\SectionStyle::normalize([]), // every key '' — the character's (D-165)
-                    'layout' => Composition::layout($registry, $character, $type),
+                    // Following the character (D-191): drawn in its composition's layout.
+                    'layout' => '',
                 ];
                 // One block, one section, in its only column — a new page has no
                 // arrangement to express yet, and the template that gives it one will say

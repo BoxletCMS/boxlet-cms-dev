@@ -169,9 +169,10 @@ final class Controls
      * script, arrow keys move between them, and the posted name and values are the same, so
      * swapping one for the other changes nothing a save reads.
      *
-     * @param array<array-key, array{label: string, picture: string, title?: string}> $options value
+     * @param array<array-key, array{label: string, picture: string, title?: string, name?: string}> $options value
      *        => its name, its drawing as markup (an SVG built from attributes, never a style),
-     *        and its full name when the name shown is a short one (D-179)
+     *        its full name when the name shown is a short one (D-179), and what it is when its
+     *        value does not say (D-191)
      * @param string $form the form the radios belong to, when it is not the one they stand in
      */
     public static function tiles(string $name, array $options, string $current, string $labelledBy, string $idPrefix, string $form = ''): string
@@ -181,7 +182,10 @@ final class Controls
             $value = (string) $value;
             // A short visible label keeps its full name as the tile's tooltip and its name read aloud.
             $title = ($option['title'] ?? '') !== '' && $option['title'] !== $option['label'] ? $option['title'] : '';
-            $html .= '<label class="tile-option"' . ($title !== '' ? ' title="' . e($title) . '"' : '') . '><input type="radio" id="' . e($idPrefix . $value) . '" name="' . e($name) . '" value="' . e($value) . '"'
+            // A tile whose value is not its name (a layout that follows the character is '',
+            // D-191) still says which it is.
+            $html .= '<label class="tile-option"' . ($title !== '' ? ' title="' . e($title) . '"' : '') . '><input type="radio" id="' . e($idPrefix . ($option['name'] ?? $value)) . '" name="' . e($name) . '" value="' . e($value) . '"'
+                . (isset($option['name']) ? ' data-tile="' . e($option['name']) . '"' : '')
                 . ($title !== '' ? ' aria-label="' . e($title) . '"' : '')
                 . ($form !== '' ? ' form="' . e($form) . '"' : '') . ($value === $current ? ' checked' : '') . '>'
                 . '<span class="tile-picture" aria-hidden="true">' . $option['picture'] . '</span>'

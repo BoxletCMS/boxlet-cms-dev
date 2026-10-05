@@ -26,7 +26,8 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     foreach ($db->all('SELECT id FROM pages') as $page) {
         $blocks = App\Modules\Pages\Page::blocks($db, (int) $page['id']);
         foreach ($blocks as $block) {
-            $used['layout'][] = $block['type'] . '/' . $block['layout'];
+            // As drawn: '' follows the character (D-191).
+            $used['layout'][] = $block['type'] . '/' . ($block['layout'] !== '' ? $block['layout'] : Composition::layout($registry, $character, $block['type']));
         }
         foreach (Sections::group(Sections::forPage($db, (int) $page['id']), $blocks) as $group) {
             $style = SectionRender::style($character, $group['section']['style'], $group['blocks']);
@@ -127,10 +128,6 @@ testBothDrivers('the demo styles by hand only the sections that mean to differ f
         'en /blocks#6' => 'the contrast surface, the curve edge',
         'en /blocks#7' => 'a band taller than its content, content at the top',
         'en /blocks#9' => 'the same, content at the bottom',
-        'en /blocks#16' => 'a gallery as the pictures are',
-        'en /blocks#18' => 'a gallery of circles',
-        'en /blocks#21' => 'a picture, wide',
-        'en /blocks#22' => 'a picture, wide, inset',
         'en /blocks#25' => 'the narrow width',
         'hr /#0' => 'Intro, translated',
         'hr /#4' => 'Contact, translated',
@@ -141,8 +138,9 @@ testBothDrivers('the demo styles by hand only the sections that mean to differ f
         $page = $row['locale'] . ' /' . $row['slug'];
         $at[$page] = ($at[$page] ?? -1) + 1;
         $style = SectionStyle::normalize(json_decode((string) $row['style_json'], true));
-        $options = array_filter(array_map(static fn (array $b): string => (string) $b['options_json'], $db->all('SELECT options_json FROM page_blocks WHERE section_id = ?', [$row['id']])), static fn (string $o): bool => $o !== '' && $o !== '[]' && $o !== '{}');
-        if (SectionStyle::overridden($style) || $options !== []) {
+        // A section's own style only: a block's options are the owner's and Apply keeps them,
+        // so they no longer make a section "styled by hand" (CHANGED DELIBERATELY, D-191).
+        if (SectionStyle::overridden($style)) {
             $styled[] = $page . '#' . $at[$page];
         }
     }

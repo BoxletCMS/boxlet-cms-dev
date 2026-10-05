@@ -76,15 +76,10 @@ final class AppearancePreview
         // Each section as it would be drawn under the character being tried: the owner's own
         // values over what that character composes (D-165), which is what publishing the
         // design gives — drawn by the page's own drawing, so the picture is the page (D-168).
-        // A loaded character's layouts are shown as Apply would make them.
+        // A block that follows the character is drawn in the layout the one being tried names
+        // (PageRender); a layout the owner chose is drawn as it is (D-191).
         $basis = $character !== '' ? $character : Composition::active($this->db());
         if ($home !== null) {
-            $layouts = [];
-            if ($character !== '') {
-                foreach ($registry->types() as $type) {
-                    $layouts[$type] = Composition::layout($registry, $character, $type);
-                }
-            }
             $drawn = PageRender::draw(
                 $this->db(),
                 $registry,
@@ -92,7 +87,7 @@ final class AppearancePreview
                 $shown,
                 $basis,
                 (string) $this->container->get('config')->get('app.key'),
-                ['pageId' => (int) $home['id'], 'layouts' => $layouts, 'design' => Tokens::resolve($decisions, $basis)],
+                ['pageId' => (int) $home['id'], 'design' => Tokens::resolve($decisions, $basis)],
             );
             $html = $drawn['html'];
             $firstSurface = $drawn['firstSurface'];

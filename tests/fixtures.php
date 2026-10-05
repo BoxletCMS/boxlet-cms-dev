@@ -193,7 +193,8 @@ function createPage(Db $db, string $locale, string $slug, string $title, bool $p
                 'style' => SectionStyle::normalize($block['style'] ?? []),
                 // The block's options, as a form sends them (D-166).
                 'options' => $block['options'] ?? [],
-                'layout' => $registry->layout($block['type'], $block['layout'] ?? null),
+                // '' follows the character (D-191); left out, the block's own default by name.
+                'layout' => ($block['layout'] ?? null) === '' ? '' : $registry->layout($block['type'], $block['layout'] ?? null),
             ];
         }
         Page::update($db, $registry, $id, ['title' => $title, 'slug' => $slug, 'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}'], $rows);

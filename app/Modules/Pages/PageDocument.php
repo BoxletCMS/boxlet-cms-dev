@@ -142,7 +142,7 @@ final class PageDocument
                 'content' => $knownType ? BlockForm::clean($registry, $type, is_array($block['content'] ?? null) ? $block['content'] : []) : null,
                 'style' => $style,
                 'options' => $knownType ? BlockOptions::normalize($registry->get($type)['options'], $block['options'] ?? null) : [],
-                'layout' => $knownType ? $registry->layout($type, $block['layout'] ?? null) : '',
+                'layout' => $knownType ? $registry->own($type, $block['layout'] ?? null) : '',
                 'section' => $section,
                 'column' => isset($block['column']) && is_int($block['column']) ? max(0, $block['column']) : 0,
             ];

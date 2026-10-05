@@ -106,6 +106,16 @@ final class Blocks
     }
 
     /**
+     * The layout as it is STORED (PLAN.md D-191, the owner): '' follows the character, and is
+     * drawn in the layout its composition names (PageRender); any other is the owner's own,
+     * kept through Apply, and a name the block no longer declares is its default.
+     */
+    public function own(string $type, mixed $layout): string
+    {
+        return $layout === '' || $layout === null ? '' : $this->layout($type, $layout);
+    }
+
+    /**
      * Every field of the block present, with stored values of the wrong shape replaced by
      * the field's empty value, so templates never check whether a key exists.
      *

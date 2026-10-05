@@ -8,7 +8,6 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Modules\Admin\Activity;
 use App\Modules\Admin\AdminView;
-use App\Modules\Design\Composition;
 use App\Support\Dates;
 use App\Support\Url;
 
@@ -196,7 +195,7 @@ final class PagesController
                 $types[] = $type;
             }
         }
-        $id = Page::create($db, $registry, $pageLocale, $title, $slug, $template['id'] ?? null, $types, Composition::active($db));
+        $id = Page::create($db, $registry, $pageLocale, $title, $slug, $template['id'] ?? null, $types);
         Activity::record($db, 'page', 'created', $id, $title);
         $this->container->get('session')->set('flash', t('pages.created'));
 

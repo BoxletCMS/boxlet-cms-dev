@@ -122,11 +122,17 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
     require __DIR__ . '/field.php';
 ?>
 <?php endforeach; ?>
-<?php $layouts = $registry->get($block['type'])['layouts']; ?>
+<?php
+    $layouts = $registry->get($block['type'])['layouts'];
+    // '' follows the character (D-191): the first choice, naming the layout it gives.
+    $composedLayout = Composition::layout($registry, $character, $block['type']);
+    $effectiveLayout = $block['layout'] !== '' ? $block['layout'] : $composedLayout;
+?>
 <?php if (count($layouts) > 1): ?>
                 <div class="field">
                     <label for="<?= e($idPrefix) ?>layout"><?= e(t('pages.layout')) ?></label>
                     <select id="<?= e($idPrefix) ?>layout" name="<?= e($prefix) ?>[layout]">
+                        <option value=""<?= $block['layout'] === '' ? ' selected' : '' ?>><?= e(t('style.auto', ['value' => t('block.' . $block['type'] . '.layout.' . $composedLayout)])) ?></option>
 <?php foreach ($layouts as $layoutOption): ?>
                         <option value="<?= e($layoutOption) ?>"<?= $layoutOption === $block['layout'] ? ' selected' : '' ?>><?= e(t('block.' . $block['type'] . '.layout.' . $layoutOption)) ?></option>
 <?php endforeach; ?>
@@ -147,7 +153,7 @@ $staleFrom = isset($translation) && $block['id'] !== null ? ($translation['stale
     $optionLabel = $idPrefix . 'option-' . $optionName . '-label';
     $optionKey = 'block.' . $block['type'] . '.option.' . $optionName;
     // Not shown where its layout does not act on it (D-187), and kept as it is stored.
-    if (!\App\Core\BlockOptions::applies($optionSpec, $block['layout'])):
+    if (!\App\Core\BlockOptions::applies($optionSpec, $effectiveLayout)):
 ?>
                 <input type="hidden" name="<?= e($prefix) ?>[options][<?= e($optionName) ?>]" value="<?= e($optionsStored[$optionName]) ?>">
 <?php continue; endif; ?>

@@ -53,7 +53,7 @@ final class PageBuilderController
         $id = (int) $page['id'];
         $character = Composition::active($this->db());
         $state = PageDraft::state($this->db(), $page);
-        $library = $this->library($character, (string) $page['locale']);
+        $library = $this->library((string) $page['locale']);
 
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/builder', [
             'title' => t('pages.edit'),
@@ -86,8 +86,10 @@ final class PageBuilderController
                 'version' => $current['version'],
                 'document' => $current['document'],
                 'library' => $library,
-                // Each block type's layouts by name, for the canvas toolbar's dropdown.
+                // Each block type's layouts by name, for the canvas toolbar's dropdown, and the
+                // one the character composes, which a block following it ('') is drawn in (D-191).
                 'layouts' => $this->layouts(),
+                'composed' => array_combine($this->registry()->types(), array_map(fn (string $type): string => Composition::layout($this->registry(), $character, $type), $this->registry()->types())),
                 'setPatterns' => PagePattern::fromSet($character, (string) $page['locale']),
                 'setName' => Characters::label($character),
                 // Typing on the page (D-178): what each field is, a repeater's new item, the pages.
@@ -166,7 +168,7 @@ final class PageBuilderController
             'save.saving', 'save.saved', 'save.failed', 'save.conflict', 'save.reload', 'save.idle', 'publishing', 'published', 'publish_refused',
             'discard_confirm', 'structure.sections', 'structure.sections_one', 'structure.blocks', 'structure.blocks_one', 'structure.column', 'structure.empty', 'add.where_end', 'add.where_after', 'add.none_found',
             'canvas.add_here', 'canvas.add_end', 'canvas.insert_title', 'canvas.close', 'canvas.hidden_here', 'canvas.move_up', 'canvas.move_down',
-            'canvas.copy', 'canvas.delete', 'canvas.layout', 'canvas.page', 'canvas.empty', 'section_n', 'pattern_name', 'pattern_saved', 'delete_confirm',
+            'canvas.copy', 'canvas.delete', 'canvas.layout', 'layout_character', 'canvas.page', 'canvas.empty', 'section_n', 'pattern_name', 'pattern_saved', 'delete_confirm',
             'page.restored', 'device.desktop', 'device.tablet', 'device.phone', 'add.mine', 'add.none_mine', 'add.from_set', 'inline.remove_item', 'inline.item_before', 'inline.item_after', 'inline.link_title', 'inline.link_text', 'inline.link_page', 'inline.link_other', 'inline.link_url', 'inline.link_done', 'inline.link_remove',
         ];
         $strings = [];
@@ -236,12 +238,12 @@ final class PageBuilderController
 
     /**
      * Every block that can be added: its name, its icon, a line about what it is for (D-104)
-     * — no live picture of it (README 4.2) — and what a new one starts as: its fresh content
-     * and the layout the character composes it in.
+     * — no live picture of it (README 4.2) — and what a new one starts as: its fresh content,
+     * following the character's layout ('', D-191).
      *
      * @return list<array{type: string, label: string, icon: string, group: string, summary: string, fresh: array<string, mixed>, layout: string}>
      */
-    private function library(string $character, string $locale): array
+    private function library(string $locale): array
     {
         $registry = $this->registry();
         $types = $registry->types();
@@ -257,7 +259,8 @@ final class PageBuilderController
                 'summary' => t('block.' . $type . '.summary'),
                 // A new block says what each part is for, in the page's language (D-176).
                 'fresh' => $registry->sampled($type, static fn (string $key): string => site_t($key, $locale, 'samples')),
-                'layout' => Composition::layout($registry, $character, $type),
+                // A new block follows the character (D-191, the owner).
+                'layout' => '',
             ];
         }
 

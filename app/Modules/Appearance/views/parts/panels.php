@@ -23,6 +23,7 @@ use App\Support\Url;
  * @var array{set: array<string, mixed>, warnings: list<string>}|null $import
  * @var bool $confirm
  * @var int $restyled how many sections hold something set by hand, which Apply hands back (D-165)
+ * @var int $ownLayouts how many blocks have a layout of the owner's own, which Apply keeps (D-191)
  * @var string $character
  * @var Closure(array<string, string>, string, string, string): string $card
  */
@@ -59,6 +60,9 @@ use App\Support\Url;
                                 <span class="hint hint-always"><?= e(t('design.apply.with_composition_hint')) ?></span>
 <?php if ($restyled > 0): ?>
                                 <span class="hint hint-always" data-restyled><?= e(t($restyled === 1 ? 'inspector.apply.restyles_one' : 'inspector.apply.restyles_many', ['count' => (string) $restyled])) ?></span>
+<?php endif; ?>
+<?php if ($ownLayouts > 0): ?>
+                                <span class="hint hint-always" data-own-layouts><?= e(t($ownLayouts === 1 ? 'inspector.apply.own_layout_one' : 'inspector.apply.own_layouts_many', ['count' => (string) $ownLayouts])) ?></span>
 <?php endif; ?>
                             </span>
                             <?php /* A WAY OUT (D-161): the screen as the site is published, which is

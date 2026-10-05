@@ -292,7 +292,9 @@ test('a character composes a section from the type its blocks agree on', functio
     assertEquals(SectionStyle::DEFAULTS, Composition::section(null, []), 'no character');
 });
 
-testBothDrivers('applying a character resets a hero\'s arrangement, but never takes a cover hero\'s picture from behind its words', function (string $driver) {
+// CHANGED DELIBERATELY with D-191 (the owner): Apply touches no block's layout; a layout the
+// owner chose is theirs. The cover hero's own rule (D-120) is now everyone's.
+testBothDrivers('applying a character takes no hero\'s arrangement, a cover hero\'s or any other', function (string $driver) {
     $db = adminSite($driver);
     $id = createPage($db, 'en', 'about', 'About', false, [
         ['type' => 'hero', 'content' => ['heading' => 'Behind'], 'layout' => 'cover-left'],
@@ -302,8 +304,8 @@ testBothDrivers('applying a character resets a hero\'s arrangement, but never ta
     Composition::apply($db, blockRegistry(), 'minimal');
 
     $layouts = array_column($db->all('SELECT layout FROM page_blocks WHERE page_id = ? ORDER BY sort', [$id]), 'layout');
-    assertEquals('cover-left', $layouts[0] ?? null, 'the cover hero was reset to the character\'s arrangement');
-    assertEquals(Composition::layout(blockRegistry(), 'minimal', 'hero'), $layouts[1] ?? null, 'a hero beside its picture is still reset, as the button says');
+    assertEquals('cover-left', $layouts[0] ?? null, 'the cover hero keeps its picture behind its words');
+    assertEquals('split', $layouts[1] ?? null, 'a hero beside its picture, kept as the owner chose');
 });
 
 testBothDrivers('applying a character composes each section once, from what it holds', function (string $driver) {
@@ -321,7 +323,8 @@ testBothDrivers('applying a character composes each section once, from what it h
     $first = (int) $row['section_id'];
     $db->query('UPDATE page_blocks SET section_id = ?, column_index = 1 WHERE id = ?', [$first, $blocks[1]]);
     Sections::prune($db, $id);
-    Sections::save($db, $id, $first, 0, [], gmdate('Y-m-d H:i:s'), 'halves', 'stack');
+    Sections::save($db, $id, $first, 0, ['surface' => 'contrast'], gmdate('Y-m-d H:i:s'), 'halves', 'stack');
+    $before = array_map(static fn (array $r): string => (string) $r['layout'], $db->all('SELECT layout FROM page_blocks WHERE page_id = ? ORDER BY id', [$id]));
 
     $changed = Composition::apply($db, $registry, 'soft');
 
@@ -338,14 +341,9 @@ testBothDrivers('applying a character composes each section once, from what it h
     // Counted in SECTIONS, because that is the word the message uses: "…:count sections
     // were reset". Two blocks standing in one section are one section restyled.
     assertEquals(1, $changed, 'the number the message reports');
-    // Layer 3 is still the block's own and is composed per type, however many types stand
-    // in the section.
+    // Layer 3 is the block's own, and Apply leaves it (CHANGED DELIBERATELY, D-191).
     $layouts = $db->all('SELECT block_type, layout FROM page_blocks WHERE page_id = ? ORDER BY id', [$id]);
-    assertEquals(
-        [Composition::layout($registry, 'soft', 'hero'), Composition::layout($registry, 'soft', 'form')],
-        array_map(static fn (array $r): string => (string) $r['layout'], $layouts),
-        'each block took its own type\'s layout',
-    );
+    assertEquals($before, array_map(static fn (array $r): string => (string) $r['layout'], $layouts), 'each block kept its layout');
 });
 
 testBothDrivers('a save that names its sections puts two blocks in one, side by side', function (string $driver) {

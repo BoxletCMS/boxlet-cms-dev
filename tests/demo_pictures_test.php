@@ -47,8 +47,10 @@ testBothDrivers('the demo puts its six pictures where the owner placed them, des
     assertEquals($id('process-plan'), $onHome['image_text'][0]['content']['image'] ?? null, 'From sketch to keys');
     assertEquals($id('about-studio'), $blocks($about)['image_text'][0]['content']['image'] ?? null, 'the About page');
 
-    // The home hero follows its character since the owner's decision: Soft draws it split.
-    assertEquals(Composition::layout($registry, DemoSite::CHARACTER, 'hero'), $onHome['hero'][0]['layout'] ?? null, 'the hero\'s layout is the character\'s');
+    // The home hero follows its character since the owner's decision, stored as '' since
+    // D-191 (CHANGED DELIBERATELY): drawn split under Soft, and changing with the character.
+    assertEquals('', $onHome['hero'][0]['layout'] ?? null, 'the hero follows the character');
+    assertContains('block-hero layout-' . Composition::layout($registry, DemoSite::CHARACTER, 'hero'), dispatch('/')->body, 'and is drawn in its layout');
 
     // And the site is the studio the pages are about (D-177).
     assertEquals('Atelier Lumen', App\Core\Settings::text($db, 'site_name'), 'the demo names the site');

@@ -90,6 +90,7 @@ return [
     'block.gallery.items.item' => 'Picture',
     'block.accordion.items.item' => 'Question',
     'block.stats.items.item' => 'Number',
+    'builder.layout_character' => 'the character’s',
     'block.stats.alone' => ':count numbers in :across across leave one alone in the last row.',
     'block.gallery.alone' => ':count pictures in :across across leave one alone in the last row.',
     'block.logos.items.item' => 'Logo',

@@ -150,83 +150,55 @@ final class Composition
 
     /**
      * Hands every section on the site back to the character: each composed key the owner set
-     * goes back to '' (SectionStyle::reset), every block's options too (D-166), and every
-     * block's layout to the character's.
-     * The picture, a section's name, its anchor and where it is hidden stay — they are not
-     * the character's to have an opinion on.
+     * goes back to '' (SectionStyle::reset). The picture, a section's name, its anchor and
+     * where it is hidden stay — they are not the character's to have an opinion on.
+     *
+     * A BLOCK'S LAYOUT AND OPTIONS ARE NOT TOUCHED (PLAN.md D-191, the owner, in place of
+     * D-166's "every option back"): one that follows the character ('') follows it already,
+     * and one the owner chose is theirs, given back on the block by "Reset to character". The
+     * page of every block keeps every layout it shows under every character.
      *
      * Destructive, so it only ever runs when the owner picked it over publishing the design
      * alone. It is no longer what changing character needs: a section nobody touched follows
      * the character already (D-165). It is the way to undo the touching.
      *
-     * @return int the number of SECTIONS that had anything of the owner's to give back, or
-     *         a layout that was not the character's: what the message reports
+     * @return int the number of SECTIONS that had a style of the owner's to give back: what
+     *         the message reports
      */
     public static function apply(Db $db, Blocks $registry, string $character): int
     {
         $now = gmdate('Y-m-d H:i:s');
         $changed = 0;
-
-        // A block this installation cannot draw is left alone: its stored layout is the
-        // only record of what it was.
-        $sections = [];
-        foreach ($db->all(
-            'SELECT s.id, s.style_json, b.block_type, b.layout, b.options_json FROM page_sections s
-             LEFT JOIN page_blocks b ON b.section_id = s.id
-             ORDER BY s.id, b.column_index, b.sort, b.id',
-        ) as $row) {
-            $id = (int) $row['id'];
-            $sections[$id] ??= ['style' => (string) $row['style_json'], 'blocks' => [], 'options' => false];
-            $type = (string) ($row['block_type'] ?? '');
-            if ($registry->has($type)) {
-                $sections[$id]['blocks'][] = ['type' => $type, 'layout' => (string) $row['layout']];
-                $options = json_decode((string) ($row['options_json'] ?? ''), true);
-                $sections[$id]['options'] = $sections[$id]['options'] || (is_array($options) && $options !== []);
-            }
-        }
-
-        foreach ($sections as $id => $section) {
-            $stored = json_decode($section['style'], true);
+        foreach ($db->all('SELECT id, style_json FROM page_sections') as $row) {
+            $stored = json_decode((string) $row['style_json'], true);
             $style = SectionStyle::normalize(is_array($stored) ? $stored : []);
-            $restyled = SectionStyle::overridden($style);
-            if ($restyled) {
+            if (SectionStyle::overridden($style)) {
                 $db->query(
                     'UPDATE page_sections SET style_json = ?, updated_at = ? WHERE id = ?',
-                    [json_encode(SectionStyle::reset($style), JSON_THROW_ON_ERROR), $now, $id],
+                    [json_encode(SectionStyle::reset($style), JSON_THROW_ON_ERROR), $now, (int) $row['id']],
                 );
-            }
-            // A COVER HERO KEEPS ITS COVER (PLAN.md D-120). Its arrangement says what its
-            // picture IS — the thing behind the words — and that is content, which a character
-            // does not own.
-            foreach ($section['blocks'] as $block) {
-                if ($block['type'] === 'hero' && str_starts_with($block['layout'], 'cover-')) {
-                    continue;
-                }
-                $layout = self::layout($registry, $character, $block['type']);
-                if ($block['layout'] !== $layout) {
-                    $restyled = true;
-                }
-            }
-            // Every option the owner set goes back to the character too (D-166).
-            if ($section['options']) {
-                $restyled = true;
-            }
-            foreach (array_unique(array_column($section['blocks'], 'type')) as $type) {
-                $db->query(
-                    'UPDATE page_blocks SET layout = ?, options_json = \'{}\', updated_at = ? WHERE section_id = ? AND block_type = ?'
-                    . ($type === 'hero' ? " AND layout NOT LIKE 'cover-%'" : ''),
-                    [self::layout($registry, $character, $type), $now, $id, $type],
-                );
-            }
-            if ($restyled) {
                 $changed += 1;
             }
         }
         // And every draft the same way: what the owner is preparing would otherwise publish the
         // old styling back over the page just handed back (D-163 point 5, D-173).
-        PageDraft::handBack($db, $registry, static fn (string $type): string => self::layout($registry, $character, $type));
+        PageDraft::handBack($db, $registry);
 
         return $changed;
+    }
+
+    /**
+     * How many blocks on the site have a layout of the owner's own, not the character's
+     * (D-191): what Apply keeps, said beside what it hands back, for information.
+     */
+    public static function ownLayouts(Db $db, Blocks $registry): int
+    {
+        $own = 0;
+        foreach ($db->all("SELECT block_type FROM page_blocks WHERE layout <> ''") as $row) {
+            $own += $registry->has((string) $row['block_type']) ? 1 : 0;
+        }
+
+        return $own;
     }
 
     /**
@@ -259,13 +231,7 @@ final class Composition
                 $styled[(int) $row['id']] = true;
             }
         }
-        // A section is styled by hand too when a block in it has an option of the owner's.
-        foreach ($db->all('SELECT section_id, options_json FROM page_blocks') as $row) {
-            $options = json_decode((string) ($row['options_json'] ?? ''), true);
-            if (is_array($options) && $options !== [] && $row['section_id'] !== null) {
-                $styled[(int) $row['section_id']] = true;
-            }
-        }
+        // A block's option of the owner's is no longer counted: Apply keeps it (D-191).
 
         return count($styled);
     }

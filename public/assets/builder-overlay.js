@@ -206,10 +206,15 @@
         var select = el('select', 'bx-toolbar-layout');
         select.title = pb.t('canvas.layout');
         select.setAttribute('data-bx-layout', sel.key);
+        // The character's layout is '' — following it (D-191): choosing it never keeps a
+        // layout by hand. A block that follows shows that one as its own.
+        var composed = (pb.data.composed || {})[block.type];
+        var drawn = block.layout || composed;
         layouts.forEach(function (l) {
-          var o = el('option', '', (l.value === block.layout ? '✓ ' : '') + l.label);
-          o.value = l.value;
-          o.selected = l.value === block.layout;
+          var mine = l.value === drawn;
+          var o = el('option', '', (mine ? '✓ ' : '') + l.label + (l.value === composed ? ' · ' + pb.t('layout_character') : ''));
+          o.value = l.value === composed ? '' : l.value;
+          o.selected = mine;
           select.appendChild(o);
         });
         bar.appendChild(select);

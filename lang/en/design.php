@@ -33,7 +33,7 @@ return [
     'design.apply.design_only' => 'Save design only',
     'design.apply.design_only_hint' => 'Changes colour, type, spacing and shape. Every section keeps the width, rhythm, alignment and edge it has now.',
     'design.apply.with_composition' => 'Save design and reset section styles',
-    'design.apply.with_composition_hint' => 'Also hands every section back to this character — its surface, spacing, width, alignment and edge — and gives every block the character’s layout. Pictures, anchors and where a section is hidden stay. A hero with its picture behind the words keeps that arrangement.',
+    'design.apply.with_composition_hint' => 'Also hands every section back to this character — its surface, spacing, width, alignment and edge. Pictures, anchors and where a section is hidden stay. A block keeps the layout and options you chose for it; the rest follow the character.',
     'design.apply.no_blocks' => 'The site has no blocks yet, so this character also sets how new ones are composed.',
 
     'design.colours' => 'Colour',

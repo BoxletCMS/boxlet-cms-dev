@@ -28,7 +28,8 @@ function seen(page, key) {
     const b = window.pb.block(k);
     const field = Object.keys(b.content).find((f) => Array.isArray(b.content[f]));
     const doc = document.querySelector('[data-pb-canvas]').contentDocument;
-    return { layout: b.layout, items: JSON.stringify(b.content[field]), count: b.content[field].length, drawn: doc.querySelectorAll(`[data-bx-key="${k}"] [data-bx-item]`).length };
+    // The layout it is drawn in: its own, or the character's where it follows ('', D-191).
+    return { layout: b.layout || window.pb.data.composed[b.type], items: JSON.stringify(b.content[field]), count: b.content[field].length, drawn: doc.querySelectorAll(`[data-bx-key="${k}"] [data-bx-item]`).length };
   }, key);
 }
 
@@ -147,9 +148,9 @@ export default {
           const layouts = await page.evaluate((t) => (window.pb.data.layouts[t] || []).map((l) => l.value), type);
           let last = expected.layout;
           for (const layout of layouts.filter((l) => l !== expected.layout)) {
-            await page.waitForSelector(`[data-pb-inspector] [data-block-fields="${key}"] input[type="radio"][value="${layout}"]`, { timeout: 10000 }).catch(() => {});
+            await page.waitForSelector(`[data-pb-inspector] [data-block-fields="${key}"] input[type="radio"][data-tile="${layout}"]`, { timeout: 10000 }).catch(() => {});
             const clicked = await page.evaluate((k, l) => {
-              const radio = document.querySelector(`[data-pb-inspector] [data-block-fields="${k}"] input[type="radio"][value="${l}"]`);
+              const radio = document.querySelector(`[data-pb-inspector] [data-block-fields="${k}"] input[type="radio"][data-tile="${l}"]`);
               if (!radio) { return false; }
               radio.closest('label').click();
               return true;

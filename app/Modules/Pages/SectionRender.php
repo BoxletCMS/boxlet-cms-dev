@@ -200,7 +200,9 @@ final class SectionRender
             // Left is, at the character's own measure (D-182). In the canvas it keeps the place
             // for the picture it has not got, so it is wide there either way.
             $picture = is_array($block['content'] ?? null) && ($block['content']['image'] ?? null) !== null;
-            if (($block['type'] ?? '') === 'hero' && ($block['layout'] ?? '') === 'split' && ($picture || \App\Support\Editing::on()) && in_array($composed['width'] ?? 'normal', ['narrow', 'normal'], true)) {
+            // Following the character, the layout it composes (D-191).
+            $layoutOf = (string) ($block['layout'] ?? '') !== '' ? (string) $block['layout'] : (string) (\App\Modules\Design\Characters::composition($character)['layouts'][(string) ($block['type'] ?? '')] ?? '');
+            if (($block['type'] ?? '') === 'hero' && $layoutOf === 'split' && ($picture || \App\Support\Editing::on()) && in_array($composed['width'] ?? 'normal', ['narrow', 'normal'], true)) {
                 $composed['width'] = 'wide';
             }
         }

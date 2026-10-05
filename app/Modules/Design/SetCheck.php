@@ -63,6 +63,14 @@ final class SetCheck
             $out['notes'][] = sprintf('contrast %s: %.2f:1 (%s on %s)', $pair['pair'], $pair['ratio'], $pair['foreground'], $pair['background']);
         }
         $out['notes'][] = sprintf('veil over a picture: at least %.2f', PaletteInks::veil($colors));
+        // A pattern's blocks keep their layouts by name when inserted, through Apply too (D-191).
+        $own = 0;
+        foreach ($set['patterns'] as $pattern) {
+            $own += count(array_filter($pattern['blocks'], static fn (array $block): bool => (string) $block['layout'] !== ''));
+        }
+        if ($own > 0) {
+            $out['notes'][] = sprintf('patterns: %d %s with a layout of %s own, kept through Apply', $own, $own === 1 ? 'block' : 'blocks', $own === 1 ? 'its' : 'their');
+        }
 
         foreach (SetMeasure::narrow($resolved, $set['composition'], $set['patterns'], $registry) as $narrow) {
             $out['warnings'][] = '16rem: ' . $narrow;

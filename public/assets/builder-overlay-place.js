@@ -40,7 +40,10 @@
 
   pb.overlay.placeBar = function (bar, node, block) {
     bar.style.transform = 'none';
-    var b = o.box(node);
+    // The block as its outline draws it: past its box by how far its words reach (D-190).
+    var edge0 = (parseFloat(node.style.getPropertyValue('--bx-ink')) || 0) + 3;
+    var raw = o.box(node);
+    var b = { top: raw.top - edge0, left: raw.left - edge0, width: raw.width + edge0 * 2, height: raw.height + edge0 * 2 };
     var h = bar.offsetHeight;
     var w = bar.offsetWidth;
     var gap = o.px(4);

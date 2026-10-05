@@ -76,11 +76,13 @@
 /* THE ACCENT, AND A LIGHT EDGE BESIDE IT (D-176): one pixel of white against the accent, so
    the outline stands apart from whatever colour the page is — the accent alone sank into a
    page of a near colour. A block's edge is outside it; a band fills the window's width, so
-   its edge is inside. */
+   its edge is inside. A block's outline stands outside everything it draws (D-190, the
+   owner): --bx-ink is how far its words and controls reach past its box (builder-overlay.js),
+   and the light between them and the outline is the page's white. */
 .bx-canvas [data-bx-selected="block"] {
   outline: 2px solid var(--bx-select);
-  outline-offset: 0;
-  box-shadow: 0 0 0 3px var(--bx-paper);
+  outline-offset: var(--bx-ink, 0px);
+  box-shadow: 0 0 0 calc(var(--bx-ink, 0px) + 3px) var(--bx-paper);
 }
 
 .bx-canvas [data-bx-selected="section"] {

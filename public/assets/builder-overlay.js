@@ -149,11 +149,39 @@
     var sel = pb.selection;
     var node = !sel ? null : sel.kind === 'block' ? pb.canvas.blockEl(sel.key) : pb.canvas.sectionEl(sel.key);
     Array.prototype.forEach.call(cdoc().querySelectorAll('[data-bx-selected]'), function (n) {
-      if (n !== node) { n.removeAttribute('data-bx-selected'); }
+      if (n !== node) { n.removeAttribute('data-bx-selected'); n.style.removeProperty('--bx-ink'); }
     });
     if (node) {
       node.setAttribute('data-bx-selected', sel.kind);
+      if (sel.kind === 'block') { node.style.setProperty('--bx-ink', ink(node) + 'px'); }
     }
+  }
+
+  /**
+   * HOW FAR WHAT A BLOCK DRAWS REACHES PAST ITS BOX (D-190, the owner): its words — a glyph's
+   * box stands above a tight line, 9px for Brutalist's split hero — and its links, buttons and
+   * pictures. Its outline stands that far out, and 2px more, so it never runs through them; 0
+   * where nothing reaches past. A cover hero's picture is its background, and is not counted.
+   */
+  function ink(node) {
+    var b = node.getBoundingClientRect();
+    var over = 0;
+    var reach = function (r) {
+      if (r.width > 0 && r.height > 0) { over = Math.max(over, b.left - r.left, r.right - b.right, b.top - r.top, r.bottom - b.bottom); }
+    };
+    var counted = function (el) { return !el.closest('.hero-cover-picture, .bx-layer') && cdoc().defaultView.getComputedStyle(el).visibility === 'visible'; };
+    var walker = cdoc().createTreeWalker(node, 4);
+    for (var text = walker.nextNode(); text; text = walker.nextNode()) {
+      if (text.textContent.trim() !== '' && counted(text.parentElement)) {
+        var range = cdoc().createRange();
+        range.selectNodeContents(text);
+        reach(range.getBoundingClientRect());
+      }
+    }
+    Array.prototype.forEach.call(node.querySelectorAll('a, button, img, video, iframe, input, select, textarea, .media-placeholder'), function (el) {
+      if (counted(el)) { reach(el.getBoundingClientRect()); }
+    });
+    return over > 0 ? Math.ceil(over) + 2 : 0;
   }
 
   /** The selected thing's toolbar. */

@@ -72,6 +72,30 @@ function crossings(page) {
         }
       });
     }
+    // The selected block's outline outside all it draws (D-190): no word, link, button or
+    // picture of it reaches into the ring the outline draws. A cover hero's picture is its
+    // background.
+    const selected = doc.querySelector('[data-bx-selected="block"]');
+    if (selected) {
+      const b = selected.getBoundingClientRect();
+      const offset = parseFloat(getComputedStyle(selected).outlineOffset) || 0;
+      const reaches = [];
+      const walker = doc.createTreeWalker(selected, 4);
+      for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+        if (text.textContent.trim() === '' || text.parentElement.closest('.hero-cover-picture') || getComputedStyle(text.parentElement).visibility !== 'visible') { continue; }
+        const range = doc.createRange();
+        range.selectNodeContents(text);
+        reaches.push([range.getBoundingClientRect(), `"${text.textContent.trim().slice(0, 16)}"`]);
+      }
+      selected.querySelectorAll('a, button, img, video, iframe, input, select, textarea, .media-placeholder').forEach((el) => {
+        if (!el.closest('.hero-cover-picture') && getComputedStyle(el).visibility === 'visible') { reaches.push([el.getBoundingClientRect(), el.tagName.toLowerCase()]); }
+      });
+      reaches.forEach(([r, what]) => {
+        if (r.width === 0 || r.height === 0) { return; }
+        const past = Math.max(b.left - r.left, r.right - b.right, b.top - r.top, r.bottom - b.bottom);
+        if (past > offset + 0.5) { found.push(`${what} reaches ${past.toFixed(1)}px past the block, its outline ${offset}px out`); }
+      });
+    }
     // And each "+" on its boundary, where the band it adds before begins.
     window.pb.doc.sections.forEach((s, i) => {
       const plus = doc.querySelector(`.bx-plus[data-bx-insert="${i}"]`);
@@ -257,10 +281,19 @@ export default {
       for (const character of ['editorial', 'minimal', 'bold', 'soft', 'brutalist']) {
         await applyCharacter(page, BASE, character, 'save');
         await openBuilder(page, BASE, Number(every.slice(5)));
+        // A call to action with its buttons beside its words, as the owner had it (D-190).
+        await page.evaluate(() => window.pb.doc.blocks.filter((b) => b.type === 'cta').forEach((b) => window.pb.change(() => { b.layout = 'beside'; }, { sections: [b.section] })));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
         const seen = await everySelection(page);
-        report.verdict(`${character}, the page of every block: the toolbar 4px clear of all words and on no mark (${seen.checked} states)`, seen.bad.length === 0, seen.bad.join(' | ') || 'none near');
+        report.verdict(`${character}, the page of every block: the toolbar 4px clear of all words and on no mark, and the outline outside all a block draws (${seen.checked} states)`, seen.bad.length === 0, seen.bad.join(' | ') || 'none near');
       }
     } finally {
+      await settle(page).catch(() => {});
+      await openBuilder(page, BASE, Number(every.slice(5)));
+      if (await page.$('[data-pb-discard]:not([hidden])')) {
+        await page.click('[data-pb-discard]');
+        await page.waitForFunction(() => document.querySelector('[data-pb-discard]').hidden, { timeout: 10000 }).catch(() => {});
+      }
       if (was !== '') { await applyCharacter(page, BASE, was, 'save'); }
     }
     await openBuilder(page, BASE, Number(every.slice(5)));

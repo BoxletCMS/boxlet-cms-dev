@@ -125,6 +125,41 @@ export default {
         }
         const key = textKey;
 
+        // In two columns the measure is each column's (D-191, the owner): on a desktop two
+        // columns, in every character, neither wider than its line length.
+        if (key) {
+          const cols = [];
+          for (const [measure, chars] of [['comfortable', 65], ['wide', 85]]) {
+            await page.evaluate((k, m, words) => {
+              const b = window.pb.block(k);
+              window.pb.change(() => { b.layout = 'columns'; b.options.measure = m; b.content.body = '<p>' + words.repeat(8) + '</p>'; window.pb.section(b.section).style.width = 'wide'; }, { sections: [b.section] });
+            }, key, measure, LONG);
+            await wait(1500);
+            const seen = await page.evaluate((k) => {
+              const doc = document.querySelector('[data-pb-canvas]').contentDocument;
+              const text = doc.querySelector(`[data-bx-key="${k}"] .text`);
+              const range = doc.createRange();
+              range.selectNodeContents(text.querySelector('.richtext'));
+              const lines = [...range.getClientRects()].filter((r) => r.width > 0);
+              // By the half of the block a line stands in: centred lines start each at its own
+              // place, so their left edges would count every line as a column (Minimal).
+              const box = text.getBoundingClientRect();
+              const middle = box.left + box.width / 2;
+              const lefts = [...new Set(lines.map((r) => (r.right <= middle + 1 ? 'first' : r.left >= middle - 1 ? 'second' : 'across')))];
+              const zero = doc.createElement('span');
+              zero.textContent = '0';
+              zero.style.position = 'absolute';
+              text.appendChild(zero);
+              const ch = zero.getBoundingClientRect().width;
+              zero.remove();
+              return { columns: lefts.length, widest: Math.max(...lines.map((r) => r.width)), ch };
+            }, key);
+            cols.push(`${measure}: ${seen.columns} columns, widest line ${Math.round(seen.widest)}px of ${Math.round(chars * seen.ch)}`);
+            if (seen.columns !== 2 || seen.widest > chars * seen.ch + 1) { cols.push('WRONG'); }
+          }
+          report.verdict(`${character}: a text in two columns is two on a desktop, each held to its line length`, !cols.includes('WRONG'), cols.join('; '));
+        }
+
         if (character === 'editorial') {
           // The section's Width says it, and its link leads to the option.
           await page.evaluate((k) => { const b = window.pb.block(k); window.pb.change(() => { b.options.measure = ''; window.pb.section(b.section).style.width = 'wide'; }, { sections: [b.section] }); window.pb.select('section', b.section); }, key);

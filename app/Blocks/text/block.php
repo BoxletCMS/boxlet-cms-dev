@@ -19,8 +19,8 @@ return [
     'defaults' => ['layout' => 'single'],
     'options' => [
         // How wide a line of the text runs (D-187, the owner): about 65 characters, 85, or the
-        // section's whole width. The heading keeps the same edge. In two columns each column is
-        // its own measure, so it acts in one.
-        'measure' => ['values' => ['comfortable', 'wide', 'full'], 'default' => 'comfortable', 'layouts' => ['single']],
+        // section's whole width. The heading keeps the same edge. In two columns it is each
+        // column's (D-191, the owner).
+        'measure' => ['values' => ['comfortable', 'wide', 'full'], 'default' => 'comfortable'],
     ],
 ];

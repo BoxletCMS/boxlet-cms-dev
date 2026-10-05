@@ -51,7 +51,9 @@ return static function (Closure $t, Closure $p): array {
             // the demo without a left-aligned section to look at.
             $one(['divider' => 'line', 'align' => 'left'], ['text', [
                 'heading' => $t('Tekst u dva stupca', 'Text in two columns'),
-                'body' => $p('Duži tekst teče u dva stupca na širokom zaslonu i u jedan na mobitelu. Naslov ostaje iznad oba.', 'A longer text runs in two columns on a wide screen and one on a phone. The heading stays above both.'),
+                // Long enough to fill two columns under every character: a paragraph of two
+                // lines is never split, so a short one stood in one column (D-191).
+                'body' => $p('Duži tekst teče u dva stupca na širokom zaslonu i u jedan na mobitelu. Naslov ostaje iznad oba. Svaki stupac drži svoju duljinu retka, pa se tekst čita jednako ugodno kao u jednom stupcu, samo kraće. Kad zaslon postane preuzak za dva stupca od barem šesnaest rema, tekst se sam vraća u jedan.', 'A longer text runs in two columns on a wide screen and one on a phone. The heading stays above both. Each column keeps its own line length, so the text reads as comfortably as in one column, only shorter. When the screen grows too narrow for two columns of at least sixteen rem, the text returns to one by itself.'),
             ], 'columns', [], 0]),
             $one(['surface' => 'contrast', 'divider' => 'curve'], ['cta', [
                 'heading' => $t('Poziv u jednom redu', 'A call in one row'),

@@ -6,10 +6,10 @@
  * @var array<string, mixed> $content
  * @var array<string, mixed> $style
  * @var string $layout
- * @var array<string, string> $options measure comfortable/wide/full, in one column (D-187)
+ * @var array<string, string> $options measure comfortable/wide/full; in two columns, each column's (D-187, D-191)
  */
 ?>
-<div class="text<?= $layout === 'single' ? ' measure-' . e($options['measure']) : '' ?>">
+<div class="text measure-<?= e($options['measure']) ?>">
 <?php if (edit_show($content['heading'] !== '')): ?>
     <h2 class="text-heading"<?= edit_attr('heading') ?>><?= e($content['heading']) ?></h2>
 <?php endif; ?>

@@ -103,6 +103,16 @@ body {
   max-inline-size: 85ch;
 }
 
+/* In two columns the measure is each column's (D-191, the owner): the block as wide as two
+   lines of it and the gap between them, which is the gap blocks.css sets. */
+.layout-columns .text.measure-comfortable {
+  max-inline-size: calc(2 * 65ch + var(--space-xl));
+}
+
+.layout-columns .text.measure-wide {
+  max-inline-size: calc(2 * 85ch + var(--space-xl));
+}
+
 .align-center :is(.text, .accordion, .quote)[class*="measure-"] {
   margin-inline: auto;
 }

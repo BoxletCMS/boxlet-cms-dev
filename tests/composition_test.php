@@ -66,8 +66,9 @@ test('a divider is an accent, never a default for every section', function () {
 test('the first section on a page never draws a divider', function () {
     // Browser behaviour, so what is testable here is that the rule exists and covers
     // both the rule and the shaped edges.
-    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections.css');
-    $rule = strstr($css, 'main > .block:first-child') ?: fail('sections.css has no first-section rule');
+    // In sections-edges.css since D-194, with the rest of where two sections meet.
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections-edges.css');
+    $rule = strstr($css, 'main > .block:first-child') ?: fail('sections-edges.css has no first-section rule');
     $rule = substr($rule, 0, (int) strpos($rule, '}'));
 
     foreach (['border-top: 0', 'clip-path: none', 'border-start-start-radius: 0'] as $needed) {

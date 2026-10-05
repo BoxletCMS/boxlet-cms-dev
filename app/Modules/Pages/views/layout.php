@@ -86,6 +86,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-footer.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-header.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-edges.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-columns.css')) ?>">
 <?php /* A script a visitor's page loads only when the header has a menu for it to fold: the

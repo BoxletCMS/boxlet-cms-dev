@@ -12,7 +12,7 @@
  * On the copy, in a draft that is discarded; the copy's character is put back at the end.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, applyCharacter, clickAndWait, settle } from '../harness.mjs';
+import { login, openBuilder, applyCharacter, clickAndWait, settle, heroPicture, ensureHeaderMenu } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
@@ -83,6 +83,15 @@ export default {
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     const was = await page.$eval('.character-tile.is-current .tile-use', (b) => b.value.replace('preset:', '')).catch(() => '');
+    // The hero's picture, put in the draft: the page's own may have been taken away, and a
+    // header over a band with no picture reads anyway — measured: a run that passed on that.
+    const picture = await heroPicture(page, BASE);
+    if (picture === null) {
+      report.fail('header veil: a picture for the hero', 'the library holds none');
+      return;
+    }
+    // The menu's words are what lie over the picture; the full suite reached here with none.
+    await ensureHeaderMenu(page, BASE);
     try {
       for (const character of CHARACTERS) {
         await applyCharacter(page, BASE, character, 'save');
@@ -91,18 +100,24 @@ export default {
         let ok = true;
         for (const layout of LAYOUTS) {
           await openBuilder(page, BASE, 1);
-          await page.evaluate((l) => {
+          await page.evaluate((l, pic) => {
             const hero = window.pb.doc.blocks.find((b) => b.type === 'hero');
-            window.pb.change(() => { hero.layout = l; hero.options = { ...hero.options, height: 'tall', veil: 'light' }; }, { sections: [hero.section] });
-          }, layout);
+            window.pb.change(() => { hero.layout = l; hero.content.image = pic; hero.options = { ...hero.options, height: 'tall', veil: 'light' }; }, { sections: [hero.section] });
+          }, layout, picture);
           await settle(page);
           await page.goto(`${BASE}/admin/pages/1/preview`, { waitUntil: 'networkidle2' });
           await page.evaluate(() => document.fonts.ready);
           await wait(500);
-          const over = await page.evaluate(() => getComputedStyle(document.querySelector('header.block-header')).position === 'absolute');
+          // What is measured has to be there: the header over the first band, that band a
+          // cover hero with its picture, and the menu's words as well as the name.
+          const there = await page.evaluate(() => ({
+            over: getComputedStyle(document.querySelector('header.block-header')).position === 'absolute',
+            cover: !!document.querySelector('main > .block:first-child .hero.is-cover .hero-cover-picture img'),
+            links: document.querySelectorAll('.block-header .site-nav > ul > li > a').length,
+          }));
           const w = await worst(page);
-          seen.push(`${layout} ${w.ratio.toFixed(2)} (${w.word})`);
-          if (!over || w.words === 0 || w.ratio < 4.5) { ok = false; }
+          seen.push(`${layout} ${w.ratio.toFixed(2)} (${w.word}${there.cover ? '' : ', NO COVER'}${there.links ? '' : ', NO MENU'})`);
+          if (!there.over || !there.cover || there.links === 0 || w.ratio < 4.5) { ok = false; }
           if (character === 'editorial' && layout === 'cover-low') {
             await report.shot(page, 'editorial-cover-low-over', { fullPage: false });
             // THE CONTROL: the top of the veil taken away.

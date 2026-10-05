@@ -16,7 +16,7 @@
  * On the copy, in a draft that is discarded; the copy's character is put back at the end.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, openBuilder, applyCharacter, settle } from '../harness.mjs';
+import { login, openBuilder, applyCharacter, settle, heroPicture } from '../harness.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
@@ -77,13 +77,19 @@ export default {
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     const was = await page.$eval('.character-tile.is-current .tile-use', (b) => b.value.replace('preset:', '')).catch(() => '');
+    // The split hero's picture, put in the draft: the page's own may have been taken away.
+    const picture = await heroPicture(page, BASE);
+    if (picture === null) {
+      report.fail('edges: a picture for the hero', 'the library holds none');
+      return;
+    }
     try {
       for (const character of CHARACTERS) {
         await applyCharacter(page, BASE, character, 'save');
         const seen = {};
         for (const pass of ['same', 'other']) {
           await openBuilder(page, BASE, 1);
-          await page.evaluate(async (p, base) => {
+          await page.evaluate(async (p, base, picture) => {
             const doc = window.pb.doc;
             const hero = doc.blocks.find((b) => b.type === 'hero');
             const last = doc.sections[doc.sections.length - 1];
@@ -97,6 +103,7 @@ export default {
             const [, one, two, three] = doc.sections;
             window.pb.change(() => {
               hero.layout = 'split';
+              hero.content.image = picture;
               last.style.surface = p === 'same' ? surface : other;
               last.style.pad_bottom = '';
               [one, two, three].forEach((s) => { s.style.surface = 'tinted'; s.style.divider = 'none'; s.style.pad_top = ''; s.style.pad_bottom = ''; });
@@ -104,7 +111,7 @@ export default {
               three.style.divider = 'line';
               if (p === 'other') { two.style.surface = 'contrast'; }
             }, { sections: [hero.section, last.key, one.key, two.key, three.key] });
-          }, pass, BASE);
+          }, pass, BASE, picture);
           await settle(page);
           await page.goto(`${BASE}/admin/pages/1/preview`, { waitUntil: 'networkidle2' });
           await wait(400);

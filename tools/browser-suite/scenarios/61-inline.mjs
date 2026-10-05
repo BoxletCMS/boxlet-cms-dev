@@ -249,9 +249,17 @@ export default {
         if (!el) { return null; }
         const f = frame.getBoundingClientRect();
         const sc = window.pb.canvas.scale;
-        const range = doc.createRange();
-        range.selectNodeContents(el);
-        const lines = [...range.getClientRects()].filter((r) => r.width > 4);
+        // The lines of its words, from its text alone: a range over the whole element also
+        // returns each paragraph's box in each column, so in two columns (Brutalist's Text,
+        // followed since D-194) "the second line" was the second column's paragraph, and a
+        // press three quarters along it fell past the words' end (the harness, measured).
+        const lines = [];
+        const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+          const range = doc.createRange();
+          range.selectNodeContents(t);
+          lines.push(...[...range.getClientRects()].filter((x) => x.width > 4));
+        }
         const r = lines[Math.min(n, lines.length - 1)];
         const y = r.top + r.height / 2;
         // On a letter with a letter either side, so a double press there is on a word, not a
@@ -364,7 +372,10 @@ export default {
         const wide = [];
         const width = async (state) => {
           const w = await page.evaluate(() => [...document.querySelectorAll('[data-pb-inspector], [data-pb-inspector] *')]
-            .filter((n) => !n.matches('.visually-hidden') && n.scrollWidth > n.clientWidth + 1 && n.clientWidth > 0 && getComputedStyle(n).overflowX !== 'visible')
+            .filter((n) => !n.matches('.visually-hidden') && n.scrollWidth > n.clientWidth + 1 && n.clientWidth > 0 && getComputedStyle(n).overflowX !== 'visible'
+              // Cut short with an ellipsis on purpose, its whole words its title: it widens
+              // nothing. A layout's readout, "One column · the character's", is (D-191).
+              && getComputedStyle(n).textOverflow !== 'ellipsis')
             .map((n) => `${n.className || n.tagName} ${n.scrollWidth}>${n.clientWidth}`)
             .concat((() => { const i = document.querySelector('[data-pb-inspector]'); return i.scrollWidth > i.clientWidth ? [`inspector ${i.scrollWidth}>${i.clientWidth}`] : []; })()));
           if (w.length) { wide.push(`${state}: ${[...new Set(w)].join(', ')}`); }

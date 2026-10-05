@@ -1,4 +1,4 @@
-/* The page blocks' own styles: text, image and text, cards, form. Split out of site.css,
+/* The page blocks' own styles: text, image and text, form. Split out of site.css,
    which keeps the page and what every block shares, when the two together passed the size
    limit. The same rule: only custom properties from tokens.css and the --section-*
    properties each section sets in sections.css. No literal colours, pixel values, fonts or
@@ -7,7 +7,9 @@
    The nine blocks D-105 added are in blocks-words.css and blocks-media.css, linked straight
    after this one: together they passed the hard size limit (PLAN.md D-117), and those nine
    are the seam — they arrived together and share nothing with the five above. The hero is
-   blocks-hero.css, linked straight BEFORE this one, where its rules stood (D-118). */
+   blocks-hero.css, linked straight BEFORE this one, where its rules stood (D-118). Cards are
+   blocks-cards.css, linked straight after this one, split when a card's picture became a shape
+   and the last card of an odd two stopped standing alone (D-194). */
 
 /* Text and image-text */
 
@@ -68,127 +70,6 @@
 .fit-contain .image-text-media img {
   aspect-ratio: 16 / 9;
   object-fit: contain;
-}
-
-/* Columns (PLAN.md D-008)
-
-   How many cards share a row is an option (D-166); more items start a new row on the same
-   grid. minmax(0, 1fr) rather than 1fr, so a long word or a picture's intrinsic width
-   cannot push one column wider than the others. */
-
-.cards-head {
-  margin-block-end: var(--space-l);
-}
-
-.cards-heading {
-  margin: 0;
-}
-
-.cards-intro {
-  margin: var(--space-s) 0 0;
-}
-
-.align-center .cards-intro {
-  margin-inline: auto;
-}
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: calc(var(--space-m) * 1.25);
-}
-
-.per-row-2 .cards-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.per-row-4 .cards-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-/* A card (README 1.6): the card colour on the section's surface — raised on a dark one — a
-   hairline, the large corner, and its parts a little closer than its padding. */
-.cards-item {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--space-m) * 0.875);
-  padding: calc(var(--space-m) * 1.125);
-  background: var(--section-card);
-  border: var(--border-width) solid var(--section-border);
-  border-radius: var(--radius-l);
-  box-shadow: var(--shadow-s);
-}
-
-.cards-media img,
-.cards-media .media-placeholder {
-  display: block;
-  inline-size: 100%;
-  block-size: calc(var(--space-m) * 6.875);
-  aspect-ratio: auto;
-  object-fit: cover;
-  --card-media-radius: calc(var(--radius-l) * 0.7);
-  border-radius: var(--card-media-radius);
-}
-
-.shape-square .cards-media img,
-.shape-square .cards-media .media-placeholder {
-  block-size: calc(var(--space-m) * 9.375);
-}
-
-.shape-round .cards-media img,
-.shape-round .cards-media .media-placeholder {
-  inline-size: calc(var(--space-m) * 5.5);
-  block-size: auto;
-  aspect-ratio: 1;
-  --card-media-radius: 50%;
-}
-
-.align-center .shape-round .cards-media img,
-.align-center .shape-round .cards-media .media-placeholder {
-  margin-inline: auto;
-}
-
-/* As a list: one card to a row, the picture beside the words. */
-.layout-list .cards-grid {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.layout-list .cards-item {
-  display: grid;
-  grid-template-columns: calc(var(--space-m) * 9) minmax(0, 1fr);
-  column-gap: calc(var(--space-m) * 1.25);
-  align-items: start;
-}
-
-.layout-list .cards-item > :not(.cards-media) {
-  grid-column: 2;
-}
-
-.layout-list .cards-media {
-  grid-row: 1 / span 4;
-}
-
-.cards-item-heading {
-  margin: 0;
-  font-size: var(--text-lg);
-}
-
-.cards-item .richtext {
-  font-size: var(--text-small);
-  line-height: 1.6;
-}
-
-.cards-link {
-  margin: auto 0 0;
-  padding-block-start: var(--space-xs);
-  font-weight: var(--heading-weight);
-}
-
-/* Four in a row needs more room than a tablet gives it: two rows of two instead. */
-@media (max-width: 64rem) {
-  .per-row-4 .cards-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 /* Form (PLAN.md D-046)
@@ -314,12 +195,6 @@
 
   .layout-columns .richtext {
     columns: 1;
-  }
-
-  .cards-grid,
-  .per-row-2 .cards-grid,
-  .per-row-4 .cards-grid {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .layout-beside .form-block {

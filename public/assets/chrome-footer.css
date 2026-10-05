@@ -190,3 +190,42 @@
     columns: 1;
   }
 }
+
+/* THE LAST BAND AND THE FOOTER OF ONE SURFACE ARE ONE BAND (D-193, the owner): their room
+   does not add up. As two bands of one surface (sections.css, D-185), each gives half — the
+   band's bottom half its gap, the footer's top half its own — and the edge between them,
+   one colour on the same colour, is not drawn, nor its depth kept. A padding the owner set is
+   theirs; a footer with a colour of its own is another surface. Measured before, Terra's call
+   to action and its footer, both contrast: the band's gap, the curve's depth and the footer's
+   room, one after the other. */
+/* The footer's own colour asked of <body>: a :has() may not stand inside another, and a rule
+   that holds one is thrown out whole (measured: the band kept its whole room). */
+body:not(:has(.site-footer.own-colour)) :is(
+  main:has(+ footer.block.surface-plain) > .block.surface-plain:last-child,
+  main:has(+ footer.block.surface-tinted) > .block.surface-tinted:last-child,
+  main:has(+ footer.block.surface-contrast) > .block.surface-contrast:last-child,
+  main:has(+ footer.block.surface-gradient) > .block.surface-gradient:last-child
+):not([class*="pad-b-"]) {
+  padding-bottom: calc(var(--section-gap) * 0.5);
+}
+
+:is(
+  main:has(> .block.surface-plain:last-child) + footer.block.surface-plain,
+  main:has(> .block.surface-tinted:last-child) + footer.block.surface-tinted,
+  main:has(> .block.surface-contrast:last-child) + footer.block.surface-contrast,
+  main:has(> .block.surface-gradient:last-child) + footer.block.surface-gradient
+):not(:has(.own-colour)) {
+  margin-top: 0;
+  padding-top: 0;
+  border-radius: 0;
+  clip-path: none;
+}
+
+:is(
+  main:has(> .block.surface-plain:last-child) + footer.block.surface-plain,
+  main:has(> .block.surface-tinted:last-child) + footer.block.surface-tinted,
+  main:has(> .block.surface-contrast:last-child) + footer.block.surface-contrast,
+  main:has(> .block.surface-gradient:last-child) + footer.block.surface-gradient
+):not(:has(.own-colour)) .site-footer {
+  padding-block-start: calc(var(--space-xl) * 0.5);
+}

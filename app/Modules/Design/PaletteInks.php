@@ -125,6 +125,36 @@ final class PaletteInks
     }
 
     /**
+     * THE GRADIENT: the main colour, to a shade of it a tenth darker and turned 45 degrees.
+     *
+     * ON A DARK PAGE IT STAYS A DEEP BAND (D-194, the owner). A set's dark version names a
+     * light main colour, as it should for links on a dark page — Launch's #a594ff, Zine's
+     * #b794ff — and the gradient made of it was a pale lilac band with dark words in the
+     * middle of a dark page. Given the page's light `$ink`, the colour is walked DOWN in
+     * lightness, as a link is walked up, until that ink reads at 4.5:1 on both ends; one that
+     * already reads is kept as it is. Without an ink, a light page, the gradient is the seed's.
+     *
+     * @return array{string, string} its start and its end
+     */
+    public static function gradient(string $seed, string $ink = ''): array
+    {
+        [$lightness, $chroma, $hue] = Color::toOklch($seed);
+        $end = static fn (float $at): string => Color::fromOklch(max(0.2, $at - 0.1), $chroma, $hue + 45);
+        $reads = static fn (string $start, string $end): bool => min(Color::contrast($ink, $start), Color::contrast($ink, $end)) >= Palette::AA_BODY;
+        if ($ink === '' || $reads($seed, $end($lightness))) {
+            return [$seed, $end($lightness)];
+        }
+        for ($at = $lightness - 0.02; $at > 0.1; $at -= 0.02) {
+            $start = Color::fromOklch($at, $chroma, $hue);
+            if ($reads($start, $end($at))) {
+                return [$start, $end($at)];
+            }
+        }
+
+        return [Color::fromOklch(0.1, $chroma, $hue), $end(0.1)];
+    }
+
+    /**
      * THE LEAST VEIL OVER A PICTURE (O-33, D-183): how much of the contrast colour must lie
      * between a photograph and the words on it for the words to read at 4.5:1 whatever the
      * photograph is. The worst photographs are a pure white and a pure black; the veil is

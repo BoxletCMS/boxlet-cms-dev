@@ -77,7 +77,7 @@ final class Palette
      */
     public static function colors(string $seed, string $secondary, float $surfaceContrast, array $byHand = [], string $mode = 'light'): array
     {
-        [$seedLightness, $seedChroma, $hue] = Color::toOklch($seed);
+        [, $seedChroma, $hue] = Color::toOklch($seed);
         $step = self::surfaceStep($surfaceContrast);
         // Neutrals carry a trace of the seed's hue, so greys belong to the palette.
         $tint = min($seedChroma, 0.14) * 0.1;
@@ -141,7 +141,7 @@ final class Palette
          * the same hue walked up in OKLCH until it reads at 4.5:1 on the page, a card and the
          * tinted surface, as a muted ink is walked; a link colour set by hand the same. A seed
          * that already reads is kept as it is; one with almost no hue takes the text's light
-         * ink instead (D-185). The gradient keeps the seed.
+         * ink instead (D-185). The gradient goes the other way (PaletteInks::gradient, D-194).
          */
         if ($dark) {
             $grounds = [$colors['background'], $colors['card'], $colors['surface']];
@@ -159,8 +159,7 @@ final class Palette
         $colors['muted-on-contrast'] = $inks['muted'];
         $colors['contrast-raised'] = $inks['raised'];
 
-        $colors['gradient-start'] = $seed;
-        $colors['gradient-end'] = Color::fromOklch(max(0.2, $seedLightness - 0.1), $seedChroma, $hue + 45);
+        [$colors['gradient-start'], $colors['gradient-end']] = PaletteInks::gradient($seed, $dark ? $colors['text'] : '');
         $colors['on-gradient'] = PaletteInks::readableOn([$colors['gradient-start'], $colors['gradient-end']], $colors);
 
         return $colors;

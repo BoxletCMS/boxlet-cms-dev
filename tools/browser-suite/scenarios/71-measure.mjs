@@ -47,7 +47,19 @@ function measured(page, key, type) {
     const t = text.getBoundingClientRect();
     const h = heading ? heading.getBoundingClientRect() : null;
     const w = p.getBoundingClientRect();
-    return { room, ch, text: t.width, para: w.right - t.left, left: t.left, headingLeft: h ? h.left : t.left, headingRight: h ? h.right : t.right, right: t.right };
+    // The page's own edge: where the words of a section in the character's width begin, as
+    // every other heading on the page does (D-190).
+    const probe = doc.createElement('div');
+    probe.className = 'container';
+    probe.style.blockSize = '0';
+    // In the width the character composes its sections in: Bold's are wide.
+    probe.style.maxWidth = 'var(--page-content-width, var(--container-width))';
+    doc.querySelector('main').appendChild(probe);
+    const pr = probe.getBoundingClientRect();
+    const edge = pr.left + parseFloat(getComputedStyle(probe).paddingLeft);
+    probe.remove();
+    const section = host.closest('[data-bx-section]');
+    return { room, ch, text: t.width, para: w.right - t.left, left: t.left, headingLeft: h ? h.left : t.left, headingRight: h ? h.right : t.right, right: t.right, edge, left_set: !section.matches('.align-center') };
   }, key, BLOCKS[type]);
 }
 
@@ -105,9 +117,11 @@ export default {
               // The words run to the block's far edge: no rule of their own holds them short.
               if (Math.abs(m.para - m.text) > 1) { bad.push(`${width}/${measure}: the words end ${Math.round(m.text - m.para)}px short of the block's edge`); }
               if (Math.abs(m.headingLeft - m.left) > 1 || m.headingRight > m.right + 1) { bad.push(`${width}/${measure}: the heading leaves the body's edge`); }
+              // Set left, narrow or normal: on the page's edge, never centred (D-190).
+              if (m.left_set && (width === 'narrow' || width === 'normal') && Math.abs(m.left - m.edge) > 1) { bad.push(`${width}/${measure}: starts ${Math.round(m.left - m.edge)}px in from the page's edge`); }
             }
           }
-          report.verdict(`${character}, ${type}: for every Width × line length the block is min(its column, the measure), its words filling it${BLOCKS[type].heading ? ', its heading on their edge' : ''}`, bad.length === 0, bad.slice(0, 6).join(' | ') || seen.join(', '));
+          report.verdict(`${character}, ${type}: for every Width × line length the block is min(its column, the measure), its words filling it${BLOCKS[type].heading ? ', its heading on their edge' : ''}, and set left it starts on the page's edge`, bad.length === 0, bad.slice(0, 6).join(' | ') || seen.join(', '));
         }
         const key = textKey;
 

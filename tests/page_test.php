@@ -101,3 +101,11 @@ test('the header takes its own width, not the content\'s', function (): void {
     $full = Derived::from(Tokens::validate(['header_width' => 'window'] + Presets::get('editorial'))['decisions']);
     assertEquals('100%', $full['page']['header-width'], 'header_width: window');
 });
+
+test('the page\'s content width is the width the character composes its sections in (D-190)', function (): void {
+    $decisions = Tokens::validate(Presets::get('editorial'))['decisions'];
+    assertEquals(Derived::from($decisions)['container']['width'], Derived::from($decisions, 'normal')['page']['content-width'], 'normal: the container');
+    assertEquals(Derived::rem((float) $decisions['container'] * 7 / 6), Derived::from($decisions, 'wide')['page']['content-width'], 'wide, as Bold composes');
+    assertEquals('100%', Derived::from($decisions, 'full')['page']['content-width'], 'full, as Brutalist does');
+    assertEquals(Derived::from($decisions, 'wide')['page']['content-width'], Derived::from(['header_width' => 'window'] + $decisions, 'wide')['page']['content-width'], 'whatever the header does');
+});

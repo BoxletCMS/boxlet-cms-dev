@@ -42,6 +42,9 @@ final class DerivedPage
             'sheet' => $colors['background'],
             'header-width' => self::chromeWidth($resolved['header_width'], $resolved, $boxed, $sectionWidth),
             'footer-width' => self::chromeWidth($resolved['footer_width'], $resolved, $boxed, $sectionWidth),
+            // The width the character's sections run to, whose edge is the page's: where a
+            // narrow section set left begins (D-190).
+            'content-width' => self::chromeWidth('content', $resolved, $boxed, $sectionWidth),
         ];
     }
 

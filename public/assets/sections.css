@@ -242,6 +242,20 @@
   --section-width: var(--container-narrow);
 }
 
+/* NARROWER THAN THE PAGE, AND SET LEFT: on the page's own edge (D-190, the owner). A section
+   narrower than the page's content was centred whatever its alignment, so in a section set
+   left its words began further in than every other heading on the page: 272 pixels for Bold's
+   Questions at Narrow, 24 at Normal, Bold composing its sections wide. Set left, it starts
+   where the page's content does — the width the character composes its sections in (Bold
+   wide, Brutalist full); a section wider than that is still centred. The container is a
+   content box, its padding outside the width. The header and the footer keep their own, and
+   so does a band a cover hero shares, which reaches both its edges by measuring itself from
+   a centred column (blocks-hero.css, D-124). */
+.block:not(.block-header, .block-footer, :has(.section-column > * > .hero.is-cover)).align-left > .container {
+  margin-inline-start: max(0rem, calc((100% - max(var(--section-width), var(--page-content-width, var(--container-width)))) / 2 - var(--space-l)));
+  margin-inline-end: auto;
+}
+
 .width-wide {
   --section-width: var(--container-wide);
 }

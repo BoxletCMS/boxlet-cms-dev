@@ -75,6 +75,7 @@ use App\Support\Url;
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-hero-split.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-words.css')) ?>">
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-accordion.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-stats.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-media.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-logos.css')) ?>">

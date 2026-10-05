@@ -1,8 +1,8 @@
-/* The blocks of words PLAN.md D-105 added: quote, space, questions, call to action (numbers
-   are blocks-stats.css's, D-188). Split from blocks.css when it passed the hard size limit
-   (D-117), under exactly its rule: only custom properties from tokens.css and the --section-*
-   properties each section sets in sections.css. No literal colours, pixel values, fonts or
-   shadows. Linked straight after blocks.css. */
+/* The blocks of words PLAN.md D-105 added: quote, space, call to action (numbers are
+   blocks-stats.css's, D-188; questions blocks-accordion.css's, D-190). Split from blocks.css
+   when it passed the hard size limit (D-117), under exactly its rule: only custom properties
+   from tokens.css and the --section-* properties each section sets in sections.css. No literal
+   colours, pixel values, fonts or shadows. Linked straight after blocks.css. */
 
 /* Quote (D-105)
 
@@ -124,68 +124,6 @@
 
 .layout-line.height-large .divider {
   margin-block: var(--space-3xl);
-}
-
-/* Questions (D-105)
-
-   <details> and <summary>, styled without taking away what they do. The marker is the
-   browser's own, rotated by the browser when the panel opens: replacing it with a drawn
-   arrow means drawing the open state too, and getting it wrong in one of them. */
-
-.accordion-heading {
-  margin: 0 0 var(--space-l);
-}
-
-/* RANGED TO THE EDGE EVEN IN A CENTRED BAND, which is not the block overruling the design
-   layer but the rule the form block already follows (.align-center .site-form). A summary
-   row is a CONTROL: its marker sits on the leading edge and its hit area is the whole row,
-   so centring makes every question start at a different place and puts the marker in the
-   middle of nothing. The block's own heading still follows the band. */
-.accordion-items {
-  display: grid;
-  gap: var(--space-s);
-}
-
-/* How wide the rows run is the block's measure (D-188), centred with it. */
-.align-center .accordion-items {
-  text-align: start;
-}
-
-.accordion-item {
-  border-block-end: var(--border-width) solid var(--section-border);
-}
-
-.accordion-question {
-  padding-block: var(--space-s);
-  font-weight: var(--heading-weight);
-  cursor: pointer;
-}
-
-/* The words move, not the block: a summary that shifts its own padding on open makes the
-   whole list jump under the pointer. */
-.accordion-question:hover,
-.accordion-question:focus-visible {
-  color: var(--section-link);
-}
-
-.accordion-answer {
-  padding-block-end: var(--space-m);
-}
-
-.layout-cards .accordion-items {
-  gap: var(--space-m);
-}
-
-/* A card in every character, as a Cards block's card is (D-189, the owner): its edge and its
-   shadow, not only the card colour. On --border-card, 0 in four characters, the card colour
-   alone was all it had — 1.05:1 to the page in Editorial, 1.03:1 in its dark mode — and the
-   questions read as plain text. */
-.layout-cards .accordion-item {
-  padding-inline: var(--space-l);
-  background: var(--section-card);
-  border: var(--border-width) solid var(--section-border);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-s);
 }
 
 /* Call to action (D-105)

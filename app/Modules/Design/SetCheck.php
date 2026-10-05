@@ -47,6 +47,20 @@ final class SetCheck
         // A set with a dark version had both checked as errors on reading (D-185); one without
         // is drawn in the other mode by derivation alone, and what that cannot mend is said here.
         if ($set['dark'] === []) {
+            // A colour by hand holds in both modes (D-187), so without a dark version the page
+            // keeps it in the other mode (D-191, the owner; measured: Terra's sand page stayed
+            // the page in dark mode, byte for byte).
+            $held = [
+                'color_background' => 'the page stays this colour, so dark mode stays light',
+                'color_card' => 'cards stay this colour on the dark page',
+                'color_surface' => 'the tinted surface stays this colour on the dark page',
+                'color_text' => 'the text stays this colour on the dark page',
+            ];
+            foreach ($held as $key => $consequence) {
+                if (($decisions[$key] ?? '') !== '' && ($decisions['mode'] ?? '') !== 'dark') {
+                    $out['warnings'][] = "decisions.{$key} {$decisions[$key]} is set by hand and the set has no dark version: in dark mode {$consequence}. Give `dark` its own {$key}, or leave it to the palette.";
+                }
+            }
             $other = ($decisions['mode'] ?? '') === 'dark' ? 'light' : 'dark';
             foreach (Tokens::validate(['mode' => $other] + $decisions)['errors'] as $key => $message) {
                 $out['warnings'][] = "in {$other} mode, {$key}: {$message}";

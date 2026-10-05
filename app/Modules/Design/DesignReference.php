@@ -166,7 +166,7 @@ final class DesignReference
         $out[] = '';
         $out[] = '- **An error refuses the set**: not JSON, not this format or version, no `id` or `name`, a number out of its range, a choice not in its list, a contrast pair under ' . Palette::AA_BODY . ':1, a pattern without blocks.';
         $out[] = '- **A warning keeps the set** and says what was left out: a key Boxlet does not know, a block type, layout, option or field this site does not have, a picture, file or form in a pattern.';
-        $out[] = '- `bin/check-set.php` warns besides about a text column under 16rem on a large screen, a number put on its step, and the other mode\'s contrast.';
+        $out[] = '- `bin/check-set.php` warns besides about a text column under 16rem on a large screen, a number put on its step, the other mode\'s contrast, and a colour by hand (the page, a card, the surface, the text) in a set without a dark version, which dark mode would keep.';
 
         return implode("\n", $out) . "\n";
     }

@@ -209,6 +209,16 @@ final class AppearanceScreen
         $resolved = Tokens::resolve($values, $basis, $dark);
         $defaults = Overrides::defaults($basis, $resolved['heading_font'], $resolved['body_font']);
         $shown = $resolved;
+        // THE CONTROLS ARE THE LIGHT VERSION'S, WHATEVER THE MODE (D-193, found with the new sets).
+        // In dark mode the design as drawn has the character's dark version in it; shown in the
+        // controls, a Publish then stored Workshop's dark page colour as the owner's for both
+        // modes, and every character after it kept it. The dark colours have their own rows.
+        if (($resolved['mode'] ?? '') === 'dark') {
+            $light = Tokens::resolve(['mode' => 'light'] + $values, $basis);
+            foreach (Decisions::DARK as $key) {
+                $shown[$key] = $light[$key];
+            }
+        }
         foreach ($shown as $key => $value) {
             if ($value === '' && Decisions::follows($key) === 'font') {
                 $shown[$key] = $defaults[$key];

@@ -93,3 +93,24 @@ testBothDrivers('a design exported from the screen carries the owner\'s dark col
     assertEquals('#225588', $set['dark']['color_link'] ?? null, 'and the colour held for both modes, which stands over a dark version on the site');
     assertEquals('#225588', $set['decisions']['color_link'] ?? null, 'held in light mode too');
 });
+
+// FOUND WITH THE NEW SETS (D-193): in dark mode the controls showed the character's dark version,
+// and the next Publish stored Workshop's dark page colour as the owner's for both modes.
+// transferSite() and designUpload() are design_transfer_test.php's.
+testBothDrivers('in dark mode the controls show the light version, and a Publish keeps none of the dark one', function (string $driver) {
+    // Imported as the owner does: a custom file set aside here is the request's no longer.
+    $db = transferSite($driver);
+    designUpload(customFile('harbour', [
+        'decisions' => ['color_background' => '#fbf6ee', 'seed' => '#2b4a6f'],
+        'dark' => ['color_background' => '#101820', 'seed' => '#8ab4f8'],
+    ]));
+    adminPost('/admin/appearance/import/add', []);
+    App\Modules\Design\Composition::remember($db, 'harbour');
+    Design::save($db, ['mode' => 'dark'], sys_get_temp_dir());
+    assertEquals('#101820', Design::resolved($db)['color_background'], 'the page drawn in its dark version');
+
+    $html = dispatch('/admin/appearance')->body;
+    assertContains('id="design-color_background" name="color_background" value="#fbf6ee"', $html, 'the page colour\'s light value');
+    assertTrue(!str_contains($html, 'name="color_background" value="#101820"'), 'never the dark one in its place');
+    assertContains('id="design-seed" name="seed" value="#2b4a6f"', $html, 'the main colour\'s light value');
+});

@@ -274,6 +274,43 @@ export default {
     report.verdict('a centred header can lie over the first section', overCentred.paints === 'rgba(0, 0, 0, 0)' && overCentred.positioned === 'absolute' && overCentred.centred, JSON.stringify(overCentred));
 
     /*
+     * A LONG MENU'S COLUMNS ARE AS WIDE AS THEIR LINKS (D-195, the owner): split in two or in
+     * three lists, they stand from the footer's start, each as wide as its longest link with
+     * the gap between, never spread across the footer. Its control: the list given the whole
+     * width again, as it had, is caught.
+     */
+    {
+      const lists = [];
+      const measure = () => page.evaluate(() => {
+        const f = document.querySelector('.site-footer');
+        const ul = f.querySelector('.site-footer-nav ul');
+        const links = [...ul.querySelectorAll('a')].map((a) => a.getBoundingClientRect());
+        const lefts = [...new Set(links.map((r) => Math.round(r.left)))].sort((a, b) => a - b);
+        const widest = Math.max(...links.map((r) => r.width));
+        const gap = parseFloat(getComputedStyle(ul).columnGap);
+        const start = f.getBoundingClientRect().left + parseFloat(getComputedStyle(f).paddingLeft);
+        return { lefts, widest: Math.round(widest), gap, start: Math.round(start), list: Math.round(ul.getBoundingClientRect().width), footer: Math.round(f.getBoundingClientRect().width) };
+      });
+      const tight = (m, n) => m.lefts.length === n && Math.abs(m.lefts[0] - m.start) <= 1
+        && m.lefts.slice(1).every((x, i) => x - m.lefts[i] <= m.widest + m.gap + 2) && m.list < m.footer / 2;
+      for (const [columns, n] of [['3', 2], ['4', 3]]) {
+        await page.goto(tryLook({ footer_layout: 'columns', footer_columns: columns, footer_links: 'auto' }), { waitUntil: 'networkidle2' });
+        const m = await measure();
+        lists.push({ columns, n, ok: tight(m, n), m });
+        if (columns === '3') {
+          await page.evaluate(() => document.querySelector('footer').scrollIntoView());
+          await report.shot(page, 'footer-two-lists', { fullPage: false });
+          // THE CONTROL, through the CSSOM: the list across the whole footer again.
+          await page.evaluate(() => { document.querySelector('.site-footer-nav ul').style.setProperty('inline-size', 'auto', 'important'); });
+          const spread = await measure();
+          report.verdict('the control: a menu split across the whole footer, as it was, is caught', !tight(spread, n), JSON.stringify(spread));
+        }
+      }
+      report.verdict('a long menu in two or three lists stands from the footer\'s start, each list as wide as its longest link',
+        lists.every((l) => l.ok), JSON.stringify(lists.map((l) => ({ columns: l.columns, ...l.m }))));
+    }
+
+    /*
      * A COLOUR OF THE OWNER'S OWN reaches the links (D-076, D-110). Tried through the
      * preview with the screen's own form as the query, exactly as appearance.js sends it,
      * so nothing is published.

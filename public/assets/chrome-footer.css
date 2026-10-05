@@ -149,6 +149,12 @@
   display: block;
   columns: 1;
   column-gap: var(--space-l);
+  /* AS WIDE AS ITS LINKS, FROM THE START (D-195, the owner): split columns shared the whole
+     width of the footer, so Coast's five links stood as three at its left edge and two at
+     its middle, 578 pixels to the right. Each column is now as wide as its longest link, the gap
+     between them, and the list stands at the start; never wider than its room. */
+  inline-size: max-content;
+  max-inline-size: 100%;
 }
 
 .layout-columns .site-footer-nav li {

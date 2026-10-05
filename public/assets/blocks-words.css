@@ -27,14 +27,17 @@
   border: 0;
 }
 
+/* Drawn as a Cards block's card (D-191, the owner): its surface, edge, corners, padding and
+   shadow. The card's own room gives way before the words do (D-185): with Editorial's spacing
+   on a phone, the page's gutter and the card's left the quote under 16rem. Never more than a
+   Cards card's padding, and only as little as keeps the words 16rem; a percentage here is of
+   the column. */
 .layout-card .quote {
-  /* The card's own room gives way before the words do (D-185): with Editorial's spacing on a
-     phone, the page's gutter and the card's left the quote under 16rem. Never more than the design's
-     room, and only as little as keeps the words 16rem; a percentage here is of the column. */
-  padding: clamp(var(--space-s), calc((100% - 16rem) / 2 - var(--border-width)), var(--space-l));
+  padding: clamp(var(--space-s), calc((100% - 16rem) / 2 - var(--border-width)), calc(var(--space-m) * 1.125));
   background: var(--section-card);
   border: var(--border-width) solid var(--section-border);
   border-radius: var(--radius-l);
+  box-shadow: var(--shadow-s);
 }
 
 .quote-portrait img {
@@ -50,7 +53,8 @@
 .quote-words {
   margin: 0;
   padding: 0 0 0 calc(var(--space-m) * 1.125);
-  /* The accent's rule down its left (README 1.6), three hairlines wide. */
+  /* The accent's rule down its left (README 1.6), three hairlines wide: the plain layout's,
+     whose drawing is that rule; Large and Card take it away below. */
   border: 0;
   border-inline-start: calc(var(--border-width) * 3) solid var(--section-link);
   color: var(--section-text);

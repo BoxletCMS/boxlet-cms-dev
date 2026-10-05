@@ -95,5 +95,8 @@ testBothDrivers('the demo\'s page of every block keeps every layout and option b
     $blocks = static fn (string $key): array => $db->all('SELECT b.layout, b.options_json FROM page_blocks b JOIN pages p ON p.id = b.page_id WHERE p.slug = ?', [$key]);
     $showroom = $blocks('blocks');
     assertTrue($showroom !== [] && array_filter($showroom, static fn (array $b): bool => (string) $b['layout'] === '') === [], 'every block of the page of every block by hand');
-    assertTrue(array_filter($blocks(''), static fn (array $b): bool => (string) $b['layout'] === '') !== [], 'the home page following');
+    // Every block of the home page follows, not only its hero (D-194, the owner).
+    $home = $blocks('');
+    assertEquals(12, count($home), 'the home page\'s six blocks, in English and its Croatian translation');
+    assertEquals([], array_values(array_filter($home, static fn (array $b): bool => (string) $b['layout'] !== '')), 'every block of the home page following');
 });

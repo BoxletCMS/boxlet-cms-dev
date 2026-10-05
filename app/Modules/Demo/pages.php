@@ -12,6 +12,8 @@
  * Each page is SECTIONS, as the builder makes them: a section's own style (only the keys the
  * page sets; every other is the character's, D-165), its layout, and its blocks with the column
  * each stands in. A block is [type, content, layout, options, column].
+ * A layout of '' follows the character (D-191): every block of the home page does (D-194, the
+ * owner), so it shows what a character composes; its words and pictures are its content.
  *
  * Links are `demo:{key}`, a page by its key below, and become page references on the way in
  * (D-034): a renamed page keeps its links. The seed references no picture (the media note in
@@ -47,7 +49,7 @@ return static function (string $lang): array {
                             ['heading' => $t('Uredi', 'Offices'), 'body' => $p('Radni prostori za male timove.', 'Workspaces for small teams.'), 'image' => 'demo-picture:card-offices'],
                             ['heading' => $t('Trgovine', 'Shops'), 'body' => $p('Izlozi, police i put kupca.', 'Windows, shelving and the customer\'s path.'), 'image' => 'demo-picture:card-shops'],
                         ],
-                    ], 'grid', [], 0],
+                    ], '', [], 0],
                 ]],
                 ['style' => ['name' => $t('Proces', 'Process')], 'layout' => 'one', 'blocks' => [
                     ['image_text', [
@@ -55,24 +57,24 @@ return static function (string $lang): array {
                         'body' => $p('Vodimo cijeli projekt: mjerenje, 3D prikaz, izbor materijala i nadzor izvođača.', 'We run the whole project: measuring, 3D views, choosing materials and overseeing the builders.'),
                         'link' => ['label' => $t('Kako radimo →', 'How we work →'), 'url' => 'demo:process'],
                         'image' => 'demo-picture:process-plan',
-                    ], 'image-left', [], 0],
+                    ], '', [], 0],
                 ]],
                 ['style' => ['name' => $t('Iskustvo', 'Experience')], 'layout' => 'wide-left', 'blocks' => [
                     ['text', [
                         'heading' => $t('Zašto mi', 'Why us'),
                         'body' => $p('Petnaest godina iskustva i preko dvjesto prostora. Radimo malo projekata odjednom, pa svaki dobije punu pažnju.', 'Fifteen years and more than two hundred spaces. We take on only a few projects at a time, so each one gets our full attention.'),
-                    ], 'single', [], 0],
+                    ], '', [], 0],
                     ['quote', [
                         'quote' => $t('„Stan je postao dom u šest tjedana, bez ijednog dana kašnjenja.”', '“Our flat became a home in six weeks, without a single day\'s delay.”'),
                         'attribution' => 'Marija K., Zagreb',
-                    ], 'plain', [], 1],
+                    ], '', [], 1],
                 ]],
                 ['style' => ['name' => $t('Kontakt', 'Contact'), 'surface' => 'contrast'], 'layout' => 'one', 'blocks' => [
                     ['cta', [
                         'heading' => $t('Spremni za početak?', 'Ready to start?'),
                         'body' => $t('Javite se i dogovorimo prvi korak.', 'Get in touch and we\'ll plan the first step.'),
                         'action' => ['label' => $t('Kontakt', 'Contact'), 'url' => 'demo:contact'],
-                    ], 'banner', [], 0],
+                    ], '', [], 0],
                 ]],
             ],
         ],

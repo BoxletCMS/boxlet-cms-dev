@@ -128,7 +128,7 @@ testBothDrivers('the demo styles by hand only the sections that mean to differ f
         'en /blocks#6' => 'the contrast surface, the curve edge',
         'en /blocks#7' => 'a band taller than its content, content at the top',
         'en /blocks#9' => 'the same, content at the bottom',
-        'en /blocks#25' => 'the narrow width',
+        'en /blocks#26' => 'the narrow width',
         'hr /#0' => 'Intro, translated',
         'hr /#4' => 'Contact, translated',
     ];

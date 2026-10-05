@@ -83,6 +83,9 @@ return static function (Closure $t, Closure $p): array {
             $one([], ['logos', ['heading' => $t('Klijenti u mreži', 'Clients in a grid'), 'items' => [['name' => 'Marić'], ['name' => 'Sjever'], ['name' => 'Ilica'], ['name' => 'Kovač'], ['name' => 'Babić'], ['name' => 'Lumen']]], 'grid', [], 0]),
             $one([], ['picture', ['caption' => $t('Slika preko stupca', 'A picture filling the column')], 'full', ['shape' => 'wide'], 0]),
             $one([], ['picture', ['caption' => $t('Slika s prostorom oko sebe', 'A picture with room around it')], 'inset', ['shape' => 'wide'], 0]),
+            // The picture on the left, which the home page showed by hand until its blocks followed
+            // the character (D-194): the demo's, Soft, puts it on the right.
+            $one([], ['image_text', ['heading' => $t('Slika lijevo', 'The picture on the left'), 'body' => $p('Riječi uz sliku, s njezine desne strane.', 'Words beside the picture, on its right.')], 'image-left', [], 0]),
             $one([], ['quote', ['quote' => $t('„Citat na kartici.”', '“A quotation on a card.”'), 'attribution' => 'Ana M.'], 'card', [], 0]),
             $one([], ['stats', ['heading' => $t('Četiri broja', 'Four numbers'), 'items' => [
                 ['value' => '15', 'label' => $t('godina', 'years')],

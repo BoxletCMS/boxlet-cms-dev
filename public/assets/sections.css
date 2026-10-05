@@ -403,21 +403,16 @@ main > .block:first-child {
 /* The section's own centring reaches into the columns. .align-center centres what is
    directly inside .container, which for a section with columns is the column container
    itself — centring that does nothing, because a grid track is already as wide as its
-   share. What the author meant is the content of each column. */
-.align-center .section-column > * {
-  margin-inline: auto;
-}
+   share. What the author meant is the content of each column.
 
-/* Centred, a block keeps its column's width: in a grid, auto margins alone size an item to
-   its content, and a split hero in a centred band stood 410 pixels wide in a column of 1120,
-   its words 194 (D-182, measured on the demo's page of every block). A block with a measure
-   of its own is still centred by the margins; its words by text-align. */
-.align-center .section-column > .block-hero,
-.align-center .section-column > .block-image_text,
-.align-center .section-column > .block-form,
-.align-center .section-column > .block-cta {
-  box-sizing: border-box;
-  inline-size: 100%;
+   ONE LEVEL IN, AS A SECTION OF ONE BLOCK HAS IT (D-190): a block in a column keeps the
+   column's width, and what it draws is centred in it, as `.container > *` centres it where
+   the section is the block. Auto margins on the block itself, a grid item, sized it to its
+   content: measured in the canvas under Minimal, Numbers and Logos no width at all (their
+   own containment gives them no content width), a full-width video 117 pixels of 896, a
+   picture 174 (D-182 had mended four blocks one by one). */
+.align-center .section-column > * > * {
+  margin-inline: auto;
 }
 
 /* Below the width two columns of words can hold, the columns become rows.

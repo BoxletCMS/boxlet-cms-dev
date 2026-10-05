@@ -14,6 +14,15 @@
   align-items: stretch;
 }
 
+/* WIDENED, THE WORDS STAY ON THE PAGE'S EDGE (D-193, the owner): a split hero stands in the
+   wide measure (SectionRender::composed) where the character's sections are narrower, and its
+   words began left of the header's logo — Soft's by 80 pixels at 1440. They start where the
+   page's content does; only the picture reaches out. Nothing where the section is no wider
+   than the page. */
+.layout-split .hero:not(.is-alone) {
+  padding-inline-start: max(0rem, calc((100% - var(--page-content-width, var(--container-width))) / 2));
+}
+
 /* THE HEADING MEASURED BY ITS OWN COLUMN (D-177). Beside a picture, the words have about half
    the section, and a heading sized by the window stood six lines tall in Editorial's narrow
    measure. Sized by the column instead, a twelfth and a half of it, it keeps to three or four

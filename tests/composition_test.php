@@ -26,16 +26,9 @@ function shapeOf(string $preset): array
 }
 
 test('every character composes a different shape', function () {
-    // EVERY CHARACTER BOXLET SHIPS, two by two, differs in at least two of the five (D-196,
-    // D-197, the owner: no exceptions). One pair does not yet, and is the owner's to settle,
-    // named here; it must still be alike, so once settled it has to leave the list. Measured
-    // on 2026-10-06, Terra's and Riso's new files in core:
-    $waiting = [
-        // Commons and the Zine in core differ only in the gap, 96 and 64. The Zine the owner
-        // sent next rules every section with a line, which the rule below refuses (a divider
-        // is an accent), and waits on the owner.
-        'commons/zine' => true,
-    ];
+    // EVERY CHARACTER BOXLET SHIPS, two by two, differs in at least two of the five, with no
+    // exception (D-196, D-198, the owner). Ten pairs differ in exactly two, measured on
+    // 2026-10-06 when Zine's accents became lines.
     $shapes = [];
     foreach (App\Modules\Design\Characters::CORE as $preset) {
         $shapes[$preset] = shapeOf($preset);
@@ -47,11 +40,7 @@ test('every character composes a different shape', function () {
                 continue;
             }
             $different = count(array_filter(array_keys($first), static fn (string $k): bool => $first[$k] !== $second[$k]));
-            if (isset($waiting["{$a}/{$b}"])) {
-                assertTrue($different < 2, "{$a} and {$b} now differ in {$different}: take them off the waiting list");
-            } else {
-                assertTrue($different >= 2, "{$a} and {$b} compose the page the same way (" . $different . ' of 5 dimensions differ)');
-            }
+            assertTrue($different >= 2, "{$a} and {$b} compose the page the same way (" . $different . ' of 5 dimensions differ)');
         }
     }
 });

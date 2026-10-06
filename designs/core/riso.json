@@ -55,8 +55,8 @@
         "footer_columns": "3",
         "footer_links": "auto",
         "small_print_row": "split",
-        "footer_surface": "contrast",
-        "footer_edge": "slant"
+        "footer_surface": "tinted",
+        "footer_edge": "line"
     },
     "composition": {
         "section": {
@@ -90,7 +90,7 @@
         "options": {
             "cards": {
                 "image_shape": "wide",
-                "per_row": "2"
+                "per_row": "3"
             },
             "gallery": {
                 "shape": "square"

@@ -21,7 +21,7 @@
         "scale": "1.5",
         "heading_weight": "800",
         "tracking": "-0.02",
-        "nudge_h1": "14",
+        "nudge_h1": "6",
         "spacing": "0.9",
         "section_gap": "64",
         "radius": "0",
@@ -66,7 +66,7 @@
             "pad_bottom": "",
             "min_height": "0",
             "v_align": "top",
-            "width": "normal",
+            "width": "wide",
             "align": "left",
             "divider": "none",
             "animation": "up"
@@ -77,8 +77,8 @@
             "cta": "gradient"
         },
         "dividers": {
-            "quote": "slant",
-            "cta": "slant"
+            "quote": "line",
+            "cta": "line"
         },
         "layouts": {
             "hero": "left",

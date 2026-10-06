@@ -58,9 +58,11 @@ export default {
     const presets = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',
         (els) => els.map((e) => e.value.slice('preset:'.length))));
-    // Every character the registry holds, as a tile in Quick start (D-157): the five
-    // Boxlet ships, and whatever an owner added, which a fresh copy has none of.
-    report.verdict('the Appearance screen offers five characters', presets.length === 5, presets.join(', '));
+    // Every character the registry holds, as a tile in Quick start (D-157): those Boxlet
+    // ships — the five, and the owner's sets taken into core since D-195 (CHANGED
+    // DELIBERATELY) — and whatever an owner added, which a fresh copy has none of.
+    const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist', 'terra', 'clinic', 'gallery', 'launch', 'commons', 'couture', 'riso'];
+    report.verdict('the Appearance screen offers the characters Boxlet ships, in their order', presets.join() === CORE.join(), presets.join(', '));
 
     // THE SCREEN IS THE WINDOW (D-064): two columns that scroll on their own, under a bar
     // that does not — the picture and the inspector, since the characters became tiles in
@@ -196,7 +198,7 @@ export default {
       };
     });
     report.verdict('the characters are tiles in the inspector, three to a row, with no panel to open',
-      tiles.count === 5 && tiles.shown === 5 && tiles.perRow && tiles.sideways <= 0 && tiles.panelButton === 0,
+      tiles.count === CORE.length && tiles.shown === CORE.length && tiles.perRow && tiles.sideways <= 0 && tiles.panelButton === 0,
       JSON.stringify(tiles));
     await page.setViewport(tall);
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });

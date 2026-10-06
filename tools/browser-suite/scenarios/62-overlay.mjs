@@ -24,7 +24,9 @@ function crossings(page) {
   return page.evaluate(() => {
     const doc = document.querySelector('[data-pb-canvas]').contentDocument;
     const layer = doc.querySelector('.bx-layer');
-    const marks = [...(layer ? layer.children : [])]
+    // The selected block's frame is not a mark among them: it stands around the block, as its
+    // outline did (D-199), and where it stands is measured on its own below.
+    const marks = [...(layer ? layer.children : [])].filter((n) => !n.classList.contains('bx-frame'))
       .filter((n) => !n.matches('.bx-hidden-here, .bx-inserter') && !n.hidden)
       .concat([...doc.querySelectorAll('.bx-add-item-cell')])
       .map((n) => ({ what: n.className + (n.getAttribute('data-bx-insert') ? `#${n.getAttribute('data-bx-insert')}` : ''), r: n.getBoundingClientRect() }))
@@ -72,13 +74,16 @@ function crossings(page) {
         }
       });
     }
-    // The selected block's outline outside all it draws (D-190): no word, link, button or
-    // picture of it reaches into the ring the outline draws. A cover hero's picture is its
-    // background.
+    // The selected block's frame outside all it draws (D-190): no word, link, button or
+    // picture of it reaches into the ring the frame draws. A cover hero's picture is its
+    // background. The frame is the layer's since D-199: its inner edge, inside its 2px border.
     const selected = doc.querySelector('[data-bx-selected="block"]');
-    if (selected) {
+    const frame = doc.querySelector('.bx-layer > .bx-frame');
+    if (selected && !frame) { found.push('a selected block with no frame'); }
+    if (selected && frame) {
       const b = selected.getBoundingClientRect();
-      const offset = parseFloat(getComputedStyle(selected).outlineOffset) || 0;
+      const f = frame.getBoundingClientRect();
+      const offset = Math.min(b.left - (f.left + 2), (f.right - 2) - b.right, b.top - (f.top + 2), (f.bottom - 2) - b.bottom);
       const reaches = [];
       const walker = doc.createTreeWalker(selected, 4);
       for (let text = walker.nextNode(); text; text = walker.nextNode()) {
@@ -93,7 +98,7 @@ function crossings(page) {
       reaches.forEach(([r, what]) => {
         if (r.width === 0 || r.height === 0) { return; }
         const past = Math.max(b.left - r.left, r.right - b.right, b.top - r.top, r.bottom - b.bottom);
-        if (past > offset + 0.5) { found.push(`${what} reaches ${past.toFixed(1)}px past the block, its outline ${offset}px out`); }
+        if (past > offset + 0.5) { found.push(`${what} reaches ${past.toFixed(1)}px past the block, its frame ${offset.toFixed(1)}px out`); }
       });
     }
     // And each "+" on its boundary, where the band it adds before begins.

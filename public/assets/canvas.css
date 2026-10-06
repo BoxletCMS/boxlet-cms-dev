@@ -75,20 +75,23 @@
 
 /* THE ACCENT, AND A LIGHT EDGE BESIDE IT (D-176): one pixel of white against the accent, so
    the outline stands apart from whatever colour the page is — the accent alone sank into a
-   page of a near colour. A block's edge is outside it; a band fills the window's width, so
-   its edge is inside. A block's outline stands outside everything it draws (D-190, the
-   owner): --bx-ink is how far its words and controls reach past its box (builder-overlay.js),
-   and the light between them and the outline is the page's white. */
-.bx-canvas [data-bx-selected="block"] {
-  outline: 2px solid var(--bx-select);
-  outline-offset: var(--bx-ink, 0px);
-  box-shadow: 0 0 0 calc(var(--bx-ink, 0px) + 3px) var(--bx-paper);
-}
-
+   page of a near colour. A band fills the window's width, so its edge is inside. A block's
+   is its frame in the layer (.bx-frame below, D-199). */
 .bx-canvas [data-bx-selected="section"] {
   outline: 2px solid var(--bx-select);
   outline-offset: -2px;
   box-shadow: inset 0 0 0 3px var(--bx-paper);
+}
+
+/* A SELECTED BLOCK'S FRAME (D-190, D-199, the owner): drawn in the layer by builder-overlay.js,
+   past everything the block draws by its reach, the accent with one pixel of white outside it.
+   The room inside it is the page's own colour, light or dark. It takes no press. */
+.bx-layer > .bx-frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--bx-select);
+  box-shadow: 0 0 0 1px var(--bx-paper);
+  pointer-events: none;
 }
 
 /* The selected item (D-187, D-188): the selected block's outline, thinner, with its light

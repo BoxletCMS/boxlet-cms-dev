@@ -59,7 +59,8 @@ function state(page) {
     const shown = bubble && win.getComputedStyle(bubble).visibility === 'visible' ? bubble.getBoundingClientRect() : null;
     const visible = (n) => n && win.getComputedStyle(n).visibility === 'visible' && n.getBoundingClientRect().width > 0;
     const layer = doc.querySelector('.bx-layer:not(.bx-bubble-layer)');
-    const crossed = shown ? [...(layer ? layer.children : [])].concat([...doc.querySelectorAll('.bx-add-item-cell')])
+    // Not the selected block's frame, which stands around the words as its outline did (D-199).
+    const crossed = shown ? [...(layer ? layer.children : [])].filter((n) => !n.classList.contains('bx-frame')).concat([...doc.querySelectorAll('.bx-add-item-cell')])
       .filter((n) => visible(n) && !n.hidden)
       .filter((n) => { const r = n.getBoundingClientRect(); return shown.left < r.right - 0.5 && r.left < shown.right - 0.5 && shown.top < r.bottom - 0.5 && r.top < shown.bottom - 0.5; })
       .map((n) => n.className) : [];

@@ -149,11 +149,13 @@
     var sel = pb.selection;
     var node = !sel ? null : sel.kind === 'block' ? pb.canvas.blockEl(sel.key) : pb.canvas.sectionEl(sel.key);
     Array.prototype.forEach.call(cdoc().querySelectorAll('[data-bx-selected]'), function (n) {
-      if (n !== node) { n.removeAttribute('data-bx-selected'); n.style.removeProperty('--bx-ink'); }
+      if (n !== node) { n.removeAttribute('data-bx-selected'); n.removeAttribute('data-bx-reach'); }
     });
     if (node) {
       node.setAttribute('data-bx-selected', sel.kind);
-      if (sel.kind === 'block') { node.style.setProperty('--bx-ink', ink(node) + 'px'); }
+      // An attribute, not a custom property (D-199): as --bx-ink it took the name of the
+      // controls' dark colour, and every "+ Card" in the selected block lost its ground.
+      if (sel.kind === 'block') { node.setAttribute('data-bx-reach', String(ink(node))); }
     }
   }
 
@@ -225,6 +227,15 @@
       bar.appendChild(button('block-delete', 'trash-2', pb.t('canvas.delete')));
       // The selected item's actions, a second segment of the same bar (builder-inline-items.js).
       if (pb.overlay.itemSegment) { pb.overlay.itemSegment(bar, block, node); }
+      // THE BLOCK'S FRAME, DRAWN IN THE LAYER (D-199, the owner): the accent where its outline
+      // stood, past what the block draws by its reach (D-190), with one pixel of white outside
+      // it (D-176). The room between the block and the frame is the page's own: drawn as the
+      // block's outline and shadow it was filled white, a thick white frame on a dark page.
+      var reach = parseFloat(node.getAttribute('data-bx-reach')) || 0;
+      var r = box(node);
+      var frame = el('div', 'bx-frame');
+      at(frame, { top: r.top - reach - 2, left: r.left - reach - 2, width: r.width + (reach + 2) * 2, height: r.height + (reach + 2) * 2 });
+      layer.appendChild(frame);
       layer.appendChild(bar);
       pb.overlay.placeBar(bar, node, block);
     } else if (sel.kind === 'section') {

@@ -87,6 +87,11 @@
   margin-inline-start: 0;
 }
 
+/* A readout on a line of its own (D-196) leaves the reset at the end of the name's line. */
+.control-head .readout.readout-below + .control-reset {
+  margin-inline-start: auto;
+}
+
 .is-changed > .control-head > .control-reset {
   display: inline-flex;
 }
@@ -291,4 +296,10 @@
   line-height: var(--ui-leading-tight);
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* Room above the first row of tiles for the tag on its edge, so it never touches the line
+   above it — a readout on a line of its own (D-196). */
+.tile-choice:has(.tile-tag) {
+  padding-block-start: var(--ui-2);
 }

@@ -47,10 +47,39 @@
 
    NOTHING IS CUT SHORT (D-195, the owner): a phrase longer than its three fifths runs onto a
    second line, ranged to the end, rather than ending in "…". Measured in the 336px builder
-   inspector: a cover hero's "Picture behind, words low on the left" was cut. */
+   inspector: a cover hero's "Picture behind, words low on the left" was cut.
+
+   AND WHAT DOES NOT FIT BESIDE THE NAME HAS A LINE OF ITS OWN (D-196, the owner): under the
+   name, from the left, rather than two lines against the reset. admin-readouts.js measures
+   the row and marks it; with the script the three fifths give way to the whole phrase, which
+   it has measured to fit. */
 .field-row .field-label,
 .field-row label {
   flex: 1 1 auto;
+}
+
+/* The readout's line of its own, after everything else in the row. */
+.control-head,
+.field-row {
+  flex-wrap: wrap;
+}
+
+.js .control-head > .readout,
+.js .field-row > .readout {
+  max-inline-size: none;
+}
+
+.readout.readout-measure {
+  max-inline-size: none;
+  white-space: nowrap;
+}
+
+.control-head > .readout.readout-below,
+.field-row > .readout.readout-below {
+  order: 10;
+  flex-basis: 100%;
+  margin-inline-start: 0;
+  text-align: start;
 }
 
 .readout {

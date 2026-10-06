@@ -12,7 +12,8 @@ use App\Core\Blocks;
  * - a number off its step, which an import puts on the nearest one without a word;
  * - the contrast pairs in the other mode, which an owner may switch to, and then Save refuses;
  * - the three closest pairs and the least veil over a picture, so a pass by a hair is seen;
- * - every place the set's own choices put words in a column under 16rem (SetMeasure).
+ * - every place the set's own choices put words in a column under 16rem (SetMeasure);
+ * - a divider on every section, which a character Boxlet ships may not have (D-198).
  */
 final class SetCheck
 {
@@ -84,6 +85,17 @@ final class SetCheck
         }
         if ($own > 0) {
             $out['notes'][] = sprintf('patterns: %d %s with a layout of %s own, kept through Apply', $own, $own === 1 ? 'block' : 'blocks', $own === 1 ? 'its' : 'their');
+        }
+
+        // A DIVIDER IS AN ACCENT, NEVER A DEFAULT FOR EVERY SECTION (D-198, the owner): the rule
+        // a character Boxlet ships is held to (composition_test), worked out as Composition::style
+        // does it — a block type's own divider, else the section's — for every block there is.
+        $composition = $set['composition'];
+        if ($composition !== null) {
+            $everywhere = array_filter($registry->types(), static fn (string $type): bool => ($composition['dividers'][$type] ?? $composition['section']['divider'] ?? 'none') !== 'none');
+            if (count($everywhere) === count($registry->types())) {
+                $out['warnings'][] = "composition: a divider on every section (section.divider {$composition['section']['divider']}). A divider marks the transitions a character chooses, and drawn on every boundary it stops reading as one: name those block types in `dividers` and leave section.divider none.";
+            }
         }
 
         foreach (SetMeasure::narrow($resolved, $set['composition'], $set['patterns'], $registry) as $narrow) {

@@ -26,15 +26,14 @@ function shapeOf(string $preset): array
 }
 
 test('every character composes a different shape', function () {
-    // EVERY CHARACTER BOXLET SHIPS, two by two, differs in at least two of the five (D-196, the
-    // owner; D-195 held it for the first five only). The pairs that do not yet are the owner's
-    // to settle, named here, and each must still be alike: a pair settled has to leave the list,
-    // so the list cannot outlive its reason. Measured on 2026-10-06:
+    // EVERY CHARACTER BOXLET SHIPS, two by two, differs in at least two of the five (D-196,
+    // D-197, the owner: no exceptions). One pair does not yet, and is the owner's to settle,
+    // named here; it must still be alike, so once settled it has to leave the list. Measured
+    // on 2026-10-06, Terra's and Riso's new files in core:
     $waiting = [
-        // Soft and the Terra in core differ only in the gap. The Terra the owner sent next has
-        // a cover hero, and waits on its one warning (cards.per_row kept under the list layout).
-        'soft/terra' => true,
-        // Commons and Zine differ only in the gap: 96 and 64.
+        // Commons and the Zine in core differ only in the gap, 96 and 64. The Zine the owner
+        // sent next rules every section with a line, which the rule below refuses (a divider
+        // is an accent), and waits on the owner.
         'commons/zine' => true,
     ];
     $shapes = [];

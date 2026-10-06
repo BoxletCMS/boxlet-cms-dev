@@ -89,7 +89,7 @@
         },
         "options": {
             "cards": {
-                "image_shape": "square",
+                "image_shape": "wide",
                 "per_row": "2"
             },
             "gallery": {

@@ -79,8 +79,8 @@
             "cta": "curve"
         },
         "layouts": {
-            "hero": "split",
-            "cards": "grid",
+            "hero": "cover-left",
+            "cards": "list",
             "quote": "big",
             "accordion": "cards",
             "stats": "three",
@@ -90,7 +90,8 @@
         },
         "options": {
             "hero": {
-                "height": "tall"
+                "height": "tall",
+                "veil": "medium"
             },
             "text": {
                 "measure": "comfortable"
@@ -99,7 +100,6 @@
                 "measure": "wide"
             },
             "cards": {
-                "per_row": "3",
                 "image_shape": "wide"
             },
             "gallery": {

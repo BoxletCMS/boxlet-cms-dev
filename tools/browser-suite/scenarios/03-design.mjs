@@ -61,7 +61,7 @@ export default {
     // Every character the registry holds, as a tile in Quick start (D-157): those Boxlet
     // ships — the five, and the owner's sets taken into core since D-195 (CHANGED
     // DELIBERATELY) — and whatever an owner added, which a fresh copy has none of.
-    const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist', 'terra', 'clinic', 'gallery', 'launch', 'commons', 'couture', 'riso'];
+    const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist', 'terra', 'clinic', 'gallery', 'launch', 'commons', 'zine', 'couture', 'riso'];
     report.verdict('the Appearance screen offers the characters Boxlet ships, in their order', presets.join() === CORE.join(), presets.join(', '));
 
     // THE SCREEN IS THE WINDOW (D-064): two columns that scroll on their own, under a bar

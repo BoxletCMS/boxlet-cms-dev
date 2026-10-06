@@ -65,7 +65,7 @@
             "pad_bottom": "",
             "min_height": "0",
             "v_align": "top",
-            "width": "normal",
+            "width": "wide",
             "align": "left",
             "divider": "none",
             "animation": "none"
@@ -79,17 +79,18 @@
             "cta": "slant"
         },
         "layouts": {
-            "hero": "split",
+            "hero": "left",
             "cards": "grid",
             "stats": "three",
-            "quote": "card",
-            "cta": "beside",
+            "quote": "big",
+            "cta": "banner",
             "gallery": "three",
-            "image_text": "image-right"
+            "image_text": "image-left"
         },
         "options": {
             "cards": {
-                "image_shape": "square"
+                "image_shape": "square",
+                "per_row": "2"
             },
             "gallery": {
                 "shape": "square"

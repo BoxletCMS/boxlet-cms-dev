@@ -36,7 +36,7 @@ final class Characters
      * the owner's sets taken into core (D-195), in the order the owner named them. The other
      * sets the owner made are in designs/library/, to add from Appearance (SetLibrary).
      */
-    public const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist', 'terra', 'clinic', 'gallery', 'launch', 'commons', 'couture', 'riso'];
+    public const CORE = ['editorial', 'minimal', 'bold', 'soft', 'brutalist', 'terra', 'clinic', 'gallery', 'launch', 'commons', 'zine', 'couture', 'riso'];
 
     /** @var array<string, array{source: string, set: array<string, mixed>}>|null id => where it came from and what it is */
     private static ?array $all = null;

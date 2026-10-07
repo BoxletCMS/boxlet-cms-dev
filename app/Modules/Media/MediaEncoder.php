@@ -24,7 +24,8 @@ use Throwable;
 final class MediaEncoder
 {
     /**
-     * What a variant is written as, best first. The original format is always last.
+     * What a variant is written as, best first; formatsFor() adds the original's own format
+     * after them, unless it is one of them already.
      *
      * Public because these are also the BEST-EFFORT formats: SPEC §5.5 says AVIF must never
      * block, so MediaVariants needs to know which formats a picture is allowed to go without.

@@ -29,7 +29,7 @@ final class Palette
     public const AA_BODY = 4.5;
 
     /**
-     * THE SIX ROLES AN OWNER MAY SET BY HAND (PLAN.md D-063), and no others.
+     * THE SEVEN ROLES AN OWNER MAY SET BY HAND (PLAN.md D-063, the link's since), and no others.
      *
      * These are the INDEPENDENT ones: the page's own colours and the ink on them. Everything
      * else is either already theirs — the accent and the contrast surface are the two seeds —

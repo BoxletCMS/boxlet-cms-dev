@@ -151,6 +151,9 @@ function dispatch(
 
         $container = require dirname(__DIR__) . '/app/bootstrap.php';
         $container->set('session', static fn () => new Session());
+        // No test site is served over HTTP, so nothing beside public/ can be fetched from it;
+        // asking would send a request to example.test. A test of the other answer sets its own.
+        $container->set('private_hidden', static fn () => static fn (): bool => true);
         // Replace a service before anything resolves it. The configurator above takes the
         // Router, which is built from the container and so cannot reach it — a test that
         // needs the request to see a different service (a pending update, say) has

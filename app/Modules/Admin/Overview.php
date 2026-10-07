@@ -106,11 +106,17 @@ final class Overview
      * What is waiting on the owner, each with where it is and where it is fixed. An empty
      * list is the good news, and the screen says so rather than padding it.
      *
-     * @return list<array{title: string, where: string, href: string}>
+     * $exposed: the site's private files can be downloaded (Exposure, O-38). First, being the
+     * worst, and without a link: it is mended at the host, not anywhere in the admin.
+     *
+     * @return list<array{title: string, where: string, href: string|null}>
      */
-    public static function attention(Db $db, Blocks $registry): array
+    public static function attention(Db $db, Blocks $registry, bool $exposed = false): array
     {
         $issues = [];
+        if ($exposed) {
+            $issues[] = ['title' => t('overview.issue.exposed'), 'where' => t('overview.where.exposed'), 'href' => null];
+        }
         $primary = Url::primaryLocale();
 
         $missing = $db->all(

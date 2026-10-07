@@ -167,6 +167,14 @@ $container->set('restore', fn (Container $c) => new Restore(
 // the update itself, which puts the new code where the running code is.
 $container->set('version', fn () => Version::current($root));
 $container->set('releases', fn () => new Releases());
+// Whether the files beside public/ can be downloaded, asked of the site over HTTP as the
+// installer asks it (D-138), for Overview to ask again now and then (O-38). Tests replace it.
+$container->set('private_hidden', fn () => static fn (): bool => \App\Modules\Install\PrivateCheck::hidden(
+    $root,
+    rtrim(Url::withOrigin(Url::asset('')), '/'),
+    $request->basePath,
+    3.0,
+));
 $container->set('upgrade', fn (Container $c) => new Upgrade(
     $c->get('db'),
     $root,

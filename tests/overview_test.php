@@ -95,3 +95,33 @@ testBothDrivers('how long the design has stood says it in English', function (st
     $changed('-4 days 09:00');
     assertEquals(t('overview.design_unchanged', ['days' => '4']), $note(), 'four days');
 });
+
+testBothDrivers('Overview asks again whether the private files can be downloaded: daily, and every visit while they can (O-38)', function (string $driver) {
+    $db = adminSite($driver);
+    $asked = 0;
+    $answer = true;
+    $hidden = static function () use (&$asked, &$answer): bool {
+        $asked++;
+
+        return $answer;
+    };
+    $day = 1_790_000_000;
+
+    assertTrue(!App\Modules\Admin\Exposure::exposed($db, $hidden, $day), 'hidden, the first time');
+    assertTrue(!App\Modules\Admin\Exposure::exposed($db, $hidden, $day + 3600), 'an hour later');
+    assertEquals(1, $asked, 'asked once in a day while the answer is good');
+    $answer = false;
+    assertTrue(App\Modules\Admin\Exposure::exposed($db, $hidden, $day + 86400), 'served, a day later');
+    assertTrue(App\Modules\Admin\Exposure::exposed($db, $hidden, $day + 86460), 'and a minute after');
+    assertEquals(3, $asked, 'asked on every visit while it is bad');
+    $answer = true;
+    assertTrue(!App\Modules\Admin\Exposure::exposed($db, $hidden, $day + 86520), 'mended at the host: gone at once');
+
+    // On the screen: first among what needs attention, said with where it is mended.
+    $served = static fn (App\Core\Container $c) => $c->set('private_hidden', static fn () => static fn (): bool => false);
+    $db->query("DELETE FROM settings WHERE `key` = 'exposure_check'");
+    $page = dispatch('/admin', null, 'GET', [], '203.0.113.10', $served)->body;
+    assertContains(e(t('overview.issue.exposed')), $page, 'the warning');
+    assertContains('<div class="issue">', $page, 'as a box with no link: it is mended at the host');
+    assertTrue(!str_contains(dispatch('/admin')->body, e(t('overview.issue.exposed'))), 'and none once hidden again');
+});

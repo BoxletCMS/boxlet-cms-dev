@@ -5,7 +5,7 @@
  * before a change and one after gives the pairs they compare, screen by screen, and it
  * stays in the suite so the next change to the admin's design system is shown the same
  * way. Verdicts are only that each screen answers, and that at phone width it fits the
- * window without scrolling sideways.
+ * window without scrolling sideways, with no control past its edge (O-43).
  *
  * Read-only: it opens screens and never submits a form.
  *
@@ -87,6 +87,23 @@ export default {
           ]);
           report.verdict(`${path} fits a phone without scrolling sideways`, scroll <= view,
             `document ${scroll}px wide in a ${view}px window`);
+          // AND NO CONTROL PAST THE WINDOW'S EDGE (O-43): the languages table scrolled inside
+          // its own box, so the document fitted while its switch was cut at the edge and its
+          // delete button stood beyond it. A row of links built to scroll (a nav, a tab list)
+          // is the one exception; the canvas's own document is not this one's.
+          const past = await page.evaluate(() => {
+            const width = document.documentElement.clientWidth;
+            return [...document.querySelectorAll('button, a[href], input:not([type="hidden"]), select, textarea, [role="switch"]')]
+              .filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden')
+              .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2 && r.right > width + 0.5; })
+              .filter((el) => !el.closest('nav, [role="tablist"], .visually-hidden'))
+              // What a closed <details> holds is not drawn, though Chrome still gives it a box
+              // (measured: the builder's language list, closed, at 403px; open, inside).
+              .filter((el) => { const d = el.closest('details:not([open])'); const sum = el.closest('summary'); return !d || (sum !== null && sum.parentElement === d); })
+              .map((el) => `${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute('title') || el.name || '').trim().slice(0, 30)}" to ${Math.round(el.getBoundingClientRect().right)}px`);
+          });
+          report.verdict(`${path}: on a phone every control is within the window`, past.length === 0,
+            past.length ? past.slice(0, 6).join('; ') : 'none past the edge');
         }
       }
     }

@@ -284,7 +284,7 @@ final class MenusController
             'title' => (string) $menu['name'],
             'nav' => 'menus',
             'wide' => true,
-            'styles' => ['admin-pages.css'],
+            'styles' => ['admin-pages.css', 'admin-menus.css'],
             'scripts' => ['vendor/sortable.min.js', 'menus.js'],
             'menu' => $menu,
             'items' => MenuTree::admin($db, $id),

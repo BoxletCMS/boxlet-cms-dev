@@ -107,6 +107,10 @@ final class BlockDefinition
             if (!is_string($layout) || !preg_match(self::SLUG, $layout)) {
                 self::fail($type, "layout names must match [a-z][a-z0-9_-]*");
             }
+            // block.{type}.layout.short.{layout} is a short name's key (D-179, D-200).
+            if ($layout === 'short') {
+                self::fail($type, "layout 'short' is reserved for the admin's short names");
+            }
             $layouts[] = $layout;
             $pictograms[$layout] = Pictogram::validate($type . ' layout ' . $layout, $parts);
         }

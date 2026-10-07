@@ -25,8 +25,13 @@ final class BlockField
     /** A t() key: dotted lower-case segments, like preview.hero.heading. */
     private const LANG_KEY = '~^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$~';
 
-    /** Names the page editor uses for its own inputs inside blocks[n]. */
-    private const RESERVED_FIELD_NAMES = ['id', 'type'];
+    /**
+     * Names the page editor uses for its own inputs inside blocks[n] (`id`, `type`), and the
+     * segments the admin's label keys use beside a field's (D-200): block.{type}.layout.…,
+     * .option.…, .summary, and a repeater's .item. A field of one of those names would read
+     * another label as its own.
+     */
+    private const RESERVED_FIELD_NAMES = ['id', 'type', 'layout', 'option', 'summary', 'item'];
 
     /**
      * Checks one field and returns it with its optional flags filled in.
@@ -40,7 +45,7 @@ final class BlockField
             BlockDefinition::fail($type, "{$at}: field names must match [a-z][a-z0-9_]*");
         }
         if (in_array($name, self::RESERVED_FIELD_NAMES, true)) {
-            BlockDefinition::fail($type, "{$at}: the name is reserved by the page editor");
+            BlockDefinition::fail($type, "{$at}: the name is reserved by the page editor and the admin's labels");
         }
         if (!is_array($field)) {
             BlockDefinition::fail($type, "{$at}: must be an array");

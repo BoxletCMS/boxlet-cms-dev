@@ -78,6 +78,10 @@ $malformed = [
     'required not boolean' => [fn () => ['fields' => ['x' => ['type' => 'text', 'required' => 'yes']]] + validBlock(), "Block sample: field 'x': 'required' must be true or false"],
     'bad field name' => [fn () => ['fields' => ['Heading' => ['type' => 'text']]] + validBlock(), "Block sample: field 'Heading': field names must match"],
     'reserved field name' => [fn () => ['fields' => ['type' => ['type' => 'text']]] + validBlock(), "Block sample: field 'type': the name is reserved by the page editor"],
+    // D-200: the label keys' own segments; a field of these names read another label.
+    'a field named for a label segment' => [fn () => ['fields' => ['summary' => ['type' => 'text']]] + validBlock(), "Block sample: field 'summary': the name is reserved"],
+    'an item field named item' => [fn () => ['fields' => ['x' => ['type' => 'repeater', 'max' => 2, 'fields' => ['item' => ['type' => 'text']]]]] + validBlock(), "Block sample: field 'item': the name is reserved"],
+    'a layout named short' => [fn () => ['layouts' => ['short' => ['line' => [[4, 4, 4, 4]]]], 'defaults' => ['layout' => 'short']] + validBlock(), "layout 'short' is reserved"],
     'select without options' => [fn () => ['fields' => ['x' => ['type' => 'select']]] + validBlock(), "Block sample: field 'x': a select needs 'options'"],
     'options on a text field' => [fn () => ['fields' => ['x' => ['type' => 'text', 'options' => ['a']]]] + validBlock(), "Block sample: field 'x': only select fields take 'options'"],
     // A repeater declares one item and how many of them (PLAN.md O-11). It was already in

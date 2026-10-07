@@ -54,6 +54,11 @@ const ICONS = [
     // a section and its actions, the badges, and the how-to shown when nothing is selected.
     'redo-2', 'list-tree', 'square-plus', 'file', 'panel-left', 'rows-3', 'bookmark-plus',
     'eye', 'eye-off', 'hash', 'sparkles', 'text-cursor', 'mouse-pointer-click', 'circle-plus',
+    // Snippets in the rail (D-201): words kept to be placed.
+    'scroll-text',
+    // Appearance's Footer section (D-182), beside panel-top. Put in the sprite by hand then and
+    // missing here, so a rebuild dropped it; listed since D-201.
+    'panel-bottom',
 ];
 
 if (PHP_SAPI !== 'cli') {

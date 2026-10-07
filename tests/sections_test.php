@@ -3,6 +3,7 @@
 use App\Core\Db;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageBlocks;
 use App\Modules\Pages\SectionLayout;
 use App\Modules\Pages\Sections;
 
@@ -76,7 +77,7 @@ testBothDrivers('a removed block takes its section with it', function (string $d
     assertEquals(2, count(Sections::forPage($db, $id)), 'sections before');
 
     $page = Page::find($db, $id) ?? fail('no page');
-    $blocks = Page::editable($db, blockRegistry(), $id);
+    $blocks = PageBlocks::editable($db, blockRegistry(), $id);
     Page::update($db, blockRegistry(), $id, [
         'title' => (string) $page['title'], 'slug' => (string) $page['slug'],
         'parent_id' => null, 'status' => 'draft', 'seo_json' => '{}',

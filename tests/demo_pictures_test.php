@@ -31,7 +31,7 @@ testBothDrivers('the demo puts its six pictures where the owner placed them, des
     $about = (int) ($db->one("SELECT id FROM pages WHERE slug = 'about'")['id'] ?? 0);
     $blocks = static function (int $page) use ($db): array {
         $found = [];
-        foreach (App\Modules\Pages\Page::blocks($db, $page) as $block) {
+        foreach (App\Modules\Pages\PageBlocks::stored($db, $page) as $block) {
             $found[$block['type']][] = $block;
         }
 
@@ -65,7 +65,7 @@ test('the demo made without its pictures leaves their fields empty', function ()
     DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
 
     $home = (int) ($db->one("SELECT id FROM pages WHERE slug = '' AND locale = 'en'")['id'] ?? 0);
-    foreach (App\Modules\Pages\Page::blocks($db, $home) as $block) {
+    foreach (App\Modules\Pages\PageBlocks::stored($db, $home) as $block) {
         assertTrue(!str_contains((string) json_encode($block['content']), 'demo-picture:'), $block['type'] . ' kept a picture name instead of an id or nothing');
     }
 });

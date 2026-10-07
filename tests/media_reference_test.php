@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageBlocks;
 
 // A media id that names no picture becomes null on save — D-024's rule for a section's
 // background picture, extended to block content (architect's ruling, 2026-09-17).
@@ -91,7 +92,7 @@ testBothDrivers('an id that was valid at save becomes null once the picture is g
         'parent_id' => null,
         'status' => 'published',
         'seo_json' => '{}',
-    ], Page::editable($db, $registry, $pageId));
+    ], PageBlocks::editable($db, $registry, $pageId));
 
     $after = storedBlockContent($db, $pageId);
     assertTrue(array_key_exists('image', $after), 'the media field is not in the stored content at all');

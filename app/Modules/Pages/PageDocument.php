@@ -14,7 +14,7 @@ use JsonException;
  *
  * One shape for every place a whole page travels: a revision (what it was), a draft (what it
  * is becoming), what the builder autosaves, and what PageRender draws. It is the shape
- * Page::editable() and Page::editableSections() have always given an editor, so the page as
+ * PageBlocks::editable() and PageBlocks::editableSections() have always given an editor, so the page as
  * stored and the page as drafted are read the same way — and writing one is Page::update(),
  * by id, so a block that already exists is updated rather than replaced and its translations
  * stay attached to it.
@@ -45,7 +45,7 @@ final class PageDocument
             return null;
         }
         $blocks = [];
-        foreach (Page::editable($db, $registry, $pageId) as $block) {
+        foreach (PageBlocks::editable($db, $registry, $pageId) as $block) {
             $blocks[] = $block + ['options' => []];
         }
 
@@ -56,7 +56,7 @@ final class PageDocument
             'status' => (string) $page['status'],
             'seo_json' => (string) ($page['seo_json'] ?? '{}'),
             'blocks' => $blocks,
-            'sections' => Page::editableSections($db, $pageId),
+            'sections' => PageBlocks::editableSections($db, $pageId),
         ];
     }
 

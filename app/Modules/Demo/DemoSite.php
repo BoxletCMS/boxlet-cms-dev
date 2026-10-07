@@ -11,6 +11,7 @@ use App\Modules\Forms\Form;
 use App\Modules\Languages\Locales;
 use App\Modules\Menus\Menu;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageBlocks;
 use App\Modules\Pages\PageSeo;
 use App\Modules\Pages\PageLinks;
 use App\Modules\Pages\SectionForm;
@@ -235,7 +236,7 @@ final class DemoSite
                 $words[] = [$type, $content];
             }
         }
-        $blocks = Page::editable($db, $registry, $translated);
+        $blocks = PageBlocks::editable($db, $registry, $translated);
         // Its links lead to the site's own pages: only the home page is translated.
         $reference = static fn (array $match): string => isset($ids[$match[1]]) ? PageLinks::to($ids[$match[1]]) : $match[0];
         foreach ($blocks as $at => $block) {
@@ -245,7 +246,7 @@ final class DemoSite
             }
         }
         // And each section's name and anchor in that language: the copy kept the source's.
-        $sections = Page::editableSections($db, $translated);
+        $sections = PageBlocks::editableSections($db, $translated);
         foreach ($sections as $at => $section) {
             foreach (['name', 'anchor'] as $own) {
                 $sections[$at]['style'][$own] = (string) ($home['sections'][$at]['style'][$own] ?? '');

@@ -17,7 +17,7 @@ use App\Core\Db;
  * install does not want four pages of history nobody made.
  *
  * WHAT IT HOLDS is the page as the editor reads it — its settings and every block in the
- * shape Page::editable() returns — so restoring is an ordinary save. Not a shortcut past
+ * shape PageBlocks::editable() returns — so restoring is an ordinary save. Not a shortcut past
  * validation, media resolution and the sitemap: a restore that skipped those would be the
  * one code path nobody exercises until the day it matters.
  *

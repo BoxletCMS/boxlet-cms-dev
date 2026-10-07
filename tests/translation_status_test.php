@@ -2,6 +2,7 @@
 
 use App\Modules\Languages\Locales;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageBlocks;
 use App\Modules\Pages\Translations;
 use App\Modules\Pages\TranslationStatus;
 
@@ -17,7 +18,7 @@ use App\Modules\Pages\TranslationStatus;
 function editBlock(App\Core\Db $db, int $pageId, int $position, array $change): void
 {
     $page = Page::find($db, $pageId) ?? fail("no page {$pageId}");
-    $blocks = Page::editable($db, blockRegistry(), $pageId);
+    $blocks = PageBlocks::editable($db, blockRegistry(), $pageId);
     $block = $blocks[$position] ?? fail("no block at {$position}");
     $block['content'] = $change + ($block['content'] ?? []);
     $blocks[$position] = $block;
@@ -110,7 +111,7 @@ testBothDrivers('marking a block current clears it, and only a block of that pag
 testBothDrivers('a block added to the source is counted as missing from the translation', function (string $driver) {
     $db = adminSite($driver);
     [$source, $english] = croatianWithTwoTranslations($db);
-    $blocks = Page::editable($db, blockRegistry(), $source);
+    $blocks = PageBlocks::editable($db, blockRegistry(), $source);
     $blocks[] = ['key' => 'n0', 'id' => null, 'type' => 'text', 'content' => blockRegistry()->normalize('text', ['body' => '<p>Novo.</p>']), 'style' => [], 'layout' => 'single'];
     Page::update($db, blockRegistry(), $source, ['title' => 'O nama', 'slug' => 'o-nama', 'parent_id' => null, 'status' => 'published', 'seo_json' => '{}'], $blocks);
 

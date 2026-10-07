@@ -24,7 +24,7 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     $character = Composition::active($db);
     $used = ['layout' => [], 'animation' => [], 'v_align' => []] + array_fill_keys(array_keys(SectionStyle::OPTIONS), []);
     foreach ($db->all('SELECT id FROM pages') as $page) {
-        $blocks = App\Modules\Pages\Page::blocks($db, (int) $page['id']);
+        $blocks = App\Modules\Pages\PageBlocks::stored($db, (int) $page['id']);
         foreach ($blocks as $block) {
             // As drawn: '' follows the character (D-191).
             $used['layout'][] = $block['type'] . '/' . ($block['layout'] !== '' ? $block['layout'] : Composition::layout($registry, $character, $block['type']));

@@ -3,6 +3,7 @@
 use App\Modules\Design\Composition;
 use App\Modules\Design\SectionStyle;
 use App\Modules\Pages\Page;
+use App\Modules\Pages\PageBlocks;
 use App\Modules\Pages\SectionLayout;
 use App\Modules\Pages\SectionRender;
 use App\Modules\Pages\Sections;
@@ -200,7 +201,7 @@ testBothDrivers('a new section is one column that stacks, and a block remembers 
     assertEquals('stack', $section['stack'], 'what it does on a phone');
 
     // Migration 0027 says every block already stands in column 0 rather than moving any.
-    $blocks = Page::blocks($db, $id);
+    $blocks = PageBlocks::stored($db, $id);
     assertEquals(0, $blocks[0]['column'], 'the column a migrated block sits in');
     assertTrue($blocks[0]['section'] > 0, 'the block names its section');
     assertEquals([$hero], array_map(static fn (array $b): int => $b['id'], $blocks), 'the block read back');
@@ -233,7 +234,7 @@ testBothDrivers('a translation is given the same columns as its source', functio
     assertEquals('reverse', $section['stack'], 'what it does on a phone came with it');
     assertEquals(
         [1],
-        array_map(static fn (array $b): int => $b['column'], Page::blocks($db, $translation)),
+        array_map(static fn (array $b): int => $b['column'], PageBlocks::stored($db, $translation)),
         'the block was moved to the first column on the way',
     );
 });
@@ -373,7 +374,7 @@ testBothDrivers('a save that names its sections puts two blocks in one, side by 
     assertEquals('reverse', $section['stack'], 'and what it does on a phone');
     assertEquals('tinted', $section['style']['surface'], 'and the style, once, for both blocks');
 
-    $blocks = Page::blocks($db, $id);
+    $blocks = PageBlocks::stored($db, $id);
     assertEquals([0, 1], array_map(static fn (array $b): int => $b['column'], $blocks), 'the columns they landed in');
     assertEquals([$hero, $form], array_map(static fn (array $b): int => $b['id'], $blocks), 'both blocks kept, in order');
     // Its place DOWN its column, which is 0 for both because neither has anything above it.
@@ -412,7 +413,7 @@ testBothDrivers('two blocks in one column keep the order they were sent in', fun
 
     assertEquals(
         [$text, $hero],
-        array_map(static fn (array $b): int => $b['id'], Page::blocks($db, $id)),
+        array_map(static fn (array $b): int => $b['id'], PageBlocks::stored($db, $id)),
         'the order the save sent them in',
     );
     assertEquals(
@@ -439,7 +440,7 @@ testBothDrivers('a block naming a section nobody sent is given one of its own, n
 
     // The block survives. An empty section does not: prune() takes the halves section the
     // save asked for, because nothing ended up standing in it.
-    assertEquals([$hero], array_map(static fn (array $b): int => $b['id'], Page::blocks($db, $id)), 'the block was dropped');
+    assertEquals([$hero], array_map(static fn (array $b): int => $b['id'], PageBlocks::stored($db, $id)), 'the block was dropped');
     assertEquals(1, count(Sections::forPage($db, $id)), 'sections left standing');
 });
 
@@ -476,7 +477,7 @@ testBothDrivers('the form says where a block stands, and a save keeps the sectio
     // section says its own arrangement and style under a prefix of its own.
     $parsed = App\Modules\Pages\BlockForm::parse(blockRegistry(), [
         'b' . $hero => ['id' => (string) $hero, 'type' => 'hero', 'heading' => 'Hi', 'section' => 's' . $sectionId, 'column' => '0'],
-    ], [$hero => Page::editable($db, blockRegistry(), $id)[0]]);
+    ], [$hero => PageBlocks::editable($db, blockRegistry(), $id)[0]]);
     $sections = App\Modules\Pages\SectionForm::parse([
         's' . $sectionId => ['id' => (string) $sectionId, 'layout' => 'thirds', 'stack' => 'reverse', 'style' => ['surface' => 'contrast']],
     ], [$sectionId => $sectionId]);
@@ -531,7 +532,7 @@ testBothDrivers('a band copy that still carries its original\'s id is saved as a
     $parsed = App\Modules\Pages\BlockForm::parse(blockRegistry(), [
         'b' . $hero => ['id' => (string) $hero, 'type' => 'hero', 'heading' => 'Hi', 'section' => 's' . $sectionId, 'column' => '0'],
         'n0' => ['type' => 'hero', 'heading' => 'Hi', 'section' => 'm0', 'column' => '0'],
-    ], [$hero => Page::editable($db, blockRegistry(), $id)[0]]);
+    ], [$hero => PageBlocks::editable($db, blockRegistry(), $id)[0]]);
     $sections = App\Modules\Pages\SectionForm::parse([
         's' . $sectionId => ['id' => (string) $sectionId, 'layout' => 'one', 'style' => ['surface' => 'plain']],
         'm0' => ['id' => (string) $sectionId, 'layout' => 'one', 'style' => ['surface' => 'contrast']],
@@ -547,7 +548,7 @@ testBothDrivers('a band copy that still carries its original\'s id is saved as a
     assertEquals(2, count($after), 'two bands were posted and this many were saved');
     assertEquals('plain', $after[$sectionId]['style']['surface'] ?? null, 'the original took the copy\'s style');
     $held = [];
-    foreach (Page::editable($db, blockRegistry(), $id) as $block) {
+    foreach (PageBlocks::editable($db, blockRegistry(), $id) as $block) {
         $held[$block['section']] = ($held[$block['section']] ?? 0) + 1;
     }
     assertEquals([1, 1], array_values($held), 'each band holds its own block, not one band both');
@@ -594,6 +595,6 @@ testBothDrivers('a revision remembers how the page was arranged, and restoring p
     assertEquals('halves', $band['layout'], 'the arrangement came back');
     assertEquals('reverse', $band['stack'], 'and what it does on a phone');
     assertEquals('tinted', $band['style']['surface'], 'and the band\'s style');
-    assertEquals([0, 1], array_map(static fn (array $b): int => $b['column'], Page::blocks($db, $id)), 'the columns they came back to');
+    assertEquals([0, 1], array_map(static fn (array $b): int => $b['column'], PageBlocks::stored($db, $id)), 'the columns they came back to');
 });
 

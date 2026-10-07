@@ -10,7 +10,10 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest, which moves to Ubuntu 26 from 2026-10-19: the image decides
+    # which Imagick and libavif the picture tests meet, and v0.1 is released from what was
+    # measured (D-202).
+    runs-on: ubuntu-24.04
     # A job that hangs fails in half an hour instead of holding a runner for six (D-152).
     timeout-minutes: 30
     strategy:
@@ -130,7 +133,7 @@ jobs:
   # outcome on this leg. TEST_REQUIRE_MYSQL still applies, so a MySQL skip is still a
   # failure.
   no-images:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     name: PHP 8.4, no image extensions
 

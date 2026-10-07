@@ -5,15 +5,13 @@
  *   - a second locale: /hr/ is its home page, /hr redirects to /hr/, a disabled code 404s
  *   - the canonical link is present on pages and absent on error pages
  *
- * On the second locale: there is NO admin path for adding one. app/Modules/I18n holds a
- * .gitkeep and languages.php, app/Modules/Settings holds a .gitkeep, and adding a language
- * from the admin is Slice 6. So that part of the item is reported NOT CHECKABLE as an
- * admin action, and the ROUTING it would exercise — which lives in the Router today — is
- * checked by seeding the locale straight into this throwaway install's SQLite, which is
- * stated in the verdict rather than hidden.
+ * A language is added from the admin (Settings → Languages, D-043) and removed again. The
+ * ROUTING is checked with the second locale seeded straight into this throwaway install's
+ * SQLite, as it always was: a language added from the admin has no home page to visit.
  */
 import { execFileSync } from 'node:child_process';
-import { COPY_BASE as BASE, SITE_DIR } from '../config.mjs';
+import { COPY_BASE as BASE, SITE_DIR, ADMIN } from '../config.mjs';
+import { login } from '../harness.mjs';
 
 /** Runs a tiny PHP snippet against the throwaway copy's database. */
 function sql(statement) {
@@ -60,10 +58,32 @@ export default {
       `/about: ${pageCanonical ?? 'ABSENT'}; 404 (status ${notFound.status()}): ${errorCanonical ?? 'absent'}`);
 
     // ---- the second locale --------------------------------------------------------------
-    report.skip('enable a second locale from the admin',
-      'no admin path exists: app/Modules/I18n is a .gitkeep and languages.php, '
-      + 'app/Modules/Settings is a .gitkeep, and adding a language from the admin is Slice 6. '
-      + 'The routing below is checked by seeding the locale directly into this throwaway install.');
+    // ADDED AND REMOVED FROM THE ADMIN (D-202): Settings → Languages, as the owner does it. It
+    // reported NOT CHECKABLE, "no admin path exists", long after D-043 built one. A language
+    // none of this scenario's checks use, so the routing below is untouched by it, and taken
+    // away again through its own delete, which a language with no pages has.
+    await login(page, BASE, ADMIN.email, ADMIN.password);
+    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    const added = await page.$$eval('form.language-add select[name="code"] option', (options) => {
+      const codes = options.map((o) => o.value).filter((v) => v !== '');
+      return ['it', 'fr', 'es', 'nl', 'pt'].find((c) => codes.includes(c)) || codes.find((c) => !['en', 'hr', 'de'].includes(c)) || null;
+    }).catch(() => null);
+    if (added === null) {
+      report.fail('a language added from the admin is listed, and removed again', 'Settings offers no language to add');
+    } else {
+      await page.select('form.language-add select[name="code"]', added);
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('form.language-add button[type="submit"]')]);
+      const listed = await page.$$eval('.languages-table td.language-code code', (els) => els.map((el) => el.textContent.trim()));
+      const remove = `form[action$="/languages/${added}/delete"] button[type="submit"]`;
+      const removable = (await page.$(remove)) !== null;
+      if (removable) {
+        await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click(remove)]);
+      }
+      const after = await page.$$eval('.languages-table td.language-code code', (els) => els.map((el) => el.textContent.trim()));
+      report.verdict('a language added from the admin is listed, and removed again',
+        listed.includes(added) && removable && !after.includes(added),
+        `added ${added}: listed ${JSON.stringify(listed)}, delete offered ${removable}, after it ${JSON.stringify(after)}`);
+    }
 
     sql(`$pdo->exec("INSERT OR REPLACE INTO locales (code, label, is_primary, fallback, sort, enabled) `
       + `VALUES ('hr', 'Hrvatski', 0, 'en', 1, 1)");`);

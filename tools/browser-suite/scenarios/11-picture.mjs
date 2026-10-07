@@ -4,16 +4,17 @@
  * What it means (alt text, per language), what stays in frame when it is cropped (the
  * focal point), and what happens when a page still shows it.
  *
- * The in-use refusal is checked when something claims the picture. Since the demo seed
- * stopped shipping media ids nothing does, so that verdict reports itself NOT CHECKABLE
- * rather than passing vacuously — the rule is covered at the PHP level in
- * tests/media_item_test.php either way.
+ * The in-use refusal needs a page that shows the picture, and the scenario makes one: the
+ * picture it uploaded goes into the first page's picture field through the plain editor, the
+ * delete is refused naming that page, and the field is put back as it was (D-117). It used to
+ * report NOT CHECKABLE once the demo seed stopped shipping media ids — missing data, which is
+ * a failure of the scenario, not a limit of the environment (D-202).
  */
 import { existsSync } from 'node:fs';
 import { BASE, ADMIN } from '../config.mjs';
 import { login, submitVia, controlsOnPanels, fixtures, retype, SLOW } from '../harness.mjs';
 import {
-  PHOTO, text, uploadPhoto, cardFor, claimants, clearReferences, attemptDelete, markerFor,
+  PHOTO, CONTENT_FIELD, text, uploadPhoto, cardFor, claimants, clearReferences, attemptDelete, markerFor, save, firstPageId,
 } from '../media-helpers.mjs';
 
 /** What the library calls the photograph this scenario uploads, derived from the file. */
@@ -122,19 +123,45 @@ export default {
     } finally {
       try {
         // ---- what happens when a page still shows it ----------------------------------------
+        // The page that shows it is made here: the first page's picture field, as it was
+        // before, and then this picture in it.
+        const pageId = await firstPageId(page);
+        const formUrl = `${BASE}/admin/pages/${pageId}/form`;
+        let was = null;
+        if (pageId) {
+          await page.goto(formUrl, { waitUntil: 'networkidle2' });
+          was = await page.$eval(CONTENT_FIELD, (el, id) => {
+            if (![...el.options].some((o) => o.value === String(id))) { return null; }
+            const before = el.value;
+            el.value = String(id);
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return before;
+          }, mediaId).catch(() => null);
+          if (was !== null) { await save(page); }
+        }
         await page.goto(`${BASE}/admin/media/${mediaId}`, { waitUntil: 'networkidle2' });
         const claimedBy = await claimants(page);
 
-        if (claimedBy.length === 0) {
-          report.skip('deleting a picture a page uses is refused, naming the page',
-            'nothing claims this picture: the demo seed no longer ships media ids');
+        if (was === null || claimedBy.length === 0) {
+          report.fail('deleting a picture a page uses is refused, naming the page',
+            was === null ? `no picture field on the first page (${pageId}) to put it in` : 'put in a page, yet the picture screen names none');
         } else {
           const refused = await attemptDelete(page);
           report.verdict('deleting a picture a page uses is refused, naming the page',
             refused !== null && claimedBy.some((p) => refused.includes(p.title)),
             refused === null ? 'the delete was NOT refused' : `refused with "${refused}"`);
-          await clearReferences(page, mediaId, claimedBy);
         }
+        // The page's field as it was found, and anything else that still claims it cleared.
+        if (was !== null) {
+          await page.goto(formUrl, { waitUntil: 'networkidle2' });
+          await page.$eval(CONTENT_FIELD, (el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, was);
+          await save(page);
+          await page.goto(formUrl, { waitUntil: 'networkidle2' });
+          const back = await page.$eval(CONTENT_FIELD, (el) => el.value).catch(() => null);
+          report.verdict('the page\'s picture field is put back as it was found', back === was, `was "${was}", now "${back}"`);
+        }
+        await page.goto(`${BASE}/admin/media/${mediaId}`, { waitUntil: 'networkidle2' });
+        await clearReferences(page, mediaId, await claimants(page));
 
         await page.goto(`${BASE}/admin/media/${mediaId}`, { waitUntil: 'networkidle2' });
         const gone = await attemptDelete(page);

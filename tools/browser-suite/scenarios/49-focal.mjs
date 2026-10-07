@@ -7,7 +7,8 @@
  * way it is used, and read back from the page after the save.
  *
  * ON THE COPY, AND IT CLEANS UP. It uploads a photograph of its own, moves that one's point,
- * and deletes it at the end (D-090); nothing of the owner's is touched.
+ * and deletes it at the end (D-090); where the copy already held that photograph, it is kept
+ * and its point put back (D-202). Nothing of the owner's is touched.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN, PHOTOS } from '../config.mjs';
 import { login, clickAndWait } from '../harness.mjs';
@@ -38,6 +39,8 @@ export default {
       return;
     }
     const url = card.href.startsWith('http') ? card.href : `${BASE}${card.href}`;
+    // Where its point was found, for a photograph this run did not bring to be put back to.
+    let found = null;
 
     try {
       await page.goto(url, { waitUntil: 'networkidle2' });
@@ -47,6 +50,7 @@ export default {
         y: (document.querySelector('#focal-y') || {}).value,
         samples: document.querySelectorAll('[data-focal-sample]').length,
       }));
+      found = { x: offered.x, y: offered.y };
       report.verdict('a picture\'s page offers the focal point, where it is, with the two cuts',
         offered.form && offered.x === '50' && offered.y === '50' && offered.samples === 2, JSON.stringify(offered));
 
@@ -81,8 +85,18 @@ export default {
         await page.goto(url, { waitUntil: 'networkidle2' });
         const gone = await attemptDelete(page);
         report.verdict('the scenario removes the photograph it uploaded', gone !== null && /deleted/i.test(gone), String(gone));
-      } else {
-        report.skip('the scenario removes the photograph it uploaded', 'the copy already had it; left where it was');
+      } else if (found !== null) {
+        // The copy's own photograph (prepare-copy brings it): kept, and its point put back,
+        // or every scenario after this one meets it moved (D-202; it was a NOT CHECKABLE).
+        await page.goto(url, { waitUntil: 'networkidle2' });
+        await page.evaluate((point) => {
+          document.querySelector('#focal-x').value = point.x;
+          document.querySelector('#focal-y').value = point.y;
+        }, found);
+        await clickAndWait(page, 'form[data-focal-form] button[type="submit"]', 60000);
+        const back = await page.evaluate(() => ({ x: document.querySelector('#focal-x').value, y: document.querySelector('#focal-y').value }));
+        report.verdict('the copy\'s own photograph keeps it, with its point put back', back.x === found.x && back.y === found.y,
+          `found ${JSON.stringify(found)}, now ${JSON.stringify(back)}`);
       }
     }
   },

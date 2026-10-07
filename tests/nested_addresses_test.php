@@ -84,6 +84,11 @@ testBothDrivers('a renamed parent or a moved page sends its old addresses on', f
     renamePage($web, 'Websites', 'websites');
     placePage($web, 'Websites', 'websites', $services);
     assertMovedTo('/offer/websites', dispatch('/offer/web-design'), 'a nested page\'s old slug');
+
+    // Only under an address that was real (D-200): the old slug alone once sent these on.
+    foreach (['/admin/web-design', '/m/web-design', '/x/y/web-design', '/nothing/services'] as $made) {
+        assertEquals(404, dispatch($made)->status, "{$made}, an address nobody made");
+    }
 });
 
 testBothDrivers('the home page adds no segment, and a language keeps its prefix', function (string $driver) {

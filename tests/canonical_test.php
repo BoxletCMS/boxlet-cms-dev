@@ -37,3 +37,26 @@ test('a 404 page has no canonical link', function () {
 
     assertTrue(!str_contains(dispatch('/missing')->body, 'rel="canonical"'), '404 page has a canonical link');
 });
+
+// SPEC §5.1 (D-200): the system's routes carry no locale. /hr/admin/login answered, and a
+// visitor without a session put it into the page cache with their form token.
+testBothDrivers('the system\'s routes answer under no locale prefix', function (string $driver) {
+    $db = installedSite(['en' => 'English', 'hr' => 'Hrvatski'], $driver);
+    createPage($db, 'hr', 'o-nama', 'O nama');
+
+    assertEquals(200, dispatch('/admin/login')->status, 'the admin, where it is');
+    assertEquals(200, dispatch('/hr/o-nama')->status, 'a Croatian page, under its prefix');
+    foreach (['/hr/admin/login', '/hr/admin', '/hr/sitemap', '/hr/download/1/x', '/hr/m/card/1-x.jpg', '/hr/assets/admin.css'] as $path) {
+        assertEquals(404, dispatch($path)->status, "{$path} under a locale");
+    }
+});
+
+// D-200: the primary locale's prefix is taken off with the query kept, as the nested-path
+// redirect keeps it (SPEC §5.1).
+test('the redirect from the primary locale\'s prefix keeps the query', function () {
+    $db = installedSite(['en' => 'English', 'hr' => 'Hrvatski']);
+    createPage($db, 'en', 'about', 'About');
+
+    assertEquals('/about?ref=mail', dispatch('/en/about?ref=mail')->headers['Location'] ?? null, 'kept');
+    assertEquals('/about', dispatch('/en/about')->headers['Location'] ?? null, 'none to keep');
+});

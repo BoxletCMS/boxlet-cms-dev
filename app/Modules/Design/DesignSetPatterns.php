@@ -28,7 +28,7 @@ use App\Support\SafeUrl;
 final class DesignSetPatterns
 {
     public const MAX = 12;
-    private const MAX_BLOCKS = 4;
+    public const MAX_BLOCKS = 4;
     private const TEXT = 500;
     private const RICH = 4000;
 

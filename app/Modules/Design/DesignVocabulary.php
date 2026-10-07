@@ -74,6 +74,11 @@ final class DesignVocabulary
      * The vocabulary as a JSON Schema (draft 2020-12), for editors, people and models. The
      * PHP validator stays the authority: this describes it and never decides.
      *
+     * NEVER STRICTER THAN THE VALIDATOR (D-200): a key it does not know, a layout or an option
+     * value it leaves out with a warning, a secondary colour of `none`, a pattern's name given
+     * as one string, a dark version's empty seed, and more tags, patterns or blocks than are
+     * read (the rest left out) are all taken by Boxlet, so none is refused here. Until D-200 the schema refused each, and export() wrote `none` it then refused.
+     *
      * @return array<string, mixed>
      */
     public static function schema(Blocks $registry): array
@@ -89,7 +94,12 @@ final class DesignVocabulary
             $described = Descriptions::KEYS[$key] . ($rule['type'] === 'number' ? ' (' . self::range($rule) . ')' : '');
 
             return match ($rule['type']) {
-                'colour' => ['type' => 'string', 'pattern' => $key === 'seed' ? self::HEX : self::HEX_OR_EMPTY],
+                'colour' => ['type' => 'string', 'pattern' => match ($key) {
+                    'seed' => self::HEX,
+                    // No second colour at all (Decisions::clean), which export() writes.
+                    'secondary' => '^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})|none)?$',
+                    default => self::HEX_OR_EMPTY,
+                }],
                 'choice' => ['enum' => array_merge([''], $rule['values'])],
                 'number' => ['type' => ['string', 'number']],
                 default => ['type' => 'string'],
@@ -112,7 +122,9 @@ final class DesignVocabulary
         }
         $layouts = [];
         foreach ($vocabulary['composition']['layouts'] as $type => $values) {
-            $layouts[$type] = ['enum' => $values];
+            // A layout a block does not offer is left out with a warning, never refused: the
+            // names are offered, any string is read.
+            $layouts[$type] = ['anyOf' => [['enum' => $values], ['type' => 'string']]];
         }
         // Each block type's options (D-166): a closed set, or a number on its step.
         $options = [];
@@ -120,10 +132,10 @@ final class DesignVocabulary
             $properties = [];
             foreach ($specs as $name => $spec) {
                 $properties[$name] = $spec['type'] === 'choice'
-                    ? ['enum' => $spec['values']]
+                    ? ['anyOf' => [['enum' => $spec['values']], ['type' => 'string']]]
                     : ['type' => ['string', 'number'], 'description' => 'number, ' . $spec['min'] . ' – ' . $spec['max'] . ', step ' . $spec['step']];
             }
-            $options[$type] = ['type' => 'object', 'additionalProperties' => false, 'properties' => $properties];
+            $options[$type] = ['type' => 'object', 'properties' => $properties];
         }
         $localized = static fn (int $length): array => [
             'type' => 'object',
@@ -139,7 +151,6 @@ final class DesignVocabulary
             'description' => 'A portable Boxlet design: decisions, header and footer look, and optionally a composition, which makes it a character. Generated from the code that validates it; Boxlet\'s own validator decides. Keys left out of decisions take the neutral defaults. A key Boxlet does not know is left out with a warning.',
             'type' => 'object',
             'required' => ['format', 'version', 'id', 'name', 'decisions'],
-            'additionalProperties' => false,
             'properties' => [
                 '$schema' => ['type' => 'string'],
                 'format' => ['const' => DesignSet::FORMAT],
@@ -148,37 +159,34 @@ final class DesignVocabulary
                 'name' => $localized(80),
                 'description' => $localized(300),
                 'author' => ['type' => 'string', 'maxLength' => 80],
-                'tags' => ['type' => 'array', 'maxItems' => 12, 'items' => ['type' => 'string', 'maxLength' => 32]],
+                'tags' => ['type' => 'array', 'description' => 'The first 12 are read.', 'items' => ['type' => 'string', 'maxLength' => 32]],
                 'decisions' => [
                     'type' => 'object',
                     'required' => ['seed'],
-                    'additionalProperties' => false,
                     'properties' => $decisions,
                 ],
                 'dark' => [
                     'type' => 'object',
                     'description' => 'The set\'s dark version (D-185): in dark mode these stand for the light ones. A colour left out is worked out by the palette; anything else left out is the light version\'s. With it, both versions are checked for contrast.',
-                    'additionalProperties' => false,
-                    'properties' => array_intersect_key($decisions, array_flip(Decisions::DARK)),
+                    // An empty seed leaves the dark version's main colour to the light one's.
+                    'properties' => ['seed' => ['pattern' => self::HEX_OR_EMPTY] + $decisions['seed']] + array_intersect_key($decisions, array_flip(Decisions::DARK)),
                 ],
                 'look' => [
                     'type' => 'object',
                     'description' => '\'\' or a choice left out follows the character.',
-                    'additionalProperties' => false,
                     'properties' => $look,
                 ],
                 'patterns' => [
                     'type' => 'array',
-                    'description' => 'Starter sections, the one place a set carries words: per language ({"en": …, "hr": …}, or one string), English the fallback. No pictures, files or forms.',
-                    'maxItems' => DesignSetPatterns::MAX,
+                    'description' => 'Starter sections, the one place a set carries words: per language ({"en": …, "hr": …}, or one string), English the fallback. No pictures, files or forms. The first ' . DesignSetPatterns::MAX . ' are read.',
                     'items' => [
                         'type' => 'object',
                         'required' => ['id', 'name', 'blocks'],
                         'properties' => [
                             'id' => ['type' => 'string', 'pattern' => trim(DesignSet::ID_PATTERN, '~')],
-                            'name' => $localized(80),
+                            'name' => ['anyOf' => [$localized(80), ['type' => 'string', 'maxLength' => 80]]],
                             'section' => ['type' => 'object', 'properties' => ['layout' => ['type' => 'string'], 'style' => ['type' => 'object']]],
-                            'blocks' => ['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'object', 'required' => ['type']]],
+                            'blocks' => ['type' => 'array', 'minItems' => 1, 'description' => 'The first ' . DesignSetPatterns::MAX_BLOCKS . ' are read.', 'items' => ['type' => 'object', 'required' => ['type']]],
                         ],
                     ],
                 ],
@@ -186,9 +194,8 @@ final class DesignVocabulary
                     'type' => 'object',
                     'description' => 'Present: the set can be a character. Block types this site does not have, and layouts a block does not offer, are left out with a warning.',
                     'required' => ['section'],
-                    'additionalProperties' => false,
                     'properties' => [
-                        'section' => ['type' => 'object', 'additionalProperties' => false, 'properties' => $section],
+                        'section' => ['type' => 'object', 'properties' => $section],
                         'surfaces' => ['type' => 'object', 'additionalProperties' => ['enum' => $vocabulary['composition']['surfaces']]],
                         'dividers' => ['type' => 'object', 'additionalProperties' => ['enum' => $vocabulary['composition']['dividers']]],
                         'layouts' => ['type' => 'object', 'properties' => $layouts, 'additionalProperties' => ['type' => 'string']],

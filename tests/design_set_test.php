@@ -374,3 +374,19 @@ test('every set the owner took into core offers starter sections of its own, in 
         }
     }
 });
+
+// D-200: what the schema says is never stricter than what Boxlet reads, and a set's tags travel.
+test('the schema refuses nothing the validator reads, and a set keeps its tags through export', function () {
+    $schema = App\Modules\Design\DesignVocabulary::schema(blockRegistry());
+    $json = (string) json_encode($schema);
+    assertTrue(!str_contains($json, '"additionalProperties":false'), 'an unknown key refused by the schema');
+    assertTrue(!str_contains($json, '"maxItems"'), 'a count the validator only shortens, refused');
+    assertTrue(preg_match('~' . $schema['properties']['decisions']['properties']['secondary']['pattern'] . '~', 'none') === 1, 'secondary: none, which export writes');
+    assertTrue(preg_match('~' . $schema['properties']['dark']['properties']['seed']['pattern'] . '~', '') === 1, 'an empty dark seed');
+    assertEquals('string', $schema['properties']['patterns']['items']['properties']['name']['anyOf'][1]['type'] ?? null, 'a pattern named by one string');
+
+    $set = DesignSet::parse(json_encode(['tags' => ['warm', 'serif']] + json_decode((string) file_get_contents(dirname(__DIR__) . '/designs/core/terra.json'), true)) ?: '', blockRegistry())['set'] ?? fail('nothing read');
+    $file = json_decode(DesignSet::export($set['id'], $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns'], $set['dark'], $set['tags']), true);
+    assertEquals(['warm', 'serif'], $file['tags'] ?? null, 'the tags written back');
+    assertContains('"2"', DesignSet::parse(json_encode(['version' => '2'] + json_decode((string) file_get_contents(dirname(__DIR__) . '/designs/core/terra.json'), true)) ?: '', blockRegistry())['errors'][0] ?? '', 'a version in quotes said as written');
+});

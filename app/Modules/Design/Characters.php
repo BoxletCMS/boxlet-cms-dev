@@ -149,6 +149,14 @@ final class Characters
         return ($all[$id] ?? $all[Presets::DEFAULT])['set']['dark'] ?? [];
     }
 
+    /** @return list<string> a character's own words for what it is, a set's `tags` (D-200) */
+    public static function tags(string $id): array
+    {
+        $all = self::all();
+
+        return array_values(array_map('strval', ($all[$id] ?? $all[Presets::DEFAULT])['set']['tags'] ?? []));
+    }
+
     /**
      * The starter sections a character offers (D-169), each with its words per language.
      *
@@ -263,7 +271,7 @@ final class Characters
         $now = gmdate('Y-m-d H:i:s');
         $db->query(
             'INSERT INTO design_characters (slug, set_json, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-            [$slug, DesignSet::export($slug, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns'], $set['dark']), $source, $now, $now],
+            [$slug, DesignSet::export($slug, $set['name'], $set['description'], $set['decisions'], $set['look'], $set['composition'], $set['author'], $set['patterns'], $set['dark'], $set['tags']), $source, $now, $now],
         );
         self::reset();
 

@@ -6,8 +6,8 @@ use App\Core\Blocks;
 use App\Modules\Design\Vocabulary\Decisions;
 
 /**
- * A whole design as a portable file: the `boxlet-design-set` format, version 1 (PLAN.md
- * D-152).
+ * A whole design as a portable file: the `boxlet-design-set` format, version 2 (PLAN.md
+ * D-152, D-183; SPEC §5.8).
  *
  * ONE VALIDATOR FOR EVERY WAY IN. A file an owner imports, one dropped in designs/custom/
  * over FTP, and — later — one a model writes all arrive here, and nothing reaches a site
@@ -17,7 +17,7 @@ use App\Modules\Design\Vocabulary\Decisions;
  * nothing those could not.
  *
  * NEVER IN A SET: menus, words, CSS, font or picture URLs, free markup. The decisions are
- * closed sets and bounded numbers, the fonts are Typography's pairings, and a composition
+ * closed sets and bounded numbers, the fonts are the font library's families (Fonts), and a composition
  * surface is never `image`: a picture is content, not design.
  *
  * REFUSED OR WARNED. Anything that would change what the design means is refused, with
@@ -69,7 +69,8 @@ final class DesignSet
         }
         // Only the current version is read: there is no older file to keep reading (D-162).
         if (($raw['version'] ?? null) !== self::VERSION) {
-            return self::refused(t('designset.version', ['version' => is_scalar($raw['version'] ?? null) ? (string) $raw['version'] : '?']));
+            // As the file spells it: "2" in quotes is text, not the number this reads (D-200).
+            return self::refused(t('designset.version', ['version' => is_scalar($raw['version'] ?? null) ? (string) json_encode($raw['version']) : '?']));
         }
 
         return self::check($raw, $registry);
@@ -86,8 +87,10 @@ final class DesignSet
      * @param array<string, mixed>|null $composition section, surfaces, dividers, layouts
      * @param list<array<string, mixed>> $patterns the set's starter sections (D-169)
      * @param array<string, string> $dark the set's dark version (D-185), none if it has none
+     * @param list<string> $tags the set's own words for what it is; until D-200 read and never
+     *        written, so a set added as a character lost them
      */
-    public static function export(string $id, array $name, array $description, array $decisions, array $look, ?array $composition, string $author = '', array $patterns = [], array $dark = []): string
+    public static function export(string $id, array $name, array $description, array $decisions, array $look, ?array $composition, string $author = '', array $patterns = [], array $dark = [], array $tags = []): string
     {
         $neutral = Decisions::neutral();
         $kept = [];
@@ -112,6 +115,9 @@ final class DesignSet
         }
         if ($author !== '') {
             $set['author'] = $author;
+        }
+        if ($tags !== []) {
+            $set['tags'] = $tags;
         }
         $set['decisions'] = $kept;
         // The dark version, in the vocabulary's order, only what it answers.

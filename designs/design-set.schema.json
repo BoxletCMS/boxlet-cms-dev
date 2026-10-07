@@ -11,7 +11,6 @@
         "name",
         "decisions"
     ],
-    "additionalProperties": false,
     "properties": {
         "$schema": {
             "type": "string"
@@ -54,7 +53,7 @@
         },
         "tags": {
             "type": "array",
-            "maxItems": 12,
+            "description": "The first 12 are read.",
             "items": {
                 "type": "string",
                 "maxLength": 32
@@ -65,7 +64,6 @@
             "required": [
                 "seed"
             ],
-            "additionalProperties": false,
             "properties": {
                 "seed": {
                     "type": "string",
@@ -74,7 +72,7 @@
                 },
                 "secondary": {
                     "type": "string",
-                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})|none)?$",
                     "description": "A second colour for contrast bands; without one, a deep shade of the main colour is used.",
                     "default": ""
                 },
@@ -494,16 +492,15 @@
         "dark": {
             "type": "object",
             "description": "The set's dark version (D-185): in dark mode these stand for the light ones. A colour left out is worked out by the palette; anything else left out is the light version's. With it, both versions are checked for contrast.",
-            "additionalProperties": false,
             "properties": {
                 "seed": {
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
                     "type": "string",
-                    "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
                     "description": "The main colour: buttons, links and the start of a gradient; the rest of the palette is worked out from it."
                 },
                 "secondary": {
                     "type": "string",
-                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$",
+                    "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})|none)?$",
                     "description": "A second colour for contrast bands; without one, a deep shade of the main colour is used.",
                     "default": ""
                 },
@@ -582,7 +579,6 @@
         "look": {
             "type": "object",
             "description": "'' or a choice left out follows the character.",
-            "additionalProperties": false,
             "properties": {
                 "header_arrangement": {
                     "enum": [
@@ -768,8 +764,7 @@
         },
         "patterns": {
             "type": "array",
-            "description": "Starter sections, the one place a set carries words: per language ({\"en\": …, \"hr\": …}, or one string), English the fallback. No pictures, files or forms.",
-            "maxItems": 12,
+            "description": "Starter sections, the one place a set carries words: per language ({\"en\": …, \"hr\": …}, or one string), English the fallback. No pictures, files or forms. The first 12 are read.",
             "items": {
                 "type": "object",
                 "required": [
@@ -783,15 +778,23 @@
                         "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
                     },
                     "name": {
-                        "type": "object",
-                        "minProperties": 1,
-                        "propertyNames": {
-                            "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
-                        },
-                        "additionalProperties": {
-                            "type": "string",
-                            "maxLength": 80
-                        }
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "minProperties": 1,
+                                "propertyNames": {
+                                    "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+                                },
+                                "additionalProperties": {
+                                    "type": "string",
+                                    "maxLength": 80
+                                }
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 80
+                            }
+                        ]
                     },
                     "section": {
                         "type": "object",
@@ -807,6 +810,7 @@
                     "blocks": {
                         "type": "array",
                         "minItems": 1,
+                        "description": "The first 4 are read.",
                         "items": {
                             "type": "object",
                             "required": [
@@ -823,11 +827,9 @@
             "required": [
                 "section"
             ],
-            "additionalProperties": false,
             "properties": {
                 "section": {
                     "type": "object",
-                    "additionalProperties": false,
                     "properties": {
                         "surface": {
                             "enum": [
@@ -929,100 +931,205 @@
                     "type": "object",
                     "properties": {
                         "accordion": {
-                            "enum": [
-                                "list",
-                                "cards"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "list",
+                                        "cards"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "cards": {
-                            "enum": [
-                                "grid",
-                                "list"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "grid",
+                                        "list"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "cta": {
-                            "enum": [
-                                "banner",
-                                "beside"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "banner",
+                                        "beside"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "divider": {
-                            "enum": [
-                                "space",
-                                "line"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "space",
+                                        "line"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "downloads": {
-                            "enum": [
-                                "list",
-                                "cards"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "list",
+                                        "cards"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "embed": {
-                            "enum": [
-                                "full",
-                                "inset"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "full",
+                                        "inset"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "form": {
-                            "enum": [
-                                "stacked",
-                                "beside"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "stacked",
+                                        "beside"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "gallery": {
-                            "enum": [
-                                "two",
-                                "three",
-                                "four"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "two",
+                                        "three",
+                                        "four"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "hero": {
-                            "enum": [
-                                "left",
-                                "center",
-                                "split",
-                                "cover-center",
-                                "cover-left",
-                                "cover-right",
-                                "cover-low"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "left",
+                                        "center",
+                                        "split",
+                                        "cover-center",
+                                        "cover-left",
+                                        "cover-right",
+                                        "cover-low"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "image_text": {
-                            "enum": [
-                                "image-left",
-                                "image-right"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "image-left",
+                                        "image-right"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "logos": {
-                            "enum": [
-                                "row",
-                                "grid"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "row",
+                                        "grid"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "picture": {
-                            "enum": [
-                                "full",
-                                "inset"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "full",
+                                        "inset"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "quote": {
-                            "enum": [
-                                "plain",
-                                "big",
-                                "card"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "plain",
+                                        "big",
+                                        "card"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "stats": {
-                            "enum": [
-                                "three",
-                                "four"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "three",
+                                        "four"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         },
                         "text": {
-                            "enum": [
-                                "single",
-                                "columns"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "single",
+                                        "columns"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
                             ]
                         }
                     },
@@ -1035,20 +1142,25 @@
                     "properties": {
                         "accordion": {
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                                 "measure": {
-                                    "enum": [
-                                        "comfortable",
-                                        "wide",
-                                        "full"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "comfortable",
+                                                "wide",
+                                                "full"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 }
                             }
                         },
                         "cards": {
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                                 "per_row": {
                                     "type": [
@@ -1058,85 +1170,129 @@
                                     "description": "number, 2 – 4, step 1"
                                 },
                                 "image_shape": {
-                                    "enum": [
-                                        "wide",
-                                        "square",
-                                        "round",
-                                        "none"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "wide",
+                                                "square",
+                                                "round",
+                                                "none"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 }
                             }
                         },
                         "gallery": {
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                                 "shape": {
-                                    "enum": [
-                                        "square",
-                                        "wide",
-                                        "natural",
-                                        "round"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "square",
+                                                "wide",
+                                                "natural",
+                                                "round"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 }
                             }
                         },
                         "hero": {
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                                 "height": {
-                                    "enum": [
-                                        "auto",
-                                        "tall",
-                                        "screen"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "auto",
+                                                "tall",
+                                                "screen"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 },
                                 "veil": {
-                                    "enum": [
-                                        "light",
-                                        "medium",
-                                        "strong"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "light",
+                                                "medium",
+                                                "strong"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 }
                             }
                         },
                         "picture": {
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                                 "shape": {
-                                    "enum": [
-                                        "natural",
-                                        "wide",
-                                        "square",
-                                        "round"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "natural",
+                                                "wide",
+                                                "square",
+                                                "round"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 }
                             }
                         },
                         "quote": {
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                                 "measure": {
-                                    "enum": [
-                                        "comfortable",
-                                        "wide",
-                                        "full"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "comfortable",
+                                                "wide",
+                                                "full"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 }
                             }
                         },
                         "text": {
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                                 "measure": {
-                                    "enum": [
-                                        "comfortable",
-                                        "wide",
-                                        "full"
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "comfortable",
+                                                "wide",
+                                                "full"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
                                     ]
                                 }
                             }

@@ -53,6 +53,8 @@ use App\Modules\Pages\PatternController;
 use App\Modules\Pages\Slug;
 use App\Modules\Pages\TranslationController;
 use App\Modules\Redirects\RedirectsController;
+use App\Modules\Snippets\Snippets;
+use App\Modules\Snippets\SnippetsController;
 use App\Modules\Settings\CacheController;
 use App\Modules\Settings\LogoController;
 use App\Modules\Settings\SettingsController;
@@ -321,6 +323,13 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/redirects', [RedirectsController::class, 'index'], $requireAdmin);
     $router->post('/admin/redirects', [RedirectsController::class, 'store'], $requireAdmin);
     $router->post('/admin/redirects/{id:\d+}/delete', [RedirectsController::class, 'delete'], $requireAdmin);
+
+    // Snippets (D-201): a few words per language, placed in rich text as {{snippet:name}}.
+    $snippetName = '{name:' . Snippets::NAME . '}';
+    $router->get('/admin/snippets', [SnippetsController::class, 'index'], $requireAdmin);
+    $router->post('/admin/snippets', [SnippetsController::class, 'store'], $requireAdmin);
+    $router->post('/admin/snippets/' . $snippetName, [SnippetsController::class, 'update'], $requireAdmin);
+    $router->post('/admin/snippets/' . $snippetName . '/delete', [SnippetsController::class, 'delete'], $requireAdmin);
 
     // Backups (D-139): made and restored in steps, downloaded, deleted. The name is a
     // backup's own (Backups::validName), checked again by everything it reaches.

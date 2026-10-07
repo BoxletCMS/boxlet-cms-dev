@@ -294,8 +294,17 @@ final class PageLayoutData
                 'text' => $words[$textField] ?? $stored['text'],
             ];
         }
+        // The replacement tags in the footer's words (D-201): its columns' rich text, and — said
+        // as more than SPEC §5.6 asks — the small print, the line where © {{year}} belongs.
+        $tags = \App\Modules\Snippets\Tags::context($db, $locale, null, false);
+        foreach ($columns as $i => $column) {
+            $columns[$i]['text'] = \App\Modules\Snippets\Tags::expand($column['text'], $tags);
+        }
         $footer['columns'] = $columns;
         $footer['small_print'] = $words['small_print'] ?? $footer['small_print'];
+        // Escaped first, its tags then drawn; handed over beside the content, which the block
+        // machinery keeps to the footer's declared fields.
+        $smallPrint = \App\Modules\Snippets\Tags::expand(e($footer['small_print']), $tags);
         $header['button'] = PageLinks::link(
             $header['button'],
             PageLinks::targets($db, $registry, $locale, [['type' => 'header', 'content' => $header]]),
@@ -348,7 +357,7 @@ final class PageLayoutData
             'footerHtml' => $hasFooter
                 // The footer's edge is a section divider (D-113): the same layer-2 key, the
                 // same classes, drawn by sections.css exactly as on a band.
-                ? $registry->render('footer', $footer, ['surface' => $resolved['footer_surface'], 'divider' => $resolved['footer_edge']], $resolved['footer_layout'], [], false, 'footer', ['menus' => $footerMenus, 'look' => $resolved, 'credit' => $credit, 'own' => isset($own['footer'])], $locale, $locales)
+                ? $registry->render('footer', $footer, ['surface' => $resolved['footer_surface'], 'divider' => $resolved['footer_edge']], $resolved['footer_layout'], [], false, 'footer', ['menus' => $footerMenus, 'look' => $resolved, 'credit' => $credit, 'own' => isset($own['footer']), 'small_print' => $smallPrint], $locale, $locales)
                 : '',
         ];
     }

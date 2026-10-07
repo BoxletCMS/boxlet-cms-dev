@@ -36,6 +36,9 @@
     ['link', 'link', 'link', 'rt.link'],
   ];
   var current = null;
+  // The page's language, which a snippet's chip speaks (D-201).
+  var tags = window.boxletRichTextTags;
+  var locale = tags ? tags.localeOf(document.querySelector('[data-pb]')) : '';
 
   function bar() {
     var tools = o.el('div', 'bx-rich-tools');
@@ -150,17 +153,22 @@
     pb.inline.check(done.key);
   }
 
-  /** The editor's position after `n` characters of its words, as the page counted them. */
+  /**
+   * The editor's position after `n` characters of its words, as the page counted them. A tag's
+   * chip counts as the words it shows (D-201), and a press inside one lands after it.
+   */
   function textPos(editor, n) {
     var found = null;
     editor.state.doc.descendants(function (node, pos) {
-      if (found !== null || !node.isText) {
+      var chip = node.type.name === 'boxletTag';
+      if (found !== null || (!node.isText && !chip)) {
         return found === null;
       }
-      if (n <= node.text.length) {
-        found = pos + n;
+      var length = chip ? (tags ? tags.label(node.attrs.tag, locale) : '').length : node.text.length;
+      if (n <= length) {
+        found = chip ? pos + node.nodeSize : pos + n;
       } else {
-        n -= node.text.length;
+        n -= length;
       }
       return false;
     });
@@ -183,7 +191,7 @@
     var win = el.ownerDocument.defaultView;
     var editor = new T.Editor({
       element: { mount: el },
-      extensions: rt.extensions(T).concat([T.BubbleMenu.configure({
+      extensions: rt.extensions(T, locale).concat([T.BubbleMenu.configure({
         element: current.tools,
         appendTo: host,
         updateDelay: 0,
@@ -195,7 +203,8 @@
         options: { placement: 'top', offset: 8, flip: { padding: 8 }, shift: { padding: 8 }, scrollTarget: win },
       })]),
       injectCSS: false,
-      content: html,
+      // Its tags as chips while it is written, and as tags again in the document (D-201).
+      content: rt.tags ? rt.tags.to(html, locale) : html,
       editorProps: {
         handleKeyDown: function (view, event) {
           // ⌘K, bubble or no bubble: the link popover, beside the selection.
@@ -214,7 +223,7 @@
       },
       onUpdate: function () {
         var now = pb.block(block.key);
-        if (now) { pb.inline.write(now, path, editor.getHTML()); }
+        if (now) { pb.inline.write(now, path, rt.tags ? rt.tags.from(editor.getHTML()) : editor.getHTML()); }
       },
     });
     current.editor = editor;

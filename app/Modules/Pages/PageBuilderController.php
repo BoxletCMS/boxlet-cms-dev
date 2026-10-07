@@ -58,7 +58,7 @@ final class PageBuilderController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/builder', [
             'title' => t('pages.edit'),
             'nav' => 'pages',
-            'styles' => ['admin-richtext.css', 'admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css', 'builder.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css'],
+            'styles' => ['admin-richtext.css', 'admin-richtext-tags.css', 'admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css', 'builder.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css'],
             'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext-link.js', 'richtext.js', 'vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'repeater.js', 'vendor/sortable.min.js'],
             'wide' => true,
             'bare' => true,

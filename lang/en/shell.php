@@ -43,6 +43,7 @@ return [
     'admin.nav.appearance' => 'Appearance',
     'admin.nav.menus' => 'Navigation',
     'admin.nav.forms' => 'Forms',
+    'admin.nav.snippets' => 'Snippets',
     'admin.nav.statistics' => 'Statistics',
     'admin.nav.design_style' => 'Character and colours',
     'admin.nav.open' => 'Menu',

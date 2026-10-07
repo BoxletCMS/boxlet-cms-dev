@@ -49,7 +49,7 @@ $error = static fn (string $key): string => isset($errors[$key]) ? '<p class="fi
 <?php if ($notice !== null): ?>
         <p class="notice notice-error" role="alert"><?= e($notice) ?></p>
 <?php endif; ?>
-        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="editor-form" id="page-editor" data-page-editor>
+        <form method="post" action="<?= e(Url::admin('pages', $pageId)) ?>" class="editor-form" id="page-editor" data-tag-locale="<?= e((string) $page['locale']) ?>" data-page-editor>
             <?php /* First submit button in the form: pressing Enter in a field saves. */ ?>
             <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true"><?= e(t('pages.save_draft')) ?></button>
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

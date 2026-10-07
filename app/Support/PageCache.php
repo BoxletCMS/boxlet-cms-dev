@@ -51,7 +51,7 @@ final class PageCache
         }
         $file = self::file($server);
         $modified = is_file($file) ? (int) filemtime($file) : 0;
-        if ($modified === 0 || $modified < time() - self::MAX_AGE) {
+        if ($modified === 0 || $modified < time() - self::MAX_AGE || self::newYearSince($modified, time())) {
             return false;
         }
         // As Response::send(): headers only while they can still be sent.
@@ -63,6 +63,17 @@ final class PageCache
         readfile($file);
 
         return true;
+    }
+
+    /**
+     * Whether a new year may have begun on the site since $kept: a page's {{year}} (D-201) is
+     * the year it was drawn in. Asked before the site's time zone is known, which is not read
+     * here, so of every zone there is, UTC-12 to UTC+14: a page drawn in the last hours of a
+     * year is drawn again a few hours sooner than it had to be, and never shown a year late.
+     */
+    public static function newYearSince(int $kept, int $now): bool
+    {
+        return gmdate('Y', $kept - 12 * 3600) !== gmdate('Y', $now + 14 * 3600);
     }
 
     /**

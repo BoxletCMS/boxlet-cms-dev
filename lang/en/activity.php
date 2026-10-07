@@ -63,6 +63,9 @@ return [
     'activity.backup.deleted' => 'Deleted the backup :name',
     'activity.redirect.created' => 'Added a redirect for :name',
     'activity.redirect.deleted' => 'Deleted the redirect for :name',
+    'activity.snippet.created' => 'Added the snippet “:name”',
+    'activity.snippet.saved' => 'Edited the snippet “:name”',
+    'activity.snippet.deleted' => 'Deleted the snippet “:name”',
 
     'activity.form.created' => 'Created the form “:name”',
     'activity.form.saved' => 'Edited the form “:name”',

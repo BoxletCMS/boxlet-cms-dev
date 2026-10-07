@@ -53,8 +53,10 @@ test('guard (source, not behaviour): the editor is configured to the storage whi
 test('guard (source, not behaviour): a rich text edit announces itself', function () {
     $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext.js');
 
+    // Through T.from() since D-201: the tags' chips turned back into the tags they stand for,
+    // which is what is posted. Scenario 80-tags measures what that writes.
     assertTrue(
-        (bool) preg_match('~onUpdate[^}]*hidden\.value\s*=\s*editor\.getHTML\(\)~s', $js),
+        (bool) preg_match('~onUpdate[^}]*hidden\.value\s*=\s*(?:T\.from\()?editor\.getHTML\(\)~s', $js),
         'the editor no longer writes what it will post into the hidden input',
     );
     assertTrue(

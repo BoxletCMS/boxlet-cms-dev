@@ -30,6 +30,7 @@ use App\Support\Url;
  * @var string $railState 'compact' or 'wide' as the owner last left the rail, '' if never
  * @var string $theme 'light', 'dark' or 'system' — which palette this browser is drawn in
  * @var string $here this page's own address, so the theme switch comes back to it
+ * @var array<string, mixed> $tags what an editor draws a replacement tag as (Tags::editorData, D-201)
  */
 $current = static fn (string $section): string => $nav === $section ? ' aria-current="page"' : '';
 
@@ -44,6 +45,8 @@ $rail = [
         ['nav' => 'media', 'href' => Url::admin('media'), 'icon' => 'image', 'label' => t('admin.nav.media'), 'count' => $counts['media']],
         ['nav' => 'menus', 'href' => Url::admin('navigation'), 'icon' => 'list', 'label' => t('admin.nav.menus'), 'count' => $counts['menus']],
         ['nav' => 'forms', 'href' => Url::admin('forms'), 'icon' => 'list-checks', 'label' => t('admin.nav.forms'), 'count' => $counts['forms']],
+        // Counted from the editors' own read of them (D-201), no query of its own.
+        ['nav' => 'snippets', 'href' => Url::admin('snippets'), 'icon' => 'scroll-text', 'label' => t('admin.nav.snippets'), 'count' => count($tags['snippets'] ?? [])],
     ],
     'presentation' => [
         // One item where there were two (D-059): Design and Header & footer were one screen
@@ -94,6 +97,8 @@ foreach ($rail as $entries) {
 <?php endforeach; ?>
     <script src="<?= e(Url::versioned('assets/admin.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-readouts.js')) ?>" defer></script>
+    <?php /* The replacement tags' chip and Insert list (D-201), read by richtext.js. */ ?>
+    <script src="<?= e(Url::versioned('assets/richtext-tags.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/row-menu.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-nav.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-palette.js')) ?>" defer></script>
@@ -221,5 +226,6 @@ foreach ($rail as $entries) {
         <div class="palette-results" data-palette-results></div>
         <p class="palette-keys"><?= e(t('search.keys')) ?></p>
     </dialog>
+<script type="application/json" id="boxlet-tags"><?= json_encode($tags, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
 </body>
 </html>

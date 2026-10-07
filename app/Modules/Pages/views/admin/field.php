@@ -61,6 +61,12 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
                                 <button type="button" class="rt-button" data-rt="bullet" aria-pressed="false" title="<?= e(t('richtext.bullets')) ?>"><span aria-hidden="true">&#8226;</span><span class="visually-hidden"><?= e(t('richtext.bullets')) ?></span></button>
                                 <button type="button" class="rt-button" data-rt="ordered" aria-pressed="false" title="<?= e(t('richtext.numbers')) ?>"><span aria-hidden="true">1.</span><span class="visually-hidden"><?= e(t('richtext.numbers')) ?></span></button>
                             </div>
+                            <?php /* THE REPLACEMENT TAGS (D-201): the year, the language switcher and the
+                                     snippets, put where the caret is as chips (richtext-tags.js).
+                                     Words, not a glyph: a {{ }} says nothing to the owner. */ ?>
+                            <div class="rt-group rt-insert">
+                                <button type="button" class="rt-button rt-button-words" data-rt="tag" aria-haspopup="menu" aria-expanded="false" title="<?= e(t('tags.insert_title')) ?>"><?= e(t('tags.insert')) ?></button>
+                            </div>
                             <div class="rt-group rt-history">
                                 <button type="button" class="rt-button" data-rt="undo" title="<?= e(t('richtext.undo')) ?>"><span aria-hidden="true">&#8630;</span><span class="visually-hidden"><?= e(t('richtext.undo')) ?></span></button>
                                 <button type="button" class="rt-button" data-rt="redo" title="<?= e(t('richtext.redo')) ?>"><span aria-hidden="true">&#8631;</span><span class="visually-hidden"><?= e(t('richtext.redo')) ?></span></button>

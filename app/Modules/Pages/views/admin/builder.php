@@ -22,7 +22,7 @@ use App\Support\Url;
  */
 $pageId = (int) $page['id'];
 ?>
-<div class="pb" data-pb data-csrf="<?= e($csrf) ?>" data-canvas-url="<?= e(Url::admin('pages', $pageId, 'canvas')) ?>" data-icons="<?= e(Url::versioned('assets/vendor/icons.svg')) ?>">
+<div class="pb" data-pb data-tag-locale="<?= e((string) $page['locale']) ?>" data-csrf="<?= e($csrf) ?>" data-canvas-url="<?= e(Url::admin('pages', $pageId, 'canvas')) ?>" data-icons="<?= e(Url::versioned('assets/vendor/icons.svg')) ?>">
 <?php require __DIR__ . '/builder/bar.php'; ?>
     <div class="pb-body" data-pb-body>
 <?php require __DIR__ . '/builder/rail.php'; ?>

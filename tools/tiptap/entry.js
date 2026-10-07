@@ -2,7 +2,7 @@
  * What the admin gets on window.BoxletTipTap. Nothing else is exposed.
  *
  * BubbleMenu (D-186) is the canvas's rich text toolbar: shown over a selection, placed by
- * Floating UI, which comes with it.
+ * Floating UI, which comes with it. Node (D-201) is what a replacement tag's chip is made from.
  *
  * The schema is exactly the storage whitelist (SPEC §5.3): paragraph, h2-h4, bold,
  * italic, link, bullet and ordered lists, blockquote, hard break, plus undo/redo. Every
@@ -14,6 +14,9 @@
  * assigned last. A window.BoxletTipTap set inside would be overwritten by it.
  */
 export { Editor } from '@tiptap/core';
+// Node (D-201): the replacement tag's chip, an atom inside a paragraph that the editor keeps as
+// the tag it stands for ({{year}}), written in richtext-tags.js rather than bundled.
+export { Node } from '@tiptap/core';
 export { default as StarterKit } from '@tiptap/starter-kit';
 export { default as Link } from '@tiptap/extension-link';
 export { default as BubbleMenu } from '@tiptap/extension-bubble-menu';

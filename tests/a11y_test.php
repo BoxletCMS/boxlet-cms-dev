@@ -14,10 +14,13 @@ testBothDrivers('no admin screen uses an id twice, or names one that is not ther
     ]);
     $menu = App\Modules\Menus\Menu::create($db, 'en', 'Header');
     App\Modules\Menus\Menu::addItem($db, $menu, null, $page, null, 'About');
+    // A snippet, so its panel is drawn beside the form for a new one (D-201).
+    App\Modules\Snippets\Snippets::save($db, 'hours', ['en' => '<p>Mon–Fri</p>', 'hr' => '']);
 
     foreach ([
         '/admin', '/admin/pages', '/admin/pages/new', '/admin/pages/' . $page, '/admin/pages/' . $page . '/form',
         '/admin/media', '/admin/appearance', '/admin/navigation', '/admin/menus/' . $menu, '/admin/settings',
+        '/admin/snippets',
     ] as $path) {
         $body = dispatch($path)->body;
         // Inside a <template> is a pattern, cloned with its ids made unique when it is used.

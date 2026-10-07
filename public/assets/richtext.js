@@ -34,7 +34,9 @@
    *     whitelist does not allow. Nulling them there works; setting target/rel at the top
    *     level does not.
    */
-  function extensions(tiptap) {
+  function extensions(tiptap, locale) {
+    // The replacement tags' chip (richtext-tags.js, D-201), where the page loads it.
+    var tags = window.boxletRichTextTags ? window.boxletRichTextTags.node(tiptap, locale) : null;
     return [
       tiptap.StarterKit.configure({
         code: false,
@@ -54,8 +56,14 @@
         // link extension refuses the scheme and drops the mark when the field loads.
         protocols: ['page'],
       }),
-    ];
+    ].concat(tags ? [tags] : []);
   }
+
+  /** The stored words with their tags as chips, and back: identity where tags are not loaded. */
+  var T = {
+    to: function (html, locale) { return window.boxletRichTextTags ? window.boxletRichTextTags.toChips(html, locale) : html; },
+    from: function (html) { return window.boxletRichTextTags ? window.boxletRichTextTags.fromChips(html) : html; },
+  };
 
   /** What each toolbar button does, and when it shows as active. */
   var COMMANDS = {
@@ -103,16 +111,17 @@
     host.setAttribute('data-richtext-editor', '');
     hidden.insertAdjacentElement('afterend', host);
 
+    var locale = window.boxletRichTextTags ? window.boxletRichTextTags.localeOf(textarea) : '';
     var editor = new tiptap.Editor({
       element: host,
-      extensions: extensions(tiptap),
+      extensions: extensions(tiptap, locale),
       injectCSS: false,
-      content: textarea.value,
+      content: T.to(textarea.value, locale),
       // Read by the field's own label, as the textarea it stands for was (D-181): the
       // editable element is the control a screen reader meets, and it had no name.
       editorProps: { attributes: named(textarea) },
       onUpdate: function () {
-        hidden.value = editor.getHTML();
+        hidden.value = T.from(editor.getHTML());
         // Say so out loud. The builder redraws the canvas from an `input` event on the
         // field groups, and the unsaved-changes warning listens for the same thing —
         // but assigning .value in script fires nothing, so an edit made here was
@@ -163,6 +172,10 @@
           openLink();
           return;
         }
+        if (name === 'tag' && window.boxletRichTextTags) {
+          window.boxletRichTextTags.menu(editor, button);
+          return;
+        }
         if (COMMANDS[name]) {
           COMMANDS[name].run(editor.chain().focus()).run();
           refresh();
@@ -198,8 +211,8 @@
           textarea.focus();
           toggle.textContent = toggle.getAttribute('data-label-rich');
         } else {
-          editor.commands.setContent(textarea.value, { emitUpdate: false });
-          hidden.value = editor.getHTML();
+          editor.commands.setContent(T.to(textarea.value, locale), { emitUpdate: false });
+          hidden.value = T.from(editor.getHTML());
           toggle.textContent = toggle.getAttribute('data-label-plain');
         }
       });
@@ -224,7 +237,7 @@
   // treatment; builder-inspector.js calls this after drawing a block's fields. The schema and
   // the commands go with it: typing on the page (builder-inline-rich.js, D-178) is the same
   // editor on the same whitelist, never a second one.
-  window.boxletRichText = { scan: scan, extensions: extensions, commands: COMMANDS };
+  window.boxletRichText = { scan: scan, extensions: extensions, commands: COMMANDS, tags: T };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { scan(document); });

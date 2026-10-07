@@ -53,6 +53,16 @@ final class PageRender
             }
             $blocks[] = $block;
         }
+        // THE REPLACEMENT TAGS FIRST (SPEC §5.6, D-201): {{year}}, {{lang:switcher}} and
+        // {{snippet:name}} drawn in every rich text field, before the links below are followed,
+        // so a link inside a snippet's words is followed like the page's own. In the editor
+        // each is a chip the editor keeps as its tag.
+        $tags = \App\Modules\Snippets\Tags::context($db, $locale, isset($how['pageId']) ? (int) $how['pageId'] : null, $editor);
+        foreach ($blocks as $i => $block) {
+            if ($block['content'] !== null && $registry->has((string) $block['type'])) {
+                $blocks[$i]['content'] = \App\Modules\Snippets\Tags::content($registry, (string) $block['type'], $block['content'], $tags);
+            }
+        }
         // Only what can be drawn is resolved: a block of a type this install no longer has
         // keeps its stored row, with no content to read.
         $drawable = array_values(array_filter($blocks, static fn (array $block): bool => $block['content'] !== null && $registry->has((string) $block['type'])));

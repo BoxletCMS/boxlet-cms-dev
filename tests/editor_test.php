@@ -33,7 +33,10 @@ test('the editor is a plain form: named inputs per block, _end last, no inline s
     assertContains('name="blocks[b' . $blockId . '][body]"', $response->body, 'editor');
     assertTrue((bool) preg_match('~name="_end" value="1">\s*</form>~', $response->body), '_end is not the last field of the form');
     assertContains('<template data-block-template="hero">', $response->body, 'block templates for adding');
-    assertTrue(!preg_match('~<script(?![^>]*\bsrc=)~', $response->body), 'the editor contains an inline script');
+    // No inline script that RUNS (D-201, the rule made exact): a JSON data block, such as the
+    // replacement tags' every admin screen carries, is data the CSP has no say over, as the
+    // builder's document is.
+    assertTrue(!preg_match('~<script(?![^>]*\b(?:src=|type="application/json"))~', $response->body), 'the editor contains an inline script');
 });
 
 test('without JavaScript, Add shows a new block and saves nothing', function () {

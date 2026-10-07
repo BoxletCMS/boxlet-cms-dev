@@ -311,7 +311,7 @@ final class PageEditorController
             'nav' => 'pages',
             // Both: the picker shows the library's own cards (admin-media.css) inside its
             // own panel (admin-picker.css), and one definition of a card beats a short list.
-            'styles' => ['admin-richtext.css', 'admin-pages.css', 'admin-patterns.css', 'admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css'],
+            'styles' => ['admin-richtext.css', 'admin-richtext-tags.css', 'admin-pages.css', 'admin-patterns.css', 'admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css'],
             'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext-link.js', 'richtext.js', 'vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'repeater.js'],
             'character' => Composition::active($this->db()),
             'page' => $page,

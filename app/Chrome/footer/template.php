@@ -85,7 +85,8 @@ foreach (array_slice($columns, 0, $shown) as $i => $column) {
 <?php require __DIR__ . '/../../Modules/Pages/views/partials/locale-switcher.php'; ?>
 <?php if ($content['small_print'] !== '' || $credit !== ''): ?>
     <p class="site-small-print">
-<?= $content['small_print'] !== '' ? e($content['small_print']) : '' ?>
+<?php /* Escaped, its tags then drawn (D-201), by PageLayoutData. */ ?>
+<?= $content['small_print'] !== '' ? (is_string($resolved['small_print'] ?? null) ? $resolved['small_print'] : e($content['small_print'])) : '' ?>
 <?php if ($credit !== ''): ?>
         <?php /* One line, the last thing on the page, in the small print where a credit
                  belongs — not a badge and not an image. rel="noopener" because it leaves

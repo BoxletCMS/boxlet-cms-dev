@@ -59,6 +59,8 @@ return [
     'builder.canvas.hint' => 'Click text to type · a block for its options · a section\'s background for its layout',
     'builder.canvas.add_here' => 'Add a section here',
     'builder.canvas.add_end' => 'Add section at the end',
+    'builder.canvas.add_block' => 'Block',
+    'builder.canvas.add_block_title' => 'Add a block to this column',
     'builder.canvas.insert_title' => 'Add here — a block or a pattern',
     'builder.canvas.close' => 'Close',
     'builder.canvas.hidden_here' => 'Hidden on :device',

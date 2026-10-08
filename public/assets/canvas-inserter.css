@@ -63,3 +63,32 @@
 .bx-layer:has(> .bx-inserter) > .bx-toolbar {
   display: none;
 }
+
+/* "+ Block" in a column (builder-columns.js, D-206): "Add section at the end"'s pill, dark in a
+   white ring, a shape and a word at rest on any surface; centred on the point it is put at. */
+.bx-add-column {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.4em 0.9em;
+  border: 2px solid var(--bx-paper);
+  border-radius: 999px;
+  background: var(--bx-ink);
+  color: var(--bx-paper);
+  font: var(--bx-font);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+
+.bx-add-column:hover,
+.bx-add-column:focus-visible {
+  background: var(--bx-select);
+  box-shadow: 0 0 0 2px var(--bx-ink);
+}
+
+/* Under what a column holds: a line from its left edge, not centred on the band's middle,
+   where the "+" between bands stands. */
+.bx-add-column-under {
+  transform: translateY(-50%);
+}

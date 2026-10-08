@@ -61,6 +61,26 @@
     pb.select('block', blockKey);
   };
 
+  /**
+   * A new block of `type` at the end of a column of a band that already stands (D-099, D-101:
+   * the "+ Block" in a column). After the band's last block in the document, so the page's
+   * order holds; the band is drawn again with it there.
+   */
+  pb.addBlockInto = function (type, sectionKey, column) {
+    var item = pb.libraryItem(type);
+    if (!item || !pb.section(sectionKey)) {
+      return;
+    }
+    var blockKey;
+    pb.change(function (doc) {
+      blockKey = pb.mint('n');
+      var last = -1;
+      doc.blocks.forEach(function (b, i) { if (b.section === sectionKey) { last = i; } });
+      doc.blocks.splice(last + 1, 0, { key: blockKey, id: null, type: type, content: pb.copy(item.fresh), style: {}, options: {}, layout: item.layout, section: sectionKey, column: column });
+    }, { sections: [sectionKey], structure: true });
+    pb.select('block', blockKey);
+  };
+
   /** A pattern (`user:3`, `set:hero-button`), as a band of its own at `at`. */
   pb.addPattern = function (ref, at) {
     var url = pb.data.endpoints.patterns + '?ref=' + encodeURIComponent(ref) + '&page=' + pb.data.page.id;

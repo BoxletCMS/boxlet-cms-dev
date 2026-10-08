@@ -19,13 +19,17 @@
       pressedAt = null;
       return;
     }
-    var control = t.closest('[data-bx-action], [data-bx-insert], [data-bx-add-block], [data-bx-add-pattern]');
+    var control = t.closest('[data-bx-action], [data-bx-insert], [data-bx-insert-into], [data-bx-add-block], [data-bx-add-pattern]');
     if (control || t.closest('.bx-layer')) {
       event.preventDefault();
       if (!control) { return; }
       var sel = pb.selection || {};
       var action = control.getAttribute('data-bx-action');
       if (control.hasAttribute('data-bx-insert')) { pb.inserter.open(Number(control.getAttribute('data-bx-insert')), control); return; }
+      if (control.hasAttribute('data-bx-insert-into')) {
+        pb.inserter.open(0, control, { section: control.getAttribute('data-bx-insert-into'), column: Number(control.getAttribute('data-bx-insert-column')) });
+        return;
+      }
       if (control.hasAttribute('data-bx-add-block')) { pb.inserter.choose('block', control.getAttribute('data-bx-add-block')); return; }
       if (control.hasAttribute('data-bx-add-pattern')) { pb.inserter.choose('pattern', control.getAttribute('data-bx-add-pattern')); return; }
       var acts = {

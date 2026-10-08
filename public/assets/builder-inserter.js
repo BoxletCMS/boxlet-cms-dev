@@ -1,7 +1,9 @@
 /*
  * THE QUICK INSERTER (PLAN.md D-175, README 4.3): the "+" on a boundary between bands opens it,
  * there, over the page — every block, then the design set's patterns — and what is chosen goes
- * in at that boundary. Drawn in builder-overlay.js's layer, with its pieces.
+ * in at that boundary. Opened from a column's "+ Block" (builder-columns.js) it offers blocks
+ * only, a pattern being a band of its own, and what is chosen goes in at that column's end.
+ * Drawn in builder-overlay.js's layer, with its pieces.
  */
 (function () {
   'use strict';
@@ -29,7 +31,8 @@
     }
   }
 
-  function open(index, anchor) {
+  /** `into`: {section, column} for a column's "+ Block"; otherwise a boundary between bands. */
+  function open(index, anchor, into) {
     close();
     inserter = o.el('div', 'bx-inserter');
     inserter.setAttribute('role', 'dialog');
@@ -40,7 +43,7 @@
     var blocks = o.el('div', 'bx-inserter-grid');
     pb.data.library.forEach(function (entry) { blocks.appendChild(item('block', entry.type, entry.icon, entry.label)); });
     inserter.appendChild(blocks);
-    var patterns = pb.data.setPatterns || [];
+    var patterns = into ? [] : (pb.data.setPatterns || []);
     if (patterns.length) {
       inserter.appendChild(o.el('div', 'bx-inserter-group', pb.t('add.from_set', { set: pb.data.setName })));
       var grid = o.el('div', 'bx-inserter-grid');
@@ -48,6 +51,10 @@
       inserter.appendChild(grid);
     }
     inserter.setAttribute('data-bx-at', String(index));
+    if (into) {
+      inserter.setAttribute('data-bx-into', into.section);
+      inserter.setAttribute('data-bx-column', String(into.column));
+    }
     var a = o.box(anchor);
     o.at(inserter, { top: a.top + a.height + o.px(6), left: a.left + a.width / 2 });
     o.layer().appendChild(inserter);
@@ -56,7 +63,10 @@
   /** What was chosen, in at the boundary the inserter was opened on. */
   function choose(kind, value) {
     var at = Number(inserter ? inserter.getAttribute('data-bx-at') : pb.doc.sections.length);
+    var into = inserter ? inserter.getAttribute('data-bx-into') : null;
+    var column = Number(inserter ? inserter.getAttribute('data-bx-column') : 0);
     close();
+    if (into && kind === 'block') { pb.addBlockInto(value, into, column); return; }
     if (kind === 'block') { pb.addBlock(value, at); } else { pb.addPattern(value, at); }
   }
 

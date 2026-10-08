@@ -167,7 +167,7 @@ final class PageBuilderController
         $keys = [
             'save.saving', 'save.saved', 'save.failed', 'save.conflict', 'save.reload', 'save.idle', 'publishing', 'published', 'publish_refused',
             'discard_confirm', 'structure.sections', 'structure.sections_one', 'structure.blocks', 'structure.blocks_one', 'structure.column', 'structure.empty', 'add.where_end', 'add.where_after', 'add.none_found',
-            'canvas.add_here', 'canvas.add_end', 'canvas.insert_title', 'canvas.close', 'canvas.hidden_here', 'canvas.move_up', 'canvas.move_down',
+            'canvas.add_here', 'canvas.add_end', 'canvas.add_block', 'canvas.add_block_title', 'canvas.insert_title', 'canvas.close', 'canvas.hidden_here', 'canvas.move_up', 'canvas.move_down',
             'canvas.copy', 'canvas.delete', 'canvas.layout', 'layout_default', 'canvas.page', 'canvas.empty', 'section_n', 'pattern_name', 'pattern_saved', 'delete_confirm',
             'page.restored', 'device.desktop', 'device.tablet', 'device.phone', 'add.mine', 'add.none_mine', 'add.from_set', 'inline.remove_item', 'inline.item_before', 'inline.item_after', 'inline.link_title', 'inline.link_text', 'inline.link_page', 'inline.link_other', 'inline.link_url', 'inline.link_done', 'inline.link_remove',
         ];

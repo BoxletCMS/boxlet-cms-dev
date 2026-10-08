@@ -58,6 +58,14 @@
     var a = o.box(anchor);
     o.at(inserter, { top: a.top + a.height + o.px(6), left: a.left + a.width / 2 });
     o.layer().appendChild(inserter);
+    // Inside the page, side to side: centred on a "+ Block" at a column's left edge it stood
+    // half off the canvas, its first column of blocks out of reach (82-one-column caught it).
+    var r = inserter.getBoundingClientRect();
+    var room = inserter.ownerDocument.documentElement.clientWidth;
+    var shift = r.left < 8 ? 8 - r.left : (r.right > room - 8 ? room - 8 - r.right : 0);
+    if (shift !== 0) {
+      inserter.style.setProperty('left', (parseFloat(inserter.style.left) + shift) + 'px');
+    }
   }
 
   /** What was chosen, in at the boundary the inserter was opened on. */

@@ -2,9 +2,9 @@
  * A BAND'S COLUMNS ARE FILLED ONE BY ONE (PLAN.md D-099, D-101; restored in D-206). D-175's
  * builder retired 24-columns and 44-sections with the old builder, and with them the only
  * check that a block could be put into a column: a band could then be given two columns that
- * nothing could be put in (the owner, 2026-10-08).
+ * nothing could be put in (the owner, 2026-10-08). It stands for both of them: the empty
+ * column (24) and the filled one, saved (44). A band of one column is 82-one-column.
  *
- *   - a band of one column has no "+ Block": the "+" between bands adds there;
  *   - given two columns, the empty one carries "+ Block" at rest, in its middle;
  *   - pressed, the inserter offers blocks and no patterns; a Text chosen lands in that column,
  *     in the document and on the canvas, and the band is drawn with both;
@@ -44,8 +44,6 @@ export default {
       }
       await clickInCanvas(page, '[data-bx-section]', { index: band.index, at: 'bottom', side: 'left' });
       await wait(1000);
-      const oneColumn = await inCanvas(page, 'return doc.querySelectorAll(".bx-add-column").length;');
-      report.verdict('a band of one column has no "+ Block" of its own', oneColumn === 0, String(oneColumn));
 
       await page.click('[data-pb-inspector] label.tile-option:has(input[name="s.layout"][value="halves"])');
       drafted = true;

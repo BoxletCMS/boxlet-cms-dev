@@ -105,14 +105,23 @@ test('a colour input is a real swatch carrying its value, not an empty box', fun
 
 // Cache busting for the stylesheets that are real files on disk (SPEC §5.4).
 
-test('the front-end stylesheets are linked with a hash of their content', function () {
+// ONE FILE SINCE D-204, the rule changed deliberately: the nineteen are bundled in their order
+// as cache/site.<hash>.css, and the hash of its content is what changes with any of them.
+test('the front-end stylesheets are linked as one file named by a hash of their content', function () {
     $db = installedSite(['en' => 'English']);
     createPage($db, 'en', 'about', 'About');
     $body = dispatch('/about')->body;
 
-    foreach (['site.css', 'blocks-hero.css', 'blocks-hero-split.css', 'blocks.css', 'blocks-cards.css', 'blocks-words.css', 'blocks-accordion.css', 'blocks-stats.css', 'blocks-media.css', 'blocks-logos.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-footer.css', 'chrome-header.css', 'sections.css', 'sections-edges.css', 'sections-steps.css', 'sections-columns.css'] as $css) {
-        $hash = substr((string) hash_file('sha256', dirname(__DIR__) . '/public/assets/' . $css), 0, 12);
-        assertContains("/assets/{$css}?v={$hash}", $body, "{$css} link");
+    $css = App\Support\SiteStyles::css();
+    $name = 'site.' . substr(hash('sha256', $css), 0, 12) . '.css';
+    assertContains('<link rel="stylesheet" href="/cache/' . $name . '">', $body, 'the bundle');
+    assertTrue(preg_match('~<link rel="stylesheet" href="/assets/~', $body) !== 1, 'a sheet linked on its own beside it');
+    // Each of the nineteen in it, whole and in the order the cascade needs.
+    $at = -1;
+    foreach (App\Support\SiteStyles::FILES as $sheet) {
+        $where = strpos($css, "/* {$sheet} */\n");
+        assertTrue($where !== false && $where > $at, "{$sheet} is not in the bundle in its place");
+        $at = (int) $where;
     }
 });
 

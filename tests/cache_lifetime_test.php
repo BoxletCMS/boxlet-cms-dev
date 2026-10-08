@@ -39,7 +39,7 @@ function staticAddresses(string $html): array
 function unversioned(array $addresses): array
 {
     return array_values(array_filter($addresses, static fn (string $url): bool => preg_match('~[?&]v=[^&]+~', $url) !== 1
-        && preg_match('~^/cache/tokens\.[0-9a-f]+\.css$~', $url) !== 1
+        && preg_match('~^/cache/(tokens|site)\.[0-9a-f]+\.css$~', $url) !== 1
         && preg_match('~^/m/logo/[^/?]+-[0-9a-f]{12}\.svg$~', $url) !== 1));
 }
 
@@ -50,7 +50,7 @@ testBothDrivers('every static file the site and the admin link changes its addre
 
     $visitor = staticAddresses(dispatch('/about')->body);
     // Not vacuous: the page's own stylesheets, its design, its fonts and its picture are there.
-    foreach (['~^/assets/[a-z-]+\.css~', '~^/cache/tokens\.~', '~^/assets/fonts/~', '~^/m/hero/~'] as $kind) {
+    foreach (['~^/cache/site\.~', '~^/cache/tokens\.~', '~^/assets/fonts/~', '~^/m/hero/~'] as $kind) {
         assertTrue(preg_grep($kind, $visitor) !== [], "the page links nothing matching {$kind}");
     }
     assertEquals([], unversioned($visitor), '/about');
@@ -70,4 +70,28 @@ test('the fonts a design asks for carry their version, the same in @font-face an
     foreach (Typography::preloads('playfair-display', 'inter', 650) as $path) {
         assertContains('url("../assets/fonts/' . Typography::versioned($path) . '")', $css, "the preload of {$path} is the address @font-face fetches");
     }
+});
+
+test('the visitor\'s stylesheets are bundled once, keep their addresses right, and an old bundle outlives the kept pages', function () {
+    $dir = tmpPath('bundle');
+    removeTree($dir);
+    $name = App\Support\SiteStyles::file($dir);
+    assertTrue(preg_match('~^site\.[0-9a-f]{12}\.css$~', $name) === 1, "named {$name}");
+    $css = (string) file_get_contents($dir . '/' . $name);
+    assertEquals(App\Support\SiteStyles::css(), $css, 'what is written is the bundle');
+    // A sheet's own relative address points from cache/ to assets/; a data: one is untouched.
+    assertContains('url("../assets/embed-youtube.svg")', $css, 'the embed mark from cache/');
+    assertTrue(!str_contains($css, 'url("embed-youtube.svg")'), 'a relative address left as written');
+
+    // An older bundle stays while a kept page may still name it, and goes after. A folder of
+    // its own: the answer for one is worked out once a request.
+    $dir = tmpPath('bundle-old');
+    removeTree($dir);
+    mkdir($dir, 0700, true);
+    file_put_contents($dir . '/site.aaaaaaaaaaaa.css', 'a{}');
+    file_put_contents($dir . '/site.bbbbbbbbbbbb.css', 'b{}');
+    touch($dir . '/site.bbbbbbbbbbbb.css', time() - App\Support\PageCache::MAX_AGE - 7200);
+    App\Support\SiteStyles::file($dir);
+    assertTrue(is_file($dir . '/site.aaaaaaaaaaaa.css'), 'a bundle of the last day was removed');
+    assertTrue(!is_file($dir . '/site.bbbbbbbbbbbb.css'), 'a bundle older than any kept page was kept');
 });

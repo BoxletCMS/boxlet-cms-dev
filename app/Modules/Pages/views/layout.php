@@ -15,6 +15,7 @@ use App\Support\Url;
  * @var bool $noindex keep this page out of search engines: the owner's choice, and always
  *                   for a preview (D-170)
  * @var list<string> $fontPreloads the two families' first files, preloaded (D-185)
+ * @var string $siteStyles the nineteen visitor stylesheets as one file, '' when it could not be written (D-204)
  * @var bool $designPreview drawn inside the Appearance preview, where the editor-only marks
  *                         show (D-170)
  * @var array{url: string, type: string}|null $icon the site's tab icon (D-028)
@@ -70,25 +71,15 @@ use App\Support\Url;
     <link rel="preload" href="<?= e($font) ?>" as="font" type="font/woff2" crossorigin>
 <?php endforeach; ?>
     <link rel="stylesheet" href="<?= e(Url::stylesheet()) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/site.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-hero.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-hero-split.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-cards.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-words.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-accordion.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-stats.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-media.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-logos.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-embed.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/blocks-downloads.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-footer.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/chrome-header.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-edges.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-steps.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::versioned('assets/sections-columns.css')) ?>">
+<?php /* The nineteen sheets as one file (D-204): one request a first visit waits for, not
+         nineteen. Linked one by one only where the bundle could not be written. */ ?>
+<?php if ($siteStyles !== ''): ?>
+    <link rel="stylesheet" href="<?= e($siteStyles) ?>">
+<?php else: ?>
+<?php foreach (\App\Support\SiteStyles::FILES as $sheet): ?>
+    <link rel="stylesheet" href="<?= e(Url::versioned('assets/' . $sheet)) ?>">
+<?php endforeach; ?>
+<?php endif; ?>
 <?php /* A script a visitor's page loads only when the header has a menu for it to fold: the
          mobile menu and submenu buttons (D-036). Without it nothing breaks. */ ?>
 <?php if (str_contains($headerHtml, 'data-site-nav-toggle')): ?>

@@ -57,7 +57,7 @@ final class PageLayoutData
      * What the layout is handed, beside View's own $locale and $content. The test above
      * asserts this list against the template, so it is a fact rather than a comment.
      */
-    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'breadcrumbs', 'noindex', 'designPreview', 'fontPreloads', 'headerBleed', 'footerBleed', 'headerHtml', 'footerHtml'];
+    public const KEYS = ['title', 'description', 'canonical', 'icon', 'shareImage', 'hreflang', 'breadcrumbs', 'noindex', 'designPreview', 'fontPreloads', 'siteStyles', 'headerBleed', 'footerBleed', 'headerHtml', 'footerHtml'];
 
     /**
      * A visitor's page, or an error page.
@@ -99,6 +99,7 @@ final class PageLayoutData
             'noindex' => ($head['noindex'] ?? false) === true,
             'designPreview' => false,
             'fontPreloads' => self::fontPreloads($design['decisions']),
+            'siteStyles' => self::siteStyles($container),
         ] + self::chrome($container, $locale, $alternates, $current, $design + ['first_surface' => $head['first_surface'] ?? '']);
     }
 
@@ -143,6 +144,7 @@ final class PageLayoutData
             // None in the preview: its faces change with every family tried, and it is redrawn
             // only for what changes its markup (appearance-stage.js).
             'fontPreloads' => [],
+            'siteStyles' => self::siteStyles($container),
         ] + self::chrome($container, $locale, Alternates::for($db, null, $container->get('locales')), '', $trying);
     }
 
@@ -164,6 +166,18 @@ final class PageLayoutData
             static fn (string $path): string => \App\Support\Url::asset('assets/fonts/' . \App\Modules\Design\Typography::versioned($path)),
             \App\Modules\Design\Typography::preloads($heading, $decisions['body_font'] ?? '', $weight),
         );
+    }
+
+    /**
+     * The visitor's stylesheets as one file (D-204), beside tokens.css; '' where it cannot be
+     * written, and the layout then links the nineteen.
+     */
+    private static function siteStyles(Container $container): string
+    {
+        $cache = (string) (($container->get('config')->get('app', []))['cache_path'] ?? '');
+        $file = $cache === '' ? '' : \App\Support\SiteStyles::file($cache);
+
+        return $file === '' ? '' : \App\Support\Url::asset('cache/' . $file);
     }
 
     /**

@@ -253,7 +253,9 @@ testBothDrivers('a section draws its anchor, its padding and its animation, and 
     ]);
     $plain = dispatch('/about')->body;
     assertTrue(!str_contains($plain, 'anim.js'), 'the script on a page that has nothing to animate');
-    assertContains('assets/sections-steps.css', $plain, 'the steps\' stylesheet');
+    // In the visitor's one stylesheet since D-204: the page links it, and it holds the steps'.
+    assertContains('/cache/site.', $plain, 'the visitor\'s stylesheet');
+    assertContains('/* sections-steps.css */', App\Support\SiteStyles::css(), 'the steps\' stylesheet');
 
     createPage($db, 'en', 'services', 'Services', true, [
         ['type' => 'text', 'content' => ['body' => '<p>Moving</p>'], 'style' => ['anchor' => 'usluge', 'animation' => 'up', 'pad_top' => '120', 'min_height' => '50', 'v_align' => 'center', 'hide_desktop' => 'yes']],

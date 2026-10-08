@@ -187,7 +187,8 @@ testBothDrivers('the preview is the draft as a whole page, never indexed, and th
     // The whole page as a visitor gets it: every stylesheet the published page links, and its
     // main. (The test site draws no header, so the header is not what is compared.)
     preg_match_all('~<link rel="stylesheet" href="([^"]+)"~', $live, $sheets);
-    assertTrue(count($sheets[1]) > 2, 'the visitor\'s page links its stylesheets');
+    // Two since D-204: the design's tokens and the nineteen bundled as one.
+    assertTrue(count($sheets[1]) === 2 && preg_grep('~/cache/site\.[0-9a-f]{12}\.css$~', $sheets[1]) !== [], 'the visitor\'s page links its stylesheets');
     foreach ($sheets[1] as $sheet) {
         assertContains('href="' . $sheet . '"', $preview, 'the preview links ' . $sheet . ', as a visitor gets it');
     }

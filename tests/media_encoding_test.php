@@ -127,6 +127,28 @@ test('the quality asked for an AVIF reaches its encoder', function () {
     );
 });
 
+// WebP's own quality reaching its encoder (PLAN.md O-18, resolved by D-209). ImageMagick
+// 6.9.12 writes WebP at one quality whatever it is told, through either setter (measured,
+// quality 80 and 40 byte-identical); where the encoder finds that, GD's imagewebp writes it.
+test('the quality asked for a WebP reaches its encoder', function () {
+    $encoder = new MediaEncoder();
+    if (!$encoder->supports('webp')) {
+        skip('this machine cannot write webp, so there is no quality to observe', 'images');
+    }
+    $writer = new MediaWriter($encoder);
+    $source = noiseFixture(tmpPath('webp-quality.jpg'), 800, 600);
+    $crop = MediaPresets::crop('card', 800, 600);
+
+    $high = $writer->encode($source, tmpPath('webp-quality-high.webp'), $crop, 'webp', 1, 90);
+    $low = $writer->encode($source, tmpPath('webp-quality-low.webp'), $crop, 'webp', 1, 20);
+
+    assertTrue(
+        $low['bytes'] < $high['bytes'],
+        sprintf('webp quality 20 gave %d bytes and quality 90 gave %d: the parameter is being dropped', $low['bytes'], $high['bytes']),
+    );
+    assertEquals([$crop['targetWidth'], $crop['targetHeight']], [$low['width'], $low['height']], 'the size written');
+});
+
 // The retry (SPEC §8) through the claims that hold on EVERY driver: a retry never makes
 // things worse and never leaves its working file behind — the two ways this could damage
 // a library rather than merely fail to help it. That it helps is the test above.

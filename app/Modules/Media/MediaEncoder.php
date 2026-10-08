@@ -57,6 +57,40 @@ final class MediaEncoder
     }
 
     /**
+     * WHETHER IMAGICK WRITES WEBP AT THE QUALITY IT IS TOLD (PLAN.md O-18, resolved by D-209).
+     * ImageMagick 6.9.12 does not: quality 80 and 40 come out byte-identical through either
+     * setter. Asked, not assumed, as supports() is: the same small noisy picture written at 90
+     * and at 20, and the two compared. Where they are the same and GD can write WebP, the writer
+     * hands the encode to GD (MediaWriter). Once a process.
+     */
+    public function imagickWebpQuality(): bool
+    {
+        static $obeyed = null;
+        if ($obeyed !== null) {
+            return $obeyed;
+        }
+        try {
+            $class = 'Imagick';
+            $image = new $class();
+            $image->newPseudoImage(96, 96, 'gradient:#204060-#e0c080');
+            $image->addNoiseImage($class::NOISE_GAUSSIAN);
+            $image->setImageFormat('webp');
+            $sizes = [];
+            foreach ([90, 20] as $quality) {
+                $copy = clone $image;
+                $copy->setImageCompressionQuality($quality);
+                $copy->setCompressionQuality($quality);
+                $sizes[] = strlen((string) $copy->getImageBlob());
+            }
+
+            return $obeyed = $sizes[0] !== $sizes[1];
+        } catch (Throwable) {
+            // A WebP Imagick cannot write at all is supports()'s question, not this one.
+            return $obeyed = true;
+        }
+    }
+
+    /**
      * 'imagick', 'gd', or none when the server can process no images at all.
      */
     public function driver(): ?string

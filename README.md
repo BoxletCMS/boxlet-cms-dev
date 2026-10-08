@@ -325,6 +325,15 @@ location ~* \.(css|js|woff2|avif|webp|jpe?g|png|gif|svg|ico)$ {
 A location with an `add_header` of its own drops the ones around it, so the SVG logo's
 location above needs `add_header Cache-Control $boxlet_cache;` too.
 
+**Compressed on the way out.** `public/.htaccess` turns on `mod_deflate` for text on Apache.
+Nginx often compresses only HTML by default, which leaves the stylesheet and scripts at their
+full size; in the `http` or `server` block:
+
+```nginx
+gzip on;
+gzip_types text/css application/javascript application/json application/xml image/svg+xml text/plain text/xml;
+```
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

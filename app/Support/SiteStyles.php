@@ -10,8 +10,9 @@ namespace App\Support;
  * by a hash of what it holds, so a browser may keep it a year (D-203) and a change is a new
  * address.
  *
- * Read from the code's own public/assets, which ships with it; written beside tokens.css. A
- * relative url() in a sheet is relative to assets/, and is given the way there from cache/.
+ * Read from the code's own public/assets, which ships with it; written beside tokens.css,
+ * without the sheets' own comments (D-205). A relative url() in a sheet is relative to
+ * assets/, and is given the way there from cache/.
  * A bundle this replaces is removed only once no kept page can still name it (PageCache's
  * day); a folder that cannot be written gives '' and the layout links the nineteen as before.
  */
@@ -53,16 +54,30 @@ final class SiteStyles
         return $made[$cacheDirectory] = $name;
     }
 
-    /** The nineteen, one after another, each named in a comment. */
+    /**
+     * The nineteen, one after another, each named in a comment and without its own: the
+     * sheets explain themselves at length, and a visitor fetched those words with every first
+     * visit, 25 of 36 KB once compressed (D-205). The indentation goes too; nothing inside a
+     * declaration is touched, and no sheet holds a comment mark inside a string.
+     */
     public static function css(): string
     {
         $assets = dirname(__DIR__, 2) . '/public/assets';
         $css = '';
         foreach (self::FILES as $file) {
-            $css .= "/* {$file} */\n" . self::rebase((string) file_get_contents($assets . '/' . $file)) . "\n";
+            $css .= "/* {$file} */\n" . self::rebase(self::bare((string) file_get_contents($assets . '/' . $file)));
         }
 
         return $css;
+    }
+
+    /** A sheet without its comments, its indentation and its empty lines. */
+    private static function bare(string $css): string
+    {
+        $css = (string) preg_replace('~/\*.*?\*/~s', '', $css);
+        $css = (string) preg_replace('~^[ \t]+~m', '', $css);
+
+        return (string) preg_replace('~\n{2,}~', "\n", trim($css)) . "\n";
     }
 
     /** A relative url() in a sheet under assets/, as seen from cache/. */

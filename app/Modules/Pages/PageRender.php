@@ -103,6 +103,11 @@ final class PageRender
             $drawn = \App\Support\Editing::during($editor, static fn (): string => SectionRender::draw($registry, $character, $group['section'], $shown, $media, $first, ['forms' => $forms, 'files' => $files], $locale, $editor, $design));
             if ($editor) {
                 $drawn = self::marked($drawn, (string) $group['id'], $isStale);
+            } elseif ($first) {
+                // The picture a visitor waits for (Lighthouse's LCP) asked for first (D-205):
+                // the first one the first section draws, eager as every picture there is, and
+                // only that one — high priority given to three cards is given to none.
+                $drawn = (string) preg_replace('~<img\b(?![^>]*\sloading=)~', '<img fetchpriority="high"', $drawn, 1);
             }
             $html .= $drawn;
             if ($first) {

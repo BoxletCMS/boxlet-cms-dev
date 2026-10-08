@@ -95,3 +95,26 @@ test('the visitor\'s stylesheets are bundled once, keep their addresses right, a
     assertTrue(is_file($dir . '/site.aaaaaaaaaaaa.css'), 'a bundle of the last day was removed');
     assertTrue(!is_file($dir . '/site.bbbbbbbbbbbb.css'), 'a bundle older than any kept page was kept');
 });
+
+testBothDrivers('the first picture of the first section is asked for first, and only that one (D-205)', function (string $driver) {
+    $db = adminSite($driver);
+    $variants = ['hero' => ['width' => 1920, 'height' => 1080, 'formats' => ['avif', 'jpg']], 'card' => ['width' => 600, 'height' => 400, 'formats' => ['avif', 'jpg']], 'wide' => ['width' => 1200, 'height' => 630, 'formats' => ['avif', 'jpg']]];
+    $a = storedPicture($db, 'harbour', $variants);
+    $b = storedPicture($db, 'atelier', $variants);
+    $cards = ['type' => 'cards', 'content' => ['heading' => 'Three', 'items' => [['heading' => 'One', 'image' => $a], ['heading' => 'Two', 'image' => $b]]]];
+    $id = createPage($db, 'en', 'about', 'About', true, [['type' => 'hero', 'content' => ['heading' => 'Welcome', 'image' => $a]], $cards]);
+
+    $page = dispatch('/about')->body;
+    preg_match_all('~<img\b[^>]*>~', $page, $images);
+    $high = array_values(preg_grep('~fetchpriority="high"~', $images[0]) ?: []);
+    assertEquals(1, count($high), 'pictures asked for first');
+    $first = $high[0] ?? '';
+    assertContains('alt=', $first, 'an image');
+    assertTrue(str_contains($first, '/m/hero/') && !str_contains($first, 'loading='), 'the hero\'s, which is not lazy');
+
+    // A first section with no picture: the cards below it are lazy, and none is asked first.
+    createPage($db, 'en', 'plain', 'Plain', true, [['type' => 'text', 'content' => ['body' => '<p>Words</p>']], $cards]);
+    assertTrue(!str_contains(dispatch('/plain')->body, 'fetchpriority'), 'a lazy picture asked for first');
+    // Nor in the editor's canvas, which is no visitor's page.
+    assertTrue(!str_contains(dispatch("/admin/pages/{$id}/canvas")->body, 'fetchpriority'), 'the canvas');
+});

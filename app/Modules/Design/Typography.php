@@ -77,7 +77,7 @@ final class Typography
             $name = Fonts::ALL[$family]['name'];
             foreach (Fonts::files($family) as $file => $range) {
                 foreach (['latin' => self::LATIN, 'latin-ext' => self::LATIN_EXT] as $subset => $unicodeRange) {
-                    $url = rtrim($fontsUrl, '/') . "/{$family}/{$family}-{$subset}-{$file}.woff2";
+                    $url = rtrim($fontsUrl, '/') . '/' . self::versioned("{$family}/{$family}-{$subset}-{$file}.woff2");
                     $css .= "@font-face {\n  font-family: \"{$name}\";\n  font-style: normal;\n  font-weight: {$range};\n"
                         . "  font-display: swap;\n  src: url(\"{$url}\") format(\"woff2\");\n  unicode-range: {$unicodeRange};\n}\n";
                 }
@@ -85,6 +85,24 @@ final class Typography
         }
 
         return $css;
+    }
+
+    /**
+     * A font file's path under public/assets/fonts with its version (D-202): a hash of what it
+     * holds, so a browser may keep it a year and a changed file has a new address. The same
+     * for @font-face and for the preload, which the browser matches only when the two
+     * addresses are identical; a file not there is left as it is. Hashed once per request.
+     */
+    public static function versioned(string $path): string
+    {
+        static $hashes = [];
+        if (!array_key_exists($path, $hashes)) {
+            $file = dirname(__DIR__, 3) . '/public/assets/fonts/' . $path;
+            $hash = is_file($file) ? hash_file('sha256', $file) : false;
+            $hashes[$path] = $hash === false ? '' : substr($hash, 0, 12);
+        }
+
+        return $hashes[$path] === '' ? $path : $path . '?v=' . $hashes[$path];
     }
 
     /**

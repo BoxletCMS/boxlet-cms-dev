@@ -44,4 +44,18 @@ DirectoryIndex index.php
         Header set X-Content-Type-Options "nosniff"
     </If>
 </IfModule>
+# HOW LONG A BROWSER KEEPS A FILE (D-202). Needs mod_headers. Only real files: a request a
+# rewrite gave to index.php is served by index.php, whose name these do not match, so a page
+# or a 404 is never kept. An address with ?v= (every stylesheet, script, picture and font
+# Boxlet links) or a hash in its name (the design's tokens.<hash>.css, an SVG logo) changes
+# when the file does, so it is kept a year and never asked about again. Anything else — what
+# a stylesheet points at by a fixed name, as the admin's own font — is kept a week.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|woff2|avif|webp|jpe?g|png|gif|svg|ico)$">
+        Header set Cache-Control "public, max-age=604800"
+        <If "%{QUERY_STRING} =~ /(^|&)v=[0-9a-f]+/ || %{REQUEST_URI} =~ m#/cache/tokens\.[0-9a-f]+\.css$# || %{REQUEST_URI} =~ m#/m/logo/[^/]+\.svg$#">
+            Header set Cache-Control "public, max-age=31536000, immutable"
+        </If>
+    </FilesMatch>
+</IfModule>
 # END Boxlet

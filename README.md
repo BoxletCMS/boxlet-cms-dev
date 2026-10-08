@@ -302,6 +302,29 @@ location ~ ^/m/logo/[^/]+\.svg$ {
 }
 ```
 
+**How long a browser keeps a file.** Every stylesheet, script, picture and font Boxlet links
+carries `?v=` and a hash of the file, and the design's `tokens.<hash>.css` and an SVG logo
+carry one in their names, so a changed file has a new address and the old one can be kept a
+year. `public/.htaccess` says so on Apache; anything else static is kept a week. On nginx,
+the `map` goes in the `http` block:
+
+```nginx
+map $request_uri $boxlet_cache {
+    ~[?&]v=[0-9a-f]                    "public, max-age=31536000, immutable";
+    ~^/cache/tokens\.[0-9a-f]+\.css    "public, max-age=31536000, immutable";
+    ~^/m/logo/                         "public, max-age=31536000, immutable";
+    default                            "public, max-age=604800";
+}
+
+location ~* \.(css|js|woff2|avif|webp|jpe?g|png|gif|svg|ico)$ {
+    add_header Cache-Control $boxlet_cache;
+    try_files $uri /index.php?$query_string;
+}
+```
+
+A location with an `add_header` of its own drops the ones around it, so the SVG logo's
+location above needs `add_header Cache-Control $boxlet_cache;` too.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

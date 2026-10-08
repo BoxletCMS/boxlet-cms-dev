@@ -160,7 +160,8 @@ final class PageLayoutData
         $weight = $weight !== '' ? (int) $weight : \App\Modules\Design\Fonts::ALL[$heading]['heading'][0];
 
         return array_map(
-            static fn (string $path): string => \App\Support\Url::asset('assets/fonts/' . $path),
+            // Versioned as tokens.css's @font-face is, or the preload is a second download.
+            static fn (string $path): string => \App\Support\Url::asset('assets/fonts/' . \App\Modules\Design\Typography::versioned($path)),
             \App\Modules\Design\Typography::preloads($heading, $decisions['body_font'] ?? '', $weight),
         );
     }

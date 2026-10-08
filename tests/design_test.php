@@ -238,7 +238,8 @@ test('compiled tokens carry a content hash and include only the pairing\'s fonts
 
     assertTrue((bool) preg_match('~^tokens\.[0-9a-f]{12}\.css$~', $file), "file name {$file}");
     assertContains('--color-accent: #8a1c2b;', $css, 'tokens');
-    assertContains('url("../assets/fonts/playfair-display/playfair-display-latin-wght.woff2")', $css, 'heading font');
+    // With its version since D-202, so a browser may keep it a year: a hash of the file.
+    assertTrue(preg_match('~url\("\.\./assets/fonts/playfair-display/playfair-display-latin-wght\.woff2\?v=[0-9a-f]{12}"\)~', $css) === 1, 'heading font');
     assertContains('source-serif-4-latin-ext-wght.woff2', $css, 'body font with Croatian characters');
     assertTrue(!str_contains($css, 'ibm-plex-mono'), 'a font the pairing does not use');
     foreach (glob(dirname(__DIR__) . '/public/assets/fonts/*/*.woff2') ?: [] as $font) {

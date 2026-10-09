@@ -119,7 +119,43 @@ export default {
     const demoDefault = await page.$eval('input[name="demo"]', (el) => el.checked).catch(() => null);
     if (demoDefault === false) await page.click('input[name="demo"]');
     await report.shot(page, '04-site');
-    await submitVia(page, 'input[name="name"]');
+
+    // THE STEP AT WORK (D-212). A real press on the button, the page's own handler answering
+    // it; only the leaving is stopped, so the page is seen in the state it shows while the
+    // server works, however fast this server is. A check between the click and the next page
+    // would race the server (O-26), and holding the request back hung the driver instead.
+    await page.evaluate(() => {
+      document.querySelector('form[data-install-busy]').addEventListener('submit', (event) => event.preventDefault(), { once: true });
+    });
+    await page.click('form[data-install-busy] button[type="submit"]');
+    const busy = await page.evaluate(() => {
+      const button = document.querySelector('form[data-install-busy] button[type="submit"]');
+      const status = document.querySelector('.install-busy');
+      const bar = document.querySelector('.install-busy-bar');
+      const box = bar ? bar.getBoundingClientRect() : null;
+      return {
+        disabled: button ? button.disabled : null,
+        label: button ? button.textContent.trim() : null,
+        wanted: button ? button.getAttribute('data-busy-label') : null,
+        statusShown: status ? !status.hidden && status.getBoundingClientRect().height > 0 : false,
+        bar: box ? [Math.round(box.width), Math.round(box.height)] : null,
+        moving: bar ? getComputedStyle(bar, '::before').animationName : null,
+        sentence: status ? status.textContent.trim() : '',
+        restartLocked: Array.from(document.querySelectorAll('form.restart button')).every((b) => b.disabled),
+      };
+    });
+    // Mid-way, so the shot shows the moving part on its track rather than at an edge.
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await report.shot(page, '04b-site-busy');
+    report.verdict('once sent, the site step says it is at work: the button locked and renamed, "Start over" locked, a moving bar and a sentence',
+      busy.disabled === true && busy.label === busy.wanted && busy.statusShown && busy.restartLocked
+        && busy.bar !== null && busy.bar[0] > 0 && busy.bar[1] > 0 && busy.moving === 'install-busy' && busy.sentence.length > 0,
+      JSON.stringify(busy));
+    // Now sent for real; the locked button is not pressed again, the form goes as it is.
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
+      page.$eval('form[data-install-busy]', (form) => form.submit()),
+    ]);
     await report.shot(page, '05-done');
     report.verdict('the site step installs, with the demo option',
       (await alerts(page)).length === 0,

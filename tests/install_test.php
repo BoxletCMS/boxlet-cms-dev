@@ -155,6 +155,27 @@ testBothDrivers('a full install creates the admin, primary locale, settings, .en
     assertEquals(403, installGet($installer)->status, 'the installer refuses to run again');
 });
 
+test('the site step shows that it is at work once sent, and its parts are there (D-212)', function () {
+    freshDatabase('sqlite');
+    $installer = installer();
+    installGet($installer);
+    assertAdvanced(installPost($installer, ['token' => installToken()]), 'token step');
+    assertAdvanced(installPost($installer, ['driver' => 'sqlite', 'path' => tmpPath('test.sqlite')]), 'database step');
+    $password = 'correct horse battery staple';
+    assertAdvanced(installPost($installer, ['email' => 'owner@example.com', 'password' => $password, 'password_confirm' => $password]), 'admin step');
+    $page = installGet($installer)->body;
+
+    assertContains(e(t('install.site.title')), $page, 'the site step');
+    assertContains('data-install-busy', $page, 'the form the script watches');
+    assertContains('data-busy-label="' . e(t('install.site.working')) . '"', $page, 'the button\'s words while at work');
+    // Hidden at rest: a status, not a control, and nothing to say before the form is sent.
+    assertTrue(preg_match('~<div class="install-busy" role="status" hidden>.*?' . preg_quote(e(t('install.site.busy')), '~') . '~s', $page) === 1, 'the hidden status with its sentence');
+    foreach (['assets/install.js', 'assets/admin-install.css'] as $asset) {
+        assertContains($asset, $page, $asset . ' linked');
+        assertTrue(is_file(dirname(__DIR__) . '/public/' . $asset), $asset . ' exists');
+    }
+});
+
 test('.env values survive quoting, including quotes, backslashes and $', function () {
     $values = ['A' => "p'a\"s\$w\\o#rd x", 'B' => '${HOME}', 'C' => '  spaced  ', 'D' => '$1$abc', 'E' => ''];
 

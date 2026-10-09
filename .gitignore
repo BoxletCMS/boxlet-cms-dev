@@ -38,3 +38,9 @@ id_ed25519*
 /docs/design_handoff_admin_v2/
 # Design sets an owner drops in over FTP (PLAN.md D-155): theirs, never the release's.
 /designs/custom/
+
+# The demo pictures' working files (PLAN.md D-207): the review sheet and its 800 px previews
+# are for the owner's look, the cache saves asking the sources again. Neither ships.
+/demo_images/_review.html
+/demo_images/*/*-800.webp
+/demo_images/.cache/

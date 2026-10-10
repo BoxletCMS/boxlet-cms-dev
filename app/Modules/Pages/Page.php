@@ -4,6 +4,7 @@ namespace App\Modules\Pages;
 
 use App\Core\Blocks;
 use App\Core\Db;
+use App\Modules\Menus\Menu;
 use App\Modules\Redirects\Redirects;
 
 /**
@@ -161,11 +162,13 @@ final class Page
 
     /**
      * Deletes the page; its blocks go with it through the foreign key, and its old
-     * addresses with it by hand, so they answer 404 rather than lead nowhere (D-129).
+     * addresses with it by hand, so they answer 404 rather than lead nowhere (D-129), and
+     * the menu items that led to it (D-218).
      */
     public static function delete(Db $db, int $id): void
     {
         Redirects::pageDeleted($db, $id);
+        Menu::pageDeleted($db, $id);
         $db->query('DELETE FROM pages WHERE id = ?', [$id]);
         PagePaths::changed();
     }

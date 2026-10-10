@@ -191,6 +191,20 @@ final class Menu
     }
 
     /**
+     * A PAGE DELETED TAKES ITS MENU ITEMS WITH IT (PLAN.md D-218, the owner): an item that
+     * goes nowhere was left as "broken" for the owner to find and remove by hand, which after
+     * deleting the demo's pages was every item of two menus. The items under one stay, moved
+     * up to where it stood: they lead to pages of their own.
+     */
+    public static function pageDeleted(Db $db, int $pageId): void
+    {
+        foreach ($db->all('SELECT id, parent_id FROM menu_items WHERE page_id = ?', [$pageId]) as $item) {
+            $db->query('UPDATE menu_items SET parent_id = ? WHERE parent_id = ?', [$item['parent_id'] === null ? null : (int) $item['parent_id'], (int) $item['id']]);
+            $db->query('DELETE FROM menu_items WHERE id = ?', [(int) $item['id']]);
+        }
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public static function findItem(Db $db, int $id): ?array

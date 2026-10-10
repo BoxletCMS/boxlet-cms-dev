@@ -45,7 +45,7 @@ final class PagesController
             'styles' => ['admin-pages.css'],
             // The drag is an addition: the Up and Down buttons work without either file,
             // and pages.js returns early when Sortable is not there.
-            'scripts' => ['vendor/sortable.min.js', 'pages.js'],
+            'scripts' => ['vendor/sortable.min.js', 'pages.js', 'admin-bulk.js'],
             'pages' => $shown,
             'total' => count($all),
             'lang' => $lang,

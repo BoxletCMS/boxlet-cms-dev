@@ -240,11 +240,14 @@
    still legible — a control nobody can read is not explained by being unavailable, and the
    3:1 rule covers disabled controls too (PLAN.md D-012). Here rather than on the pages
    list alone, where it began, so every list of movable things says the same. A quiet one
-   too: the installer's "Start over" while it installs (D-212). */
+   too: the installer's "Start over" while it installs (D-212). And a danger one: a list's
+   "Delete selected" while nothing is ticked (D-218, the owner: red read as ready). */
 .button-ghost[disabled],
 .button-ghost[disabled]:hover,
 .button-quiet[disabled],
-.button-quiet[disabled]:hover {
+.button-quiet[disabled]:hover,
+.button-danger[disabled],
+.button-danger[disabled]:hover {
   background: transparent;
   color: var(--ui-ink-faint);
   cursor: default;

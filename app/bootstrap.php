@@ -28,6 +28,7 @@ use App\Modules\Forms\MessagesController;
 use App\Modules\Languages\LanguagesController;
 use App\Modules\Mailer\MailController;
 use App\Modules\Mailer\MailSettings;
+use App\Modules\Media\MediaBulkController;
 use App\Modules\Media\MediaController;
 use App\Modules\Media\MediaCropController;
 use App\Modules\Media\MediaPickController;
@@ -48,6 +49,7 @@ use App\Modules\Pages\PageController;
 use App\Modules\Pages\PageDraftController;
 use App\Modules\Pages\PageEditorController;
 use App\Modules\Pages\PagePaths;
+use App\Modules\Pages\PagesBulkController;
 use App\Modules\Pages\PagesController;
 use App\Modules\Pages\PatternController;
 use App\Modules\Pages\Slug;
@@ -290,6 +292,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/pages/{id:\d+}/translate', [TranslationController::class, 'create'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/blocks/{block:\d+}/current', [TranslationController::class, 'current'], $requireAdmin);
     $router->post('/admin/pages/{id:\d+}/delete', [PagesController::class, 'delete'], $requireAdmin);
+    // The pages ticked in the list, deleted together (D-218).
+    $router->post('/admin/pages/delete', [PagesBulkController::class, 'delete'], $requireAdmin);
 
     // Pictures (SPEC §5.5). The generated variants live under /m/ and are served from
     // disk by the web server; no route here ever answers for one.
@@ -311,6 +315,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/media/{id:\d+}/focal', [MediaItemController::class, 'focal'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/replace', [MediaItemController::class, 'replace'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/delete', [MediaItemController::class, 'delete'], $requireAdmin);
+    // The pictures and files ticked in the list, deleted together (D-218).
+    $router->post('/admin/media/delete', [MediaBulkController::class, 'delete'], $requireAdmin);
     $router->post('/admin/media/{id:\d+}/finish', [MediaController::class, 'finish'], $requireAdmin);
 
     // Menus (D-028, resolving O-7). One ordering route takes both paths, D-011: a drag

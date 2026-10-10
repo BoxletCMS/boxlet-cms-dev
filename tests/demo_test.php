@@ -170,7 +170,7 @@ testBothDrivers('the demo styles by hand only the sections that mean to differ f
 });
 
 // The owner's review of the Printworks in Couture (D-216): Membership's hero close to the
-// header and to the levels under it, and Exhibitions' picture under the light shade.
+// header and to the levels under it, and tall; Exhibitions' picture under the light shade.
 testBothDrivers('the demo has the owner\'s spacing on Membership and the light shade on Exhibitions', function (string $driver) {
     $db = installedSite(['en' => 'English'], $driver);
     DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
@@ -183,6 +183,7 @@ testBothDrivers('the demo has the owner\'s spacing on Membership and the light s
     $membership = SectionStyle::normalize($first('membership')['style']);
     assertEquals(['20', '0'], [(string) $membership['pad_top'], (string) $membership['pad_bottom']], 'Membership\'s hero: 20 above, none below');
     assertContains('pad-t-20', dispatch('/membership')->body, 'drawn so');
+    assertContains('class="hero height-tall', dispatch('/membership')->body, 'Membership\'s hero tall, not Couture\'s whole screen');
     assertTrue(preg_match('~class="hero [^"]*veil-light~', dispatch('/exhibitions')->body) === 1, 'Exhibitions\' hero under the light shade');
 });
 

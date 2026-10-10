@@ -25,6 +25,11 @@ $cases = [
     'text is escaped' => ['5 < 6 & "quoted"', '5 &lt; 6 &amp; "quoted"'],
     'non-ASCII text survives' => ['<p>Čćđšž — 日本語</p>', '<p>Čćđšž — 日本語</p>'],
     'blank input stays empty' => ['   ', ''],
+    // A paragraph's or heading's alignment (D-217): one class, nothing else of its attributes.
+    'a paragraph keeps its alignment as one class' => ['<p class="big text-center" onclick="x">Hi</p>', '<p class="text-center">Hi</p>'],
+    'a heading\'s text-align style is stored as the class' => ['<h2 style="color:red; text-align: right">Hi</h2>', '<h2 class="text-right">Hi</h2>'],
+    'left and justify are no alignment of their own' => ['<p class="text-left">a</p><p style="text-align:justify">b</p>', '<p>a</p><p>b</p>'],
+    'only a paragraph or heading is aligned' => ['<ul><li class="text-center">x</li></ul><blockquote class="text-right">q</blockquote>', '<ul><li>x</li></ul><blockquote>q</blockquote>'],
 ];
 foreach ($cases as $name => [$input, $expected]) {
     test("richtext: {$name}", function () use ($input, $expected) {
@@ -90,4 +95,9 @@ test('link URLs: only site-relative, http(s), mailto and tel', function () {
     foreach ($urls as $url => $allowed) {
         assertEquals($allowed, SafeUrl::isAllowed((string) $url), (string) json_encode((string) $url));
     }
+});
+
+// The footer's words take an alignment too (D-217): a paragraph is what they are made of.
+test('richtext: the footer\'s words keep a paragraph\'s alignment', function () {
+    assertEquals('<p class="text-center">Foundry Lane</p>', RichText::sanitize('<p class="text-center x">Foundry Lane</p>', RichText::INLINE), 'inline');
 });

@@ -22,6 +22,8 @@ const ICONS = [
     'trash-2', 'x',
     // The rich text toolbar on the page (D-178).
     'bold', 'italic', 'heading-2', 'heading-3', 'list-ordered', 'text-quote', 'link', 'unlink',
+    // A paragraph's alignment, there and in the inspector (D-217).
+    'text-align-start', 'text-align-center', 'text-align-end',
     // The rail and the Workbench screens (D-052).
     'chart-column', 'check', 'circle-alert', 'clock', 'ellipsis-vertical', 'file-text', 'gauge', 'history',
     'chevron-left', 'image', 'list', 'list-checks', 'palette', 'panels-top-left',

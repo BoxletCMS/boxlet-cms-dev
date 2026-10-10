@@ -99,6 +99,8 @@ foreach ($rail as $entries) {
     <script src="<?= e(Url::versioned('assets/admin-readouts.js')) ?>" defer></script>
     <?php /* The replacement tags' chip and Insert list (D-201), read by richtext.js. */ ?>
     <script src="<?= e(Url::versioned('assets/richtext-tags.js')) ?>" defer></script>
+    <?php /* A paragraph's alignment (D-217), read by richtext.js. */ ?>
+    <script src="<?= e(Url::versioned('assets/richtext-align.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/row-menu.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-nav.js')) ?>" defer></script>
     <script src="<?= e(Url::versioned('assets/admin-palette.js')) ?>" defer></script>

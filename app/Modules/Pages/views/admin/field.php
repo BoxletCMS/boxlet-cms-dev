@@ -61,6 +61,7 @@ $fieldLabel = t($fieldKey) . ($fieldSpec['required'] ? ' ' . t('pages.required_m
                                 <button type="button" class="rt-button" data-rt="bullet" aria-pressed="false" title="<?= e(t('richtext.bullets')) ?>"><span aria-hidden="true">&#8226;</span><span class="visually-hidden"><?= e(t('richtext.bullets')) ?></span></button>
                                 <button type="button" class="rt-button" data-rt="ordered" aria-pressed="false" title="<?= e(t('richtext.numbers')) ?>"><span aria-hidden="true">1.</span><span class="visually-hidden"><?= e(t('richtext.numbers')) ?></span></button>
                             </div>
+                            <?= App\Modules\Admin\RichInline::alignment() ?>
                             <?php /* THE REPLACEMENT TAGS (D-201): the year, the language switcher and the
                                      snippets, put where the caret is as chips (richtext-tags.js).
                                      Words, not a glyph: a {{ }} says nothing to the owner. */ ?>

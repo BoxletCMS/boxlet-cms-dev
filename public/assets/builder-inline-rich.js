@@ -34,6 +34,10 @@
     ['list', 'ordered', 'list-ordered', 'rt.numbers'],
     ['quote', 'quote', 'text-quote', 'rt.quote'],
     ['link', 'link', 'link', 'rt.link'],
+    // Always there: a paragraph is in every field, and so its alignment (D-217).
+    ['align', 'alignLeft', 'text-align-start', 'rt.align_left'],
+    ['align', 'alignCenter', 'text-align-center', 'rt.align_center'],
+    ['align', 'alignRight', 'text-align-end', 'rt.align_right'],
   ];
   var current = null;
   // The page's language, which a snippet's chip speaks (D-201).
@@ -46,7 +50,7 @@
     tools.setAttribute('aria-label', pb.t('rt.toolbar'));
     var allow = current.field.allow || ['bold', 'italic', 'link', 'heading', 'list', 'quote'];
     BUTTONS.forEach(function (b) {
-      if (allow.indexOf(b[0]) < 0) {
+      if (b[0] === 'align' ? !window.boxletRichTextAlign : allow.indexOf(b[0]) < 0) {
         return;
       }
       var button = o.button('rt-' + b[1], b[2], pb.t(b[3]));
@@ -100,8 +104,7 @@
       var name = button.getAttribute('data-rt');
       var active = name === 'link' ? 'link' : (rt.commands[name] || {}).active;
       if (!active) { return; }
-      var on = Array.isArray(active) ? editor.isActive(active[0], active[1]) : editor.isActive(active);
-      button.setAttribute('aria-pressed', String(on));
+      button.setAttribute('aria-pressed', String(rt.isOn(editor, active)));
     });
   }
 

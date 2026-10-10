@@ -177,7 +177,7 @@ final class PageBuilderController
         }
         // The rich text editor's own words, for its toolbar on the page (D-178): the same
         // words the inspector's toolbar says.
-        foreach (['bold', 'italic', 'link', 'unlink', 'heading_2', 'heading_3', 'quote', 'bullets', 'numbers', 'toolbar'] as $key) {
+        foreach (['bold', 'italic', 'link', 'unlink', 'heading_2', 'heading_3', 'quote', 'bullets', 'numbers', 'toolbar', 'align_left', 'align_center', 'align_right'] as $key) {
             $strings['rt.' . $key] = t('richtext.' . $key);
         }
         foreach (['published', 'changes', 'draft'] as $state) {

@@ -72,6 +72,11 @@ return [
     'richtext.quote' => 'Quotation',
     'richtext.bullets' => 'Bulleted list',
     'richtext.numbers' => 'Numbered list',
+    // A paragraph's alignment (D-217): the first is no alignment of its own, the block's.
+    'richtext.align' => 'Alignment',
+    'richtext.align_left' => 'Align as the block',
+    'richtext.align_center' => 'Centre',
+    'richtext.align_right' => 'Align right',
     'richtext.undo' => 'Undo',
     'richtext.redo' => 'Redo',
     'richtext.plain' => 'Edit as HTML',

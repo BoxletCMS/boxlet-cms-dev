@@ -177,6 +177,7 @@ test('guard (source, not behaviour): the editor still renders the shapes richtex
     assertContains('data-richtext-link', $body, 'the link row it opens');
     assertContains('data-rt="h3"', $body, 'a heading level button');
     assertContains('data-rt="undo"', $body, 'the history buttons');
+    assertContains('data-rt="alignCenter"', $body, 'the alignment buttons (D-217)');
     assertContains('data-richtext-source', $body, 'the textarea it upgrades');
     /*
      * The label has to point at the textarea. Asserted as that RELATION rather than as the
@@ -188,4 +189,26 @@ test('guard (source, not behaviour): the editor still renders the shapes richtex
         fail('no label for a body field');
     }
     assertContains('<textarea id="' . $labelled[1] . '"', $body, 'the label points at no textarea');
+});
+
+// A paragraph's alignment (D-217) is written as the class the whitelist keeps, never as the
+// style TipTap's own extension writes, which the save would throw away: the editor would show
+// an alignment that never reached the page.
+test('guard (source, not behaviour): the editor aligns with the classes the whitelist keeps', function () {
+    $js = (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext-align.js');
+    assertContains("class: 'text-' + attributes.align", $js, 'the alignment is written as a class');
+    assertContains('/(?:^|\\s)text-(' . implode('|', App\Support\RichText::ALIGNMENTS) . ')(?:\\s|$)/', $js, 'the editor reads the alignments the whitelist keeps');
+    assertTrue(preg_match('/\\bstyle\\s*:/', $js) !== 1, 'the editor writes a style');
+    assertContains("window.boxletRichTextAlign ? window.boxletRichTextAlign.extension(tiptap) : null", (string) file_get_contents(dirname(__DIR__) . '/public/assets/richtext.js'), 'the schema has it');
+});
+
+// The short toolbar (D-113), the footer's words and a snippet's, offers the alignment too: a
+// paragraph is what they are made of, and INLINE keeps its class (D-217).
+test('the footer\'s and a snippet\'s toolbar offers a paragraph\'s alignment', function () {
+    $html = App\Modules\Admin\RichInline::field('f', 'footer[text]', '<p class="text-center">Foundry Lane</p>', 'en', [], null, false);
+    foreach (['alignLeft', 'alignCenter', 'alignRight'] as $command) {
+        assertContains('data-rt="' . $command . '"', $html, $command);
+    }
+    assertContains('#i-text-align-center', $html, 'drawn from the sprite');
+    assertContains('<symbol id="i-text-align-center"', (string) file_get_contents(dirname(__DIR__) . '/public/assets/vendor/icons.svg'), 'which has it');
 });

@@ -11,7 +11,8 @@ use DOMText;
  * Reduces HTML typed into a richtext field to a fixed whitelist, applied when a page is
  * saved (SPEC §5.3). Elements outside the whitelist are unwrapped, keeping their text;
  * a few are removed together with their content. Only <a href> keeps an attribute, and
- * only with a URL that SafeUrl allows or a page reference (PLAN.md D-034).
+ * only with a URL that SafeUrl allows or a page reference (PLAN.md D-034); and a paragraph
+ * or heading its alignment, as one class (D-217).
  *
  * This decides what may be stored at all. What an allowed block then looks like — a div
  * that should be a paragraph, a heading level we do not store, a break an editor left at a
@@ -40,6 +41,16 @@ final class RichText
         'blockquote' => [],
         'a' => ['href'],
     ];
+
+    /**
+     * A paragraph's or heading's alignment (D-217): centred or right, stored as the class
+     * text-center or text-right and nothing else. Left is no alignment of its own: the block's
+     * and the section's are what the words follow. A style's text-align, as TipTap's own
+     * extension and pasted pages write it, is stored as the same class.
+     */
+    public const ALIGNMENTS = ['center', 'right'];
+
+    private const ALIGNABLE = ['p', 'h2', 'h3', 'h4'];
 
     /** Removed with everything inside them; any other element keeps its text. */
     private const REMOVE_WITH_CONTENT = [
@@ -178,6 +189,7 @@ final class RichText
                 continue;
             }
 
+            $align = in_array($tag, self::ALIGNABLE, true) ? self::alignment($node) : null;
             $attributes = [];
             foreach ($node->attributes as $attribute) {
                 $attributes[] = $attribute->nodeName;
@@ -197,9 +209,29 @@ final class RichText
                 }
             }
 
+            if ($align !== null) {
+                $node->setAttribute('class', 'text-' . $align);
+            }
+
             // Last, so the block's final name is known and its children are settled.
             BlockShape::tidy($node, $tag);
         }
+    }
+
+    /** The alignment an element asks for, by its class or its style; null for none or left. */
+    private static function alignment(DOMElement $node): ?string
+    {
+        $classes = preg_split('/\s+/', $node->getAttribute('class')) ?: [];
+        foreach (self::ALIGNMENTS as $align) {
+            if (in_array('text-' . $align, $classes, true)) {
+                return $align;
+            }
+        }
+        if (preg_match('/(?:^|;)\s*text-align\s*:\s*(center|right)\s*(?:;|$)/i', $node->getAttribute('style'), $found) === 1) {
+            return strtolower($found[1]);
+        }
+
+        return null;
     }
 
     /**

@@ -86,6 +86,19 @@ body {
   margin-inline: auto;
 }
 
+/* A paragraph's or heading's own alignment (D-217): its words, and its box with them, so a
+   paragraph held to 38em stands where its words do rather than centring inside a column at
+   the left. */
+:is(.richtext, .site-footer-text) > .text-center {
+  margin-inline: auto;
+  text-align: center;
+}
+
+:is(.richtext, .site-footer-text) > .text-right {
+  margin-inline-start: auto;
+  text-align: right;
+}
+
 /* A BLOCK'S MEASURE (D-187, D-188, the owner): how wide the lines of a Text block, Questions or
    a Quote run, their own option rather than the 38em above, which held every paragraph to one
    width whatever the section's — and Width looked broken. On the block, so the heading keeps

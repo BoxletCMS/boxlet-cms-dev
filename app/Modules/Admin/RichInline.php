@@ -5,9 +5,9 @@ namespace App\Modules\Admin;
 use App\Modules\Pages\PageLinks;
 
 /**
- * RICH TEXT, WITH A SHORT TOOLBAR (D-113): bold, italic, a link, and undo. No headings, lists
- * or quotations — RichText::INLINE would throw them away, and the toolbar offers only what can
- * be stored, as the page editor's does (D-017). The textarea is the real field; richtext.js
+ * RICH TEXT, WITH A SHORT TOOLBAR (D-113): bold, italic, a link, the alignment (D-217), and
+ * undo. No headings, lists or quotations — RichText::INLINE would throw them away, and the
+ * toolbar offers only what can be stored, as the page editor's does (D-017). The textarea is the real field; richtext.js
  * puts the editor above it and the plain toggle shows it again. Without a script it is a
  * textarea of HTML, which still saves.
  *
@@ -21,6 +21,21 @@ use App\Modules\Pages\PageLinks;
 final class RichInline
 {
     /**
+     * A paragraph's alignment (D-217): as the block, centred, right. Every rich text toolbar has
+     * it, the page's and this one's: a paragraph is in every field. Drawn from the icon sprite.
+     */
+    public static function alignment(): string
+    {
+        $html = '<div class="rt-group" role="group" aria-label="' . e(t('richtext.align')) . '">';
+        foreach (['alignLeft' => ['align_left', 'text-align-start'], 'alignCenter' => ['align_center', 'text-align-center'], 'alignRight' => ['align_right', 'text-align-end']] as $command => [$words, $icon]) {
+            $html .= '<button type="button" class="rt-button" data-rt="' . $command . '" aria-pressed="false" title="' . e(t('richtext.' . $words)) . '">'
+                . icon($icon) . '<span class="visually-hidden">' . e(t('richtext.' . $words)) . '</span></button>';
+        }
+
+        return $html . '</div>';
+    }
+
+    /**
      * @param array<int, array{title: string, depth: int, published: bool, url: string}> $pages what a link may lead to, in $locale
      * @param string|null $hintId the hint that describes the field, where it has one
      */
@@ -33,6 +48,7 @@ final class RichInline
             . '<button type="button" class="rt-button rt-italic" data-rt="italic" aria-pressed="false" title="' . e(t('richtext.italic')) . '"><span aria-hidden="true">I</span><span class="visually-hidden">' . e(t('richtext.italic')) . '</span></button>'
             . '<button type="button" class="rt-button" data-rt="link" aria-pressed="false" title="' . e(t('richtext.link')) . '"><svg class="rt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.5 13.5a4.5 4.5 0 0 0 6.36 0l2.83-2.83a4.5 4.5 0 0 0-6.36-6.36l-1.06 1.06"/><path d="M13.5 10.5a4.5 4.5 0 0 0-6.36 0l-2.83 2.83a4.5 4.5 0 0 0 6.36 6.36l1.06-1.06"/></svg><span class="visually-hidden">' . e(t('richtext.link')) . '</span></button>'
             . '</div>'
+            . self::alignment()
             . ($insert
                 ? '<div class="rt-group rt-insert"><button type="button" class="rt-button rt-button-words" data-rt="tag" aria-haspopup="menu" aria-expanded="false" title="' . e(t('tags.insert_title')) . '">' . e(t('tags.insert')) . '</button></div>'
                 : '')

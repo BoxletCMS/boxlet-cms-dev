@@ -91,9 +91,19 @@
 /* Drawn at the size of the letters beside it, and in the same ink: the icon takes
    currentColor, so it carries the button's own colour and contrast rather than a value of
    its own. */
-.rt-icon {
+.rt-icon,
+.rt-button .icon {
   inline-size: 1em;
   block-size: 1em;
+}
+
+/* A paragraph's alignment (D-217), as the page will draw it. */
+.richtext-editor .text-center {
+  text-align: center;
+}
+
+.richtext-editor .text-right {
+  text-align: right;
 }
 
 /* The link row, in the flow between the toolbar and the editor so it never covers the

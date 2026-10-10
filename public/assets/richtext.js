@@ -37,6 +37,8 @@
   function extensions(tiptap, locale) {
     // The replacement tags' chip (richtext-tags.js, D-201), where the page loads it.
     var tags = window.boxletRichTextTags ? window.boxletRichTextTags.node(tiptap, locale) : null;
+    // A paragraph's or heading's alignment (richtext-align.js, D-217), where the page loads it.
+    var align = window.boxletRichTextAlign ? window.boxletRichTextAlign.extension(tiptap) : null;
     return [
       tiptap.StarterKit.configure({
         code: false,
@@ -56,7 +58,7 @@
         // link extension refuses the scheme and drops the mark when the field loads.
         protocols: ['page'],
       }),
-    ].concat(tags ? [tags] : []);
+    ].concat(tags ? [tags] : [], align ? [align] : []);
   }
 
   /** The stored words with their tags as chips, and back: identity where tags are not loaded. */
@@ -64,6 +66,21 @@
     to: function (html, locale) { return window.boxletRichTextTags ? window.boxletRichTextTags.toChips(html, locale) : html; },
     from: function (html) { return window.boxletRichTextTags ? window.boxletRichTextTags.fromChips(html) : html; },
   };
+
+  function aligned(editor, value) {
+    return window.boxletRichTextAlign ? window.boxletRichTextAlign.active(editor, value) : false;
+  }
+
+  /**
+   * Whether a button is lit: a mark or node by name, a name with its attributes, or a test of
+   * the editor's own (an alignment, D-217).
+   */
+  function isOn(editor, active) {
+    if (typeof active === 'function') {
+      return active(editor);
+    }
+    return Array.isArray(active) ? editor.isActive(active[0], active[1]) : editor.isActive(active);
+  }
 
   /** What each toolbar button does, and when it shows as active. */
   var COMMANDS = {
@@ -75,6 +92,10 @@
     quote: { run: function (c) { return c.toggleBlockquote(); }, active: 'blockquote' },
     bullet: { run: function (c) { return c.toggleBulletList(); }, active: 'bulletList' },
     ordered: { run: function (c) { return c.toggleOrderedList(); }, active: 'orderedList' },
+    // Left is the block's own alignment: the paragraph's taken away (D-217).
+    alignLeft: { run: function (c) { return c.setAlign('left'); }, active: function (e) { return aligned(e, 'left'); } },
+    alignCenter: { run: function (c) { return c.setAlign('center'); }, active: function (e) { return aligned(e, 'center'); } },
+    alignRight: { run: function (c) { return c.setAlign('right'); }, active: function (e) { return aligned(e, 'right'); } },
     undo: { run: function (c) { return c.undo(); } },
     redo: { run: function (c) { return c.redo(); } },
   };
@@ -149,8 +170,7 @@
         if (!button || !active) {
           return;
         }
-        var on = Array.isArray(active) ? editor.isActive(active[0], active[1]) : editor.isActive(active);
-        button.setAttribute('aria-pressed', String(on));
+        button.setAttribute('aria-pressed', String(isOn(editor, active)));
       });
       var linkButton = toolbar.querySelector('[data-rt="link"]');
       if (linkButton) {
@@ -237,7 +257,7 @@
   // treatment; builder-inspector.js calls this after drawing a block's fields. The schema and
   // the commands go with it: typing on the page (builder-inline-rich.js, D-178) is the same
   // editor on the same whitelist, never a second one.
-  window.boxletRichText = { scan: scan, extensions: extensions, commands: COMMANDS, tags: T };
+  window.boxletRichText = { scan: scan, extensions: extensions, commands: COMMANDS, tags: T, isOn: isOn };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { scan(document); });

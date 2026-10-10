@@ -253,12 +253,24 @@ export default {
         // returns each paragraph's box in each column, so in two columns (Brutalist's Text,
         // followed since D-194) "the second line" was the second column's paragraph, and a
         // press three quarters along it fell past the words' end (the harness, measured).
+        // And one box to a line: while a field is being written the browser gives a line's
+        // last word a box of its own (the Printworks' hero, "a" at the end of its first line,
+        // 11px), which was then "the second line" (measured, D-213).
         const lines = [];
         const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         for (let t = walker.nextNode(); t; t = walker.nextNode()) {
           const range = doc.createRange();
           range.selectNodeContents(t);
-          lines.push(...[...range.getClientRects()].filter((x) => x.width > 4));
+          [...range.getClientRects()].filter((x) => x.width > 4).forEach((x) => {
+            const same = lines.find((l) => Math.abs(l.top - x.top) < 2 && Math.abs(l.height - x.height) < 2);
+            if (same) {
+              const right = Math.max(same.left + same.width, x.left + x.width);
+              same.left = Math.min(same.left, x.left);
+              same.width = right - same.left;
+            } else {
+              lines.push({ left: x.left, top: x.top, width: x.width, height: x.height });
+            }
+          });
         }
         const r = lines[Math.min(n, lines.length - 1)];
         const y = r.top + r.height / 2;

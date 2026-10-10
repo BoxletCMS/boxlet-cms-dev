@@ -12,7 +12,7 @@
  * that the copy does not have — is removed again.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait, retype, SLOW, openBuilder, addBlock, blockKey, selectBlock, settle, publish } from '../harness.mjs';
+import { login, deletePage, clickAndWait, retype, SLOW, openBuilder, addBlock, blockKey, selectBlock, settle, publish } from '../harness.mjs';
 
 // A language the copy does not have yet, read off Settings when the run starts (D-174:
 // the demo already has hr, which made this skip on every run).
@@ -34,13 +34,6 @@ async function words(page, key, heading, body) {
     await page.keyboard.type(body, { delay: SLOW });
   }
   await wait(SETTLE);
-}
-
-async function deletePage(page, id) {
-  await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
-  await page.$eval(`tr[data-page-id="${id}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
-  await page.$eval(`form[action$="/pages/${id}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
-  await clickAndWait(page, `form[action$="/pages/${id}/delete"] button`).catch(() => {});
 }
 
 export default {
@@ -114,8 +107,8 @@ export default {
       report.verdict('"Mark as up to date" clears the mark and the notice', after === 0 && noticesLeft === 0, `marked ${after}, notices ${noticesLeft}`);
     } finally {
       // ---- leave the site as found ----------------------------------------------------------
-      if (translation !== null) await deletePage(page, translation);
-      if (source !== null) await deletePage(page, source);
+      if (translation !== null) await deletePage(page, BASE, translation);
+      if (source !== null) await deletePage(page, BASE, source);
       await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
       await page.$eval(`form[action$="/languages/${CODE}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
       await clickAndWait(page, `form[action$="/languages/${CODE}/delete"] button`).catch(() => {});

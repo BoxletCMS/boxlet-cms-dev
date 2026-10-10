@@ -10,7 +10,7 @@
  * is the first one Settings offers that the copy does not have.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait, openBuilder, publish } from '../harness.mjs';
+import { login, deletePage, clickAndWait, openBuilder, publish } from '../harness.mjs';
 
 // A language the copy does not have yet, read off Settings when the run starts (D-174:
 // the demo already has hr, which made this skip on every run).
@@ -65,10 +65,7 @@ export default {
     } finally {
       // ---- leave the site as found ----------------------------------------------------------
       if (made !== null && made !== HOME) {
-        await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
-        await page.$eval(`tr[data-page-id="${made}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
-        await page.$eval(`form[action$="/pages/${made}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
-        await clickAndWait(page, `form[action$="/pages/${made}/delete"] button`).catch(() => {});
+        await deletePage(page, BASE, made);
       }
       await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
       await page.$eval(`form[action$="/languages/${CODE}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});

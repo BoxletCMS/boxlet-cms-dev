@@ -171,23 +171,24 @@ export default {
 
     // ---- under Editorial, the narrowest content of the five (42rem), and back -------------------
     // The owner's case (D-184): Editorial's home, text and quote side by side in a wide-left
-    // band whose narrow column was 13.2rem; it stays side by side, at 16rem or more.
+    // band whose narrow column was 13.2rem; it stays side by side, at 16rem or more. The
+    // Printworks' wide-left band is This week, its words beside the week's events (D-213).
     await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
     const was = await page.$eval('.character-tile.is-current .tile-use', (b) => b.value.replace('preset:', '')).catch(() => '');
     await applyCharacter(page, BASE, 'editorial', 'save_composition');
     try {
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle2' });
       const home = await page.evaluate(() => {
-        const quote = document.querySelector('.cols-wide-left .quote-words, .cols-wide-left blockquote');
-        const band = quote ? quote.closest('.block') : null;
+        const band = document.querySelector('main .cols-wide-left');
         if (!band) { return null; }
         band.scrollIntoView({ block: 'center' });
         const cols = [...band.querySelectorAll('.section-column')].map((c) => c.getBoundingClientRect());
-        return { width: [...band.classList].find((c) => c.startsWith('width-')), quote: Math.round((quote.getBoundingClientRect().width / 16) * 10) / 10, side: cols.length === 2 && cols[1].left > cols[0].right };
+        if (cols.length !== 2) { return { columns: cols.length }; }
+        return { width: [...(band.closest('.block') || band).classList].find((c) => c.startsWith('width-')), narrow: Math.round((cols[1].width / 16) * 10) / 10, side: cols[1].left > cols[0].right };
       });
       await new Promise((r) => setTimeout(r, 600));
       await report.shot(page, '03-editorial-experience', { fullPage: false });
-      report.verdict('Editorial\'s home: text and quote side by side, the quote 16rem or more', home !== null && home.side && home.quote >= 15.95, JSON.stringify(home));
+      report.verdict('Editorial\'s home: the wide-left band\'s two columns side by side, the narrow one 16rem or more', home !== null && home.side === true && home.narrow >= 15.95, JSON.stringify(home));
       // Two bands of one surface: half the space between them, the first's room below and the
       // second's above each half the gap (D-185): Why us and the call to action stood 168px apart.
       const joins = await page.evaluate(() => {

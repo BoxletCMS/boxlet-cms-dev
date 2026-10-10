@@ -24,9 +24,10 @@ const CHARACTERS = ['editorial', 'minimal', 'bold', 'soft', 'brutalist'];
 
 /** Which demo page gets which pictures, column by column. The home page's stay words. */
 const PICTURES = {
-  // The demo's home page and Services page hold Cards since D-167.
+  // The Printworks' home page and Workshops hold Cards (D-213; the home page and Services
+  // before it, D-167): the home's programme, three in a row, and the six crafts, three to a row.
   '': ['hands-working', 'atelier', 'tools'],
-  services: ['desk-wood', 'workshop', 'room-light'],
+  workshops: ['desk-wood', 'workshop', 'room-light'],
 };
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -103,7 +104,7 @@ export default {
     const was = await currentCharacter(page);
     for (const character of CHARACTERS) {
       await applyCharacter(page, BASE, character);
-      for (const slug of ['', 'services']) {
+      for (const slug of ['', 'workshops']) {
         for (const [device, width, height] of [['desktop', 1400, 900], ['phone', 390, 844]]) {
           await page.setViewport({ width, height, deviceScaleFactor: 2 });
           await page.goto(`${BASE}/${slug}`, { waitUntil: 'networkidle2' });

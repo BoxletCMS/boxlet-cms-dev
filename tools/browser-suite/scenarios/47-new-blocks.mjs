@@ -19,7 +19,7 @@
  * Its fields are the inspector's; what it draws is the canvas's.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, clickAndWait, openBuilder, addBlock, selectBlock, publish } from '../harness.mjs';
+import { login, deletePage, clickAndWait, openBuilder, addBlock, selectBlock, publish } from '../harness.mjs';
 
 const PAGE = 'zz new blocks ' + Date.now();
 const SETTLE = 1500;
@@ -168,11 +168,7 @@ export default {
       report.verdict('all nine come back from the database', stored === BLOCKS.length, `${stored} blocks after publishing`);
     } finally {
       if (pageId !== null) {
-        await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
-        // The row's menu is a closed <details>; a click on a button inside one does nothing.
-        await page.$eval(`tr[data-page-id="${pageId}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
-        await page.$eval(`form[action$="/pages/${pageId}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
-        await clickAndWait(page, `form[action$="/pages/${pageId}/delete"] button`).catch(() => {});
+        await deletePage(page, BASE, pageId);
       }
       await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
       const stray = await page.evaluate((t) => document.body.textContent.includes(t), PAGE);

@@ -11,7 +11,7 @@
  * the end, the form's message with it.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait, SLOW, openBuilder, addBlock, publish } from '../harness.mjs';
+import { login, deletePage, clickAndWait, SLOW, openBuilder, addBlock, publish } from '../harness.mjs';
 
 const STAMP = Date.now();
 const FORM = `Zz contact check ${STAMP}`;
@@ -88,12 +88,7 @@ export default {
       report.verdict('the message is in the admin, marked new', /Ana Horvat/.test(listed) && /New/.test(listed), listed.slice(0, 120));
     } finally {
       if (pageId !== null) {
-        await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
-        // Deleting moved into the row's menu (D-052), which is a closed <details> until
-        // something opens it — a click on a button inside one does nothing.
-        await page.$eval(`tr[data-page-id="${pageId}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
-        await page.$eval(`form[action$="/pages/${pageId}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
-        await clickAndWait(page, `form[action$="/pages/${pageId}/delete"] button`).catch(() => {});
+        await deletePage(page, BASE, pageId);
       }
       if (formId !== null) {
         await page.goto(`${BASE}/admin/forms`, { waitUntil: 'networkidle2' });

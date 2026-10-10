@@ -154,6 +154,26 @@ export async function clickAndWait(page, selector, timeout = 25000) {
   ]);
 }
 
+/**
+ * A page deleted through its row's menu in the page list, as the owner deletes one, without
+ * the confirm. The row is brought into view first and its menu opened by a press: the menu
+ * closes when the page scrolls (row-menu.js), so a menu opened by its property was shut again
+ * by the scroll that brought its Delete into view, once the Printworks' pages put the row
+ * below the window (D-213), and the click failed with nothing said.
+ */
+export async function deletePage(page, base, id) {
+  await page.goto(`${base}/admin/pages`, { waitUntil: 'networkidle2' });
+  const row = `tr[data-page-id="${id}"]`;
+  if (await page.$(row) === null) {
+    return;
+  }
+  await page.$eval(row, (tr) => tr.scrollIntoView({ block: 'center' }));
+  await page.click(`${row} details.row-menu > summary`);
+  await page.waitForSelector(`${row} details.row-menu[open]`, { timeout: 3000 }).catch(() => {});
+  await page.$eval(`form[action$="/pages/${id}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
+  await clickAndWait(page, `form[action$="/pages/${id}/delete"] button`).catch(() => {});
+}
+
 export async function login(page, base, email, password) {
   await page.goto(`${base}/admin/login`, { waitUntil: 'networkidle2' });
   await page.type('input[name="email"]', email, { delay: 10 });

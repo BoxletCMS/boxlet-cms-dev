@@ -10,7 +10,7 @@
  * ON THE COPY (the owner's rule of 2026-10-02). It makes its own page and deletes it at the end.
  */
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, clickAndWait, clickInCanvas, retype } from '../harness.mjs';
+import { login, deletePage, clickAndWait, clickInCanvas, retype } from '../harness.mjs';
 
 const STAMP = Date.now();
 const TITLE = `Zz builder ${STAMP}`;
@@ -255,10 +255,7 @@ export default {
     } finally {
       await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
       if (pageId !== null) {
-        await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
-        await page.$eval(`tr[data-page-id="${pageId}"] details.row-menu`, (d) => { d.open = true; }).catch(() => {});
-        await page.$eval(`form[action$="/pages/${pageId}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
-        await clickAndWait(page, `form[action$="/pages/${pageId}/delete"] button`).catch(() => {});
+        await deletePage(page, BASE, pageId);
         const stray = await page.evaluate((t) => document.body.textContent.includes(t), TITLE);
         report.verdict('the page is gone again', !stray, `left: ${stray}`);
       }

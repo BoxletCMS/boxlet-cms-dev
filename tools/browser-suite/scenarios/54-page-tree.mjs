@@ -47,23 +47,27 @@ export default {
     const list = `${BASE}/admin/pages?lang=en`;
     await page.goto(list, { waitUntil: 'networkidle2' });
     const found = await tree(page);
-    // The home page first, then at least three top-level pages to move among.
-    if (found.length < 4 || !found.slice(1, 4).every((row) => row.endsWith('@0'))) {
-      report.fail('page-tree: three top-level pages under the home page', found.join(' | '));
+    // The home page first, then three top-level pages in a row with none beneath them, to move
+    // among: the first such run, wherever it is (the Printworks nests a page under its second,
+    // D-213; the demo before had three at the top).
+    const k = found.findIndex((row, i) => i >= 1 && found.slice(i, i + 3).length === 3
+      && found.slice(i, i + 3).every((r) => r.endsWith('@0')) && (found[i + 3] === undefined || found[i + 3].endsWith('@0')));
+    if (!found[0] || !found[0].endsWith('@0') || k < 0) {
+      report.fail('page-tree: three top-level pages in a row under the home page', found.join(' | '));
       return;
     }
-    const [, first, second] = found.map((row) => row.split('@')[0]);
+    const [first, second] = found.slice(k, k + 2).map((row) => row.split('@')[0]);
 
     try {
-      // Right: the third row goes under the second.
-      const said = await drag(page, 2, 48);
+      // Right: the run's second row goes under its first.
+      const said = await drag(page, k + 1, 48);
       await page.goto(list, { waitUntil: 'networkidle2' });
       let now = await tree(page);
       report.verdict('dragging a page right puts it under the page above, and says so while dragging',
-        now[2] === `${second}@1` && said.includes(first), JSON.stringify({ said, now }));
+        now[k + 1] === `${second}@1` && said.includes(first), JSON.stringify({ said, now }));
 
       // Undo, on the list the move lands on — the same language's, since the drag keeps it.
-      await drag(page, 3, 48);
+      await drag(page, k + 2, 48);
       const landed = page.url();
       const undo = await page.$('form.page-undo button');
       if (undo) {
@@ -72,39 +76,40 @@ export default {
       await page.goto(list, { waitUntil: 'networkidle2' });
       now = await tree(page);
       report.verdict('Undo puts a dragged page back, on the list in the language it was looking at',
-        undo !== null && now[3] === found[3] && landed.endsWith('lang=en'), JSON.stringify({ landed, now }));
+        undo !== null && now[k + 2] === found[k + 2] && landed.endsWith('lang=en'), JSON.stringify({ landed, now }));
 
       // Left: the nested one comes out again.
-      await drag(page, 2, -48);
+      await drag(page, k + 1, -48);
       await page.goto(list, { waitUntil: 'networkidle2' });
       now = await tree(page);
-      report.verdict('dragging it left takes it out a level', now[2] === `${second}@0`, JSON.stringify(now));
+      report.verdict('dragging it left takes it out a level', now[k + 1] === `${second}@0`, JSON.stringify(now));
 
       // Nothing goes under the home page, whatever the pointer does.
       await drag(page, 1, 96);
       await page.goto(list, { waitUntil: 'networkidle2' });
       now = await tree(page);
-      report.verdict('a page dragged right under the home page stays at the top level', now[1] === `${first}@0`, JSON.stringify(now));
+      report.verdict('a page dragged right under the home page stays at the top level', now[1] === found[1], JSON.stringify(now));
 
       // The arrows do the same without a drag.
-      await page.$eval('tr[data-page-id]:nth-child(3) button[name="to"][value="in"]', (b) => b.click());
+      // The run's second row: rows are the list's only children, so row i is child i + 1.
+      await page.$eval(`tr[data-page-id]:nth-child(${k + 2}) button[name="to"][value="in"]`, (b) => b.click());
       await page.waitForNavigation({ waitUntil: 'networkidle2' });
       await page.goto(list, { waitUntil: 'networkidle2' });
-      const arrowed = (await tree(page))[2];
-      await page.$eval('tr[data-page-id]:nth-child(3) button[name="to"][value="out"]', (b) => b.click());
+      const arrowed = (await tree(page))[k + 1];
+      await page.$eval(`tr[data-page-id]:nth-child(${k + 2}) button[name="to"][value="out"]`, (b) => b.click());
       await page.waitForNavigation({ waitUntil: 'networkidle2' });
       await page.goto(list, { waitUntil: 'networkidle2' });
       now = await tree(page);
-      report.verdict('→ and ← do the same', arrowed === `${second}@1` && now[2] === `${second}@0`, JSON.stringify({ arrowed, now: now[2] }));
+      report.verdict('→ and ← do the same', arrowed === `${second}@1` && now[k + 1] === `${second}@0`, JSON.stringify({ arrowed, now: now[k + 1] }));
 
       // Straight up, no sideways: only the order changes, as dragging always did.
-      const up = await page.$$eval('tr[data-page-id]', (rows) => rows[3].getBoundingClientRect().top - rows[2].getBoundingClientRect().top);
-      await drag(page, 3, 0, -up);
+      const up = await page.$$eval('tr[data-page-id]', (rows, i) => rows[i + 2].getBoundingClientRect().top - rows[i + 1].getBoundingClientRect().top, k);
+      await drag(page, k + 2, 0, -up);
       await page.goto(list, { waitUntil: 'networkidle2' });
       now = await tree(page);
-      const swapped = now[2] === found[3] && now[3] === found[2];
+      const swapped = now[k + 1] === found[k + 2] && now[k + 2] === found[k + 1];
       if (swapped) {
-        await drag(page, 3, 0, -up);
+        await drag(page, k + 2, 0, -up);
         await page.goto(list, { waitUntil: 'networkidle2' });
       }
       report.verdict('dragging straight up only reorders', swapped, JSON.stringify(now));

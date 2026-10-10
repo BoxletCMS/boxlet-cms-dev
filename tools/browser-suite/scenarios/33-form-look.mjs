@@ -3,9 +3,9 @@
  *
  * The PHP tests prove the fields are drawn and checked; only a browser shows whether a form
  * reads on a tinted section and a plain one under five designs, whether its fields are
- * visible at rest, and whether "beside" folds on a phone. The demo carries the form twice:
- * stacked on the showroom (/blocks), beside its heading on Contact — since D-167; it was the
- * home page and About before.
+ * visible at rest, and whether "beside" folds on a phone. The demo carries the contact form
+ * twice: stacked on the showroom (/blocks), beside its heading on Visit — since D-213; it was
+ * Contact from D-167, and the home page and About before.
  *
  * COPY ONLY: applying a character rewrites the site's whole design (D-042). Needs a copy
  * installed with the demo (01-install).
@@ -27,7 +27,7 @@ export default {
     }
     for (const character of CHARACTERS) {
       await applyCharacter(page, BASE, character);
-      for (const slug of ['blocks', 'contact']) {
+      for (const slug of ['blocks', 'visit']) {
         for (const [device, width, height] of [['desktop', 1400, 900], ['phone', 390, 844]]) {
           await page.setViewport({ width, height, deviceScaleFactor: 2 });
           await page.goto(`${BASE}/${slug}`, { waitUntil: 'networkidle2' });

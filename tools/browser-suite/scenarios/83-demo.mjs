@@ -63,8 +63,10 @@ export default {
       const item = document.querySelector('.layout-list .shape-none .cards-item');
       const heading = item && item.querySelector('.cards-item-heading');
       if (!item || !heading) return null;
+      // Inside its edge and its padding: Brutalist draws a 3px edge, which an earlier
+      // scenario may have left the copy in (measured: the words 3px in, at the padding).
       const padding = parseFloat(getComputedStyle(item).paddingLeft);
-      return { card: Math.round(item.getBoundingClientRect().left + padding), words: Math.round(heading.getBoundingClientRect().left), width: Math.round(heading.getBoundingClientRect().width), inner: Math.round(item.clientWidth - 2 * padding) };
+      return { card: Math.round(item.getBoundingClientRect().left + item.clientLeft + padding), words: Math.round(heading.getBoundingClientRect().left), width: Math.round(heading.getBoundingClientRect().width), inner: Math.round(item.clientWidth - 2 * padding) };
     });
     report.verdict('this week\'s events use the whole card: the words start at its edge, no empty picture column',
       !!events && Math.abs(events.words - events.card) <= 1 && events.width >= events.inner - 2,

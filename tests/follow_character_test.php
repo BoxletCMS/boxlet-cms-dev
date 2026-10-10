@@ -99,8 +99,10 @@ testBothDrivers('the demo\'s page of every block keeps every layout and option b
     $blocks = static fn (string $key): array => $db->all('SELECT b.layout, b.options_json FROM page_blocks b JOIN pages p ON p.id = b.page_id WHERE p.slug = ?', [$key]);
     $showroom = $blocks('blocks');
     assertTrue($showroom !== [] && array_filter($showroom, static fn (array $b): bool => (string) $b['layout'] === '') === [], 'every block of the page of every block by hand');
-    // Every block of the home page follows, not only its hero (D-194, the owner).
+    // Every block of the home page follows, not only its hero (D-194, the owner) — but this
+    // four numbers, in a row of four, and this week's events, a list with no picture area
+    // (CHANGED DELIBERATELY, D-213).
     $home = $blocks('');
-    assertEquals(12, count($home), 'the home page\'s six blocks, in English and its Croatian translation');
-    assertEquals([], array_values(array_filter($home, static fn (array $b): bool => (string) $b['layout'] !== '')), 'every block of the home page following');
+    assertEquals(20, count($home), 'the home page\'s ten blocks, in English and its Croatian translation');
+    assertEquals(['four', 'list', 'four', 'list'], array_values(array_map(static fn (array $b): string => (string) $b['layout'], array_filter($home, static fn (array $b): bool => (string) $b['layout'] !== ''))), 'every block of the home page following but the numbers and the events');
 });

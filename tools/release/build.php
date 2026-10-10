@@ -22,6 +22,7 @@
  * WHAT GOES IN: everything git tracks, minus the parts that are the project's rather than
  * the product's, plus vendor/ built with --no-dev. WHAT STAYS OUT, and why each one:
  *   tests/, tools/, docs/, .github/, phpstan.neon   development, never on a user's server
+ *   demo_images/                                    an install fetches the demo's package (D-215)
  *   composer.json, composer.lock                    with them, `composer install` on a live
  *                                                   site would pull the dev tools back in
  *   CLAUDE.md, PLAN.md, .gitignore, .env.test.example   the project's papers, not the product's
@@ -36,6 +37,8 @@
 
 const KEEP_OUT = [
     'tests', 'tools', 'docs', '.github', 'phpstan.neon',
+    // The demo's pictures: an install fetches them, every size made, from a GitHub release (D-215).
+    'demo_images',
     'composer.json', 'composer.lock', 'CLAUDE.md', 'PLAN.md', '.gitignore', '.env.test.example',
 ];
 
@@ -52,7 +55,6 @@ const MUST_HAVE = [
     'boxlet/designs/design-set.schema.json',
     'boxlet/designs/core/minimal.json',
     'boxlet/designs/library/coast.json',
-    'boxlet/install/demo/hero-living-room.jpg',
     'boxlet/public/assets/vendor/icons.svg',
     'boxlet/public/assets/vendor/world-map.svg',
     'boxlet/.env.example',

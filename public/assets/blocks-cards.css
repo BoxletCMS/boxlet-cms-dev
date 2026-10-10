@@ -105,6 +105,17 @@
   grid-row: 1 / span 4;
 }
 
+/* A list of words, with no picture area (shape none): the words take the whole card. The
+   column for the picture stayed and stood empty, the words pushed into a strip on the right
+   (the demo's events, D-213). */
+.layout-list .shape-none .cards-item {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.layout-list .shape-none .cards-item > :not(.cards-media) {
+  grid-column: 1;
+}
+
 .cards-item-heading {
   margin: 0;
   font-size: var(--text-lg);

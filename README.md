@@ -114,12 +114,17 @@ nothing, and needs no Node and no npm.
 
 ### Demo site
 
-The installer can add a demo site: four pages that use every block and section style.
+The installer can add a demo site, The Printworks: an arts centre in a former printing works,
+thirteen pages that use every block and section style, in English and Croatian.
 On an installed site without pages, add it from the command line:
 
 ```sh
 php migrations/seed.php
 ```
+
+**Its pictures** are in `demo_images/`, with where each comes from and under which licence in
+[`demo_images/CREDITS.md`](demo_images/CREDITS.md). They are not covered by the Boxlet
+licence. `php tools/demo-images/build.php` collects them again, from a cache where it can.
 
 ### max_input_vars
 

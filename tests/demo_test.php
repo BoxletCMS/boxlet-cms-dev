@@ -8,9 +8,11 @@ use App\Modules\Media\MediaReference;
 use App\Modules\Pages\SectionRender;
 use App\Modules\Pages\Sections;
 
-// The demo site (PLAN.md D-167, README 1.6): the mockup's page as the home, four pages behind
-// it, the home translated, and one unlisted page of every block. It is the visual regression
-// fixture, so between its pages it still has to cover everything.
+// The demo site (PLAN.md D-213): The Printworks, ten pages and three beneath them, Home and
+// Visit translated, and one unlisted page of every block. It is the visual regression fixture,
+// so between its pages it still has to cover everything. CHANGED DELIBERATELY with D-213: the
+// tests below kept their rules and took The Printworks' pages, words and anchors where they
+// named Atelier Lumen's.
 
 testBothDrivers('the demo site publishes pages covering every block, layout and section style', function (string $driver) {
     $db = installedSite(['en' => 'English'], $driver);
@@ -63,14 +65,14 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     }
     assertEquals([], $referenced, 'the demo seed references media ids');
 
-    foreach (['/', '/about', '/services', '/how-we-work', '/contact', '/blocks', '/hr/'] as $path) {
+    foreach (['/', '/whats-on', '/exhibitions', '/exhibitions/floating-world', '/workshops', '/workshops/linocut', '/cafe-bookshop', '/membership', '/hire', '/about', '/journal', '/journal/restoring-the-press-hall', '/visit', '/blocks', '/hr/', '/hr/posjet'] as $path) {
         assertEquals(200, dispatch($path)->status, $path);
     }
 });
 
-// The home page is the mockup's, and a section stores what the page names and nothing else.
-// In English, which Boxlet ships in (README 1.6), word for word.
-testBothDrivers('the home page is the mockup page, its sections holding only what they set', function (string $driver) {
+// The home page's sections store what the page names and nothing else, and its blocks follow
+// the character (D-194). In English, which Boxlet ships in, word for word.
+testBothDrivers('the home page\'s sections hold only what they set, and its blocks follow the character', function (string $driver) {
     $db = installedSite(['en' => 'English'], $driver);
     $registry = Blocks::discover(dirname(__DIR__) . '/app/Blocks');
     DemoSite::seed($db, $registry, 'en');
@@ -97,28 +99,42 @@ testBothDrivers('the home page is the mockup page, its sections holding only wha
     }
     assertEquals(DemoSite::CHARACTER, Composition::active($db), 'the demo is drawn with its character');
 
-    $body = dispatch('/')->body;
-    foreach (['Spaces that feel like they were always yours', 'From a single room to the whole flat.', 'Windows, shelving and the customer\'s path.', 'Fifteen years and more than two hundred spaces. We take on only a few projects at a time, so each one gets our full attention.', 'Get in touch and we&#039;ll plan the first step.'] as $words) {
-        assertContains($words, $body, 'README 1.6, verbatim');
+    // Every block follows the character but the four numbers and this week's events (D-194, D-213).
+    $own = [];
+    foreach (App\Modules\Pages\PageBlocks::stored($db, $home) as $block) {
+        if ($block['layout'] !== '') {
+            $own[] = $block['type'] . '/' . $block['layout'];
+        }
     }
-    assertTrue(preg_match('~<section class="[^"]*surface-tinted[^"]*pad-t-120 pad-b-120"[^>]*data-anim="fade"~', $body) === 1, 'Intro: tinted, 120 px, fading in');
-    assertContains('id="services"', $body, 'What we do answers to its anchor');
-    assertContains('<a href="/#services">What we do</a>', $body, 'and the menu leads to it');
-    assertContains('class="section-cols cols-wide-left', $body, 'Experience: two columns, the wide one left');
-    assertContains('surface-contrast', $body, 'Contact on the contrast surface');
+    assertEquals(['stats/four', 'cards/list'], $own, 'blocks with a layout of their own');
+
+    $body = dispatch('/')->body;
+    foreach (['A printing works, reopened for everyone.', 'Three things we do', 'From press hall to public hall', 'I came for a coffee, stayed for a workshop, and now I have my own studio key.', 'Northgate Arts Fund'] as $words) {
+        assertContains($words, $body, 'the home page\'s words');
+    }
+    assertTrue(preg_match('~<section class="[^"]*surface-contrast[^"]*"[^>]*data-anim="fade"~', $body) === 1, 'In numbers: the contrast surface, fading in');
+    assertContains('id="program"', $body, 'Three things we do answers to its anchor');
+    assertContains('class="section-cols cols-wide-left', $body, 'This week: two columns, the wide one left');
+    assertContains('surface-image', $body, 'A visitor\'s word, on a picture');
 });
 
 // A fresh demo is not "styled by hand" (the owner's review of D-170): loading a character
 // asked about thirty sections. What stays stored is only where a page means to differ from
-// Soft, and each is named here — the mockup's home in both languages, and the showroom's
-// sections, which exist to show a value no character composes.
+// Soft, and each is named here — The Printworks' own in both languages where translated, and
+// the showroom's sections, which exist to show a value no character composes.
 testBothDrivers('the demo styles by hand only the sections that mean to differ from its character', function (string $driver) {
     $db = installedSite(['en' => 'English'], $driver);
     DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
 
     $deliberate = [
-        'en /#0' => 'Intro: 120 px above and below, fading in (README 1.6)',
-        'en /#4' => 'Contact: the contrast surface (README 1.6)',
+        'en /#1' => 'In numbers: the contrast surface, fading in',
+        'en /#6' => 'A visitor\'s word: on the kraft paper',
+        'en /whats-on#3' => 'the newsletter: the contrast surface',
+        'en /workshops#0' => 'the hero centred',
+        'en /membership#0' => 'the hero centred',
+        'en /membership#2' => 'what membership pays for: the contrast surface',
+        'en /restoring-the-press-hall#0' => 'the article: narrow',
+        'en /restoring-the-press-hall#2' => 'its quote: narrow',
         'en /blocks#0' => 'a hero centred, rising in, tall',
         'en /blocks#1' => 'the gradient surface, half a window high, content in the middle',
         'en /blocks#2' => 'a picture behind, the slant edge',
@@ -129,8 +145,8 @@ testBothDrivers('the demo styles by hand only the sections that mean to differ f
         'en /blocks#7' => 'a band taller than its content, content at the top',
         'en /blocks#9' => 'the same, content at the bottom',
         'en /blocks#26' => 'the narrow width',
-        'hr /#0' => 'Intro, translated',
-        'hr /#4' => 'Contact, translated',
+        'hr /#1' => 'In numbers, translated',
+        'hr /#6' => 'A visitor\'s word, translated',
     ];
     $styled = [];
     $at = [];
@@ -156,25 +172,31 @@ testBothDrivers('the demo links its pages by reference, and the links lead there
 
     $stored = implode("\n", array_column($db->all('SELECT content_json FROM page_blocks'), 'content_json'));
     assertTrue(!str_contains($stored, 'demo:'), 'a demo: marker was stored');
-    $contact = (int) ($db->one("SELECT id FROM pages WHERE slug = 'contact'")['id'] ?? 0);
-    assertContains('"url":"page:' . $contact . '"', $stored, 'no reference to the contact page');
-    assertContains('<a class="button" href="/contact">Book a consultation</a>', dispatch('/')->body, 'the hero\'s button does not lead to its page');
+    $program = (int) ($db->one("SELECT id FROM pages WHERE slug = 'whats-on'")['id'] ?? 0);
+    assertContains('"url":"page:' . $program . '"', $stored, 'no reference to the programme page');
+    assertContains('<a class="button" href="/whats-on">What&#039;s on</a>', dispatch('/')->body, 'the hero\'s button does not lead to its page');
 
-    $db->query("UPDATE pages SET slug = 'write-to-us' WHERE id = ?", [$contact]);
-    assertContains('href="/write-to-us"', dispatch('/')->body, 'the home page does not follow the renamed page');
+    $db->query("UPDATE pages SET slug = 'programme' WHERE id = ?", [$program]);
+    assertContains('href="/programme"', dispatch('/')->body, 'the home page does not follow the renamed page');
 });
 
-// README 1.6: the home page in Croatian, the mockup's own words, so a translation is always there.
-testBothDrivers('the demo\'s home page is translated, with its own words and its own anchor', function (string $driver) {
+// Home and Visit in Croatian (the owner, D-213), so a translation is always there: their own
+// words, Visit's form a Croatian form, and a menu over what was translated.
+testBothDrivers('the demo\'s home and visit pages are translated, with their own words and form', function (string $driver) {
     $db = installedSite(['en' => 'English'], $driver);
     DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
 
-    $translation = $db->one("SELECT id FROM pages WHERE locale = 'hr' AND slug = ''");
-    assertTrue($translation !== null, 'no Croatian home page');
-    $body = dispatch('/hr/')->body;
-    assertContains('Prostori koji izgledaju kao da ste ih oduvijek imali', $body, 'its words are the mockup\'s');
-    assertContains('id="usluge"', $body, 'its anchor is its own');
-    assertContains('href="/hr/#usluge"', $body, 'and its menu leads to it');
+    assertEquals(2, (int) ($db->one("SELECT COUNT(*) AS n FROM pages WHERE locale = 'hr'")['n'] ?? -1), 'Croatian pages');
+    $home = dispatch('/hr/')->body;
+    assertContains('Tiskara, ponovno otvorena za sve.', $home, 'the home page\'s own words');
+    assertContains('id="program"', $home, 'its anchor');
+    assertContains('href="/hr/posjet"', $home, 'and its menu leads to the translated Visit');
+
+    $visit = dispatch('/hr/posjet')->body;
+    assertContains('Posjetite nas', $visit, 'Visit\'s own words');
+    $forms = $db->all("SELECT name FROM forms WHERE locale = 'hr' ORDER BY name");
+    assertContains('Kontakt', implode(',', array_column($forms, 'name')), 'the Croatian forms');
+    assertContains('Pošalji', $visit, 'Visit\'s form, in Croatian');
 });
 
 test('the demo is never added to a site that already has pages', function () {
@@ -187,17 +209,22 @@ test('the demo is never added to a site that already has pages', function () {
 
 test('installing with the demo option adds the demo site', function () {
     freshDatabase('sqlite');
-    $installer = installer();
+    $taken = [];
+    $installer = installer(true, true, demoStandIn($taken));
     installGet($installer);
     assertAdvanced(installPost($installer, ['token' => installToken()]), 'token step');
     assertAdvanced(installPost($installer, ['driver' => 'sqlite', 'path' => tmpPath('test.sqlite')]), 'database step');
     $password = 'correct horse battery staple';
     assertAdvanced(installPost($installer, ['email' => 'owner@example.com', 'password' => $password, 'password_confirm' => $password]), 'admin step');
     installPost($installer, ['name' => 'Demo', 'locale' => 'en', 'timezone' => 'UTC', 'demo' => '1']);
+    // Its pictures next, in steps (D-214), by the stand-in: making their sizes is the media
+    // tests' business, and the real thing was measured on the browser copy (01-install).
+    installPost($installer, []);
+    assertEquals(count(App\Modules\Install\InstallDemo::pictures('en')), count($taken), 'every picture taken');
 
     $db = new \App\Core\Db('sqlite', 'sqlite:' . tmpPath('test.sqlite'));
-    // Its pages, and the home page's translation.
-    assertEquals(count(DemoSite::pages('en')) + 1, (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? -1), 'demo pages');
+    // Its pages, and the two translations (D-213).
+    assertEquals(count(DemoSite::pages('en')) + count(DemoSite::TRANSLATED), (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? -1), 'demo pages');
 });
 
 testBothDrivers('the demo site has navigation, so its header is drawn at all', function (string $driver) {
@@ -208,8 +235,56 @@ testBothDrivers('the demo site has navigation, so its header is drawn at all', f
     // with no navigation anywhere — and an Appearance screen with no header to show (D-057).
     $body = dispatch('/')->body;
     assertContains('<header class="', $body, 'the demo site draws no header');
-    foreach (['What we do', 'About', 'Services', 'How we work', 'Contact'] as $title) {
+    foreach (['What&#039;s on', 'Exhibitions', 'Workshops', 'Café &amp; Bookshop', 'Membership', 'Visit'] as $title) {
         assertContains('>' . $title . '<', $body, 'in the menu: ' . $title);
     }
+    // The rest in the footer: Boxlet has no automatic "More" (D-213).
+    $footer = substr($body, (int) strpos($body, '<footer'));
+    foreach (['Hire the space', 'About', 'Journal'] as $title) {
+        assertContains('>' . $title . '<', $footer, 'in the footer: ' . $title);
+    }
+    assertContains('14 Foundry Lane', $footer, 'the address in the footer');
     assertTrue(!str_contains($body, '>Every block<'), 'the showroom is in the menu');
+});
+
+// Three pages stand beneath others, and their addresses say so (D-213).
+testBothDrivers('the demo\'s pages beneath others nest under them', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
+
+    $parent = static fn (string $slug): string => (string) ($db->one('SELECT p.slug FROM pages c JOIN pages p ON p.id = c.parent_id WHERE c.slug = ?', [$slug])['slug'] ?? '');
+    assertEquals('exhibitions', $parent('floating-world'), 'Floating World');
+    assertEquals('workshops', $parent('linocut'), 'Linocut');
+    assertEquals('journal', $parent('restoring-the-press-hall'), 'the article');
+    assertContains('href="/exhibitions/floating-world"', dispatch('/exhibitions')->body, 'the past exhibition\'s link');
+});
+
+// Four forms, each with what it asks (D-213): the contact form as Boxlet makes one, the others
+// with their own fields, each on the page that names it.
+testBothDrivers('the demo\'s forms ask what their pages need', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
+
+    $fields = [];
+    foreach ($db->all("SELECT name, fields_json FROM forms WHERE locale = 'en'") as $row) {
+        $fields[(string) $row['name']] = array_column((array) json_decode((string) $row['fields_json'], true), 'type', 'key');
+    }
+    assertEquals(['name' => 'text', 'email' => 'email', 'message' => 'textarea'], $fields['Contact'] ?? null, 'Contact');
+    assertEquals(['email' => 'email'], $fields['Newsletter'] ?? null, 'Newsletter');
+    assertEquals(['name' => 'text', 'email' => 'email', 'workshop' => 'select', 'message' => 'textarea'], $fields['Workshop sign-up'] ?? null, 'Workshop sign-up');
+    assertEquals('select', $fields['Hire enquiry']['room'] ?? null, 'Hire enquiry: a room to choose');
+    $workshops = dispatch('/workshops')->body;
+    assertContains('<option>Screen printing</option>', $workshops, 'the workshop sign-up, on Workshops');
+    assertContains('type="email"', dispatch('/whats-on')->body, 'the newsletter, on What\'s on');
+});
+
+// A new demo never opens on a past programme (D-213): its days are counted from the install.
+test('the demo\'s events fall after the day it is installed', function () {
+    $db = installedSite(['en' => 'English']);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
+
+    $tomorrow = strtotime('+1 days', strtotime('today'));
+    $day = date('l', $tomorrow) . ' ' . date('j F', $tomorrow);
+    assertContains($day . ', 19:00', dispatch('/whats-on')->body, 'the first talk, tomorrow');
+    assertContains($day . ', 19:00', dispatch('/')->body, 'and on the home page');
 });

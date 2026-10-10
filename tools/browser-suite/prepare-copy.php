@@ -84,5 +84,7 @@ if ($have < $wanted && function_exists('imagecreatetruecolor')) {
         @unlink($file);
         $variants->generate((int) $stored['id'], 120.0);
     }
-    echo 'Pictures in the library: ' . (int) ($db->one("SELECT COUNT(*) AS n FROM media WHERE mime LIKE 'image/%'")['n'] ?? 0) . ".\n";
 }
+// Said whether any were made or not: the demo brings fifty of its own since D-213, and a count
+// printed only when pictures were added read as a copy left unprepared.
+echo 'Pictures in the library: ' . (int) ($db->one("SELECT COUNT(*) AS n FROM media WHERE mime LIKE 'image/%'")['n'] ?? 0) . ".\n";

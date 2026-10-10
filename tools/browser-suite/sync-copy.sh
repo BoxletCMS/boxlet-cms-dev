@@ -5,9 +5,9 @@
 # copy's revision does not match the checkout's HEAD, and a guard nobody can satisfy gets
 # switched off — so the sync that makes it true lives here, next to it.
 #
-# Only code moves: app/, config/, lang/, public/assets, migrations/, install/ (the demo's
-# pictures, D-176), designs/ (not its custom/)
-# and public/index.php.
+# Only code moves: app/, config/, lang/, public/assets, migrations/, demo_images/ (the demo's
+# pictures and documents, D-213, without the review sheet and its cache), designs/ (not its
+# custom/) and public/index.php.
 # config/ was missing until 2026-09-29: it holds no site's settings (those are in .env), and a
 # copy with an old config/app.php had no public_path, which sent an SVG logo to /m/logo on the
 # root of the disk. Not storage, not the
@@ -38,9 +38,12 @@ fi
 # --delete: a file the checkout no longer has is gone from the copy too. Without it a block
 # removed or renamed (Columns became Cards, D-166) stayed in the copy's app/Blocks, and the
 # registry refused the whole site over a definition the checkout had not had for a day.
-for part in app config lang public/assets migrations install; do
+for part in app config lang public/assets migrations; do
   rsync -a --delete "$checkout/$part/" "$target/$part/"
 done
+mkdir -p "$target/demo_images"
+rsync -a --delete --exclude .cache/ --exclude _review.html --exclude '*-800.webp' "$checkout/demo_images/" "$target/demo_images/"
+rm -rf "$target/install"
 # The design sets Boxlet ships (PLAN.md D-152): without them the copy has no characters at
 # all. Never designs/custom/, which is the copy's own, as it is any site's (D-155).
 mkdir -p "$target/designs"
@@ -49,6 +52,13 @@ rsync -a --delete --exclude custom/ "$checkout/designs/" "$target/designs/"
 # copy recorded HEAD while running an older index.php. Not install.php, which the copy's
 # own install deletes.
 rsync -a "$checkout/public/index.php" "$target/public/index.php"
+
+# THE COPY'S KEPT PAGES GO WITH THE CODE THEY WERE MADE BY. A real update clears them (the code's
+# version is part of what a kept page is), but a sync of work not yet committed leaves the
+# version as it was: the copy then answered its pages from before the sync, linked to the old
+# stylesheet, and a fix measured as no fix and an old fault as fixed (the demo's footer and
+# cards, D-213).
+rm -rf "$target/public/cache/pages"
 
 # And its database brought up to the code (CLAUDE.md: a pending migration is applied at once).
 # Without this a sync that carried a new migration left every admin screen of the copy on
@@ -68,5 +78,5 @@ revision="$(git -C "$checkout" rev-parse HEAD)"
 mkdir -p "$target/storage"
 printf '%s\n' "$revision" > "$target/storage/checkout.rev"
 
-echo "Synced app, lang, public/assets, migrations, install, designs and public/index.php into $target"
+echo "Synced app, lang, public/assets, migrations, demo_images, designs and public/index.php into $target"
 echo "Recorded revision ${revision:0:12}"

@@ -228,7 +228,9 @@ host's file manager.
 **The primary language can't be changed later**, so choose it with care.
 
 If you like, the installer adds a demo site, so you can try the design on real pages
-straight away.
+straight away. Its pictures are fetched from GitHub while it installs, every size already made.
+They aren't covered by the Boxlet licence; each one's source and licence is in
+[CREDITS.md](https://github.com/BoxletCMS/boxlet-cms-dev/blob/main/demo_images/CREDITS.md).
 
 When it's done, the installer deletes itself. If it can't, it tells you, and you delete
 `public/install.php` by hand. Then log in at `/admin`.

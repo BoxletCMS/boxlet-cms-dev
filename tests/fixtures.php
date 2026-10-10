@@ -231,7 +231,9 @@ function storedPicture(Db $db, string $filename, array $variants, int $focalX = 
             1000,
             2400,
             1600,
-            'hash-' . $filename . '-' . $unique,
+            // Always 40 characters, as a real one is: a name of thirty-odd letters overran the
+            // column on MySQL (the demo's pictures, D-213).
+            sha1($filename . '-' . $unique),
             '2026-01-01 00:00:00',
             $variants === [] ? 'incomplete' : 'complete',
             $focalX,

@@ -128,12 +128,12 @@ export default {
     }
 
     const option = await page.$$eval(`${rich} .rt-link-page option`,
-      (options) => options.map((o) => ({ value: o.value, text: o.textContent.trim() })).find((o) => /services/i.test(o.text)));
+      (options) => options.map((o) => ({ value: o.value, text: o.textContent.trim() })).find((o) => /membership/i.test(o.text)));
     if (!option) {
-      report.fail('the link panel offers the services page', 'no such option');
+      report.fail('the link panel offers the membership page', 'no such option');
       return;
     }
-    // Services, not About: the demo's image and text block already carries a typed /about
+    // Membership, not About: the demo's image and text block already carries /about
     // in its own link field, and a check for /about passed on that before any rich text
     // link existed.
     const before = await canvasHrefs(page, richKey);
@@ -158,11 +158,11 @@ export default {
        two-paragraph body, so "+1" could never hold for it. What the check is actually for is
        the line below it: the canvas draws the RESOLVED ADDRESS and never the stored
        `page:n`. That is asserted over every anchor rather than over a count. */
-    const added = richHrefs.filter((h) => h === '/services').length
-      - before.filter((h) => h === '/services').length;
+    const added = richHrefs.filter((h) => h === '/membership').length
+      - before.filter((h) => h === '/membership').length;
     report.verdict('the canvas draws the rich text link with the page\'s address',
       added > 0 && !richHrefs.some((h) => h.startsWith('page:')),
-      `${added} link(s) to /services added; before ${JSON.stringify(before)}, after ${JSON.stringify(richHrefs)}`);
+      `${added} link(s) to /membership added; before ${JSON.stringify(before)}, after ${JSON.stringify(richHrefs)}`);
 
     // Reopen on the link: the panel should come back on the page, not on "page:n" typed.
     await page.click(`${rich} .ProseMirror a`);

@@ -30,6 +30,11 @@ ErrorHandler::register(false);
 $storage = $root . '/storage';
 $request = Request::fromGlobals();
 Url::configure($request->basePath, '');
+// Every stylesheet and script named with a hash of what it holds, as the site's are (D-203).
+// Without it the installer's were plain /assets/install.js, a host kept them for ten years
+// (measured on the owner's: max-age=315360000), and the owner's browser ran the installer of
+// the first try with the code of the second (D-215).
+Url::usePublicPath($root . '/public');
 
 // Before installation there is no database, so the installer is styled with the default
 // preset. Once installed, the site owns public/cache and the installer leaves it alone.

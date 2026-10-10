@@ -598,7 +598,7 @@ export async function openBuilder(page, base, id) {
 }
 
 /**
- * A picture of the library for a hero, by its id: the demo's living room where it is still
+ * A picture of the library for a hero, by its id: the demo's workshop hall where it is still
  * there, else the newest picture. An earlier scenario may have taken the home hero's picture
  * away (measured: the full suite left it null), so a scenario that measures a picture puts one
  * in its own draft rather than trusting the page. Null when the library holds none.
@@ -607,7 +607,7 @@ export async function heroPicture(page, base) {
   await page.goto(`${base}/admin/media`, { waitUntil: 'networkidle2' });
   return page.$$eval('tr.media-row', (rows) => {
     const id = (row) => Number(((row.querySelector('a.media-link') || {}).getAttribute?.('href') || '').match(/(\d+)\/?$/)?.[1] || 0) || null;
-    const named = rows.find((r) => /hero-living-room/.test((r.querySelector('.media-name') || {}).textContent || ''));
+    const named = rows.find((r) => /abandoned-workshop-hall/.test((r.querySelector('.media-name') || {}).textContent || ''));
     const any = rows.find((r) => r.querySelector('img.media-thumb'));
     return named ? id(named) : (any ? id(any) : null);
   });

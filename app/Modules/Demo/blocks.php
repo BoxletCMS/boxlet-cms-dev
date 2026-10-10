@@ -4,14 +4,14 @@
  * THE SHOWROOM (PLAN.md D-167): one page that shows every block in every layout it has, and
  * every value of every section style the other pages do not. Published and not in the menu.
  *
- * Not in README 1.6's list of pages, and kept on purpose: the demo is the visual regression
- * fixture (tests/demo_test.php), and the five pages of a studio's site use the blocks a studio
- * needs, not all of them. A page that is a catalogue teaches nobody what a page looks like, so
- * it is a page of its own rather than spread over the others.
+ * Not in the demo's menu, and kept on purpose: the demo is the visual regression fixture
+ * (tests/demo_test.php), and The Printworks' pages use the blocks an arts centre needs, not
+ * every layout of each (D-213). A page that is a catalogue teaches nobody what a page looks
+ * like, so it is a page of its own rather than spread over the others.
  *
  * @param Closure(string, string): string $t the Croatian words or the English
  * @param Closure(string, string): string $p the same, as a paragraph
- * @return array{key: string, slug: string, title: string, description: string, menu: bool, sections: list<array{style: array<string, string>, layout: string, blocks: list<array{string, array<string, mixed>, string, array<string, string>, int}>}>}
+ * @return array{key: string, slug: string, title: string, description: string, menu: string, sections: list<array{style: array<string, string>, layout: string, blocks: list<array{string, array<string, mixed>, string, array<string, string>, int}>}>}
  */
 return static function (Closure $t, Closure $p): array {
     $one = static fn (array $style, array $block): array => ['style' => $style, 'layout' => 'one', 'blocks' => [$block]];
@@ -22,7 +22,7 @@ return static function (Closure $t, Closure $p): array {
         'slug' => $t('blokovi', 'blocks'),
         'title' => $t('Svi blokovi', 'Every block'),
         'description' => $t('Svaki blok u svakom rasporedu.', 'Every block in every layout.'),
-        'menu' => false,
+        'menu' => '',
         'sections' => [
             $one(['align' => 'center', 'animation' => 'up'], ['hero', [
                 'heading' => $t('Sve što stane na stranicu', 'Everything a page can hold'),
@@ -58,8 +58,8 @@ return static function (Closure $t, Closure $p): array {
             $one(['surface' => 'contrast', 'divider' => 'curve'], ['cta', [
                 'heading' => $t('Poziv u jednom redu', 'A call in one row'),
                 'body' => $t('Tekst lijevo, gumb desno.', 'Words on the left, the button on the right.'),
-                'action' => ['label' => $t('Javite se', 'Get in touch'), 'url' => 'demo:contact'],
-                'second' => ['label' => $t('Usluge', 'Services'), 'url' => 'demo:services'],
+                'action' => ['label' => $t('Javite se', 'Get in touch'), 'url' => 'demo:visit'],
+                'second' => ['label' => $t('Program', 'What\'s on'), 'url' => 'demo:program'],
             ], 'beside', [], 0]),
             $one(['min_height' => '30', 'v_align' => 'top'], $label('Razmak', 'Space')),
             $one([], ['divider', ['height' => 'medium'], 'space', [], 0]),
@@ -75,7 +75,7 @@ return static function (Closure $t, Closure $p): array {
             ]], 'cards', [], 0]),
             $one([], ['embed', ['url' => 'https://www.youtube.com/watch?v=aqz-KE-bpKQ', 'caption' => $t('Video preko cijele širine', 'A video, full width'), 'ratio' => 'wide'], 'full', [], 0]),
             $one([], ['embed', ['url' => 'https://www.youtube.com/watch?v=aqz-KE-bpKQ', 'caption' => $t('Video, uvučen', 'A video, inset'), 'ratio' => 'wide'], 'inset', [], 0]),
-            $one([], ['form', ['heading' => $t('Obrazac jedan ispod drugog', 'A form, stacked'), 'form' => 'demo:form'], 'stacked', [], 0]),
+            $one([], ['form', ['heading' => $t('Obrazac jedan ispod drugog', 'A form, stacked'), 'form' => 'demo:form:contact'], 'stacked', [], 0]),
             $one([], ['gallery', ['heading' => $t('Dvije, kakve jesu', 'Two, as they are'), 'items' => [['caption' => $t('Radionica', 'The workshop')], ['caption' => $t('Uzorci', 'Samples')]]], 'two', ['shape' => 'natural'], 0]),
             $one([], ['gallery', ['heading' => $t('Tri, kvadratne', 'Three, square'), 'items' => [['caption' => 'A'], ['caption' => 'B'], ['caption' => 'C']]], 'three', ['shape' => 'square'], 0]),
             $one([], ['gallery', ['heading' => $t('Četiri, okrugle', 'Four, round'), 'items' => [['caption' => 'Ana'], ['caption' => 'Marko'], ['caption' => 'Petra'], ['caption' => 'Ivan']]], 'four', ['shape' => 'round'], 0]),

@@ -17,7 +17,7 @@
  * CORRECT password.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { COPY_BASE as BASE, SITE_DIR, COPY_ADMIN as ADMIN, SITE_NAME, CHECKOUT } from '../config.mjs';
 import { submitVia, alerts, heading, resetForInstall, SLOW } from '../harness.mjs';
 
@@ -52,6 +52,14 @@ export default {
     await page.goto(`${BASE}/install.php`, { waitUntil: 'networkidle2' });
     const first = await heading(page);
     await report.shot(page, '01-requirements');
+
+    // Every stylesheet and script named with a hash of what it holds (D-215): the owner's host
+    // kept the installer's plain /assets/install.js for ten years, and the second try ran the
+    // first try's code.
+    const assets = await page.$$eval('link[rel="stylesheet"][href^="/"], script[src^="/"]',
+      (els) => els.map((el) => el.getAttribute('href') || el.getAttribute('src')));
+    report.verdict('the installer names every stylesheet and script with its version',
+      assets.length >= 5 && assets.every((a) => /[?&]v=[0-9a-f]{12}/.test(a)), JSON.stringify(assets));
 
     const checks = await page.$$eval('li, tr', (els) => els
       .map((el) => el.textContent.replace(/\s+/g, ' ').trim())
@@ -156,6 +164,44 @@ export default {
       page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
       page.$eval('form[data-install-busy]', (form) => form.submit()),
     ]);
+
+    // THE DEMO'S PICTURES, A FEW TO A REQUEST (D-214): the page goes on by itself until the
+    // last brings the finished install. Each page of it stands for 300 ms before it sends the
+    // next, and a read from the page while it is being replaced came back with nothing
+    // (measured: no count seen in a whole install), so the counts are read from the pages the
+    // server sends. Every request is timed too: none may come near Cloudflare's hundred seconds.
+    const counts = [];
+    const longest = { ms: 0 };
+    const started = new Map();
+    page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('install.php')) started.set(r, Date.now()); });
+    page.on('requestfinished', (r) => { if (started.has(r)) longest.ms = Math.max(longest.ms, Date.now() - started.get(r)); });
+    page.on('response', async (r) => {
+      if (r.request().method() !== 'GET' || !r.url().includes('install.php')) return;
+      const html = await r.text().catch(() => '');
+      const value = html.match(/class="install-progress" value="(\d+)"/);
+      if (value && counts[counts.length - 1] !== Number(value[1])) counts.push(Number(value[1]));
+    });
+    const deadline = Date.now() + 900000;
+    let finished = false;
+    let shot = false;
+    while (Date.now() < deadline) {
+      const h = await page.evaluate(() => (document.querySelector('h1') || {}).textContent || '').catch(() => '');
+      if (/installed/i.test(h)) { finished = true; break; }
+      if (counts.length === 2 && !shot) {
+        shot = true;
+        await report.shot(page, '04c-demo-pictures').catch(() => {});
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    // CHANGED DELIBERATELY (D-215): with every size made in the package, the pictures are in
+    // within a request or two, so a count that rises over many requests is no longer what
+    // shows the step works. What does: it finishes, no request runs long, and every picture
+    // of the demo is in the library complete — read from the copy's own database.
+    const count = "$db = new PDO('sqlite:' . $argv[1]); echo json_encode($db->query(\"SELECT COUNT(*) AS n, SUM(status = 'complete') AS c FROM media WHERE mime LIKE 'image/%'\")->fetch(PDO::FETCH_ASSOC));";
+    const library = JSON.parse(execFileSync('php', ['-r', count, `${SITE_DIR}/storage/database.sqlite`], { encoding: 'utf8' }));
+    report.verdict('the demo\'s pictures come in from its package, every one complete, and no request runs long',
+      finished && Number(library.n) >= 49 && Number(library.n) === Number(library.c) && longest.ms < 60000,
+      `pictures ${library.n}, complete ${library.c}, counts seen ${JSON.stringify(counts)}, longest request ${Math.round(longest.ms / 1000)} s`);
     await report.shot(page, '05-done');
     report.verdict('the site step installs, with the demo option',
       (await alerts(page)).length === 0,

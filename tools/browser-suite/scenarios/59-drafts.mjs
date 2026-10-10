@@ -1,7 +1,7 @@
 /*
  * DRAFTS, PUBLISH AND DISCARD (PLAN.md D-173), as the owner meets them.
  *
- * The demo's "How we work" page: its heading changed and saved as a draft — the site still
+ * The demo's Membership page (D-213): its heading changed and saved as a draft — the site still
  * shows the old one, the editors show the new one and say there are unpublished changes —
  * then published, then changed again and discarded. A design set's pattern is put in and
  * discarded too. What the PHP tests cannot answer is whether the buttons are where an owner
@@ -29,15 +29,15 @@ export default {
     await page.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 1 });
     await page.goto(`${BASE}/admin/pages`, { waitUntil: 'networkidle2' });
     const id = await page.$$eval('a[href^="/admin/pages/"]', (links) => {
-      const link = links.find((a) => a.textContent.trim() === 'How we work' && /\/admin\/pages\/\d+$/.test(a.getAttribute('href')));
+      const link = links.find((a) => a.textContent.trim() === 'Membership' && /\/admin\/pages\/\d+$/.test(a.getAttribute('href')));
       return link ? link.getAttribute('href').split('/').pop() : '';
     });
     if (id === '') {
-      report.fail('drafts: the demo\'s How we work page', 'not in the page list');
+      report.fail('drafts: the demo\'s Membership page', 'not in the page list');
       return;
     }
     const publicHeading = async () => {
-      await page.goto(`${BASE}/how-we-work`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/membership`, { waitUntil: 'networkidle2' });
       return page.$eval('main h1, main h2', (h) => h.textContent.trim()).catch(() => '');
     };
     const editor = async () => {
@@ -58,13 +58,13 @@ export default {
 
     // ---- Save draft: the site does not change -----------------------------------------------
     await editor();
-    await retype(page, HEADING, 'How we work, in draft');
+    await retype(page, HEADING, 'A house kept by its members, in draft');
     await clickAndWait(page, '.editor-actions button[value="save"]');
     const drafted = await editor();
     await shot(report, page, '01-editor-draft');
     const afterDraft = await publicHeading();
     report.verdict('Save draft keeps the change out of the site, and the editor says so',
-      drafted.heading === 'How we work, in draft' && /unpublished/i.test(drafted.state) && drafted.discard && afterDraft === before,
+      drafted.heading === 'A house kept by its members, in draft' && /unpublished/i.test(drafted.state) && drafted.discard && afterDraft === before,
       JSON.stringify({ drafted, before, afterDraft }));
 
     // ---- The canvas draws the draft -------------------------------------------------------------
@@ -84,7 +84,7 @@ export default {
     // and no Save button (the owner's point 1). The rule changed deliberately; the canvas
     // drawing the draft is what it checked before and checks still.
     report.verdict('the builder\'s canvas draws the draft, and its bar offers Discard and Publish, with no Save button',
-      canvasHeading === 'How we work, in draft' && /unpublished/i.test(bar.state) && bar.publish && bar.discard && !bar.saveDraft, JSON.stringify({ canvasHeading, bar }));
+      canvasHeading === 'A house kept by its members, in draft' && /unpublished/i.test(bar.state) && bar.publish && bar.discard && !bar.saveDraft, JSON.stringify({ canvasHeading, bar }));
 
     // ---- Publish -------------------------------------------------------------------------------
     await editor();
@@ -92,7 +92,7 @@ export default {
     const published = await editor();
     const afterPublish = await publicHeading();
     report.verdict('Publish puts the draft on the site, and the page is Published again',
-      afterPublish === 'How we work, in draft' && /^published$/i.test(published.state) && !published.discard, JSON.stringify({ published, afterPublish }));
+      afterPublish === 'A house kept by its members, in draft' && /^published$/i.test(published.state) && !published.discard, JSON.stringify({ published, afterPublish }));
 
     // ---- Discard, with a pattern put in ---------------------------------------------------------
     await editor();
@@ -118,7 +118,7 @@ export default {
     const discarded = await editor();
     const afterDiscard = (await typesOf()).length;
     report.verdict('a pattern goes into the draft, and Discard takes the draft back to the published page',
-      offered.length > 0 && withPattern > afterDiscard && discarded.heading === 'How we work, in draft' && !discarded.discard,
+      offered.length > 0 && withPattern > afterDiscard && discarded.heading === 'A house kept by its members, in draft' && !discarded.discard,
       JSON.stringify({ offered, withPattern, afterDiscard, discarded }));
 
     // ---- As it was --------------------------------------------------------------------------------

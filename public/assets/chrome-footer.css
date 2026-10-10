@@ -188,8 +188,15 @@
 }
 
 /* One list on a phone, whatever was asked: written as specific as the rules above, which
-   would win over a plainer one. */
+   would win over a plainer one. And one column of columns: two or three side by side stayed
+   side by side at 390 pixels, Zine's three running into each other (the demo's shots, D-213). */
 @media (max-width: 40rem) {
+  .layout-columns .site-footer,
+  .layout-three .site-footer,
+  .layout-three .site-footer.drawn-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .layout-columns .site-footer-nav ul,
   .layout-columns .footer-cols-3 .site-footer-nav ul,
   .layout-columns .footer-cols-4 .site-footer-nav ul {

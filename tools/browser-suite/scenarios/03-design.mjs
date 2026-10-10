@@ -22,9 +22,9 @@ import { readFileSync } from 'node:fs';
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN, CHECKOUT } from '../config.mjs';
 import { login, clickAndWait, alerts, applyCharacter, controlsOnPanels, ensureHeaderMenu, openSection, resetDesign, retype } from '../harness.mjs';
 
-/** How we work: two sections, a text and a quotation (the demo of D-167). */
-const STYLE_GUIDE = 4;
-const STYLE_GUIDE_PATH = '/how-we-work';
+/** Linocut: three sections, the second a text beside documents on the plain surface (D-213). */
+const STYLE_GUIDE = 6;
+const STYLE_GUIDE_PATH = '/workshops/linocut';
 
 /** The inspector's views (D-157): the home, and its seven sections (buttons since D-164). */
 const SECTIONS = ['home', 'colours', 'typography', 'space', 'layout', 'header', 'footer'];

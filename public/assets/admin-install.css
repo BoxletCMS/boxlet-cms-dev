@@ -96,3 +96,30 @@
     animation: none;
   }
 }
+
+/* The demo's pictures, counted (D-214): a bar that fills, since here each request knows how
+   far the pictures have got. The same track and fill as the moving bar above. */
+.install-progress {
+  appearance: none;
+  width: 100%;
+  height: var(--ui-2);
+  border: 0;
+  border-radius: var(--ui-radius-m);
+  background: var(--ui-line-strong);
+  overflow: hidden;
+}
+
+.install-progress::-webkit-progress-bar {
+  background: var(--ui-line-strong);
+  border-radius: var(--ui-radius-m);
+}
+
+.install-progress::-webkit-progress-value {
+  background: var(--ui-accent);
+  border-radius: var(--ui-radius-m);
+}
+
+.install-progress::-moz-progress-bar {
+  background: var(--ui-accent);
+  border-radius: var(--ui-radius-m);
+}

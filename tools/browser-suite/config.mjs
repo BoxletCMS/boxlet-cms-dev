@@ -77,4 +77,4 @@ export const COPY_ADMIN = {
 export const ADMIN = COPY_ADMIN;
 
 // The demo's own name (D-177): the seed names the site so, whatever the installer is told.
-export const SITE_NAME = 'Atelier Lumen';
+export const SITE_NAME = 'The Printworks';

@@ -259,6 +259,17 @@
   margin-inline: auto;
 }
 
+/* A list in centred words stands in the middle as one block, its markers in a column and its
+   items aligned at their start: not the markers at the left edge and the words in the middle
+   (the owner chose it over centring each item, D-216). */
+.align-center .richtext :is(ul, ol) {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline-start: 1.25em;
+  text-align: start;
+}
+
 /* A rule down the left edge of a centred quote reads as detached from it. */
 .align-center .richtext blockquote {
   padding-inline-start: 0;

@@ -22,8 +22,11 @@ testBothDrivers('the demo site publishes pages covering every block, layout and 
     assertEquals(0, (int) ($db->one("SELECT COUNT(*) AS n FROM pages WHERE status <> 'published'")['n'] ?? -1), 'unpublished demo pages');
 
     // AS DRAWN: a section stores only what it sets since D-165, so what the demo shows is
-    // the stored values over the character's — which is what has to cover every value.
-    $character = Composition::active($db);
+    // the stored values over the character's — which is what has to cover every value. The
+    // character its pages are written against (Soft): since D-216 the demo is shown with
+    // Couture, which draws the values its sections leave to Soft its own way (CHANGED
+    // DELIBERATELY, the owner's choice of Couture; it measured the active character before).
+    $character = DemoSite::CHARACTER;
     $used = ['layout' => [], 'animation' => [], 'v_align' => []] + array_fill_keys(array_keys(SectionStyle::OPTIONS), []);
     foreach ($db->all('SELECT id FROM pages') as $page) {
         $blocks = App\Modules\Pages\PageBlocks::stored($db, (int) $page['id']);
@@ -97,7 +100,9 @@ testBothDrivers('the home page\'s sections hold only what they set, and its bloc
         }
         assertEquals($section['layout'], $sections[$at]['layout'], "section {$at}'s layout");
     }
-    assertEquals(DemoSite::CHARACTER, Composition::active($db), 'the demo is drawn with its character');
+    // Written against Soft, shown with Couture and a centred header (the owner, D-216).
+    assertEquals('couture', Composition::active($db), 'the demo is drawn with Couture');
+    assertEquals('centred', App\Modules\Design\Design::load($db)['header_arrangement'] ?? null, 'under a centred header');
 
     // Every block follows the character but the four numbers and this week's events (D-194, D-213).
     $own = [];
@@ -131,7 +136,7 @@ testBothDrivers('the demo styles by hand only the sections that mean to differ f
         'en /#6' => 'A visitor\'s word: on the kraft paper',
         'en /whats-on#3' => 'the newsletter: the contrast surface',
         'en /workshops#0' => 'the hero centred',
-        'en /membership#0' => 'the hero centred',
+        'en /membership#0' => 'the hero centred, 20px above and none below (the owner, D-216)',
         'en /membership#2' => 'what membership pays for: the contrast surface',
         'en /restoring-the-press-hall#0' => 'the article: narrow',
         'en /restoring-the-press-hall#2' => 'its quote: narrow',
@@ -162,6 +167,23 @@ testBothDrivers('the demo styles by hand only the sections that mean to differ f
     }
     assertEquals(array_keys($deliberate), $styled, 'styled by hand');
     assertEquals(count($deliberate), Composition::styledByHand($db), 'and what the Apply question counts');
+});
+
+// The owner's review of the Printworks in Couture (D-216): Membership's hero close to the
+// header and to the levels under it, and Exhibitions' picture under the light shade.
+testBothDrivers('the demo has the owner\'s spacing on Membership and the light shade on Exhibitions', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    DemoSite::seed($db, Blocks::discover(dirname(__DIR__) . '/app/Blocks'), 'en');
+    $first = static function (string $slug) use ($db): array {
+        $id = (int) ($db->one("SELECT id FROM pages WHERE slug = ? AND locale = 'en'", [$slug])['id'] ?? 0);
+
+        return array_values(Sections::forPage($db, $id))[0];
+    };
+
+    $membership = SectionStyle::normalize($first('membership')['style']);
+    assertEquals(['20', '0'], [(string) $membership['pad_top'], (string) $membership['pad_bottom']], 'Membership\'s hero: 20 above, none below');
+    assertContains('pad-t-20', dispatch('/membership')->body, 'drawn so');
+    assertTrue(preg_match('~class="hero [^"]*veil-light~', dispatch('/exhibitions')->body) === 1, 'Exhibitions\' hero under the light shade');
 });
 
 // The demo links to its own pages the way an owner's site does: by reference, so renaming

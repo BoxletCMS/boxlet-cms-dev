@@ -41,7 +41,8 @@ try {
     exit(1);
 }
 
-// The demo sets the character it is written for; the stylesheet follows it (DemoSite::seed).
+// The demo sets the character it is shown with, and its header; the stylesheet follows them
+// (DemoSite::seed).
 Design::publish($db, (string) $config->get('app.cache_path'));
 
-echo "Added {$count} demo pages in locale {$primary['code']}, drawn with " . DemoSite::CHARACTER . ".\n";
+echo "Added {$count} demo pages in locale {$primary['code']}, drawn with " . DemoSite::SHOWN_WITH . ".\n";

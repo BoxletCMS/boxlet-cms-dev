@@ -24,10 +24,20 @@ use RuntimeException;
 final class DemoSite
 {
     /**
-     * The character the demo is written for (README 1.6: the mockup at its Soft-like set). A
-     * section or block stores only where it differs from this one's composition.
+     * The character the demo's pages are written against (README 1.6: the mockup at its
+     * Soft-like set). A section or block stores only where it differs from this one's
+     * composition, so under every other character it looks as it always has.
      */
     public const CHARACTER = 'soft';
+
+    /**
+     * The character the demo is installed with, and its header (the owner, D-216): The
+     * Printworks looks best in Couture, with the logo above a centred menu.
+     */
+    public const SHOWN_WITH = 'couture';
+
+    /** @var array<string, string> the demo's own look over the character's */
+    public const LOOK = ['header_arrangement' => 'centred'];
 
     /** The demo's own name, in either language (D-213). */
     public const NAME = 'The Printworks';
@@ -73,9 +83,11 @@ final class DemoSite
         DemoChrome::menus($db, $locale, $lang, $pages, $ids);
         self::translate($db, $registry, $pages, $ids, $media, $lang === 'hr' ? 'en' : 'hr');
         DemoPictures::translate($db, $pictures, $lang === 'hr' ? 'en' : 'hr', $root);
-        // Its sections store only what differs from this character, so they are drawn with it
-        // (the owner's review of D-170). The caller compiles the design: Installer does.
-        Composition::remember($db, self::CHARACTER);
+        // Drawn with Couture and a centred header (D-216); its sections store only what differs
+        // from Soft, so they follow Couture where they name nothing of their own (the owner's
+        // review of D-170). The caller compiles the design: Installer does.
+        Composition::remember($db, self::SHOWN_WITH);
+        \App\Modules\Design\Design::store($db, self::LOOK + \App\Modules\Design\Design::load($db));
         // The site is the demo's, whatever the installer was told: the pages, the menu and the
         // pictures are all The Printworks', and a header naming something else read as two
         // sites in one (the copy's "Checklist Site", D-177).

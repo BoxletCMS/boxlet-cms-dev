@@ -64,9 +64,10 @@ testBothDrivers('the demo puts its pictures and documents where its pages name t
     assertEquals([$id('technical-rider-en.pdf'), $id('hire-prices-en.pdf')], array_column($downloads, 'file'), 'the hire documents, in English');
 
     // The home hero follows its character since the owner's decision, stored as '' since
-    // D-191: drawn in Soft's layout, and changing with the character.
+    // D-191: drawn in the layout of the character the demo is shown with (Couture, D-216),
+    // and changing with the character.
     assertEquals('', $onHome['hero'][0]['layout'] ?? null, 'the hero follows the character');
-    assertContains('block-hero layout-' . Composition::layout($registry, DemoSite::CHARACTER, 'hero'), dispatch('/')->body, 'and is drawn in its layout');
+    assertContains('block-hero layout-' . Composition::layout($registry, DemoSite::SHOWN_WITH, 'hero'), dispatch('/')->body, 'and is drawn in its layout');
 
     // And the site is the place the pages are about (D-177, D-213).
     assertEquals('The Printworks', App\Core\Settings::text($db, 'site_name'), 'the demo names the site');

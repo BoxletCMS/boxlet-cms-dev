@@ -24,7 +24,7 @@ return static function (Closure $t, Closure $p, Closure $d, Closure $on): array 
                     'subheading' => $t('Tiskani papir od 1500. do 1900. U velikoj dvorani, do kraja sezone, svaki dan od 10 do 20 sati.', 'Printed paper from 1500 to 1900. In the main hall until the end of the season, every day from 10 to 8.'),
                     'image' => 'demo-picture:art/still-life-lemon-pewter',
                     'cta' => ['label' => $t('Planirajte posjet', 'Plan your visit'), 'url' => 'demo:visit'],
-                ], 'cover-left', ['height' => 'tall', 'veil' => 'medium'], 0],
+                ], 'cover-left', ['height' => 'tall', 'veil' => 'light'], 0],
             ]],
             ['style' => ['name' => $t('O izložbi', 'About the exhibition')], 'layout' => 'one', 'blocks' => [
                 ['image_text', [

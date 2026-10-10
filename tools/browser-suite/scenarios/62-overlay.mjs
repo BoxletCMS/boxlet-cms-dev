@@ -137,6 +137,7 @@ async function everySelection(page) {
 async function everyItem(page) {
   const blocks = await page.evaluate(() => window.pb.doc.blocks.filter((b) => Array.isArray((b.content || {}).items) && b.content.items.length).map((b) => [b.key, b.type, b.content.items.length]));
   const bad = [];
+  const crowd = [];
   let checked = 0;
   for (const [key, type, count] of blocks) {
     await page.evaluate((k) => window.pb.select('block', k), key);
@@ -144,14 +145,19 @@ async function everyItem(page) {
     for (const n of [...new Set([0, count - 1])]) {
       await selectItem(page, key, n);
       const segment = await page.evaluate(() => !!document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-toolbar-block .bx-toolbar-item'));
+      const crowded = await page.evaluate(() => !!document.querySelector('[data-pb-canvas]').contentDocument.querySelector('.bx-toolbar-block[data-bx-crowded]'));
       const c = await crossings(page);
       checked += 1;
       if (!segment) { bad.push(`${type} item ${n}: no actions in the bar`); }
-      if (c.found.length) { bad.push(`${type} item ${n}: ${c.found.join('; ')}`); }
+      // Where no place is 4px clear of words, the bar lies on least (O-60, the owner: left as
+      // it is; CHANGED DELIBERATELY). Then only its words are let pass, never another mark.
+      const found = crowded ? c.found.filter((f) => !f.startsWith('the block\'s toolbar')) : c.found;
+      if (crowded) { crowd.push(`${type} item ${n}`); }
+      if (found.length) { bad.push(`${type} item ${n}: ${found.join('; ')}`); }
     }
   }
   await page.mouse.click(10, 10);
-  return { checked, bad };
+  return { checked, bad, crowd };
 }
 
 export default {
@@ -176,7 +182,7 @@ export default {
           seen.bad.length === 0 && seen.marks > seen.checked, seen.bad.join(' | ') || 'none cross');
         const items = await everyItem(page);
         report.verdict(`${device}: an item selected, its actions in the block's bar, and the bar 4px clear of its words and the block's heading (${items.checked} items)`,
-          items.checked > 0 && items.bad.length === 0, items.bad.join(' | ') || 'none cross');
+          items.checked > 0 && items.bad.length === 0, (items.bad.join(' | ') || 'none cross') + (items.crowd.length ? `; nowhere clear, lying on least: ${items.crowd.join(', ')}` : ''));
       }
       await page.click('[data-device="desktop"]');
       await wait(900);

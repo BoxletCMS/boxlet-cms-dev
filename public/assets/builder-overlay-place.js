@@ -126,5 +126,8 @@
       || places.concat(touching, beside, [inside]).sort(function (x, y) { return lies(x, true) - lies(y, true); })[0];
     o.at(bar, { top: chosen.top, left: chosen.left });
     bar.setAttribute('data-bx-side', chosen.side);
+    // Nowhere clear, so the place that lies on least: on a phone, a selected item's bar
+    // wider than the room between two bands (O-60; the owner: left as it is).
+    bar.toggleAttribute('data-bx-crowded', !outside && lies(chosen, false) > 0);
   };
 })();

@@ -24,7 +24,8 @@ return static function (Closure $t, Closure $p, Closure $d, Closure $on): array 
         'description' => $t('Postanite član The Printworks: od 30 € godišnje.', 'Become a member of The Printworks: from €30 a year.'),
         'menu' => 'main',
         'sections' => [
-            ['style' => ['align' => 'center'], 'layout' => 'one', 'blocks' => [
+            // Close to the header and to the levels under it (the owner, D-216).
+            ['style' => ['align' => 'center', 'pad_top' => '20', 'pad_bottom' => '0'], 'layout' => 'one', 'blocks' => [
                 ['hero', [
                     'heading' => $t('Kuća koju drže njezini članovi', 'A house kept by its members'),
                     'subheading' => $t('Devetsto ljudi plaća dio krova, struje i radionica. Zauzvrat dobivaju manje cijene, ranije termine i ključ od kuće.', 'Nine hundred people pay for part of the roof, the power and the workshops. In return they get lower prices, early booking and a key to the house.'),

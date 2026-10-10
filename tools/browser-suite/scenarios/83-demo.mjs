@@ -4,6 +4,7 @@
  *   - every page answers, the three beneath others at their nested addresses, each with its
  *     pictures loaded (none broken);
  *   - the header's menu holds the six pages, the footer the address, the hours and the rest;
+ *   - a list in centred words is one centred block, its items aligned at their start (D-216);
  *   - this week's events, cards with no picture area, use the whole card: the words start at
  *     its edge, not after an empty column (the list's picture column stood empty before D-213);
  *   - on a phone the workshop sign-up comes before how it works (the section's order reversed);
@@ -71,6 +72,35 @@ export default {
     report.verdict('this week\'s events use the whole card: the words start at its edge, no empty picture column',
       !!events && Math.abs(events.words - events.card) <= 1 && events.width >= events.inner - 2,
       JSON.stringify(events));
+
+    // ---- a list in centred words (D-216, the owner) ---------------------------------------------
+    // Membership's levels: in a centred section the list stands in the middle as one block, its
+    // markers in a column and its items aligned at their start. Centred here in the page if the
+    // copy's character does not centre it (an earlier scenario may leave Brutalist), nothing
+    // written: it is the stylesheet that is measured.
+    await page.goto(`${BASE}/membership`, { waitUntil: 'networkidle2' });
+    const list = await page.evaluate(() => {
+      const band = document.querySelector('section.block-cards');
+      const ul = band && band.querySelector('.cards-item ul');
+      if (!ul) return null;
+      const centred = band.classList.contains('align-center');
+      band.classList.add('align-center');
+      const box = ul.getBoundingClientRect();
+      const item = ul.closest('.cards-item');
+      const inner = item.getBoundingClientRect();
+      const pad = parseFloat(getComputedStyle(item).paddingLeft);
+      return {
+        centred,
+        left: Math.round(box.left - inner.left - item.clientLeft - pad),
+        right: Math.round(inner.right - item.clientLeft - pad - box.right),
+        narrower: box.width < item.clientWidth - 2 * pad - 8,
+        items: getComputedStyle(ul.querySelector('li')).textAlign,
+        markers: getComputedStyle(ul).listStylePosition,
+      };
+    });
+    report.verdict('a list in centred words stands in the middle as one block, its items aligned at their start',
+      !!list && list.narrower && Math.abs(list.left - list.right) <= 2 && ['start', 'left'].includes(list.items) && list.markers === 'outside',
+      JSON.stringify(list));
 
     // ---- the workshop form, and its place on a phone -------------------------------------------
     await page.goto(`${BASE}/workshops`, { waitUntil: 'networkidle2' });

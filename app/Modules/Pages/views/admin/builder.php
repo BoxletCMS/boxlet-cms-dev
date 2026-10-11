@@ -101,6 +101,7 @@ $pageId = (int) $page['id'];
 <script src="<?= e(Url::versioned('assets/builder-tree.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-add.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-page.js')) ?>" defer></script>
+<script src="<?= e(Url::versioned('assets/builder-inspector-follow.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inspector.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder-inspector-actions.js')) ?>" defer></script>
 <script src="<?= e(Url::versioned('assets/builder.js')) ?>" defer></script>

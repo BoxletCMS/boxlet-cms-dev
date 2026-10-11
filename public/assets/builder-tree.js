@@ -5,8 +5,8 @@
  * Never a key or an id: those are the editor's names, not the owner's.
  *
  * A click selects. Bands are dragged into a new order, and blocks into another band or column
- * (SortableJS, vendored, SPEC §3): what is dropped is read back off the tree into the document
- * as one change.
+ * (SortableJS, vendored, SPEC §3), each column a list of its own (O-56): what is dropped is read
+ * back off the tree into the document as one change.
  */
 (function () {
   'use strict';
@@ -50,18 +50,27 @@
         + '<div class="pb-tree-row" role="button" tabindex="0" data-tree-select="section" data-key="' + text(section.key) + '">'
         + '<span class="pb-tree-grip" data-tree-grip aria-hidden="true">' + icon('grip-vertical') + '</span>'
         + icon('rows-3') + '<span class="pb-tree-name">' + text(pb.sectionName(section.key)) + '</span>'
-        + '<span class="pb-tree-meta">' + text(meta) + '</span></div>'
-        + '<ol class="pb-tree-blocks" data-tree-blocks="' + text(section.key) + '">';
-      pb.blocksIn(section.key).forEach(function (block) {
-        var item = pb.libraryItem(block.type) || { label: block.type, icon: 'circle-alert' };
-        html += '<li class="pb-tree-block" data-tree-block="' + text(block.key) + '">'
-          + '<div class="pb-tree-row" role="button" tabindex="0" data-tree-select="block" data-key="' + text(block.key) + '">'
-          + '<span class="pb-tree-grip" aria-hidden="true">' + icon('grip-vertical') + '</span>'
-          + icon(item.icon) + '<span class="pb-tree-name">' + text(item.label) + '</span>'
-          + (columns > 1 ? '<span class="pb-tree-meta">' + text(pb.t('structure.column', { n: block.column + 1 })) + '</span>' : '')
-          + '</div></li>';
-      });
-      html += '</ol></li>';
+        + '<span class="pb-tree-meta">' + text(meta) + '</span></div>';
+      // EACH COLUMN A LIST OF ITS OWN (O-56): a block dropped lands in the column it is dropped
+      // in, an empty one among them. One list for the band took every drop into column one. A
+      // block whose column is past the band's last is drawn in the last, as the page draws it.
+      var blocks = pb.blocksIn(section.key);
+      for (var c = 0; c < columns; c += 1) {
+        if (columns > 1) {
+          html += '<p class="pb-tree-column">' + text(pb.t('structure.column_name', { n: c + 1 })) + '</p>';
+        }
+        html += '<ol class="pb-tree-blocks' + (columns > 1 ? ' is-column' : '') + '" data-tree-blocks="' + text(section.key) + '" data-tree-column="' + c + '">';
+        blocks.filter(function (block) { return Math.min(block.column, columns - 1) === c; }).forEach(function (block) {
+          var item = pb.libraryItem(block.type) || { label: block.type, icon: 'circle-alert' };
+          html += '<li class="pb-tree-block" data-tree-block="' + text(block.key) + '" data-tree-was="' + c + '">'
+            + '<div class="pb-tree-row" role="button" tabindex="0" data-tree-select="block" data-key="' + text(block.key) + '">'
+            + '<span class="pb-tree-grip" aria-hidden="true">' + icon('grip-vertical') + '</span>'
+            + icon(item.icon) + '<span class="pb-tree-name">' + text(item.label) + '</span>'
+            + '</div></li>';
+        });
+        html += '</ol>';
+      }
+      html += '</li>';
     });
     tree.innerHTML = html || '<li class="pb-tree-empty">' + text(pb.t('structure.empty')) + '</li>';
     var n = function (key, count) { return pb.t('structure.' + key + (count === 1 ? '_one' : ''), { count: count }); };
@@ -85,8 +94,9 @@
     var placed = [];
     Array.prototype.forEach.call(tree.querySelectorAll('[data-tree-blocks]'), function (list) {
       var sectionKey = list.getAttribute('data-tree-blocks');
+      var column = Number(list.getAttribute('data-tree-column')) || 0;
       Array.prototype.forEach.call(list.querySelectorAll(':scope > [data-tree-block]'), function (li) {
-        placed.push({ key: li.getAttribute('data-tree-block'), section: sectionKey });
+        placed.push({ key: li.getAttribute('data-tree-block'), section: sectionKey, column: column, was: Number(li.getAttribute('data-tree-was')) || 0 });
       });
     });
     var moved = [];
@@ -96,10 +106,11 @@
       doc.blocks.forEach(function (b) { byKey[b.key] = b; });
       doc.blocks = placed.map(function (p) {
         var b = byKey[p.key];
-        if (b.section !== p.section) {
+        // A block keeps its column unless it was moved out of the one it was drawn in.
+        if (b.section !== p.section || p.column !== p.was) {
           moved.push(b.section, p.section);
           b.section = p.section;
-          b.column = 0;
+          b.column = p.column;
         }
         return b;
       });

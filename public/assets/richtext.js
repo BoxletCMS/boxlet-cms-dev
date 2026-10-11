@@ -152,6 +152,14 @@
       },
     });
 
+    // The words put in from outside, as the document has them (O-61: written on the page, they
+    // reach All content's open editor), without saying so: they are the document's already.
+    hidden.boxletSetValue = function (html) {
+      hidden.value = html;
+      editor.commands.setContent(T.to(html, locale), { emitUpdate: false });
+    };
+    hidden.boxletIsFocused = function () { return editor.isFocused; };
+
     var toolbar = field.querySelector('[data-richtext-toolbar]');
     var link = field.querySelector('[data-richtext-link]');
     field.classList.add('richtext-rich');

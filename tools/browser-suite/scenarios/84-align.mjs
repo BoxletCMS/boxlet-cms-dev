@@ -75,6 +75,9 @@ export default {
       await clickInCanvas(page, '.bx-rich-tools [data-rt="alignRight"]');
       await settle(page);
       const right = await read(page, key, form);
+      // All content follows what was written on the page at once, while the page is still being
+      // written in (O-61: it showed the old words until the block was selected again).
+      const followed = await page.$eval(`${form} .ProseMirror`, (e) => e.innerHTML);
       await report.shot(page, '02-right-on-the-page', { fullPage: false });
       await clickInCanvas(page, '.bx-rich-tools [data-rt="alignLeft"]');
       await settle(page);
@@ -83,6 +86,43 @@ export default {
         offered.join(',') === 'alignLeft,alignCenter,alignRight' && /<p class="text-right">/.test(right.body) && right.drawn === 'right'
           && !/class=/.test(back.body) && back.drawn !== 'right' && back.lit.includes('alignLeft'),
         JSON.stringify({ offered, right, back }));
+      report.verdict('All content follows the page at once: the alignment made there is in its editor (O-61)',
+        /<p class="text-right">/.test(followed), followed.slice(0, 120));
+
+      // And words typed into All content straight after a change on the page are the document's,
+      // the change kept with them: they were thrown away, the form found out of date (O-61). The
+      // owner's way: right on the page, then a press into All content and typing.
+      await clickInCanvas(page, `[data-bx-key="${key}"] [data-bx-field="body"]`);
+      await wait(500);
+      await page.keyboard.down('Shift');
+      for (let i = 0; i < 5; i += 1) {
+        await page.keyboard.press('ArrowLeft');
+        await wait(80);
+      }
+      await page.keyboard.up('Shift');
+      await wait(300);
+      await clickInCanvas(page, '.bx-rich-tools [data-rt="alignRight"]');
+      await settle(page);
+      const tail = await page.$eval(`${form} .ProseMirror`, (el) => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        let last = null;
+        for (let t = walker.nextNode(); t; t = walker.nextNode()) { last = t; }
+        const range = document.createRange();
+        range.setStart(last, last.length - 1);
+        range.setEnd(last, last.length);
+        const r = range.getBoundingClientRect();
+        return { x: r.right - 1, y: r.top + r.height / 2 };
+      });
+      await page.mouse.click(tail.x, tail.y);
+      await wait(300);
+      await page.keyboard.press('End');
+      await page.keyboard.type(' Zed', { delay: SLOW });
+      await settle(page);
+      await wait(900);
+      const typed = await read(page, key, form);
+      report.verdict('a word typed in All content after a change on the page reaches the document, the change kept (O-61)',
+        /Zed<\/p>/.test(typed.body) && /<p class="text-right">/.test(typed.body), JSON.stringify(typed.body.slice(-160)));
+
       await page.keyboard.press('Escape');
       await page.mouse.click(10, 10);
       await wait(400);

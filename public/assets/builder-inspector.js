@@ -239,6 +239,14 @@
     }, 700);
   }
   pb.on('change', fresh);
+  // And at once where it can be: the form takes the document's words, field by field (O-61,
+  // builder-inspector-follow.js), and holds the document again; what it cannot take, fresh() does.
+  pb.on('change', function () {
+    var form = drawnFrom ? panel.querySelector('[data-block-fields="' + drawnFrom.key + '"]') : null;
+    if (form && pb.followFields && drawnFrom.content !== contentOf(drawnFrom.key) && pb.followFields(form, drawnFrom.key, drawnFrom.content)) {
+      drawnFrom = { key: drawnFrom.key, content: contentOf(drawnFrom.key) };
+    }
+  });
 
   pb.on('select', inspect);
   pb.on('inspect', inspect);

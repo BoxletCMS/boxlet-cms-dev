@@ -32,7 +32,7 @@ return [
     'builder.structure.sections_one' => '1 section',
     'builder.structure.blocks' => ':count blocks',
     'builder.structure.blocks_one' => '1 block',
-    'builder.structure.column' => 'column :n',
+    'builder.structure.column_name' => 'Column :n',
     'builder.structure.empty' => 'No sections yet. Add one from the Add tab, or with “+” on the page.',
     'builder.add.search' => 'Find blocks and patterns…',
     'builder.add.blocks' => 'Blocks',

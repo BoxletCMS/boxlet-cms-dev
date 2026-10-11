@@ -152,6 +152,21 @@
   white-space: nowrap;
 }
 
+/* A band's columns (O-56): each named, and each a place to drop into, an empty one too. */
+.pb-tree-column {
+  margin: var(--ui-1) 0 0;
+  padding-inline-start: var(--ui-4);
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+}
+
+.pb-tree-blocks.is-column {
+  min-block-size: 2rem;
+  margin-inline-start: var(--ui-4);
+  padding-inline-start: 0;
+  border-inline-start: var(--ui-border) dashed var(--ui-control-line);
+}
+
 .pb-tree-empty {
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-sm);

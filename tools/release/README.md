@@ -6,9 +6,8 @@ Upload a ZIP, open a page in your browser, answer four questions. Fifteen minute
 have a multilingual site that looks designed, not like a template with the logo swapped. No
 shell, no Composer, no Node, no build step. An FTP client and a browser are enough.
 
-> **This is a preview.** Boxlet works and installs cleanly, but it hasn't reached v0.1 yet.
-> Until then, things may still change between versions in ways that need a fresh install.
-> Try it, poke at it, tell us what breaks. Don't bet a client's site on it just yet.
+> **This is a release candidate for v0.1.** It is what v0.1 will be unless testing finds a
+> fault. From v0.1 on, updates keep your site as it is: no fresh install between versions.
 
 ![The Boxlet admin: the overview screen](https://raw.githubusercontent.com/BoxletCMS/boxlet-cms-dev/main/tools/release/readme/overview.png)
 

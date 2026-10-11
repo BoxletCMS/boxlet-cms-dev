@@ -234,6 +234,7 @@ test('a parent that would make a cycle is refused however the request arrives', 
 test('the page tab carries the address, the parent and the search words as fields bound to the document', function () {
     $db = adminSite('sqlite');
     createPage($db, 'en', '', 'Home', true);
+    createPage($db, 'en', 'services', 'Services', true);
     $id = createPage($db, 'en', 'about', 'About', false);
     $body = dispatch("/admin/pages/{$id}")->body;
 
@@ -244,9 +245,12 @@ test('the page tab carries the address, the parent and the search words as field
     }
     assertContains('class="pb-serp"', $body, 'the picture of a search result');
     assertTrue(!str_contains($body, 'name="status"'), 'no visibility select: Publish is how a page goes live');
-    // Home is a valid parent for About; About must not be offered itself.
+    // Another page is a valid parent for About; About must not be offered itself, nor the
+    // home page (O-55, the owner: nothing stands under a home page; CHANGED DELIBERATELY, Home
+    // was the page offered here).
     $parent = preg_match('~<select id="pb-parent" data-pb-page="parent_id">(.*?)</select>~s', $body, $match) === 1 ? $match[1] : '';
-    assertContains('>Home</option>', $parent, 'another page as a parent');
+    assertContains('>Services</option>', $parent, 'another page as a parent');
+    assertTrue(!str_contains($parent, '>Home</option>'), 'the home page was offered as a parent');
     assertTrue(!str_contains($parent, '>About</option>'), 'the page was offered itself as its parent');
 });
 

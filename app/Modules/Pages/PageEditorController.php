@@ -320,7 +320,7 @@ final class PageEditorController
             // update() is the save route for both editors and reads parent_id from the
             // request, so an editor that does not render the control submits nothing and
             // the page is un-parented on every save.
-            'parents' => PageTree::parentOptions($this->db(), (string) $page['locale'], isset($page['id']) ? (int) $page['id'] : null),
+            'parents' => PageTree::parents($this->db(), (string) $page['locale'], isset($page['id']) ? (int) $page['id'] : null),
             'blocks' => $blocks,
             'sections' => self::sectionMap($this->db(), $this->registry(), (int) $page['id'], $sections),
             // Which draft the form was made from, and what the page is: published, published

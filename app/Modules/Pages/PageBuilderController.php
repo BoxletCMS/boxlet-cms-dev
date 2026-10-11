@@ -67,7 +67,7 @@ final class PageBuilderController
             'state' => $state,
             'registry' => $this->registry(),
             'character' => $character,
-            'parents' => PageTree::parentOptions($this->db(), (string) $page['locale'], $id),
+            'parents' => PageTree::parents($this->db(), (string) $page['locale'], $id),
             // Each possible parent's address, so the Page tab shows the whole address live.
             'parentUrls' => $this->parentUrls((string) $page['locale']),
             'siteName' => \App\Core\Settings::text($this->db(), 'site_name'),

@@ -54,7 +54,7 @@ final class PageSubmission
 
             return $settings;
         }
-        $allowed = array_column(PageTree::parentOptions($db, (string) $page['locale'], (int) $page['id']), 'id');
+        $allowed = array_column(PageTree::parents($db, (string) $page['locale'], (int) $page['id']), 'id');
         $settings['parent_id'] = in_array((int) $submitted, $allowed, true) ? (int) $submitted : false;
 
         return $settings;

@@ -93,10 +93,12 @@ testBothDrivers('a renamed parent or a moved page sends its old addresses on', f
 
 testBothDrivers('the home page adds no segment, and a language keeps its prefix', function (string $driver) {
     $db = adminSite($driver);
-    $home = createPage($db, 'en', '', 'Home');
-    $about = createPage($db, 'en', 'about', 'About');
-    placePage($about, 'About', 'about', $home);
-    assertEquals(200, dispatch('/about')->status, 'a child of the home page sits at the top level');
+    createPage($db, 'en', '', 'Home');
+    createPage($db, 'en', 'about', 'About');
+    // Nothing stands under a home page since O-55, which home_parent_test.php holds (CHANGED
+    // DELIBERATELY: this placed About under Home, and found it at the top level all the same).
+    assertEquals(200, dispatch('/about')->status, 'a page beside the home page has no segment of it');
+    assertEquals(404, dispatch('/home/about')->status, 'nor one under its title');
 
     $usluge = createPage($db, 'hr', 'usluge', 'Usluge');
     $web = createPage($db, 'hr', 'web-dizajn', 'Web dizajn');

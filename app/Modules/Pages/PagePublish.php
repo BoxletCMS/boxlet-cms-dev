@@ -139,7 +139,7 @@ final class PagePublish
             $errors['slug'] = $slug;
         }
         if ($document['parent_id'] !== null) {
-            $allowed = array_column(PageTree::parentOptions($db, (string) $page['locale'], (int) $page['id']), 'id');
+            $allowed = array_column(PageTree::parents($db, (string) $page['locale'], (int) $page['id']), 'id');
             if (!in_array($document['parent_id'], $allowed, true)) {
                 $errors['parent'] = t('pages.parent_invalid');
             }

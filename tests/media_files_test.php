@@ -84,20 +84,36 @@ testBothDrivers('a file is downloaded as an attachment, and counted for a visito
     assertTrue($response->file !== null && str_starts_with((string) file_get_contents($response->file), '%PDF'), 'the file itself is the body');
     assertEquals(1, (int) ($db->one('SELECT downloads FROM media WHERE id = ?', [$id])['downloads'] ?? 0), 'a visitor\'s download is counted');
 
-    // The admin, known by the session cookie, and a crawler are not.
+    // The admin, known by the session cookie, and a crawler are not. At the file's own
+    // address: another name is sent there uncounted since O-54, which would pass this for
+    // the wrong reason (CHANGED DELIBERATELY, it asked at price-list.pdf).
     $_SERVER['HTTP_COOKIE'] = 'boxlet_session=abc';
     try {
-        dispatch('/download/' . $id . '/price-list.pdf');
+        assertEquals(200, dispatch('/download/' . $id . '/price-list')->status, 'the admin\'s download');
     } finally {
         unset($_SERVER['HTTP_COOKIE']);
     }
     $_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
     try {
-        dispatch('/download/' . $id . '/price-list.pdf');
+        assertEquals(200, dispatch('/download/' . $id . '/price-list')->status, 'the crawler\'s download');
     } finally {
         unset($_SERVER['HTTP_USER_AGENT']);
     }
     assertEquals(1, (int) ($db->one('SELECT downloads FROM media WHERE id = ?', [$id])['downloads'] ?? 0), 'the admin or a crawler was counted');
+
+    // One address per file (O-54): another name, the extension, an old name after a rename,
+    // is sent to the file's own, and not counted.
+    $_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    try {
+        foreach (['price-list.pdf', 'anything', 'Price%20list'] as $other) {
+            $moved = dispatch('/download/' . $id . '/' . $other);
+            assertEquals(301, $moved->status, $other);
+            assertEquals('/download/' . $id . '/price-list', $moved->headers['Location'] ?? null, $other . ' sent to');
+        }
+    } finally {
+        unset($_SERVER['HTTP_USER_AGENT']);
+    }
+    assertEquals(1, (int) ($db->one('SELECT downloads FROM media WHERE id = ?', [$id])['downloads'] ?? 0), 'a redirect was counted');
 
     // A picture is not a download, and neither is an id nobody has.
     $db->query("UPDATE media SET kind = 'picture' WHERE id = ?", [$id]);

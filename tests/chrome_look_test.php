@@ -150,12 +150,13 @@ testBothDrivers('the site can say what made it, and says nothing unless asked', 
     // Off is the default, and the default is what a site that never opens Settings has.
     $quiet = dispatch('/')->body;
     assertTrue(!str_contains($quiet, 'site-credit'), 'a credit nobody asked for');
-    assertTrue(!str_contains($quiet, 'boxlet.org'), 'and no address for one');
+    assertTrue(!str_contains($quiet, 'boxletcms.org'), 'and no address for one');
 
     Settings::set($db, 'site_credit', true);
     $credited = dispatch('/')->body;
     assertContains('class="site-credit"', $credited, 'the line');
-    assertContains('href="https://boxlet.org"', $credited, 'where it leads');
+    // boxletcms.org, the project's site, since D-231 (the owner); boxlet.org before.
+    assertContains('href="https://boxletcms.org"', $credited, 'where it leads');
     assertContains(site_t('site.credit', 'en'), $credited, 'what it says');
     // It is the last thing on the page, in the small print, not a badge of its own.
     assertContains('site-small-print', $credited, 'where it sits');

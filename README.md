@@ -1,4 +1,4 @@
-# Boxlet
+# Boxlet CMS
 
 A small self-hosted PHP CMS for people who build many small sites.
 

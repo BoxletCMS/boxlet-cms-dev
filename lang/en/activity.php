@@ -24,6 +24,9 @@ return [
     'activity.kind.settings' => 'Settings',
     'activity.kind.backup' => 'Backup',
     'activity.kind.update' => 'Update',
+    'activity.kind.account' => 'Login',
+    'activity.kind.redirect' => 'Redirect',
+    'activity.kind.snippet' => 'Snippet',
 
     'activity.page.created' => 'Created “:name”',
     'activity.page.saved' => 'Edited “:name”',

@@ -4,12 +4,16 @@
  * BOXLETCMS.ORG, BUILT IN BOXLET (PLAN.md D-228): a one-off seed, run once against that site's
  * own install, through that install's own code. Not in the release ZIP (tools/ never is).
  *
- *   php tools/site/seed.php <site root> <screenshots folder>
+ *   php tools/site/seed.php <site root> <screenshots folder> <site address>
+ *
+ * The address (https://boxletcms.org) is the one the site answers on: robots.txt names its
+ * sitemap by it, and a command line has no request to take it from.
  *
  * In order: the design set in this folder added as a character and chosen; the screenshots
  * uploaded once, each with its alt text; the snippets `version` and `requirements`; the
- * logo; sixteen pages, published; the header's menu and button; the footer's three columns
- * and small print. Refuses a site that already has pages, as the demo's seed does.
+ * logo; seventeen pages, published; the header's menu and button; the footer's three columns
+ * and small print; sitemap.xml, robots.txt and llms.txt, as publishing in the admin writes
+ * them. Refuses a site that already has pages, as the demo's seed does.
  *
  * The pages are pages.php; their markers are resolved here: `pic:{file}` by the picture's
  * id, `site:{path}` (in a link or an href) by a reference to that page, `site:` the home.
@@ -36,11 +40,17 @@ use App\Modules\Snippets\Snippets;
 use App\Support\RichText;
 use App\Support\SvgSanitizer;
 
-if (PHP_SAPI !== 'cli' || $argc !== 3) {
-    fwrite(STDERR, "Usage: php tools/site/seed.php <site root> <screenshots folder>\n");
+if (PHP_SAPI !== 'cli' || $argc !== 4) {
+    fwrite(STDERR, "Usage: php tools/site/seed.php <site root> <screenshots folder> <site address>\n");
     exit(1);
 }
-[, $site, $shots] = $argv;
+[, $site, $shots, $address] = $argv;
+$origin = parse_url($address);
+if (!is_array($origin) || !in_array($origin['scheme'] ?? '', ['http', 'https'], true) || !isset($origin['host'])) {
+    fwrite(STDERR, "The site address is a full one, such as https://boxletcms.org\n");
+    exit(1);
+}
+$https = $origin['scheme'] === 'https';
 $site = rtrim((string) realpath($site), '/');
 $shots = rtrim((string) realpath($shots), '/');
 if (!is_file($site . '/app/bootstrap.php') || !is_dir($shots)) {
@@ -50,11 +60,15 @@ if (!is_file($site . '/app/bootstrap.php') || !is_dir($shots)) {
 
 // As a request would find it: the install's own folder, its .env, a server to answer for.
 chdir($site);
-$_SERVER += ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/', 'SCRIPT_NAME' => '/index.php', 'SERVER_NAME' => 'localhost', 'SERVER_PORT' => '80', 'REMOTE_ADDR' => '127.0.0.1'];
+$_SERVER += ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/', 'SCRIPT_NAME' => '/index.php', 'SERVER_NAME' => $origin['host'], 'SERVER_PORT' => (string) ($origin['port'] ?? ($https ? 443 : 80)), 'HTTPS' => $https ? 'on' : 'off', 'REMOTE_ADDR' => '127.0.0.1'];
 require $site . '/vendor/autoload.php';
 Dotenv\Dotenv::createImmutable($site)->safeLoad();
 /** @var App\Core\Container $container */
 $container = require $site . '/app/bootstrap.php';
+// Addresses are configured where a request builds its router: the primary language, the
+// origin and the nested paths. Without it the sitemap listed /en/privacy, no origin, for
+// https://boxletcms.org/features/privacy (D-228).
+$container->get('router');
 $db = $container->get('db');
 $registry = $container->get('blocks');
 $config = $container->get('config');
@@ -210,4 +224,9 @@ SiteChrome::saveForLocale($db, $locale, [
 $say('Menus Main, Product and Help; the header\'s Download button; the footer.');
 
 Design::publish($db, $cache);
-$say('Done. The stylesheet is compiled; the page cache empties itself on the next change.');
+// What the admin's Publish writes after a page changes (PagePublish): the first run left the
+// empty sitemap and the install's llms.txt behind, under the site's old name.
+if (!App\Modules\Pages\Sitemap::refresh($container)) {
+    $say('sitemap.xml, robots.txt and llms.txt could not be written: public/ is not writable.');
+}
+$say('Done. The stylesheet is compiled; sitemap.xml, robots.txt and llms.txt are written.');

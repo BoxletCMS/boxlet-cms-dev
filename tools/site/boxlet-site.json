@@ -1,0 +1,253 @@
+{
+  "$schema": "https://boxlet.dev/schema/design-set-v2.json",
+  "format": "boxlet-design-set",
+  "version": 2,
+  "id": "boxlet-site",
+  "name": {
+    "en": "Boxlet site",
+    "hr": "Boxlet site"
+  },
+  "description": {
+    "en": "The design of boxletcms.org: big friendly grotesque, warm paper, one orange, dark bands for the numbers and the download.",
+    "hr": "Dizajn boxletcms.org: veliki prijateljski grotesk, topli papir, jedna narančasta, tamne trake za brojke i preuzimanje."
+  },
+  "author": "Boxlet",
+  "tags": [
+    "launch",
+    "product",
+    "grotesque",
+    "warm"
+  ],
+  "decisions": {
+    "mode": "light",
+    "seed": "#c13c11",
+    "secondary": "#1c1a17",
+    "color_background": "#fbf7f1",
+    "heading_font": "bricolage-grotesque",
+    "body_font": "figtree",
+    "text_size": 17,
+    "scale": 1.4,
+    "nudge_h1": 16,
+    "heading_weight": 800,
+    "tracking": -0.03,
+    "caps": "no",
+    "spacing": 1.1,
+    "section_gap": 120,
+    "radius": 14,
+    "border_width": 2,
+    "shadow": "hard",
+    "shadow_strength": 70,
+    "container": 72,
+    "button_style": "filled",
+    "button_radius": 12,
+    "button_height": 52,
+    "button_caps": "no",
+    "surface_contrast": 20
+  },
+  "dark": {
+    "seed": "#ff7a45",
+    "secondary": "#2b2620",
+    "color_background": "#1d1916",
+    "surface_contrast": 22,
+    "shadow_strength": 80
+  },
+  "look": {
+    "header_opacity": 96,
+    "header_blur": 8,
+    "logo_size": 32,
+    "footer_columns": "3",
+    "footer_links": "list",
+    "header_arrangement": "inline",
+    "header_behaviour": "sticky",
+    "header_surface": "plain",
+    "header_edge": "line",
+    "header_height": 72,
+    "brand": "both",
+    "nav_style": "plain",
+    "nav_ink": "ink",
+    "header_button": "filled",
+    "footer_layout": "three",
+    "small_print_row": "split",
+    "footer_surface": "contrast",
+    "footer_edge": "none"
+  },
+  "composition": {
+    "section": {
+      "surface": "plain",
+      "width": "normal",
+      "align": "left",
+      "divider": "none",
+      "v_align": "top",
+      "animation": "up",
+      "pad_top": "",
+      "pad_bottom": "",
+      "min_height": 0
+    },
+    "surfaces": {
+      "stats": "contrast",
+      "cta": "contrast",
+      "quote": "tinted",
+      "accordion": "tinted"
+    },
+    "dividers": {},
+    "layouts": {
+      "hero": "left",
+      "text": "single",
+      "image_text": "image-right",
+      "picture": "full",
+      "gallery": "two",
+      "cards": "grid",
+      "quote": "big",
+      "stats": "four",
+      "cta": "banner",
+      "accordion": "list",
+      "logos": "row",
+      "downloads": "list",
+      "form": "beside"
+    },
+    "options": {
+      "hero": {
+        "height": "tall"
+      },
+      "cards": {
+        "per_row": 3,
+        "image_shape": "none"
+      },
+      "picture": {
+        "shape": "natural"
+      },
+      "gallery": {
+        "shape": "natural"
+      },
+      "text": {
+        "measure": "comfortable"
+      }
+    }
+  },
+  "patterns": [
+    {
+      "id": "boxlet-site-feature",
+      "name": {
+        "en": "Feature with a screenshot",
+        "hr": "Mogućnost sa snimkom zaslona"
+      },
+      "section": {
+        "layout": "one",
+        "style": {}
+      },
+      "blocks": [
+        {
+          "type": "image_text",
+          "layout": "image-right",
+          "column": 0,
+          "options": {},
+          "content": {
+            "heading": {
+              "en": "Statistics on your own server",
+              "hr": "Statistika na vašem poslužitelju"
+            },
+            "body": {
+              "en": "<p>Visits are counted by the site itself. Nothing is sent anywhere and nothing is added to the page.</p>",
+              "hr": "<p>Posjete broji sam site. Ništa se nikamo ne šalje i ništa se ne dodaje stranici.</p>"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "boxlet-site-numbers",
+      "name": {
+        "en": "Four numbers",
+        "hr": "Četiri brojke"
+      },
+      "section": {
+        "layout": "one",
+        "style": {
+          "surface": "contrast"
+        }
+      },
+      "blocks": [
+        {
+          "type": "stats",
+          "layout": "four",
+          "column": 0,
+          "options": {},
+          "content": {
+            "heading": {
+              "en": "What a visitor's browser gets",
+              "hr": "Što dobije preglednik posjetitelja"
+            },
+            "items": [
+              {
+                "value": "0",
+                "label": {
+                  "en": "cookies",
+                  "hr": "kolačića"
+                }
+              },
+              {
+                "value": "0 ms",
+                "label": {
+                  "en": "blocking time",
+                  "hr": "blokiranja"
+                }
+              },
+              {
+                "value": "3",
+                "label": {
+                  "en": "small scripts, at most",
+                  "hr": "male skripte, najviše"
+                }
+              },
+              {
+                "value": "100",
+                "label": {
+                  "en": "on PageSpeed, on a computer",
+                  "hr": "na PageSpeedu, na računalu"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "boxlet-site-download",
+      "name": {
+        "en": "Download",
+        "hr": "Preuzimanje"
+      },
+      "section": {
+        "layout": "one",
+        "style": {
+          "surface": "contrast"
+        }
+      },
+      "blocks": [
+        {
+          "type": "cta",
+          "layout": "banner",
+          "column": 0,
+          "options": {},
+          "content": {
+            "heading": {
+              "en": "Try it on your next small site",
+              "hr": "Isprobajte na sljedećem malom siteu"
+            },
+            "body": {
+              "en": "One ZIP, a browser and fifteen minutes.",
+              "hr": "Jedan ZIP, preglednik i petnaest minuta."
+            },
+            "action": {
+              "label": {
+                "en": "Download Boxlet",
+                "hr": "Preuzmite Boxlet"
+              },
+              "url": "/download"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

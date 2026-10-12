@@ -255,3 +255,26 @@ testBothDrivers('one pass finds pictures in block fields and behind sections, an
     assertTrue(isset($media[$behind]), 'the picture behind a section');
     assertTrue(!isset($media[999999]), 'a deleted picture resolved to something');
 });
+
+testBothDrivers('image and text: "Show the whole image" draws a size that keeps the picture whole (D-228)', function (string $driver) {
+    $db = installedSite(['en' => 'English'], $driver);
+    $id = storedPicture($db, 'screen', [
+        'card' => ['width' => 600, 'height' => 400, 'formats' => ['jpg']],
+        'wide' => ['width' => 1200, 'height' => 630, 'formats' => ['jpg']],
+        'natural' => ['width' => 960, 'height' => 600, 'formats' => ['jpg']],
+        'full' => ['width' => 2400, 'height' => 1500, 'formats' => ['jpg']],
+    ]);
+    $media = MediaPicture::resolve($db, 'en', [$id]);
+    $registry = blockRegistry();
+
+    // The whole picture: only the sizes cut to no proportion.
+    $whole = $registry->render('image_text', ['image' => $id, 'image_fit' => 'contain'], [], '', $media);
+    assertContains('m/natural/' . $id . '-screen.jpg', $whole, 'the whole picture at its own shape');
+    assertContains('m/full/' . $id . '-screen.jpg', $whole, 'and its large size');
+    assertTrue(!str_contains($whole, 'm/wide/') && !str_contains($whole, 'm/card/'), 'a cropped size drawn for the whole picture');
+
+    // Filling the frame crops anyway: the cropped sizes, smaller to send.
+    $filled = $registry->render('image_text', ['image' => $id, 'image_fit' => 'cover'], [], '', $media);
+    assertContains('m/wide/' . $id . '-screen.jpg', $filled, 'the frame filled from the wide size');
+    assertTrue(!str_contains($filled, 'm/natural/'), 'the natural size drawn to fill a frame');
+});

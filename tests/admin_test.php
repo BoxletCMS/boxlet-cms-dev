@@ -35,8 +35,8 @@ test('every admin stylesheet on disk is one this file checks', function () {
     foreach (glob(dirname(__DIR__) . '/public/assets/*.css') ?: [] as $file) {
         $name = basename($file);
         // Front-end stylesheets are the other side of the rule and are checked by
-        // tests/blocks_test.php instead.
-        if (in_array($name, ['site.css', 'blocks-hero.css', 'blocks-hero-split.css', 'blocks.css', 'blocks-cards.css', 'blocks-words.css', 'blocks-accordion.css', 'blocks-stats.css', 'blocks-media.css', 'blocks-logos.css', 'blocks-embed.css', 'blocks-downloads.css', 'chrome.css', 'chrome-footer.css', 'chrome-header.css', 'sections.css', 'sections-edges.css', 'sections-steps.css', 'sections-columns.css', 'maintenance-bar.css'], true)) {
+        // tests/blocks_test.php instead: the bundle's files (SiteStyles::FILES) and the bar.
+        if (in_array($name, [...\App\Support\SiteStyles::FILES, 'maintenance-bar.css'], true)) {
             continue;
         }
         assertTrue(in_array($name, $linked, true), "{$name} is checked by no stylesheet test");

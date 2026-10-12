@@ -13,6 +13,9 @@ use App\Support\ZipWriter;
 
 const UPGRADE_MIGRATION = '9001_upgrade_probe.sql';
 
+/** designs/.htaccess as v0.1.0-preview.3 to rc.4 shipped it (D-226). */
+const DESIGNS_HTACCESS_UNMARKED = "# Design sets (PLAN.md D-152) are read by Boxlet from the disk, never fetched from the web.\n# This folder is outside public/ already; this is the second lock, as in storage/.\nRequire all denied\n";
+
 /**
  * The made-up site and its database. Its migrations are the real ones, so the database the
  * test suite makes fits it.
@@ -41,6 +44,9 @@ function oldSite(): array
     // The owner's line above Boxlet's block, and a root .htaccess of the owner's own.
     file_put_contents($root . '/public/.htaccess', "# mine\nPhp_value upload_max_filesize 64M\n# BEGIN Boxlet\nold rules\n# END Boxlet\n# mine too\n");
     file_put_contents($root . '/.htaccess', "AddHandler application/x-httpd-ea-php81 .php\n");
+    // designs/.htaccess as v0.1.0-preview.3 to rc.4 shipped it, with no block (D-226).
+    mkdir($root . '/designs', 0700, true);
+    file_put_contents($root . '/designs/.htaccess', DESIGNS_HTACCESS_UNMARKED);
 
     $db = installedSite(['en' => 'English'], 'sqlite');
 
@@ -64,6 +70,7 @@ function newPackage(string $path, string $version): void
     $zip->addString('boxlet/public/m/.gitkeep', '');
     $zip->addString('boxlet/public/.htaccess', "# BEGIN Boxlet\nnew rules\n# END Boxlet\n");
     $zip->addString('boxlet/.htaccess', "# BEGIN Boxlet\nroot rules\n# END Boxlet\n");
+    $zip->addString('boxlet/designs/.htaccess', "# BEGIN Boxlet\ndesigns rules\n# END Boxlet\n");
     $zip->addString('boxlet/storage/.htaccess', 'Require all denied');
     $zip->finish();
 }
@@ -136,6 +143,10 @@ test('an update swaps the code, keeps the site\'s own things, runs the new migra
     assertEquals("AddHandler application/x-httpd-ea-php81 .php\n", (string) file_get_contents($root . '/.htaccess'), 'an owner\'s own root .htaccess kept');
     assertEquals("# BEGIN Boxlet\nroot rules\n# END Boxlet\n", (string) file_get_contents($root . '/.htaccess.boxlet-new'), 'the new rules beside it');
     assertEquals([t('updates.htaccess_kept', ['file' => '.htaccess'])], $upgrade->state()['warnings'] ?? null, 'the owner is told');
+    // designs/.htaccess as the candidates shipped it is Boxlet's, replaced without a word
+    // (D-226: every update from one candidate to the next said it was the owner's).
+    assertEquals("# BEGIN Boxlet\ndesigns rules\n# END Boxlet\n", (string) file_get_contents($root . '/designs/.htaccess'), 'designs/.htaccess replaced');
+    assertTrue(!is_file($root . '/designs/.htaccess.boxlet-new'), 'new rules left beside it');
 
     assertTrue(in_array(UPGRADE_MIGRATION, (new Migrator($db, $root . '/migrations'))->available(), true), 'the migration arrived');
     assertEquals([], (new Migrator($db, $root . '/migrations'))->pending(), 'pending migrations');
@@ -167,4 +178,15 @@ test('a .htaccess a release shipped before the markers is replaced whole', funct
 
     assertEquals("# BEGIN Boxlet\nnew rules\n# END Boxlet\n", (string) file_get_contents($root . '/public/.htaccess'), 'replaced whole');
     removeTree($root);
+});
+
+// Every .htaccess an update merges, at the root, in public/ and in designs/, ships with
+// Boxlet's block, or the next update takes it for the owner's own (D-226); and the one the
+// candidates shipped without a block is known by its hash.
+test('every .htaccess an update merges ships with Boxlet\'s block', function () {
+    foreach (['.htaccess', 'public/.htaccess', 'designs/.htaccess'] as $file) {
+        $text = (string) file_get_contents(dirname(__DIR__) . '/' . $file);
+        assertTrue(str_contains($text, "# BEGIN Boxlet\n") && str_contains($text, "# END Boxlet"), "{$file} has no block");
+    }
+    assertEquals('c53920f895b2d4002dcb95d975e91de1e3604c98f6adb2ca8c41aa026a043702', hash('sha256', DESIGNS_HTACCESS_UNMARKED), 'the shipped file, as the test has it');
 });

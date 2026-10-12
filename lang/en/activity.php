@@ -28,6 +28,7 @@ return [
     'activity.page.created' => 'Created “:name”',
     'activity.page.saved' => 'Edited “:name”',
     'activity.page.published' => 'Published “:name”',
+    'activity.page.discarded' => 'Discarded the draft of “:name”',
     'activity.page.unpublished' => 'Took “:name” back to draft',
     'activity.page.deleted' => 'Deleted “:name”',
     'activity.page.reordered' => 'Reordered the pages',

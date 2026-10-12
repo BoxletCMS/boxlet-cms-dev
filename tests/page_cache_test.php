@@ -71,6 +71,9 @@ test('what is never kept', function () use ($on) {
     }
     PageCache::after(visit('/about'), $storage, 200, 'text/html', 'body', static fn (): bool => false);
     assertEquals(0, PageCache::count(), 'the owner switched it off');
+    // A page that says so: one with a form, whose token is the time it was drawn (O-64).
+    PageCache::after(visit('/contact'), $storage, 200, 'text/html', 'body', $on, 'no-store');
+    assertEquals(0, PageCache::count(), 'a page answered with no-store');
     file_put_contents($storage . '/maintenance.flag', 'manual');
     PageCache::after(visit('/about'), $storage, 200, 'text/html', 'body', $on);
     assertEquals(0, PageCache::count(), 'during maintenance');

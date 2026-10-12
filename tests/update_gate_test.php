@@ -128,3 +128,20 @@ testBothDrivers('the button applies the migration; without a token nothing runs'
     $recorded = array_column($db->all('SELECT filename FROM migrations'), 'filename');
     assertTrue(in_array('9001_later.sql', $recorded, true), 'the migration was not recorded');
 });
+
+testBothDrivers('between the swap and its migration the admin still opens Updates, Backups and the login (D-234)', function (string $driver) {
+    // An update from v0.1.0-rc.6 runs the new code before 0043 has added the admin's two
+    // columns; the step that adds them is a request through RequireAdmin, and a guard that
+    // asked for session_gen there would end every such update with an error.
+    $db = adminSite($driver);
+    $db->query('ALTER TABLE admin DROP COLUMN session_gen');
+    $db->query('ALTER TABLE admin DROP COLUMN totp_last_step');
+    $db->query("DELETE FROM migrations WHERE filename = '0043_admin_session_and_code.sql'");
+
+    foreach (['/admin/updates', '/admin/backups', '/admin/update'] as $path) {
+        assertEquals(200, dispatch($path)->status, "{$path} with 0043 pending");
+    }
+    $_SESSION = [];
+    assertEquals(302, dispatch('/admin/login', null, 'POST', ['_csrf' => (new App\Core\Session())->csrfToken(), 'email' => 'owner@example.com', 'password' => 'correct horse battery staple'])->status, 'logging in with 0043 pending');
+    assertEquals(200, dispatch('/admin/updates')->status, 'and Updates after it');
+});

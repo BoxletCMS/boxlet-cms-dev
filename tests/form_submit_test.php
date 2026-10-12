@@ -155,3 +155,16 @@ test('only the form route is sent without the session\'s CSRF token', function (
     adminSite('sqlite');
     assertEquals(403, dispatch('/admin/forms', null, 'POST', ['name' => 'x', 'locale' => 'en'])->status, 'an admin POST without a token');
 });
+
+testBothDrivers('a page with a form is never kept, so each visitor gets a token of their own (O-64)', function (string $driver) {
+    $site = formSite($driver);
+    createPage($site['db'], 'en', 'about', 'About', true, [['type' => 'text', 'content' => ['heading' => 'About', 'body' => '<p>Words.</p>']]]);
+
+    // The token is the time the page was drawn: kept, every visitor had the same one, and a
+    // script sending at once was "older" than three seconds (measured on boxletcms.org).
+    $form = dispatch('/contact');
+    assertContains('name="started"', $form->body, 'the form is drawn');
+    assertEquals('no-store', $form->headers['Cache-Control'] ?? null, 'a page with a form, not to be kept');
+    $plain = dispatch('/about');
+    assertTrue(!isset($plain->headers['Cache-Control']), 'a page without one is kept as before');
+});

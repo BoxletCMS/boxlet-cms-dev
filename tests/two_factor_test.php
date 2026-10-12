@@ -135,3 +135,46 @@ testBothDrivers('a disable-2fa file put there over FTP switches it off at the ne
     assertTrue(!is_file($file), 'the file was left');
     assertContains(e(t('twofactor.reset_done', ['file' => 'storage/disable-2fa'])), dispatch('/admin')->body, 'what happened is said');
 });
+
+testBothDrivers('a code logs in once: not again, and no older one after it (O-66)', function (string $driver) {
+    adminSite($driver);
+    $on = twoStepOn();
+    // One code, kept: seen over a shoulder, it worked again for the rest of its minute.
+    $code = appCode($on['secret']);
+    passwordStep();
+    assertRedirectedTo('/admin', codeStep($code));
+    passwordStep();
+    assertEquals(422, codeStep($code)->status, 'the same code a second time');
+});
+
+testBothDrivers('the code of an earlier step is refused once a later one was used (O-66)', function (string $driver) {
+    $db = adminSite($driver);
+    $id = (int) ($db->one('SELECT id FROM admin')['id'] ?? 0);
+    $at = static fn (int $time): ClockInterface => new class ($time) implements ClockInterface {
+        public function __construct(private readonly int $time)
+        {
+        }
+
+        public function now(): DateTimeImmutable
+        {
+            return (new DateTimeImmutable())->setTimestamp($this->time);
+        }
+    };
+    $now = 1_800_000_000;
+    $two = new TwoFactor($db, 'test-key-not-a-secret', $at($now));
+    $secret = $two->newSecret();
+    assert($secret !== '');
+    $two->enable($id, $secret);
+    $code = static fn (int $time): string => TOTP::createFromSecret($secret, $at($time))->now();
+
+    assertTrue($two->check($id, $code($now)), 'this step\'s code');
+    // Inside the leeway, and older than the one used: refused.
+    assertTrue(!$two->check($id, $code($now - 30)), 'the step before');
+    assertTrue(!$two->check($id, $code($now)), 'the same step again');
+    // The next step, half a minute on, is new.
+    $later = new TwoFactor($db, 'test-key-not-a-secret', $at($now + 30));
+    assertTrue($later->check($id, $code($now + 30)), 'the next step\'s code');
+    // Switched on again, with a new secret, nothing used is remembered.
+    $two->enable($id, $secret);
+    assertTrue($two->check($id, $code($now)), 'after switching on again');
+});

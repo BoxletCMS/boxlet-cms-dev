@@ -556,20 +556,34 @@ test('a country database is installed gzipped or not, and a file that is not one
 });
 
 test('downloading takes this month\'s file, or last month\'s when this one is not out yet', function () {
+    // Through GeoDownload, which fetches both databases since D-237 (Geo::download is gone): a
+    // fetcher that answers from files on disk, as DB-IP answers ranges, and nothing for a
+    // month it has no file for.
     $storage = geoStorage();
     writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
-    $gz = (string) gzencode((string) file_get_contents(tmpPath('geo.mmdb')));
     if (!is_dir(tmpPath('dbip'))) {
         mkdir(tmpPath('dbip'), 0700, true);
     }
-    file_put_contents(tmpPath('dbip/lite-2026-08.mmdb.gz'), $gz);
-    $source = 'file://' . tmpPath('dbip') . '/lite-%s.mmdb.gz';
+    file_put_contents(tmpPath('dbip/lite-2026-08.mmdb.gz'), (string) gzencode((string) file_get_contents(tmpPath('geo.mmdb'))));
+    $source = tmpPath('dbip') . '/lite-%s.mmdb.gz';
+    $disk = static function (string $url, int $from, int $to, string $etag, string $target): array {
+        if (!is_file($url)) {
+            return ['error' => 'HTTP 404', 'total' => 0, 'etag' => '', 'whole' => false];
+        }
+        $bytes = (string) file_get_contents($url);
+        file_put_contents($target, substr($bytes, $from, $to - $from + 1));
 
-    App\Modules\Stats\Geo::download($storage, new DateTimeImmutable('2026-09-01 00:10:00'), $source);
+        return ['error' => '', 'total' => strlen($bytes), 'etag' => 'x', 'whole' => false];
+    };
+
+    App\Modules\Stats\GeoDownload::start($storage, new DateTimeImmutable('2026-09-01 00:10:00'), $source, $disk);
+    do {
+        $progress = App\Modules\Stats\GeoDownload::step($storage, $disk);
+    } while (!$progress['finished']);
     assertEquals('US', App\Modules\Stats\Geo::place($storage, '8.8.8.8')->country, 'last month\'s file');
 
     removeTree($storage . '/geo');
-    assertThrows(fn () => App\Modules\Stats\Geo::download($storage, new DateTimeImmutable('2026-12-05'), $source), 'could not be downloaded');
+    assertThrows(fn () => App\Modules\Stats\GeoDownload::start($storage, new DateTimeImmutable('2026-12-05'), $source, $disk), 'could not be downloaded');
     assertEquals(null, App\Modules\Stats\Geo::status($storage), 'a database after a failed download');
 });
 
@@ -584,8 +598,10 @@ testBothDrivers('the screen credits DB-IP only while its database is in use, and
     assertContains(e(t('stats.attribution')), dispatch('/admin/statistics')->body, 'the credit');
     assertContains(e(t('stats.geo_in_use', ['date' => '2026-09-01'])), dispatch('/admin/settings')->body, 'the panel with one');
 
-    assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics/countries/upload', []));
-    assertContains('notice notice-error" role="status">' . e(t('stats.geo_upload_none')), dispatch('/admin/settings')->body, 'the refusal, coloured as one');
+    // Back at the maps' part, and said there, coloured as a refusal and read out as one (D-237:
+    // it was said in the bar at the top, which the page, standing at this part, did not show).
+    assertRedirectedTo('/admin/settings#geo', adminPost('/admin/settings/statistics/countries/upload', []));
+    assertContains('notice notice-error" role="alert" data-geo-notice>' . e(t('stats.geo_upload_none')), dispatch('/admin/settings')->body, 'the refusal, coloured as one');
     removeTree($storage . '/geo');
 });
 

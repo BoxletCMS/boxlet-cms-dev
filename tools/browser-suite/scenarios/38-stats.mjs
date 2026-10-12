@@ -10,7 +10,7 @@
  * the owner's choice.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, clickAndWait } from '../harness.mjs';
+import { login } from '../harness.mjs';
 
 export default {
   name: 'stats',
@@ -23,11 +23,14 @@ export default {
 
     // The country database, fetched from DB-IP with the button when the site has none.
     await page.goto(`${BASE}/admin/settings#statistics`, { waitUntil: 'networkidle2' });
-    const hadDatabase = await page.$eval('#statistics', (el) => /Country database in use/.test(el.textContent));
+    const hadDatabase = await page.$eval('#statistics', (el) => /Location database in use/.test(el.textContent));
     if (!hadDatabase) {
-      await clickAndWait(page, 'form[action$="/statistics/countries"] button', 180000);
+      // Fetched in place since D-237: no page load, the sentence above the buttons changes.
+      await page.click('form[action$="/statistics/countries"] button');
+      await page.waitForFunction(() => /Location database in use/.test(document.querySelector('[data-geo-in-use]').textContent)
+        || !!document.querySelector('[data-geo-notice].notice-error:not([hidden])'), { timeout: 180000 }).catch(() => {});
     }
-    const geo = await page.$eval('#statistics', (el) => el.textContent.replace(/\s+/g, ' ').match(/Country database in use, from [0-9-]+\./)?.[0] ?? '');
+    const geo = await page.$eval('#statistics', (el) => el.textContent.replace(/\s+/g, ' ').match(/Location database in use, from [0-9-]+\./)?.[0] ?? '');
     const said = await page.$$eval('.notice', (els) => els.map((e) => e.textContent.trim()).join(' | '));
     report.verdict(hadDatabase ? 'the country database is in use' : 'the download button puts the country database in use', geo !== '', `${geo} ${said}`);
 

@@ -106,6 +106,22 @@ test('an answer is checked entry by entry: tags kept, markup cleaned, no markup 
     assertContains('Never translate these words and names: Boxlet, Printworks.', AiTranslator::system('en', 'hr', ['keep' => "Boxlet\nPrintworks", 'voice' => '']), 'the owner\'s words to keep, told');
 });
 
+test('an answer given twice, corrected, is read by its correction; a word in two alphabets is a slip', function () {
+    // As Sonnet 5.5 answered the owner's caption four times in five (D-257), braces and quotes
+    // inside the values too.
+    $twice = static fn (string $s, string $u): array => ['text' => '{"1":"Velики val {u zagradama}"}' . "\n\nWait, correcting for typo:\n\n" . '{"1":"Veliki val \\"{u zagradama}\\""}', 'in' => 1, 'out' => 1];
+    $result = AiTranslator::translate(['caption' => ['text' => 'The Great Wave {in brackets}', 'html' => false]], 'en', 'hr', ['keep' => '', 'voice' => ''], $twice);
+    assertEquals(['caption' => 'Veliki val "{u zagradama}"'], $result['done'], 'the last object, the model\'s correction');
+
+    $slip = static fn (string $s, string $u): array => ['text' => '{"1":"Velики val","2":"Москва i Zagreb","3":"Αθήνα"}', 'in' => 1, 'out' => 1];
+    $result = AiTranslator::translate([
+        'a' => ['text' => 'The Great Wave', 'html' => false],
+        'b' => ['text' => 'Moscow and Zagreb', 'html' => false],
+        'c' => ['text' => 'Athens', 'html' => false],
+    ], 'en', 'hr', ['keep' => '', 'voice' => ''], $slip);
+    assertEquals(['a'], $result['failed'], 'a word half Latin, half Cyrillic is refused; whole words in another alphabet are not');
+});
+
 testBothDrivers('a page is translated part by part into its draft, and nothing is published', function (string $driver) {
     $db = aiSite($driver);
     $source = sourcePage($db);

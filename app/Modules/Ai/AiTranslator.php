@@ -11,7 +11,8 @@ use Closure;
  *
  * WHAT COMES BACK IS CHECKED, entry by entry, never trusted: the same keys and nothing else; rich
  * text through RichText::sanitize, the boundary every word the owner types passes; plain text
- * with no markup in it; and every {{tag}} the original had (D-201) still there. An entry that
+ * with no markup in it; every {{tag}} the original had (D-201) still there; and no word mixing
+ * two alphabets (D-257). An entry that
  * fails a check is left out — its original words stay, and the caller says so — rather than
  * written half-right.
  */
@@ -87,20 +88,50 @@ final class AiTranslator
 
     /**
      * The object in the answer, or null. A model sometimes wraps it in a code fence or a sentence
-     * despite being asked not to: the first { to the last } is read.
+     * despite being asked not to; and sometimes answers, notices a slip, and answers again —
+     * `{…}` "Wait, correcting for typo:" `{…}` (Sonnet 5.5, measured, D-257). Every whole object
+     * in the text is found, strings and escapes respected, and the last that reads is the answer:
+     * the model's own correction.
      *
      * @return array<int|string, mixed>|null
      */
     private static function json(string $text): ?array
     {
-        $start = strpos($text, '{');
-        $end = strrpos($text, '}');
-        if ($start === false || $end === false || $end < $start) {
-            return null;
+        $objects = [];
+        $depth = 0;
+        $start = 0;
+        $inString = false;
+        $length = strlen($text);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $text[$i];
+            if ($inString) {
+                if ($char === '\\') {
+                    $i++;
+                } elseif ($char === '"') {
+                    $inString = false;
+                }
+            } elseif ($char === '"' && $depth > 0) {
+                $inString = true;
+            } elseif ($char === '{') {
+                if ($depth === 0) {
+                    $start = $i;
+                }
+                $depth++;
+            } elseif ($char === '}' && $depth > 0) {
+                $depth--;
+                if ($depth === 0) {
+                    $objects[] = substr($text, $start, $i - $start + 1);
+                }
+            }
         }
-        $data = json_decode(substr($text, $start, $end - $start + 1), true);
+        foreach (array_reverse($objects) as $object) {
+            $data = json_decode($object, true);
+            if (is_array($data)) {
+                return $data;
+            }
+        }
 
-        return is_array($data) ? $data : null;
+        return null;
     }
 
     /**
@@ -121,6 +152,11 @@ final class AiTranslator
         sort($tags);
         sort($now);
         if ($tags !== $now) {
+            return null;
+        }
+        // A word half in one alphabet and half in another is a slip, never a translation:
+        // "Velики val" for "Veliki val" (Sonnet 5.5, measured, D-257).
+        if (preg_match('~\b(?=\p{L}*\p{Latin})(?=\p{L}*[\p{Cyrillic}\p{Greek}])\p{L}+~u', strip_tags($value)) === 1) {
             return null;
         }
         if ($original['html']) {

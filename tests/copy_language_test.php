@@ -82,4 +82,5 @@ testBothDrivers('a site in one language offers no copy at all', function (string
     $list = dispatch('/admin/pages')->body;
     assertTrue(!str_contains($list, 'id="bulk-copy-to"'), 'no language to choose');
     assertTrue(!str_contains($list, '/translate"'), 'no row offers a translation');
+    assertContains('formaction="/admin/pages/publish"', $list, 'Publish selected is there all the same');
 });

@@ -16,7 +16,7 @@ use App\Support\Url;
  * @var string $state published, changes or draft
  * @var array<string, mixed> $data what builder-*.js starts from
  * @var \App\Core\Blocks $registry
- * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
+ * @var list<array{code: string, label: string, page: int|null, current: bool, source: bool}> $languages
  * @var bool $aiReady Translate with AI offered beside Translate, and Translate again beside a stale block (D-248)
  * @var string $csrf
  * @var array{source: array<string, mixed>|null, stale: array<int, array{source: int, type: string, content: array<string, mixed>}>, missing: int, sourceLabel: string} $translation
@@ -51,6 +51,15 @@ $pageId = (int) $page['id'];
 <form method="post" action="<?= e(Url::admin('pages', $pageId, 'translate')) ?>" id="translate-<?= e($language['code']) ?>" class="visually-hidden">
     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
     <input type="hidden" name="locale" value="<?= e($language['code']) ?>">
+</form>
+<?php endif; ?>
+<?php endforeach; ?>
+
+<?php /* A version that exists, translated again with AI (D-252), reached by the language menu. */ ?>
+<?php foreach ($languages as $language): ?>
+<?php if ($aiReady && $language['page'] !== null && !$language['source']): ?>
+<form method="post" action="<?= e(Url::admin('pages', $language['page'], 'ai')) ?>" id="ai-page-<?= e((string) $language['page']) ?>" class="visually-hidden">
+    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
 </form>
 <?php endif; ?>
 <?php endforeach; ?>

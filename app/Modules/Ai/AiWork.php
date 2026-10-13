@@ -7,6 +7,7 @@ use App\Core\Db;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageDocument;
 use App\Modules\Pages\PageDraft;
+use App\Modules\Pages\PagePaths;
 use App\Modules\Pages\PageSeo;
 use App\Modules\Pages\Slug;
 use App\Modules\Pages\TranslationStatus;
@@ -71,6 +72,15 @@ final class AiWork
             $own['description'] = $result['done']['seo_description'] ?? $own['description'];
             $document['seo_json'] = PageSeo::json($own);
             self::save($db, $pageId, $document, $current['version']);
+            // A page never published is its draft: the list, the progress screen and an address
+            // taken by another page read its row, which said the original's title and address
+            // until it was published (the owner, D-253). Written there too; nothing of it is live,
+            // unless a page below it was published, whose address holds this one's slug.
+            if ($page['published_at'] === null) {
+                $slug = self::liveBelow($db, $pageId) ? (string) $page['slug'] : $document['slug'];
+                $db->query('UPDATE pages SET title = ?, slug = ?, seo_json = ? WHERE id = ?', [$document['title'], $slug, $document['seo_json'], $pageId]);
+                PagePaths::changed();
+            }
 
             return $result['failed'] === [] ? '' : tn('ai.kept_original', count($result['failed']));
         }
@@ -216,6 +226,24 @@ final class AiWork
         $label = (string) ($db->one('SELECT label FROM locales WHERE code = ?', [$code])['label'] ?? '');
 
         return ($label !== '' ? $label . ' ' : '') . '(' . $code . ')';
+    }
+
+    /** Whether any page below this one, at any depth, has ever been published. */
+    private static function liveBelow(Db $db, int $pageId): bool
+    {
+        $level = [$pageId];
+        while ($level !== []) {
+            $marks = implode(', ', array_fill(0, count($level), '?'));
+            $rows = $db->all("SELECT id, published_at FROM pages WHERE parent_id IN ($marks)", $level);
+            foreach ($rows as $row) {
+                if ($row['published_at'] !== null) {
+                    return true;
+                }
+            }
+            $level = array_map(fn (array $row): int => (int) $row['id'], $rows);
+        }
+
+        return false;
     }
 
     /**

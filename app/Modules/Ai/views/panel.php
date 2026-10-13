@@ -11,12 +11,14 @@ use App\Support\Url;
  * @var array<string, string> $aiErrors
  * @var string $aiKeyTrace what the saved key shows in its empty field; '' when none is saved
  * @var array{in: int, out: int} $aiUsage
+ * @var array<string, string> $aiModels Anthropic's list as last fetched, else the built-in one (D-255)
  * @var string $csrf
  */
 $aiError = static fn (string $key): string => isset($aiErrors[$key])
     ? '<p class="field-error" role="alert">' . e($aiErrors[$key]) . '</p>'
     : '';
-$known = isset(AiSettings::MODELS[$ai['model']]);
+$known = isset($aiModels[$ai['model']]);
+$recommended = AiSettings::recommended($aiModels);
 ?>
         <div class="panel stack" id="ai">
             <h2><?= e(t('ai.title')) ?></h2>
@@ -36,16 +38,18 @@ $known = isset(AiSettings::MODELS[$ai['model']]);
                 </div>
                 <div class="field">
                     <label for="ai_model"><?= e(t('ai.model')) ?></label>
-                    <select id="ai_model" name="ai_model" aria-describedby="ai_model-hint">
-<?php foreach (AiSettings::MODELS as $id => $name): ?>
-                        <option value="<?= e($id) ?>"<?= $id === $ai['model'] ? ' selected' : '' ?>><?= e($name . ($id === AiSettings::DEFAULT_MODEL ? ' — ' . t('ai.model_recommended') : '')) ?></option>
+                    <select id="ai_model" name="ai_model" aria-describedby="ai_model-hint" data-ai-model>
+<?php foreach ($aiModels as $id => $name): ?>
+                        <option value="<?= e($id) ?>"<?= $id === $ai['model'] ? ' selected' : '' ?>><?= e($name . ($id === $recommended ? ' — ' . t('ai.model_recommended') : '')) ?></option>
 <?php endforeach; ?>
                         <option value="other"<?= $known ? '' : ' selected' ?>><?= e(t('ai.model_other')) ?></option>
                     </select>
                     <span class="hint" id="ai_model-hint"><?= e(t('ai.model_hint')) ?></span>
                     <?= $aiError('model') ?>
                 </div>
-                <div class="field">
+                <?php /* Shown by ai-settings.js only while "Another model…" is chosen; without the
+                         script it is always there, and its hint says what it is for (D-255). */ ?>
+                <div class="field" data-ai-other>
                     <label for="ai_model_other"><?= e(t('ai.model_other_label')) ?></label>
                     <input type="text" id="ai_model_other" name="ai_model_other" value="<?= e($known ? '' : $ai['model']) ?>" autocomplete="off" spellcheck="false" aria-describedby="ai_model_other-hint">
                     <span class="hint" id="ai_model_other-hint"><?= e(t('ai.model_other_hint')) ?></span>

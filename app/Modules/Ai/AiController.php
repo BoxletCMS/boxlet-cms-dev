@@ -48,6 +48,9 @@ final class AiController
         } else {
             Activity::record($this->db(), 'settings', 'ai_saved', null, '');
             $session->set('flash', t('ai.saved'));
+            // The list of models asked for again with the key just saved (D-255); without a
+            // key, or with no answer, the panel keeps the list it has.
+            $this->refreshModels();
         }
 
         return Response::redirect(Url::admin('settings') . '#ai');
@@ -75,6 +78,7 @@ final class AiController
             );
             AiSettings::addUsage($db, $result['in'], $result['out']);
             $session->set('flash', t('ai.test_done', ['text' => $result['done']['test'] ?? '']));
+            $this->refreshModels();
         } catch (AiFailure $e) {
             $session->set('flash', t('ai.test_failed', ['reason' => $e->getMessage()]));
             $session->set('flash_kind', 'error');
@@ -190,6 +194,30 @@ final class AiController
     }
 
     /**
+     * A VERSION THAT EXISTS, TRANSLATED AGAIN FROM ITS ORIGINAL (D-252, the owner: "ne vidim način
+     * kako da prevedem već kopirane stranice"): every part of it queued, its words in the draft
+     * replaced as each part comes back. The original itself has nothing to be translated from.
+     *
+     * @param array<string, string> $params
+     */
+    public function page(Request $request, string $locale, array $params): Response
+    {
+        $db = $this->db();
+        $pageId = (int) $params['id'];
+        $page = $db->one('SELECT id, translation_status FROM pages WHERE id = ?', [$pageId]);
+        $session = $this->container->get('session');
+        if ($page === null || $page['translation_status'] === 'source' || !AiSettings::ready($db, $this->appKey())) {
+            $session->set('flash', $page === null ? t('pages.not_found') : ($page['translation_status'] === 'source' ? t('ai.error.is_source') : t('ai.error.not_ready')));
+            $session->set('flash_kind', 'error');
+
+            return Response::redirect(Url::admin('pages'));
+        }
+        AiQueue::page($db, $this->container->get('blocks'), $pageId);
+
+        return Response::redirect(Url::withQuery(Url::admin('translate'), ['back' => (string) $pageId]));
+    }
+
+    /**
      * After Translate, Copy into language or Translate again: the pages queued, and the owner
      * taken to the screen that runs it. Null when AI translation was not asked for or is not set.
      *
@@ -206,6 +234,15 @@ final class AiController
         }
 
         return Response::redirect(Url::withQuery(Url::admin('translate'), count($pageIds) === 1 ? ['back' => (string) $pageIds[0]] : []));
+    }
+
+    /** Anthropic's list of models, kept for the panel; nothing changes when it cannot be had. */
+    private function refreshModels(): void
+    {
+        try {
+            AiSettings::rememberModels($this->db(), ($this->container->get('ai_models'))());
+        } catch (AiFailure) {
+        }
     }
 
     private function appKey(): string

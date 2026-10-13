@@ -58,7 +58,7 @@ final class PageBuilderController
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/builder', [
             'title' => t('pages.edit'),
             'nav' => 'pages',
-            'styles' => ['admin-richtext.css', 'admin-richtext-tags.css', 'admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css', 'builder.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css'],
+            'styles' => ['admin-richtext.css', 'admin-richtext-tags.css', 'admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css', 'builder.css', 'builder-locale.css', 'builder-narrow.css', 'builder-rail.css', 'builder-add.css', 'builder-inspector.css'],
             'scripts' => ['vendor/tiptap.bundle.min.js', 'richtext-link.js', 'richtext.js', 'vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'repeater.js', 'vendor/sortable.min.js'],
             'wide' => true,
             'bare' => true,
@@ -233,15 +233,19 @@ final class PageBuilderController
      * The site's languages as the builder's language menu offers them: this page's version in
      * each, or null where there is none yet (D-043).
      *
-     * @return list<array{code: string, label: string, page: int|null, current: bool}>
+     * @return list<array{code: string, label: string, page: int|null, current: bool, source: bool}>
      */
     private function languages(int $id, string $current): array
     {
         $versions = Translations::of($this->db(), $id);
+        $sources = $versions === [] ? [] : array_map('intval', array_column($this->db()->all(
+            "SELECT id FROM pages WHERE translation_status = 'source' AND id IN (" . implode(',', array_map('intval', $versions)) . ')',
+        ), 'id'));
         $languages = [];
         foreach ($this->container->get('locales') as $language) {
             $code = (string) $language['code'];
-            $languages[] = ['code' => $code, 'label' => (string) $language['label'], 'page' => $versions[$code] ?? null, 'current' => $code === $current];
+            $page = $versions[$code] ?? null;
+            $languages[] = ['code' => $code, 'label' => (string) $language['label'], 'page' => $page, 'current' => $code === $current, 'source' => $page !== null && in_array($page, $sources, true)];
         }
 
         return $languages;

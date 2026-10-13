@@ -132,7 +132,9 @@ testBothDrivers('a page is translated part by part into its draft, and nothing i
     assertEquals('HR Contact', $doc['blocks'][0]['content']['cta']['label'] ?? null, 'a link\'s words');
     assertEquals('/contact', $doc['blocks'][0]['content']['cta']['url'] ?? null, 'its address as it was');
     assertEquals('<p>HR Some words.</p>', $doc['blocks'][1]['content']['body'] ?? null, 'rich text, markup kept');
-    assertEquals('About us', $db->one('SELECT title FROM pages WHERE id = ?', [$copy])['title'] ?? null, 'the stored page untouched');
+    // A page never published: its row says what its draft says, so the list shows the Croatian
+    // title and address (D-253; until then this test held the row untouched). Still a draft.
+    assertEquals(['title' => 'HR About us', 'slug' => 'hr-about-us', 'status' => 'draft'], $db->one('SELECT title, slug, status FROM pages WHERE id = ?', [$copy]), 'the row of a page never published');
     assertEquals(['done' => 3, 'failed' => 0, 'pending' => 0], array_intersect_key(AiQueue::progress($db), ['done' => 1, 'failed' => 1, 'pending' => 1]), 'all done');
     assertEquals(['in' => 30, 'out' => 36], AiSettings::usage($db), 'the tokens counted');
 });
@@ -221,4 +223,85 @@ testBothDrivers('a step raises the time limit only where there is one', function
     adminPost('/admin/translate/step', []);
     assertEquals('0', ini_get('max_execution_time'), 'no limit before, none after');
     set_time_limit((int) $was);
+});
+
+// A VERSION THAT EXISTS, TRANSLATED AGAIN WITH AI (D-252, the owner: "ne vidim način kako da
+// prevedem već kopirane stranice"): from a row of the list, from the editor, and with Copy into
+// language; never the original, which there is nothing to translate from.
+testBothDrivers('a copy made without AI is translated with AI afterwards, and the original is not', function (string $driver) {
+    $db = aiSite($driver);
+    $source = sourcePage($db);
+    $copy = (int) Translations::create($db, blockRegistry(), $source, 'hr');
+
+    $list = dispatch('/admin/pages')->body;
+    assertContains('action="/admin/pages/' . $copy . '/ai"', $list, 'offered for the copy');
+    assertTrue(!str_contains($list, 'action="/admin/pages/' . $source . '/ai"'), 'never for the original');
+    assertContains(e(t('ai.translate_this')), $list, 'on the copy\'s own row');
+    assertContains(e(t('ai.translate_into', ['language' => 'Hrvatski'])), $list, 'and on the original\'s, for its copy');
+    assertContains('form="ai-page-' . $copy . '"', dispatch('/admin/pages/' . $source)->body, 'and in the editor\'s language menu');
+
+    $response = adminPost('/admin/pages/' . $copy . '/ai', []);
+    assertRedirectedTo('/admin/translate?back=' . $copy, $response);
+    aiRunAll($db, aiEcho());
+    $doc = PageDraft::current($db, blockRegistry(), $copy)['document'] ?? [];
+    assertEquals('HR About us', $doc['title'] ?? null, 'translated into its draft');
+
+    adminPost('/admin/pages/' . $source . '/ai', []);
+    assertEquals(t('ai.error.is_source'), $_SESSION['flash'] ?? null, 'the original refused');
+    assertEquals(0, AiQueue::progress($db)['pending'], 'and nothing queued for it');
+});
+
+testBothDrivers('Copy into language with AI translates the versions that are there too', function (string $driver) {
+    $db = aiSite($driver);
+    $source = sourcePage($db);
+    $copy = (int) Translations::create($db, blockRegistry(), $source, 'hr');
+    $other = createPage($db, 'en', 'team', 'Team', true, [['type' => 'text', 'content' => ['body' => '<p>We.</p>']]]);
+
+    $response = adminPost('/admin/pages/copy', ['ids' => [(string) $source, (string) $other], 'to' => 'hr', 'ai' => '1']);
+    assertRedirectedTo('/admin/translate', $response);
+    $pages = array_column(AiQueue::progress($db)['pages'], 'id');
+    sort($pages);
+    $made = Translations::of($db, $other)['hr'] ?? 0;
+    assertEquals([$copy, $made], $pages, 'the copy there already, and the one just made');
+    assertContains(tn('ai.bulk_queued', 2), (string) ($_SESSION['flash'] ?? ''), 'said');
+});
+
+testBothDrivers('a page once published keeps its row and its address; one never published keeps a slug a live subpage stands on', function (string $driver) {
+    $db = aiSite($driver);
+    $source = sourcePage($db);
+    $copy = (int) Translations::create($db, blockRegistry(), $source, 'hr');
+    $db->query("UPDATE pages SET status = 'published', published_at = ? WHERE id = ?", ['2026-01-01 00:00:00', $copy]);
+    AiQueue::page($db, blockRegistry(), $copy);
+    aiRunAll($db, aiEcho());
+    $doc = PageDraft::current($db, blockRegistry(), $copy)['document'] ?? [];
+    assertEquals(['HR About us', 'about'], [$doc['title'] ?? null, $doc['slug'] ?? null], 'the draft translated, its address kept');
+    assertEquals(['title' => 'About us', 'slug' => 'about'], $db->one('SELECT title, slug FROM pages WHERE id = ?', [$copy]), 'the live row as it was');
+
+    $parent = (int) Translations::create($db, blockRegistry(), sourcePage($db, 'services', 'Services'), 'hr');
+    $child = createPage($db, 'hr', 'dizajn', 'Dizajn', true);
+    $db->query('UPDATE pages SET parent_id = ? WHERE id = ?', [$parent, $child]);
+    AiQueue::page($db, blockRegistry(), $parent);
+    aiRunAll($db, aiEcho());
+    assertEquals(['title' => 'HR Services', 'slug' => 'services'], $db->one('SELECT title, slug FROM pages WHERE id = ?', [$parent]), 'its title, but the address /hr/services/dizajn is live');
+});
+
+testBothDrivers('the models offered are Anthropic\'s, fetched on a save or a test; without an answer the built-in list stays', function (string $driver) {
+    $db = aiSite($driver);
+    $offered = static function (): array {
+        preg_match('~<select id="ai_model"[^>]*>(.*?)</select>~s', dispatch('/admin/settings')->body, $select);
+        preg_match_all('~value="([^"]+)"~', $select[1] ?? '', $values);
+
+        return $values[1];
+    };
+    assertEquals([...array_keys(AiSettings::MODELS), 'other'], $offered(), 'the built-in list before any answer');
+
+    $models = static fn (Container $c) => $c->set('ai_models', static fn () => static fn (): array => ['claude-new-6' => 'Claude New 6', 'claude-sonnet-5-5' => 'Claude Sonnet 5.5', 'claude-sonnet-5' => 'Claude Sonnet 5']);
+    $form = ['_csrf' => (new App\Core\Session())->csrfToken(), 'ai_provider' => 'anthropic', 'ai_model' => 'claude-sonnet-5', 'ai_key' => ''];
+    dispatch('/admin/settings/ai', null, 'POST', $form, '203.0.113.10', $models);
+    assertEquals(['claude-new-6', 'claude-sonnet-5-5', 'claude-sonnet-5', 'other'], $offered(), 'what Anthropic listed, after a save');
+    assertContains('Claude Sonnet 5.5 — ' . t('ai.model_recommended'), dispatch('/admin/settings')->body, 'the newest Sonnet recommended');
+    dispatch('/admin/settings/ai', null, 'POST', ['ai_model' => 'claude-new-6'] + $form);
+    assertEquals('claude-new-6', AiSettings::stored($db)['model'], 'a listed model is taken');
+    assertEquals(['claude-new-6', 'claude-sonnet-5-5', 'claude-sonnet-5', 'other'], $offered(), 'a save with no answer keeps the list');
+    assertContains('data-ai-other', dispatch('/admin/settings')->body, 'the other model\'s field is marked for the script');
 });

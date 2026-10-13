@@ -154,6 +154,14 @@ function dispatch(
         // No test site is served over HTTP, so nothing beside public/ can be fetched from it;
         // asking would send a request to example.test. A test of the other answer sets its own.
         $container->set('private_hidden', static fn () => static fn (): bool => true);
+        // Nor does a request reach Anthropic: a saved test key would be sent there by any save
+        // or test of the AI panel (D-255). A test that wants an answer sets its own.
+        $container->set('ai_ask', static fn () => static function (): array {
+            throw new \App\Modules\Ai\AiFailure('no request leaves a test');
+        });
+        $container->set('ai_models', static fn () => static function (): array {
+            throw new \App\Modules\Ai\AiFailure('no request leaves a test');
+        });
         // Replace a service before anything resolves it. The configurator above takes the
         // Router, which is built from the container and so cannot reach it — a test that
         // needs the request to see a different service (a pending update, say) has

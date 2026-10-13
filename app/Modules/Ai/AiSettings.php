@@ -19,8 +19,9 @@ final class AiSettings
     public const PROVIDERS = ['anthropic'];
 
     /**
-     * The models offered, newest and most capable first, id => what it is. "Another model" takes
-     * an id this list does not know yet, for a model that came out after this release.
+     * The models offered until Anthropic has been asked for its list (D-255), and when it cannot
+     * be: newest and most capable first, id => what it is. "Another model" takes an id neither
+     * list knows.
      */
     public const MODELS = [
         'claude-sonnet-5' => 'Claude Sonnet 5',
@@ -29,6 +30,57 @@ final class AiSettings
     ];
 
     public const DEFAULT_MODEL = 'claude-sonnet-5';
+
+    /** What a model id may be: letters, digits, dots and dashes. */
+    public const MODEL_ID = '~^[a-z0-9][a-z0-9.\-]{2,79}$~';
+
+    /**
+     * The models the panel offers: Anthropic's list as last fetched with the owner's key, else
+     * the built-in one.
+     *
+     * @return array<string, string>
+     */
+    public static function models(Db $db): array
+    {
+        $fetched = Settings::get($db, 'ai_models');
+        $models = [];
+        foreach (is_array($fetched) ? $fetched : [] as $id => $name) {
+            if (is_string($id) && is_string($name) && preg_match(self::MODEL_ID, $id) === 1) {
+                $models[$id] = $name;
+            }
+        }
+
+        return $models !== [] ? $models : self::MODELS;
+    }
+
+    /**
+     * The model the panel marks recommended: the newest Sonnet on the list (Anthropic lists the
+     * newest first), so the mark moves when a new one comes out; else the built-in default.
+     *
+     * @param array<string, string> $models
+     */
+    public static function recommended(array $models): string
+    {
+        foreach (array_keys($models) as $id) {
+            if (str_starts_with($id, 'claude-sonnet-')) {
+                return $id;
+            }
+        }
+
+        return self::DEFAULT_MODEL;
+    }
+
+    /**
+     * Keeps the list Anthropic gave, for the panel. An empty one changes nothing.
+     *
+     * @param array<string, string> $models
+     */
+    public static function rememberModels(Db $db, array $models): void
+    {
+        if ($models !== []) {
+            Settings::set($db, 'ai_models', $models);
+        }
+    }
 
     /**
      * What is stored, the key still sealed.
@@ -69,10 +121,10 @@ final class AiSettings
             $errors['provider'] = t('ai.provider_invalid');
         }
         $model = $input['model'] === 'other' ? trim($input['model_other']) : $input['model'];
-        if ($input['model'] !== 'other' && !isset(self::MODELS[$model])) {
+        if ($input['model'] !== 'other' && !isset(self::models($db)[$model]) && !isset(self::MODELS[$model])) {
             $errors['model'] = t('ai.model_invalid');
         }
-        if ($input['model'] === 'other' && preg_match('~^[a-z0-9][a-z0-9.\-]{2,79}$~', $model) !== 1) {
+        if ($input['model'] === 'other' && preg_match(self::MODEL_ID, $model) !== 1) {
             $errors['model_other'] = t('ai.model_other_invalid');
         }
         $key = trim($input['key']);

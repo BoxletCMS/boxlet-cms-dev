@@ -166,7 +166,7 @@ final class SettingsController
             'nav' => 'settings',
             // The picker's own stylesheets and script, the same set the page editor loads.
             'styles' => ['admin-media.css', 'admin-picker.css', 'admin-browser.css', 'vendor/cropper.min.css', 'admin-crop.css', 'admin-two-step.css', 'admin-settings.css'],
-            'scripts' => ['vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'mail-settings.js', 'settings-nav.js', 'auto-continue.js', 'file-sends.js', 'geo-download.js'],
+            'scripts' => ['vendor/cropper.min.js', 'media-browser-upload.js', 'media-browser.js', 'media-picker.js', 'mail-settings.js', 'ai-settings.js', 'settings-nav.js', 'auto-continue.js', 'file-sends.js', 'geo-download.js'],
             'values' => $values,
             'errors' => $errors,
             'notice' => $notice,
@@ -243,7 +243,7 @@ final class SettingsController
      * The AI translation panel's values (D-248): what is stored, or what was typed into a refused
      * save, with its errors, shown once. The key never reaches the screen, only its ends.
      *
-     * @return array{ai: array{provider: string, model: string, keep: string, voice: string}, aiErrors: array<string, string>, aiKeyTrace: string, aiUsage: array{in: int, out: int}}
+     * @return array{ai: array{provider: string, model: string, keep: string, voice: string}, aiErrors: array<string, string>, aiKeyTrace: string, aiUsage: array{in: int, out: int}, aiModels: array<string, string>}
      */
     private function ai(): array
     {
@@ -261,6 +261,7 @@ final class SettingsController
             'aiErrors' => array_filter($errors, 'is_string'),
             'aiKeyTrace' => MailSettings::trace($stored['key'], (string) $this->container->get('config')->get('app.key'), true),
             'aiUsage' => \App\Modules\Ai\AiSettings::usage($this->db()),
+            'aiModels' => \App\Modules\Ai\AiSettings::models($this->db()),
         ];
     }
 

@@ -17,6 +17,7 @@ use App\Support\Url;
  * @var int $maxLevels how deep the tree may go (PagePlacing::MAX_LEVELS)
  * @var array<int, array<string, int>> $versions page id => every language's version of it, locale => id (D-247)
  * @var bool $aiReady whether Translate with AI is offered (D-248)
+ * @var array<int, true> $sources the pages that are originals: AI translates from them, never into them (D-252)
  * @var string $csrf
  */
 // The page above each row among its own siblings: what → places it under (D-133). The list
@@ -94,13 +95,18 @@ foreach ($pages as $row) {
     $bulkAction = Url::admin('pages', 'delete');
     $bulkWords = 'pages.bulk';
     $bulkKeep = ['lang' => $lang, 'q' => $query];
-    // COPY INTO A LANGUAGE (D-247): only where the site has more than one.
-    $bulkExtra = '';
-    if (count($codes) > 1) {
-        $bulkExtra = '<label class="visually-hidden" for="bulk-copy-to">' . e(t('pages.bulk.copy_label')) . '</label>'
+    // PUBLISH THE TICKED PAGES (D-254), each as its row's Publish does.
+    $bulkExtra = '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'publish')) . '" data-bulk-also>'
+        . icon('eye') . ' ' . e(t('pages.bulk.publish')) . '</button>';
+    // COPY INTO A LANGUAGE (D-247): only where the site has more than one, and only into one
+    // the list is not showing — pages filtered to Croatian are in Croatian already (D-254).
+    $targets = array_values(array_filter($codes, static fn (string $code): bool => $code !== $lang));
+    if (count($codes) > 1 && $targets !== []) {
+        $chosen = $lang === '' ? $codes[1] : $targets[0];
+        $bulkExtra .= '<label class="visually-hidden" for="bulk-copy-to">' . e(t('pages.bulk.copy_label')) . '</label>'
             . '<select id="bulk-copy-to" name="to" class="list-bulk-select">';
-        foreach ($localeLabels as $code => $label) {
-            $bulkExtra .= '<option value="' . e($code) . '"' . ($code === $codes[1] ? ' selected' : '') . '>' . e($label) . '</option>';
+        foreach ($targets as $code) {
+            $bulkExtra .= '<option value="' . e($code) . '"' . ($code === $chosen ? ' selected' : '') . '>' . e($localeLabels[$code] ?? $code) . '</option>';
         }
         $bulkExtra .= '</select>'
             . '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'copy')) . '" data-bulk-also>'
@@ -207,10 +213,24 @@ foreach ($pages as $row) {
 <?php endif; ?>
 <?php /* This page in the site's other languages (D-247): its version opened where there is one,
          made as the builder's Translate makes it where there is not. */ ?>
+<?php /* A version that exists, translated again from its original with AI (D-252): this page,
+         where it is a translation, and its versions in the other languages. */ ?>
+<?php if ($aiReady && !isset($sources[$id])): ?>
+                                    <form method="post" action="<?= e(Url::admin('pages', $id, 'ai')) ?>">
+                                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                                        <button type="submit" data-confirm="<?= e(t('ai.retranslate_confirm')) ?>"><?= icon('languages') ?> <?= e(t('ai.translate_this')) ?></button>
+                                    </form>
+<?php endif; ?>
 <?php foreach ($localeLabels as $code => $label): ?>
 <?php if ($code === $page['locale']) { continue; } ?>
 <?php if (isset($versions[$id][$code])): ?>
                                     <a href="<?= e(Url::admin('pages', $versions[$id][$code])) ?>"><?= icon('languages') ?> <?= e(t('pages.open_in', ['language' => $label])) ?></a>
+<?php if ($aiReady && !isset($sources[$versions[$id][$code]])): ?>
+                                    <form method="post" action="<?= e(Url::admin('pages', $versions[$id][$code], 'ai')) ?>">
+                                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                                        <button type="submit" data-confirm="<?= e(t('ai.retranslate_confirm')) ?>"><?= icon('languages') ?> <?= e(t('ai.translate_into', ['language' => $label])) ?></button>
+                                    </form>
+<?php endif; ?>
 <?php else: ?>
                                     <form method="post" action="<?= e(Url::admin('pages', $id, 'translate')) ?>">
                                         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

@@ -59,6 +59,8 @@ final class PagesController
             'undo' => $this->pullUndo(),
             'maxLevels' => PagePlacing::MAX_LEVELS,
             'versions' => self::versions($this->db()),
+            // The originals, which AI translates from and never into (D-252).
+            'sources' => array_fill_keys(array_map('intval', array_column($this->db()->all("SELECT id FROM pages WHERE translation_status = 'source'"), 'id')), true),
             'aiReady' => \App\Modules\Ai\AiSettings::ready($this->db(), (string) $this->container->get('config')->get('app.key')),
         ]);
     }

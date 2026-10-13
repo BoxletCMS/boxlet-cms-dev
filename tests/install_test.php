@@ -142,7 +142,10 @@ testBothDrivers('a full install creates the admin, primary locale, settings, .en
     mkdir($dir . '/cache/pages', 0777, true);
     file_put_contents($dir . '/cache/pages/' . sha1('/') . '.html', 'the old site');
     $done = installPost($installer, ['name' => 'Test Site', 'locale' => 'hr', 'timezone' => 'Europe/Zagreb']);
-    assertContains(e(t('install.done.title')), $done->body, 'done page');
+    // The site's language is chosen at this step, and the done page is the first said in it
+    // (D-240): Croatian, which has the admin.
+    assertContains('<html lang="hr"', $done->body, 'done page, in the language chosen');
+    assertContains(e(\App\Support\AdminLang::strings('hr')['install.done.title']), $done->body, 'done page');
     assertEquals([], glob($dir . '/cache/pages/*.html'), 'the old site\'s kept pages');
 
     assertTrue(is_file($dir . '/storage/install.lock'), 'install.lock written');

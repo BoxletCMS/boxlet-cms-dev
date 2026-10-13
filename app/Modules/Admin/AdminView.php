@@ -55,7 +55,7 @@ final class AdminView
             // Statistics has a place in the rail only while it counts (D-051).
             'statsOn' => \App\Modules\Stats\Tracker::settings($container->get('db'))['enabled'],
         ] + self::frame($container);
-        $html = (new View($directory, __DIR__ . '/views'))->render($template, 'en', $data);
+        $html = (new View($directory, __DIR__ . '/views'))->render($template, \App\Support\AdminLang::code(), $data);
 
         return Response::admin($html, $status);
     }

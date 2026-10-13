@@ -183,7 +183,7 @@ It gets there by leaving things out, and by keeping what it can:
 - **Translations are linked.** Each page knows its translations, so the language switcher and
   `hreflang` come for free.
 - **Built-in words** such as form labels, buttons and "page not found" are already translated
-  into English, German, Spanish, French, Croatian, Italian and Slovenian.
+  into English, German, Spanish, French, Croatian, Italian and Portuguese.
 
 ## Forms and email
 

@@ -207,7 +207,7 @@ return [
             ['24-settings-languages.png', 'Its own addresses', $p('Each language gets its own addresses: /, /hr/, /de/.')],
             ['25-builder-translation-hr.png', 'Translations know each other', $p('So the language switcher and hreflang come for free.')],
         ),
-        [$one($text('', $p('Form labels, buttons and “page not found” are already translated into English, German, Spanish, French, Croatian, Italian and Slovenian.')))],
+        [$one($text('', $p('Form labels, buttons and “page not found” are already translated into English, German, Spanish, French, Croatian, Italian and Portuguese.')))],
     )),
     $feature('forms', [
         $one($shot('26-form-builder.png', 'A form builder', $p('Fields in order, required where you say.'), 'image-right')),

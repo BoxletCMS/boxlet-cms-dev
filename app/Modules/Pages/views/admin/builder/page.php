@@ -59,7 +59,7 @@ $home = Url::page((string) $page['locale'], '');
                 <h3 class="pb-add-group"><?= e(t('builder.page.history')) ?></h3>
 <?php if ($revisions !== []): ?>
                 <?php /* What Restore does, said where it is pressed: not a hint behind the toggle (D-088). */ ?>
-                <p class="hint-line" data-pb-history-note><?= e(t('pages.history_hint', ['count' => \App\Modules\Pages\PageRevision::KEEP])) ?></p>
+                <p class="hint-line" data-pb-history-note><?= e(tn('pages.history_hint', \App\Modules\Pages\PageRevision::KEEP)) ?></p>
 <?php endif; ?>
 <?php if ($revisions === []): ?>
                 <p class="pb-add-none"><?= e(t('builder.page.history_none')) ?></p>

@@ -25,7 +25,7 @@
 function langFiles(): array
 {
     $files = [];
-    foreach (glob(dirname(__DIR__) . '/lang/' . ADMIN_LANG . '/*.php') ?: [] as $file) {
+    foreach (glob(dirname(__DIR__) . '/lang/en/*.php') ?: [] as $file) {
         $contents = require $file;
         $files[basename($file)] = is_array($contents) ? $contents : [];
     }
@@ -99,12 +99,12 @@ test('a key with no string is returned as itself, not as an empty page', functio
 test('no language file sits directly under lang/', function () {
     $stray = glob(dirname(__DIR__) . '/lang/*.php') ?: [];
 
-    assertEquals([], array_map('basename', $stray), 'these belong in lang/' . ADMIN_LANG . '/');
+    assertEquals([], array_map('basename', $stray), 'these belong in lang/en/');
 });
 
 test('the admin locale has a directory of its own', function () {
-    $directory = dirname(__DIR__) . '/lang/' . ADMIN_LANG;
+    $directory = dirname(__DIR__) . '/lang/en';
 
-    assertTrue(is_dir($directory), 'lang/' . ADMIN_LANG . ' is missing');
+    assertTrue(is_dir($directory), 'lang/en is missing');
     assertTrue(count(glob($directory . '/*.php') ?: []) > 1, 'the strings are not split by concern');
 });

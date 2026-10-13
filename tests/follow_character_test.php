@@ -33,7 +33,7 @@ testBothDrivers('Apply hands back section styles, and keeps the layouts and opti
 
     $asked = adminPost('/admin/appearance', designFields(Presets::get('bold')) + ['character' => 'bold', 'action' => 'save']);
     assertContains('One section you styled by hand goes back to the character.', $asked->body, 'the sections Apply hands back');
-    assertContains(e(t('inspector.apply.own_layout_one')), $asked->body, 'and, beside them, the block that keeps its layout');
+    assertContains(e(t('inspector.apply.own_layouts_one')), $asked->body, 'and, beside them, the block that keeps its layout');
 
     adminPost('/admin/appearance', designFields(Presets::get('bold')) + ['character' => 'bold', 'action' => 'save_composition']);
     assertEquals(0, Composition::styledByHand($db), 'the section style handed back');

@@ -87,7 +87,7 @@ final class UpdateGate
             return $response;
         }
 
-        $html = (new View(__DIR__ . '/views'))->render('public/bar', 'en', [
+        $html = (new View(__DIR__ . '/views'))->render('public/bar', \App\Support\AdminLang::code(), [
             'off' => Url::admin('maintenance'),
         ], null);
 
@@ -125,7 +125,7 @@ final class UpdateGate
      */
     private static function closed(Container $container, string $because): Response
     {
-        $body = (new View(__DIR__ . '/views'))->render('public/updating', 'en', [
+        $body = (new View(__DIR__ . '/views'))->render('public/updating', \App\Support\AdminLang::code(), [
             'title' => $because === 'update' ? t('update.public.title') : t('maintenance.public.title'),
             'message' => $because === 'update' ? t('update.public.body') : t('maintenance.public.body'),
         ], null);

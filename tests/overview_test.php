@@ -91,7 +91,7 @@ testBothDrivers('how long the design has stood says it in English', function (st
     $changed('today 09:00');
     assertEquals(t('overview.design_today'), $note(), 'changed today');
     $changed('yesterday 23:30');
-    assertEquals(t('overview.design_unchanged_one'), $note(), 'one day is not "1 days"');
+    assertEquals(t('overview.design_unchanged_yesterday'), $note(), 'one day is not "1 days"');
     $changed('-4 days 09:00');
     assertEquals(t('overview.design_unchanged', ['days' => '4']), $note(), 'four days');
 });

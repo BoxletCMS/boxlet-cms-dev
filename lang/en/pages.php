@@ -409,7 +409,7 @@ return [
     // What the page says about itself in a search result (PLAN.md D-004), and, since D-242,
     // the picture a link to it is shared with.
     'pages.field.seo_title' => 'Title in search results',
-    'pages.field.seo_title_hint' => 'The title search engines and browser tabs show. Leave it empty to use the page title; fill it in when a longer, more descriptive title helps people find the page.',
+    'pages.field.seo_title_hint' => 'The title search engines and browser tabs show. Leave it empty to use the page title, with the site’s name after it on every page but the home page; fill it in when a longer, more descriptive title helps people find the page.',
     'pages.field.seo_description' => 'Description in search results',
     // One piece of advice, not two. The first draft also explained what an empty field
     // means, and the hint came out longer than the box it sat under — the same way of

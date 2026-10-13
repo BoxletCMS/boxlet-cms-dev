@@ -410,7 +410,7 @@ return [
     // What the page says about itself in a search result (PLAN.md D-004), and, since D-242,
     // the picture a link to it is shared with.
     'pages.field.seo_title' => 'Naslov u rezultatima pretraživanja',
-    'pages.field.seo_title_hint' => 'Naslov koji prikazuju tražilice i kartice preglednika. Ostavite polje prazno da bi se upotrijebio naslov stranice; ispunite kad dulji, opisniji naslov pomaže ljudima da pronađu stranicu.',
+    'pages.field.seo_title_hint' => 'Naslov koji prikazuju tražilice i kartice preglednika. Ostavite polje prazno da bi se upotrijebio naslov stranice, a iza njega, na svim stranicama osim početne, ime web-stranice; ispunite kad dulji, opisniji naslov pomaže ljudima da pronađu stranicu.',
     'pages.field.seo_description' => 'Opis u rezultatima pretraživanja',
     // One piece of advice, not two. The first draft also explained what an empty field
     // means, and the hint came out longer than the box it sat under — the same way of

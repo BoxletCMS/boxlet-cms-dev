@@ -174,3 +174,25 @@ testBothDrivers('a page kept out of search engines says so, and the sitemap and 
     adminPost("/admin/pages/{$id}", $form(false));
     assertEquals(false, App\Modules\Pages\PageSeo::of($db->one('SELECT * FROM pages WHERE id = ?', [$id]) ?? [])['noindex'], 'unticked');
 });
+
+// THE SITE'S NAME AFTER A SUBPAGE'S TITLE (D-245, the owner): "Design · Boxlet CMS" in a search
+// result and a tab, when the owner wrote no search title; never on the home page, never twice.
+testBothDrivers('a subpage with no search title of its own is shown with the site\'s name after it', function (string $driver) {
+    $db = adminSite($driver);
+    App\Core\Settings::set($db, 'site_name', 'Printworks');
+    createPage($db, 'en', '', 'Home');
+    $id = createPage($db, 'en', 'about', 'About');
+    createPage($db, 'en', 'visit', 'Visit the Printworks');
+
+    assertContains('<title>About · Printworks</title>', dispatch('/about')->body, 'the page title, then the site');
+    assertContains('<meta property="og:title" content="About · Printworks">', dispatch('/about')->body, 'the preview says the same');
+    assertContains('<title>Home</title>', dispatch('/')->body, 'the home page stands for the site already');
+    assertContains('<title>Visit the Printworks</title>', dispatch('/visit')->body, 'a title that names the site is not given it twice');
+
+    savePageWith($id, ['seo_title' => 'About our workshop', 'seo_description' => '']);
+    assertContains('<title>About our workshop</title>', dispatch('/about')->body, 'a search title is shown exactly as written');
+
+    App\Core\Settings::set($db, 'site_name', '');
+    savePageWith($id, ['seo_title' => '', 'seo_description' => '']);
+    assertContains('<title>About</title>', dispatch('/about')->body, 'no name, nothing after');
+});

@@ -71,6 +71,8 @@ final class PageBuilderController
             // Each possible parent's address, so the Page tab shows the whole address live.
             'parentUrls' => $this->parentUrls((string) $page['locale']),
             'siteName' => \App\Core\Settings::text($this->db(), 'site_name'),
+            // The pictures the page's own sharing picture is chosen from (D-242).
+            'sharePictures' => \App\Modules\Media\MediaReference::choices($this->db()),
             'languages' => $this->languages($id, (string) $page['locale']),
             'library' => $library,
             'patterns' => [

@@ -407,8 +407,8 @@ return [
     'pages.place.own_child' => 'Stranica ne može ići pod samu sebe ni pod neku od svojih podstranica.',
     'pages.place.too_deep' => 'Najveći broj razina stranica je :levels, računajući i podstranice koje stranica nosi sa sobom.',
 
-    // What the page says about itself in a search result (PLAN.md D-004). Two fields,
-    // and no more: no sharing image, no robots directive, no sitemap.
+    // What the page says about itself in a search result (PLAN.md D-004), and, since D-242,
+    // the picture a link to it is shared with.
     'pages.field.seo_title' => 'Naslov u rezultatima pretraživanja',
     'pages.field.seo_title_hint' => 'Naslov koji prikazuju tražilice i kartice preglednika. Ostavite polje prazno da bi se upotrijebio naslov stranice; ispunite kad dulji, opisniji naslov pomaže ljudima da pronađu stranicu.',
     'pages.field.seo_description' => 'Opis u rezultatima pretraživanja',
@@ -418,6 +418,8 @@ return [
     'pages.field.seo_description_hint' => 'Kratak sažetak koji tražilice mogu prikazati ispod naslova. Jedna ili dvije rečenice, oko 160 znakova. Ako ga ostavite praznim, tražilice same biraju riječi sa stranice.',
     'pages.field.seo_noindex' => 'Ne prikazuj u tražilicama',
     'pages.field.seo_noindex_hint' => 'Stranica ostaje objavljena za svakoga tko ima njezinu adresu, ali tražilice se mole da je ne navode, a izostavljena je iz datoteka sitemap.xml i llms.txt.',
+    'pages.field.seo_image' => 'Slika za dijeljenje',
+    'pages.field.seo_image_hint' => 'Prikazuje se kad se poveznica na ovu stranicu podijeli u porukama ili na društvenim mrežama. Ostavite prazno za sliku za dijeljenje web-stranice iz Postavki. Najbolje odgovara veličina 1200×630.',
 
     // THE SHELVES a block is found on (D-104). Named for what a person is looking for
     // rather than for what the block is made of: somebody wants "a picture" or "something

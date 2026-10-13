@@ -85,10 +85,12 @@ foreach (TestSuite::$tests as [$name, $body]) {
     //                      test can be told "nothing pending" about a database it has
     //                      never looked at, which passes rather than fails
     //   update.lock        makes any later run() refuse as already running
+    //   maintenance-words.json   the last site's language and message for its closed page
+    //                      (D-241): a later site would be closed in the wrong language
     //
     // Cleared here rather than trusting every test to tidy up, because the failure from
     // forgetting lands on a different test and reads as a bug in that one.
-    foreach (['maintenance.flag', 'migrations.state', 'update.lock'] as $leftover) {
+    foreach (['maintenance.flag', 'migrations.state', 'update.lock', 'maintenance-words.json'] as $leftover) {
         $file = tmpPath('storage') . '/' . $leftover;
         if (is_file($file)) {
             unlink($file);

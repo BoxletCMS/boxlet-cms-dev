@@ -24,8 +24,6 @@ return [
     'update.failed' => 'Ažuriranje je zaustavljeno kod datoteke :file. Ništa nakon nje nije pokrenuto, a sve prije nje je zabilježeno, pa kad otklonite problem i ponovno pritisnete gumb, ažuriranje se nastavlja od tog mjesta.',
     'update.locked' => 'Ažuriranje je već u tijeku. Pričekajte da završi, a zatim ponovno učitajte ovu stranicu.',
     'update.backup_failed' => 'Sigurnosnu kopiju nije bilo moguće zapisati u storage/backups/. Ništa nije promijenjeno. Omogućite pisanje u tu mapu i pokušajte ponovno.',
-    'update.public.title' => 'Ažuriranje u tijeku',
-    'update.public.body' => 'Ova se web-stranica ažurira i uskoro će ponovno biti dostupna.',
 
     // Maintenance mode (PLAN.md D-021). The same page and the same gate as an update;
     // the difference is that the owner chose it, and can still see the real site.
@@ -39,6 +37,4 @@ return [
     'maintenance.bar' => 'Način održavanja je uključen — posjetitelji ne vide ovu web-stranicu.',
     'maintenance.bar_off' => 'Isključi',
     'maintenance.failed' => 'Način održavanja nije bilo moguće promijeniti: u mapu storage nije moguće pisati. Vaša web-stranica nije promijenjena.',
-    'maintenance.public.title' => 'Vraćamo se uskoro',
-    'maintenance.public.body' => 'Ova web-stranica nakratko nije dostupna. Pokušajte ponovno malo kasnije.',
 ];

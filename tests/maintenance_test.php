@@ -56,10 +56,10 @@ testBothDrivers('with maintenance on a visitor gets 503 and the admin gets the r
     $asVisitor = dispatch('/about');
     assertEquals(503, $asVisitor->status, 'a visitor was served the site');
     assertEquals('120', $asVisitor->headers['Retry-After'] ?? null, 'Retry-After');
-    assertContains(t('maintenance.public.body'), $asVisitor->body, 'the maintenance page');
+    assertContains(site_t('site.closed.maintenance.body', 'en'), $asVisitor->body, 'the maintenance page');
     assertTrue(!str_contains($asVisitor->body, 'About'), 'the page leaked to a visitor');
     // The words differ from an update: this is the owner's choice, not a migration.
-    assertTrue(!str_contains($asVisitor->body, t('update.public.body')), 'it called maintenance an update');
+    assertTrue(!str_contains($asVisitor->body, site_t('site.closed.update.body', 'en')), 'it called maintenance an update');
 
     turnMaintenanceOff();
 });
@@ -157,7 +157,7 @@ testBothDrivers('a pending migration closes the site to the admin too', function
     $asAdmin = dispatchConfigured('/about', $configure);
     assertEquals(503, $asAdmin->status, 'the admin was served a site that may not render');
     assertTrue(!str_contains($asAdmin->body, 'boxlet-maintenance-bar'), 'the maintenance bar appeared during an update');
-    assertContains(t('update.public.body'), $asAdmin->body, 'it called an update maintenance');
+    assertContains(site_t('site.closed.update.body', 'en'), $asAdmin->body, 'it called an update maintenance');
 
     // And the admin is sent to the screen that can fix it.
     $admin = dispatchConfigured('/admin/pages', $configure);
@@ -184,4 +184,63 @@ test('an automatic flag does not clear one the owner set', function () {
     assertEquals(Maintenance::UPDATE, $maintenance->reason(), 'the reason it was switched on for');
     $maintenance->turnOff(Maintenance::UPDATE);
     assertTrue(!$maintenance->isOn(), 'it could not clear its own flag');
+});
+
+// THE CLOSED PAGE IN THE SITE'S LANGUAGE (D-241, the owner): drawn without the database, it reads
+// what the admin last wrote for it: the main language and the owner's own message.
+testBothDrivers('the closed page speaks the site\'s main language, and says the owner\'s message', function (string $driver) {
+    $db = installedSite(['hr' => 'Hrvatski', 'en' => 'English'], $driver);
+    createAdmin($db, 'owner@example.com', 'correct horse battery staple');
+    $_SESSION['admin_id'] = (int) ($db->one('SELECT id FROM admin')['id'] ?? 0);
+    createPage($db, 'hr', 'o-nama', 'O nama');
+
+    assertEquals(302, adminPost('/admin/maintenance', ['state' => 'on'])->status, 'switched on');
+    unset($_SESSION['admin_id']);
+    $closed = dispatch('/o-nama');
+    assertEquals(503, $closed->status, 'closed');
+    assertContains('<html lang="hr">', $closed->body, 'in the main language');
+    assertContains(e(site_t('site.closed.maintenance.title', 'hr')), $closed->body, 'its title');
+    assertContains(e(site_t('site.closed.maintenance.body', 'hr')), $closed->body, 'the standard words, with no message');
+
+    $_SESSION['admin_id'] = (int) ($db->one('SELECT id FROM admin')['id'] ?? 0);
+    adminPost('/admin/settings/maintenance-message', ['maintenance_message' => 'Vraćamo se poslijepodne.']);
+    unset($_SESSION['admin_id']);
+    $said = dispatch('/o-nama')->body;
+    assertContains('Vraćamo se poslijepodne.', $said, 'the owner\'s message');
+    assertTrue(!str_contains($said, e(site_t('site.closed.maintenance.body', 'hr'))), 'instead of the standard words');
+
+    // An update is not the owner's maintenance: the standard update words, still in Croatian.
+    $container = new App\Core\Container();
+    $container->set('maintenance', static fn () => new Maintenance((string) TestSite::$env['STORAGE_PATH']));
+    $update = (new ReflectionMethod(App\Modules\Update\UpdateGate::class, 'closed'))->invoke(null, $container, 'update');
+    assertContains(e(site_t('site.closed.update.title', 'hr')), $update->body, 'an update in Croatian');
+    assertTrue(!str_contains($update->body, 'Vraćamo se poslijepodne.'), 'without the maintenance message');
+
+    turnMaintenanceOff();
+});
+
+testBothDrivers('a site whose language has no admin still closes in its visitors\' language', function (string $driver) {
+    $db = installedSite(['de' => 'Deutsch'], $driver);
+    createAdmin($db, 'owner@example.com', 'correct horse battery staple');
+    $_SESSION['admin_id'] = (int) ($db->one('SELECT id FROM admin')['id'] ?? 0);
+    adminPost('/admin/maintenance', ['state' => 'on']);
+    unset($_SESSION['admin_id']);
+
+    $closed = dispatch('/')->body;
+    assertContains('<html lang="de">', $closed, 'German');
+    assertContains(e(site_t('site.closed.maintenance.title', 'de')), $closed, 'Gleich wieder da');
+
+    turnMaintenanceOff();
+});
+
+testBothDrivers('a site from before has its closed page\'s words written on the next admin screen', function (string $driver) {
+    $db = installedSite(['hr' => 'Hrvatski'], $driver);
+    createAdmin($db, 'owner@example.com', 'correct horse battery staple');
+    $maintenance = new Maintenance((string) TestSite::$env['STORAGE_PATH']);
+    assertTrue(!$maintenance->remembers(), 'nothing written yet');
+    assertEquals(['locale' => '', 'message' => ''], $maintenance->words(), 'English and the standard words until then');
+
+    $_SESSION['admin_id'] = (int) ($db->one('SELECT id FROM admin')['id'] ?? 0);
+    dispatch('/admin');
+    assertEquals(['locale' => 'hr', 'message' => ''], $maintenance->words(), 'written by the admin screen');
 });

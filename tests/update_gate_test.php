@@ -79,7 +79,7 @@ testBothDrivers('while an update is pending the public site answers 503, not a p
 
     assertEquals(503, $response->status, 'status');
     assertEquals('120', $response->headers['Retry-After'] ?? null, 'Retry-After');
-    assertContains(t('update.public.body'), $response->body, 'the being-updated page');
+    assertContains(site_t('site.closed.update.body', 'en'), $response->body, 'the being-updated page');
     // Not the page, and not a stack trace.
     assertTrue(!str_contains($response->body, 'About'), 'it rendered the page anyway');
 });

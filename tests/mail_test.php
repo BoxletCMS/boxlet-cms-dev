@@ -2,7 +2,7 @@
 
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Mailer\ResendTransport;
-use App\Modules\Mailer\Secret;
+use App\Support\Secret;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\Transport\NullTransport;
 use Symfony\Component\Mailer\Transport\SendmailTransport;
@@ -73,9 +73,9 @@ testBothDrivers('the transport is the way chosen, with its details', function (s
     MailSettings::save($db, ['transport' => 'resend', 'from_address' => 'a@example.com', 'resend_key' => 're_123'], MAIL_KEY);
     // A saved key leaves a trace in its empty field, never the key: its ends, or dots when
     // it is too short to show ends without showing most of it.
-    assertEquals('re_…WXYZ', MailSettings::trace(App\Modules\Mailer\Secret::seal('re_abcdefghWXYZ', MAIL_KEY), MAIL_KEY, true), 'a key');
-    assertEquals('••••••••', MailSettings::trace(App\Modules\Mailer\Secret::seal('re_123', MAIL_KEY), MAIL_KEY, true), 'a short key');
-    assertEquals('••••••••', MailSettings::trace(App\Modules\Mailer\Secret::seal('hunter2-secret', MAIL_KEY), MAIL_KEY, false), 'a password');
+    assertEquals('re_…WXYZ', MailSettings::trace(App\Support\Secret::seal('re_abcdefghWXYZ', MAIL_KEY), MAIL_KEY, true), 'a key');
+    assertEquals('••••••••', MailSettings::trace(App\Support\Secret::seal('re_123', MAIL_KEY), MAIL_KEY, true), 'a short key');
+    assertEquals('••••••••', MailSettings::trace(App\Support\Secret::seal('hunter2-secret', MAIL_KEY), MAIL_KEY, false), 'a password');
     assertEquals('', MailSettings::trace('', MAIL_KEY, true), 'nothing saved');
     assertTrue(MailSettings::transport($db, MAIL_KEY) instanceof ResendTransport, 'resend');
     MailSettings::save($db, ['transport' => 'sendmail', 'from_address' => 'a@example.com'], MAIL_KEY);

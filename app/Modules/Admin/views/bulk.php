@@ -13,6 +13,9 @@
  * @var string $bulkAction where it posts
  * @var string $bulkWords the language keys' prefix: pages.bulk or media.bulk
  * @var array<string, string> $bulkKeep the list's filters, carried back to it
+ * @var string $bulkExtra more for the ticked rows, before Delete: Pages' "Copy into language"
+ *                        (D-247). A button there carries its own formaction and data-bulk-also,
+ *                        so admin-bulk.js keeps it off while nothing is ticked. '' for none.
  * @var string $csrf
  */
 ?>
@@ -24,6 +27,7 @@
 <?php endif; ?>
 <?php endforeach; ?>
             <span class="list-bulk-count" data-bulk-count data-none="<?= e(t($bulkWords . '.none_ticked')) ?>" data-some="<?= e(t($bulkWords . '.ticked')) ?>" aria-live="polite"><?= e(t($bulkWords . '.none_ticked')) ?></span>
+            <?= $bulkExtra ?>
             <button type="submit" class="button button-secondary button-danger button-small" data-bulk-delete
                     data-confirm="<?= e(t($bulkWords . '.confirm_any')) ?>" data-confirm-some="<?= e(t($bulkWords . '.confirm')) ?>"><?= icon('trash-2') ?> <?= e(t($bulkWords . '.delete')) ?></button>
         </form>

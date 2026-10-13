@@ -58,6 +58,8 @@ final class PagesController
             // Where the page just placed was, for the one Undo the list offers (D-133).
             'undo' => $this->pullUndo(),
             'maxLevels' => PagePlacing::MAX_LEVELS,
+            'versions' => self::versions($this->db()),
+            'aiReady' => \App\Modules\Ai\AiSettings::ready($this->db(), (string) $this->container->get('config')->get('app.key')),
         ]);
     }
 
@@ -291,5 +293,24 @@ final class PagesController
         }
 
         return ['id' => $undo['id'], 'parent' => is_int($undo['parent'] ?? null) ? $undo['parent'] : null, 'position' => $undo['position']];
+    }
+
+    /**
+     * Every page's versions in the site's languages, page id => locale => id, in one query for
+     * the whole list: what each row's menu opens or makes (D-247).
+     *
+     * @return array<int, array<string, int>>
+     */
+    private static function versions(\App\Core\Db $db): array
+    {
+        $groups = [];
+        $of = [];
+        foreach ($db->all('SELECT id, locale, content_group_id FROM pages') as $row) {
+            $group = (int) ($row['content_group_id'] ?? $row['id']);
+            $groups[$group][(string) $row['locale']] = (int) $row['id'];
+            $of[(int) $row['id']] = $group;
+        }
+
+        return array_map(static fn (int $group): array => $groups[$group], $of);
     }
 }

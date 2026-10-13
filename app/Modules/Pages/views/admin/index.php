@@ -15,6 +15,8 @@ use App\Support\Url;
  * @var string $zone the site's time zone, for the Last edited column
  * @var array{id: int, parent: int|null, position: int}|null $undo where the page just placed was (D-133)
  * @var int $maxLevels how deep the tree may go (PagePlacing::MAX_LEVELS)
+ * @var array<int, array<string, int>> $versions page id => every language's version of it, locale => id (D-247)
+ * @var bool $aiReady whether Translate with AI is offered (D-248)
  * @var string $csrf
  */
 // The page above each row among its own siblings: what → places it under (D-133). The list
@@ -92,6 +94,19 @@ foreach ($pages as $row) {
     $bulkAction = Url::admin('pages', 'delete');
     $bulkWords = 'pages.bulk';
     $bulkKeep = ['lang' => $lang, 'q' => $query];
+    // COPY INTO A LANGUAGE (D-247): only where the site has more than one.
+    $bulkExtra = '';
+    if (count($codes) > 1) {
+        $bulkExtra = '<label class="visually-hidden" for="bulk-copy-to">' . e(t('pages.bulk.copy_label')) . '</label>'
+            . '<select id="bulk-copy-to" name="to" class="list-bulk-select">';
+        foreach ($localeLabels as $code => $label) {
+            $bulkExtra .= '<option value="' . e($code) . '"' . ($code === $codes[1] ? ' selected' : '') . '>' . e($label) . '</option>';
+        }
+        $bulkExtra .= '</select>'
+            . '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'copy')) . '" data-bulk-also>'
+            . icon('languages') . ' ' . e(t('pages.bulk.copy')) . '</button>'
+            . ($aiReady ? '<label class="checkbox list-bulk-ai"><input type="checkbox" name="ai" value="1"> ' . e(t('ai.bulk')) . '</label>' : '');
+    }
     require dirname(__DIR__, 3) . '/Admin/views/bulk.php';
 ?>
         <div class="table-wrap">
@@ -190,6 +205,28 @@ foreach ($pages as $row) {
 <?php if ($published): ?>
                                     <a href="<?= e($address) ?>" target="_blank" rel="noopener"><?= icon('external-link') ?> <?= e(t('pages.view_on_site')) ?></a>
 <?php endif; ?>
+<?php /* This page in the site's other languages (D-247): its version opened where there is one,
+         made as the builder's Translate makes it where there is not. */ ?>
+<?php foreach ($localeLabels as $code => $label): ?>
+<?php if ($code === $page['locale']) { continue; } ?>
+<?php if (isset($versions[$id][$code])): ?>
+                                    <a href="<?= e(Url::admin('pages', $versions[$id][$code])) ?>"><?= icon('languages') ?> <?= e(t('pages.open_in', ['language' => $label])) ?></a>
+<?php else: ?>
+                                    <form method="post" action="<?= e(Url::admin('pages', $id, 'translate')) ?>">
+                                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                                        <input type="hidden" name="locale" value="<?= e($code) ?>">
+                                        <button type="submit"><?= icon('languages') ?> <?= e(t('pages.translate_into', ['language' => $label])) ?></button>
+                                    </form>
+<?php if ($aiReady): ?>
+                                    <form method="post" action="<?= e(Url::admin('pages', $id, 'translate')) ?>">
+                                        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                                        <input type="hidden" name="locale" value="<?= e($code) ?>">
+                                        <input type="hidden" name="ai" value="1">
+                                        <button type="submit"><?= icon('languages') ?> <?= e(t('ai.translate_into', ['language' => $label])) ?></button>
+                                    </form>
+<?php endif; ?>
+<?php endif; ?>
+<?php endforeach; ?>
                                     <form method="post" action="<?= e(Url::admin('pages', $id, 'delete')) ?>">
                                         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                                         <button type="submit" class="row-menu-danger" data-confirm="<?= e(t('pages.delete_confirm', ['title' => $page['title']])) ?>"><?= icon('trash-2') ?> <?= e(t('pages.delete')) ?></button>

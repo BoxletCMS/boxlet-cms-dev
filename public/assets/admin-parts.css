@@ -83,6 +83,28 @@
   font-size: var(--ui-text-sm);
 }
 
+/* The language Pages' "Copy into language" copies into (D-247): a field's select, as admin-forms.css
+   draws one, but as wide as its words and as tall as the small buttons beside it. */
+.admin .list-bulk-select {
+  box-sizing: border-box;
+  inline-size: auto;
+  min-block-size: 2rem;
+  padding: var(--ui-1) var(--ui-2);
+  background: var(--ui-panel);
+  border: var(--ui-border) solid var(--ui-control-soft);
+  border-bottom-color: var(--ui-control-line);
+  border-radius: var(--ui-radius-m);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+}
+
+.admin .list-bulk-select:focus {
+  border-color: var(--ui-accent);
+  box-shadow: var(--ui-ring);
+  outline: none;
+}
+
 .col-pick {
   inline-size: 2.5rem;
 }

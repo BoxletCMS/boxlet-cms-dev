@@ -201,7 +201,7 @@ final class SettingsController
             'geoNotice' => $this->geoNotice(),
             'privacy' => PrivacyText::all($stats, $geo !== null),
             'uploadLimit' => Bytes::limits()['fileLabel'],
-        ] + $this->mail(), $status);
+        ] + $this->mail() + $this->ai(), $status);
     }
 
     /**
@@ -236,6 +236,31 @@ final class SettingsController
                 'smtp_password' => MailSettings::trace($stored['smtp_password'], $appKey, false),
                 'resend_key' => MailSettings::trace($stored['resend_key'], $appKey, true),
             ],
+        ];
+    }
+
+    /**
+     * The AI translation panel's values (D-248): what is stored, or what was typed into a refused
+     * save, with its errors, shown once. The key never reaches the screen, only its ends.
+     *
+     * @return array{ai: array{provider: string, model: string, keep: string, voice: string}, aiErrors: array<string, string>, aiKeyTrace: string, aiUsage: array{in: int, out: int}}
+     */
+    private function ai(): array
+    {
+        $stored = \App\Modules\Ai\AiSettings::stored($this->db());
+        $session = $this->container->get('session');
+        $refused = $session->get('ai_form');
+        $session->remove('ai_form');
+        $old = is_array($refused) && is_array($refused['old'] ?? null) ? $refused['old'] : [];
+        $errors = is_array($refused) && is_array($refused['errors'] ?? null) ? $refused['errors'] : [];
+        $pick = static fn (string $name): string => is_string($old[$name] ?? null) ? $old[$name] : $stored[$name];
+        $model = ($old['model'] ?? '') === 'other' && is_string($old['model_other'] ?? null) ? $old['model_other'] : $pick('model');
+
+        return [
+            'ai' => ['provider' => $pick('provider'), 'model' => $model, 'keep' => $pick('keep'), 'voice' => $pick('voice')],
+            'aiErrors' => array_filter($errors, 'is_string'),
+            'aiKeyTrace' => MailSettings::trace($stored['key'], (string) $this->container->get('config')->get('app.key'), true),
+            'aiUsage' => \App\Modules\Ai\AiSettings::usage($this->db()),
         ];
     }
 

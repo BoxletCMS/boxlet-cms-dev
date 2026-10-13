@@ -25,29 +25,50 @@ final class TranslationController
      */
     public function create(Request $request, string $locale, array $params): Response
     {
-        $db = $this->db();
         $pageId = (int) $params['id'];
-        $target = trim($request->input('locale'));
-        $before = Translations::of($db, $pageId);
-        $result = Translations::create($db, $this->container->get('blocks'), $pageId, $target);
+        $made = self::translate($this->db(), $this->container->get('blocks'), $pageId, trim($request->input('locale')));
         $session = $this->container->get('session');
 
-        if (is_string($result)) {
-            $session->set('flash', $result);
+        if (is_string($made['id'])) {
+            $session->set('flash', $made['id']);
             $session->set('flash_kind', 'error');
 
             return Response::redirect(Url::admin('pages', $pageId));
         }
-        if (!isset($before[$target])) {
-            // A page never published is translated from its draft (D-163 point 6).
-            Translations::carryDraft($db, $this->container->get('blocks'), $pageId, $result);
-            $label = (string) ($db->one('SELECT label FROM locales WHERE code = ?', [$target])['label'] ?? $target);
-            $title = (string) ($db->one('SELECT title FROM pages WHERE id = ?', [$result])['title'] ?? '');
-            Activity::record($db, 'page', 'translated', $result, $title . ' · ' . $label);
-            $session->set('flash', t('translations.created', ['language' => $label]));
+        if ($made['new']) {
+            $session->set('flash', t('translations.created', ['language' => $made['language']]));
+            // Translate with AI (D-248): the new version queued, and the screen that runs it.
+            $queued = \App\Modules\Ai\AiController::queue($this->container, $request, [$made['id']]);
+            if ($queued !== null) {
+                return $queued;
+            }
         }
 
-        return Response::redirect(Url::admin('pages', $result));
+        return Response::redirect(Url::admin('pages', $made['id']));
+    }
+
+    /**
+     * ONE PAGE INTO ONE LANGUAGE, wherever it is asked from: the builder's language menu, a row
+     * of the pages list, the list's "Copy to language" (D-247). The version that exists is
+     * found; a new one is a draft copy, made from the page's draft where it was never
+     * published (D-163 point 6), and recorded in the activity.
+     *
+     * @return array{id: int|string, new: bool, language: string} the version's id, or a
+     *         message saying why there is none
+     */
+    public static function translate(Db $db, \App\Core\Blocks $registry, int $pageId, string $target): array
+    {
+        $before = Translations::of($db, $pageId);
+        $result = Translations::create($db, $registry, $pageId, $target);
+        $label = (string) ($db->one('SELECT label FROM locales WHERE code = ?', [$target])['label'] ?? $target);
+        if (is_string($result) || isset($before[$target])) {
+            return ['id' => $result, 'new' => false, 'language' => $label];
+        }
+        Translations::carryDraft($db, $registry, $pageId, $result);
+        $title = (string) ($db->one('SELECT title FROM pages WHERE id = ?', [$result])['title'] ?? '');
+        Activity::record($db, 'page', 'translated', $result, $title . ' · ' . $label);
+
+        return ['id' => $result, 'new' => true, 'language' => $label];
     }
 
     /**

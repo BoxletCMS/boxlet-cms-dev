@@ -74,6 +74,8 @@ final class PageBuilderController
             // The pictures the page's own sharing picture is chosen from (D-242).
             'sharePictures' => \App\Modules\Media\MediaReference::choices($this->db()),
             'languages' => $this->languages($id, (string) $page['locale']),
+            // Translate with AI beside Translate (D-248), only with a key saved.
+            'aiReady' => \App\Modules\Ai\AiSettings::ready($this->db(), (string) $this->container->get('config')->get('app.key')),
             'library' => $library,
             'patterns' => [
                 'mine' => PagePattern::mine($this->db()),

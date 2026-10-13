@@ -15,6 +15,7 @@ use App\Support\Url;
  *
  * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
  * @var array<string, mixed> $page
+ * @var bool $aiReady whether Translate with AI is offered beside Translate (D-248)
  * @var string $state published, changes or draft (D-173): a published page is translated as it
  *      is published, and with changes not yet published the menu says they stay behind
  */
@@ -39,6 +40,11 @@ $here = (string) $page['locale'];
                             <a class="menu-popover-item" href="<?= e(Url::admin('pages', $language['page'])) ?>"><?= e($language['label']) ?> <span class="hint"><?= e(t('translations.open')) ?></span></a>
 <?php else: ?>
                             <button type="submit" form="translate-<?= e($language['code']) ?>" class="menu-popover-item"><?= e($language['label']) ?> <span class="hint"><?= e(t('translations.translate')) ?></span></button>
+<?php if ($aiReady): ?>
+                        </li>
+                        <li lang="<?= e($language['code']) ?>">
+                            <button type="submit" form="translate-<?= e($language['code']) ?>" name="ai" value="1" class="menu-popover-item"><?= e($language['label']) ?> <span class="hint"><?= e(t('ai.translate')) ?></span></button>
+<?php endif; ?>
 <?php endif; ?>
                         </li>
 <?php endforeach; ?>

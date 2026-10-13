@@ -23,6 +23,8 @@
       var ticked = boxes.filter(function (box) { return box.checked; }).length;
       count.textContent = ticked === 0 ? count.getAttribute('data-none') : count.getAttribute('data-some').replace(':count', String(ticked));
       button.disabled = ticked === 0;
+      // The bar's other actions (Pages' "Copy into language", D-247): off while none is ticked.
+      Array.prototype.forEach.call(form.querySelectorAll('[data-bulk-also]'), function (also) { also.disabled = ticked === 0; });
       button.setAttribute('data-confirm', button.getAttribute('data-confirm-some').replace(':count', String(ticked)));
       if (all) {
         all.checked = ticked > 0 && ticked === boxes.length;

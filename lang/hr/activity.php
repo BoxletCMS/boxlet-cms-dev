@@ -39,6 +39,7 @@ return [
     'activity.page.reordered' => 'Promijenjen redoslijed stranica',
     'activity.page.placed' => 'Stranica „:name“ premještena u stablu stranica',
     'activity.page.translated' => 'Prevedena stranica „:name“',
+    'activity.page.ai_translated' => 'Prevedeno s AI: :name',
 
     'activity.media.uploaded' => 'Učitana datoteka :name',
     'activity.media.described' => 'Dodan opis za :name',
@@ -89,6 +90,7 @@ return [
 
     'activity.settings.saved' => 'Spremljene postavke web-stranice',
     'activity.settings.mail_saved' => 'Spremljene postavke slanja e-pošte',
+    'activity.settings.ai_saved' => 'Spremljene postavke AI prijevoda',
     'activity.settings.language_added' => 'Dodan jezik :name',
     'activity.settings.language_on' => 'Uključen jezik :name',
     'activity.settings.language_off' => 'Isključen jezik :name',

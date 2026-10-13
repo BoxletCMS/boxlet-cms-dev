@@ -17,6 +17,7 @@ use App\Support\Url;
  * @var array<string, mixed> $data what builder-*.js starts from
  * @var \App\Core\Blocks $registry
  * @var list<array{code: string, label: string, page: int|null, current: bool}> $languages
+ * @var bool $aiReady Translate with AI offered beside Translate, and Translate again beside a stale block (D-248)
  * @var string $csrf
  * @var array{source: array<string, mixed>|null, stale: array<int, array{source: int, type: string, content: array<string, mixed>}>, missing: int, sourceLabel: string} $translation
  */
@@ -60,6 +61,11 @@ $pageId = (int) $page['id'];
 <form method="post" action="<?= e(Url::admin('pages', $pageId, 'blocks', $staleId, 'current')) ?>" id="current-<?= e((string) $staleId) ?>" class="visually-hidden">
     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
 </form>
+<?php if ($aiReady): ?>
+<form method="post" action="<?= e(Url::admin('pages', $pageId, 'blocks', $staleId, 'ai')) ?>" id="ai-again-<?= e((string) $staleId) ?>" class="visually-hidden">
+    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+</form>
+<?php endif; ?>
 <?php endforeach; ?>
 
 <?php /* One <template> per repeater, keyed type.field, at the top level so repeater.js can clone

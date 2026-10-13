@@ -37,6 +37,7 @@ return [
     'activity.page.reordered' => 'Reordered the pages',
     'activity.page.placed' => 'Moved “:name” in the page tree',
     'activity.page.translated' => 'Translated “:name”',
+    'activity.page.ai_translated' => 'Translated with AI: :name',
 
     'activity.media.uploaded' => 'Uploaded :name',
     'activity.media.described' => 'Described :name',
@@ -87,6 +88,7 @@ return [
 
     'activity.settings.saved' => 'Saved the site settings',
     'activity.settings.mail_saved' => 'Saved how the site sends mail',
+    'activity.settings.ai_saved' => 'Saved the AI translation settings',
     'activity.settings.language_added' => 'Added :name',
     'activity.settings.language_on' => 'Switched :name on',
     'activity.settings.language_off' => 'Switched :name off',

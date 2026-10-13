@@ -208,3 +208,17 @@ testBothDrivers('Translate with AI is offered only with a key, and queues what i
     $bulk = adminPost('/admin/pages/copy', ['ids' => [(string) $other], 'to' => 'hr', 'ai' => '1']);
     assertRedirectedTo('/admin/translate?back=' . (Translations::of($db, $other)['hr'] ?? 0), $bulk);
 });
+
+// A STEP LEAVES NO TIME LIMIT BEHIND WHERE THERE WAS NONE (D-251): a command line has none, and
+// the step's set_time_limit(120) gave the whole test suite one; the CI runner without image
+// extensions died two files later, "Maximum execution time of 120 seconds exceeded".
+testBothDrivers('a step raises the time limit only where there is one', function (string $driver) {
+    $db = aiSite($driver);
+    $copy = (int) Translations::create($db, blockRegistry(), sourcePage($db), 'hr');
+    AiQueue::page($db, blockRegistry(), $copy);
+    $was = ini_get('max_execution_time');
+    set_time_limit(0);
+    adminPost('/admin/translate/step', []);
+    assertEquals('0', ini_get('max_execution_time'), 'no limit before, none after');
+    set_time_limit((int) $was);
+});

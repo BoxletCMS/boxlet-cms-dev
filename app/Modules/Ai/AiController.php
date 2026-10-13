@@ -118,7 +118,14 @@ final class AiController
         if ($next !== null) {
             try {
                 $words = AiSettings::forRequest($db, $this->appKey()) ?? throw new AiFailure(t('ai.error.not_ready'));
-                @set_time_limit(120);
+                // More time for one part where the host sets a limit at all. Never one where there
+                // is none: a command line given 120 s here kept it for everything after, and the
+                // test suite died in the next file on a slow CI runner (D-251), as it once did on
+                // the demo's pictures (DemoPictures).
+                $limit = (int) ini_get('max_execution_time');
+                if ($limit > 0) {
+                    @set_time_limit(max($limit, 120));
+                }
                 $kept = AiWork::run($db, $this->container->get('blocks'), $next['page_id'], $next['part'], $words, $this->container->get('ai_ask'));
                 AiQueue::finish($db, $next['id'], 'done', $kept);
             } catch (AiFailure $e) {

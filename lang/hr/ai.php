@@ -45,6 +45,12 @@ return [
     'ai.kept_alt_one' => ':count opis slike zadržao je izvorne riječi; provjerite ga u Medijima.',
     'ai.kept_alt_few' => ':count opisa slika zadržala su izvorne riječi; provjerite ih u Medijima.',
     'ai.kept_alt' => ':count opisa slika zadržalo je izvorne riječi; provjerite ih u Medijima.',
+    'ai.kept_form_one' => ':count tekst obrasca zadržao je izvorne riječi; provjerite ga pod Obrascima.',
+    'ai.kept_form_few' => ':count teksta obrasca zadržala su izvorne riječi; provjerite ih pod Obrascima.',
+    'ai.kept_form' => ':count tekstova obrasca zadržalo je izvorne riječi; provjerite ih pod Obrascima.',
+    'ai.kept_navigation_one' => ':count stavka izbornika ili tekst zaglavlja i podnožja zadržao je izvorne riječi; provjerite ga pod Navigacijom.',
+    'ai.kept_navigation_few' => ':count stavke izbornika ili teksta zaglavlja i podnožja zadržala su izvorne riječi; provjerite ih pod Navigacijom.',
+    'ai.kept_navigation' => ':count stavki izbornika ili tekstova zaglavlja i podnožja zadržalo je izvorne riječi; provjerite ih pod Navigacijom.',
     // Beside Translate: in the editor's language menu, a row's menu, and Copy into language.
     'ai.translate' => 'Prevedi s AI',
     'ai.translate_into' => 'Prevedi s AI · :language',

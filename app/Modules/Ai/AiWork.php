@@ -92,6 +92,18 @@ final class AiWork
             return $kept === 0 ? '' : tn('ai.kept_alt', $kept);
         }
 
+        // A form on the page, and the language's menus and header and footer words (D-262).
+        if (str_starts_with($part, 'form:')) {
+            $kept = AiForms::run($db, (int) substr($part, 5), $from, $to, $words, $ask);
+
+            return $kept === 0 ? '' : tn('ai.kept_form', $kept);
+        }
+        if ($part === 'navigation') {
+            $kept = AiNavigation::run($db, (string) $source['locale'], (string) $page['locale'], $from, $to, $words, $ask);
+
+            return $kept === 0 ? '' : tn('ai.kept_navigation', $kept);
+        }
+
         // One block, by its key in the document.
         $key = substr($part, 6);
         $at = null;

@@ -8,7 +8,8 @@ use App\Modules\Pages\PageDraft;
 
 /**
  * WHAT IS LEFT TO TRANSLATE (PLAN.md D-248): one row per part of a page, the page's own words
- * ('page'), one block ('block:{key}') or its pictures' alt text (D-260, 'pictures'), waiting, done or failed. Kept in the database, not in a
+ * ('page'), one block ('block:{key}'), its pictures' alt text (D-260, 'pictures'), a form on it
+ * ('form:{id}') or its language's menus and header and footer words ('navigation', D-262), waiting, done or failed. Kept in the database, not in a
  * request or a browser, so a translation that stops — the tab closed, the connection lost, the
  * provider busy — carries on from where it was, and a step is never more than one part long:
  * within any shared host's time limit.
@@ -17,7 +18,9 @@ final class AiQueue
 {
     /**
      * Every part of a translation queued: its own words, then each block that has words, in the
-     * order the page draws them, then its pictures when any has no alt in its language (D-260). A page already waiting is not queued twice. A new piece of work
+     * order the page draws them, then its pictures when any has no alt in its language (D-260),
+     * its forms still in the original's words, and its language's menus and header and footer
+     * words when they want it (D-262). A page already waiting is not queued twice. A new piece of work
      * clears the last one's finished rows, once nothing of it is waiting.
      */
     public static function page(Db $db, Blocks $registry, int $pageId): int
@@ -37,6 +40,21 @@ final class AiQueue
         $source = $page === null ? null : $db->one("SELECT locale FROM pages WHERE content_group_id = ? AND translation_status = 'source' AND id <> ?", [(int) ($page['content_group_id'] ?? $pageId), $pageId]);
         if ($page !== null && $source !== null && AiPictures::missing($db, $registry, $current['document'], (string) $source['locale'], (string) $page['locale']) !== []) {
             $parts[] = 'pictures';
+        }
+        // Its forms of this language that are still the original's words (D-262), each once.
+        foreach ($current['document']['blocks'] as $block) {
+            $form = $block['type'] === 'form' && is_array($block['content']) && is_int($block['content']['form'] ?? null) ? $block['content']['form'] : null;
+            if ($form !== null && AiForms::untouched($db, $form)
+                && $db->one("SELECT id FROM ai_queue WHERE part = ? AND state = 'pending'", ['form:' . $form]) === null) {
+                $parts[] = 'form:' . $form;
+            }
+        }
+        // The language's menus and header and footer words (D-262): once for the language,
+        // with the first page that finds them wanting.
+        if ($page !== null && $source !== null
+            && AiNavigation::missing($db, (string) $source['locale'], (string) $page['locale']) !== []
+            && $db->one("SELECT q.id FROM ai_queue q JOIN pages p ON p.id = q.page_id WHERE q.part = 'navigation' AND q.state = 'pending' AND p.locale = ?", [(string) $page['locale']]) === null) {
+            $parts[] = 'navigation';
         }
         $queued = 0;
         foreach ($parts as $part) {

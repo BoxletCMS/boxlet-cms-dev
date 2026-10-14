@@ -59,6 +59,7 @@ return [
     'stats.table.cities' => 'Cities',
     'stats.table.missing' => 'Addresses that are not there',
     'stats.map' => 'Where visitors are',
+    'stats.map_visitors_one' => ':count visitor',
     'stats.map_visitors' => ':count visitors',
     'stats.map_few' => 'Fewer',
     'stats.map_many' => 'More',

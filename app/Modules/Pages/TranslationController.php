@@ -51,7 +51,8 @@ final class TranslationController
      * ONE PAGE INTO ONE LANGUAGE, wherever it is asked from: the builder's language menu, a row
      * of the pages list, the list's "Copy to language" (D-247). The version that exists is
      * found; a new one is a draft copy, made from the page's draft where it was never
-     * published (D-163 point 6), and recorded in the activity.
+     * published (D-163 point 6), and recorded in the activity. Its forms come into the
+     * language with it, and the language's menus take it in (D-262).
      *
      * @return array{id: int|string, new: bool, language: string} the version's id, or a
      *         message saying why there is none
@@ -65,6 +66,13 @@ final class TranslationController
             return ['id' => $result, 'new' => false, 'language' => $label];
         }
         Translations::carryDraft($db, $registry, $pageId, $result);
+        // What a page brings into a language beside itself (D-262): its forms in that language,
+        // and its place in that language's menus, mirrored from its original's.
+        \App\Modules\Forms\FormCopy::pageCopied($db, $registry, $result);
+        $from = (string) ($db->one("SELECT p.locale FROM pages p JOIN pages c ON c.content_group_id = p.content_group_id WHERE c.id = ? AND p.translation_status = 'source'", [$result])['locale'] ?? '');
+        if ($from !== '') {
+            \App\Modules\Menus\MenuCopy::sync($db, $from, $target);
+        }
         $title = (string) ($db->one('SELECT title FROM pages WHERE id = ?', [$result])['title'] ?? '');
         Activity::record($db, 'page', 'translated', $result, $title . ' · ' . $label);
 

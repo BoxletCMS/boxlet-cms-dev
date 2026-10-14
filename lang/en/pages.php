@@ -448,6 +448,7 @@ return [
     'block.group.marketing' => 'Marketing',
     'block.group.embed' => 'Embed',
     // What this page was before the last few saves (D-088).
+    'pages.history_hint_one' => 'The page as it was before its last publish. Restoring it puts it in the draft; the site changes only when you publish.',
     'pages.history_hint' => 'The page as it was before each of its last :count publishes. Restoring one puts it in the draft; the site changes only when you publish.',
     'pages.restored' => 'That version is in the draft now. Publish to put it back on the site.',
     'pages.restore_gone' => 'That version is no longer kept. Only the last few saves of a page are.',

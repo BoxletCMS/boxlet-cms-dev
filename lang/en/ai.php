@@ -43,6 +43,10 @@ return [
     'ai.kept_original' => ':count texts kept their original words; check them in the editor.',
     'ai.kept_alt_one' => 'One picture description kept its original words; check it in Media.',
     'ai.kept_alt' => ':count picture descriptions kept their original words; check them in Media.',
+    'ai.kept_form_one' => 'One word of a form kept its original words; check it under Forms.',
+    'ai.kept_form' => ':count words of a form kept their original words; check them under Forms.',
+    'ai.kept_navigation_one' => 'One menu item or header or footer word kept its original words; check it under Navigation.',
+    'ai.kept_navigation' => ':count menu items or header and footer words kept their original words; check them under Navigation.',
     // Beside Translate: in the editor's language menu, a row's menu, and Copy into language.
     'ai.translate' => 'Translate with AI',
     'ai.translate_into' => 'Translate with AI · :language',

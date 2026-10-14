@@ -57,6 +57,7 @@ return [
     'activity.menu.renamed' => 'Izbornik preimenovan u „:name“',
     'activity.menu.edited' => 'Promijenjene stavke izbornika „:name“',
     'activity.menu.deleted' => 'Obrisan izbornik „:name“',
+    'activity.menu.matched' => 'Izbornici na jeziku :name usklađeni s glavnim jezikom',
     'activity.update.done' => 'Boxlet ažuriran na :name',
     'activity.update.rolled_back' => 'Boxlet vraćen na :name',
     'activity.settings.cache_on' => 'Uključena privremena memorija (cache) stranica',

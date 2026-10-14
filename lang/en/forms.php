@@ -13,6 +13,7 @@ return [
     'forms.messages_count' => 'Messages: :count',
     'forms.unread_count' => 'New: :count',
     'forms.delete' => 'Delete form',
+    'forms.delete_confirm_one' => 'Delete the form ":name" and its one message? Pages showing it will show nothing in its place.',
     'forms.delete_confirm' => 'Delete the form ":name" and its :count messages? Pages showing it will show nothing in its place.',
     'forms.deleted' => 'The form was deleted.',
     'forms.new' => 'New form',

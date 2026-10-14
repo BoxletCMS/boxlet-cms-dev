@@ -343,6 +343,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // posts a whole sibling order, a button posts one move.
     $router->get('/admin/navigation', [NavigationController::class, 'show'], $requireAdmin);
     $router->post('/admin/navigation', [NavigationController::class, 'save'], $requireAdmin);
+    $router->post('/admin/navigation/match', [NavigationController::class, 'match'], $requireAdmin);
     $router->get('/admin/menus', [MenusController::class, 'index'], $requireAdmin);
     $router->post('/admin/menus', [MenusController::class, 'store'], $requireAdmin);
     $router->get('/admin/menus/{id:\d+}', [MenusController::class, 'edit'], $requireAdmin);

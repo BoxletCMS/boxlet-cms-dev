@@ -55,6 +55,7 @@ return [
     'activity.menu.renamed' => 'Renamed a menu to “:name”',
     'activity.menu.edited' => 'Changed the items of “:name”',
     'activity.menu.deleted' => 'Deleted the menu “:name”',
+    'activity.menu.matched' => 'Matched the menus in :name with the main language',
     'activity.update.done' => 'Updated Boxlet to :name',
     'activity.update.rolled_back' => 'Rolled Boxlet back to :name',
     'activity.settings.cache_on' => 'Turned the page cache on',

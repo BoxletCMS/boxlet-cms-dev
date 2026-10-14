@@ -15,13 +15,19 @@ const FORM_KEY = 'test-key-not-a-secret';
  * A site with a contact form and a published page showing it, plus a way to send it as a
  * visitor would: the fields, the token of a page drawn five seconds ago, an empty honeypot.
  *
+ * The form KEEPS its messages unless told not to: the tests of what is stored, read and sent
+ * were written when every form kept them, and keeping is the owner's choice since D-269 (a new
+ * form keeps none). The tests of a form that keeps none pass $keep = false.
+ *
  * @return array{db: App\Core\Db, form: int, page: int, send: Closure, mail: CapturingTransport}
  */
-function formSite(string $driver, string $locale = 'en'): array
+function formSite(string $driver, string $locale = 'en', bool $keep = true): array
 {
     $db = installedSite(['en' => 'English', 'hr' => 'Hrvatski'], $driver);
     createAdmin($db, 'owner@example.com', 'correct horse battery staple');
     $form = Form::create($db, $locale, 'Contact');
+    $made = Form::find($db, $form) ?? fail('no form');
+    Form::update($db, $form, $made['name'], $made['fields'], ['keep' => $keep] + $made['settings']);
     $page = createPage($db, $locale, 'contact', 'Contact', true, [
         ['type' => 'form', 'content' => ['heading' => 'Write to us', 'form' => $form]],
     ]);
@@ -167,4 +173,50 @@ testBothDrivers('a page with a form is never kept, so each visitor gets a token 
     assertEquals('no-store', $form->headers['Cache-Control'] ?? null, 'a page with a form, not to be kept');
     $plain = dispatch('/about');
     assertTrue(!isset($plain->headers['Cache-Control']), 'a page without one is kept as before');
+});
+
+testBothDrivers('a new form keeps nothing a visitor writes: the message is only emailed, and the limit still holds', function (string $driver) {
+    $site = formSite($driver, 'en', false);
+    assertEquals(false, (Form::find($site['db'], Form::create($site['db'], 'en', 'Another')) ?? fail('no form'))['settings']['keep'], 'a new form keeps nothing');
+    MailSettings::save($site['db'], ['transport' => 'sendmail', 'from_address' => 'hello@example.com'], FORM_KEY);
+    $fields = ['name' => 'Ana', 'email' => 'ana@example.org', 'message' => 'Hello'];
+
+    assertEquals(303, (($site['send'])($fields))->status, 'thanked');
+    assertEquals([], storedMessages($site['db']), 'nothing of it stored');
+    $notice = $site['mail']->sent[0] ?? fail('no mail');
+    assertContains("Message:\nHello", (string) $notice->getTextBody(), 'the email carries it');
+    assertContains(t('forms.mail.not_kept'), (string) $notice->getTextBody(), 'and says it is the only copy');
+    assertTrue(!str_contains((string) $notice->getTextBody(), '/messages'), 'with no link to messages there are none of');
+    $sends = $site['db']->all('SELECT * FROM form_sends');
+    assertEquals(1, count($sends), 'the send counted');
+    assertEquals(['id', 'form_id', 'ip_hash', 'created_at'], array_keys($sends[0]), 'as a hash and a time, nothing written');
+    assertTrue(!str_contains((string) json_encode($sends), '198.51.100.7'), 'never the address');
+
+    for ($n = 0; $n < 4; $n++) {
+        ($site['send'])($fields);
+    }
+    assertEquals(429, (($site['send'])($fields))->status, 'the sixth refused, with nothing kept to count');
+});
+
+testBothDrivers('a form that keeps nothing and cannot email asks the visitor to try again, and keeps what they typed', function (string $driver) {
+    $site = formSite($driver, 'en', false);
+    $response = ($site['send'])(['name' => 'Ana', 'email' => 'ana@example.org', 'message' => 'Hello']);
+    assertEquals(503, $response->status, 'not thanked');
+    assertContains(e(site_t('site.form.not_sent', 'en')), $response->body, 'told why');
+    assertContains('ana@example.org', $response->body, 'what they typed, still there');
+    assertEquals([], storedMessages($site['db']), 'nothing stored');
+    assertEquals(0, (int) ($site['db']->one("SELECT COUNT(*) AS n FROM activity WHERE action = 'received'")['n'] ?? 0), 'and no message said to have come');
+});
+
+testBothDrivers('a form must keep its messages or email them; the editor says when email is missing', function (string $driver) {
+    $site = formSite($driver, 'en', false);
+    $parsed = Form::parse([['key' => 'name', 'label' => 'Name', 'type' => 'text']], ['notify' => '', 'keep' => ''], false);
+    assertEquals(t('forms.keep_or_notify'), $parsed['errors']['keep'] ?? null, 'neither refused');
+    assertEquals([], Form::parse([['key' => 'name', 'label' => 'Name', 'type' => 'text']], ['keep' => '1'], false)['errors'], 'keeping alone is enough');
+
+    $_SESSION['admin_id'] = (int) ($site['db']->one('SELECT id FROM admin')['id'] ?? 0);
+    $editor = dispatch('/admin/forms/' . $site['form'])->body;
+    assertContains('name="settings[keep]" value="1">', $editor, 'the choice, off');
+    assertContains(e(t('forms.mail_missing')), $editor, 'and the warning: no email, nowhere for a message to go');
+    assertContains(e(t('forms.not_kept')), dispatch('/admin/forms/' . $site['form'] . '/messages')->body, 'Messages says so');
 });

@@ -157,7 +157,7 @@ test('a list\'s choices are one per line, blank lines dropped, and other kinds k
         ['key' => 'topic', 'label' => 'Topic', 'type' => 'select', 'options' => "Design\r\n\r\n  Build  \nCare"],
         ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'options' => 'stray'],
         ['key' => 'bad key!', 'label' => 'E-mail address', 'type' => 'nonsense'],
-    ], [], false);
+    ], ['notify' => '1'], false);
 
     assertEquals([], $parsed['errors'], 'errors');
     assertEquals(['Design', 'Build', 'Care'], $parsed['fields'][0]['options'], 'the choices');

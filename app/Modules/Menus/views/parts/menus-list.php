@@ -71,7 +71,7 @@ $menuError = static fn (string $key): string => isset($menuErrors[$key])
 <?php if ($mainLocale !== '' && $others !== []): ?>
         <div class="panel stack">
             <h3><?= e(t('menus.match_title')) ?></h3>
-            <p class="hint"><?= e(t('menus.match_intro', ['main' => $mainLabel])) ?></p>
+            <?= $hint('menus-match-hint', t('menus.match_intro', ['main' => $mainLabel])) ?>
             <div class="form-actions">
 <?php foreach ($others as $locale): ?>
                 <form method="post" action="<?= e(Url::admin('navigation', 'match')) ?>">

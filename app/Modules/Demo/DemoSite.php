@@ -129,8 +129,10 @@ final class DemoSite
         foreach ((require __DIR__ . '/forms.php')($lang) as $key => $form) {
             $ids[$key] = Form::create($db, $locale, $form['name']);
             $made = Form::find($db, $ids[$key]);
-            if ($form['fields'] !== null && $made !== null) {
-                Form::update($db, $ids[$key], $form['name'], $form['fields'], $made['settings']);
+            // The demo's forms keep their messages (D-269): a fresh demo has no mail set up, and
+            // a form that keeps nothing would turn every visitor away. A new form keeps nothing.
+            if ($made !== null) {
+                Form::update($db, $ids[$key], $form['name'], $form['fields'] ?? $made['fields'], ['keep' => true] + $made['settings']);
             }
         }
 

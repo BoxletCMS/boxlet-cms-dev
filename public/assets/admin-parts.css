@@ -90,6 +90,16 @@
   border-inline-start: var(--ui-border) solid var(--ui-line);
 }
 
+/* Where the bar is too narrow to keep the group on the same line, the rule would stand alone
+   at the start of the next one: there the group is set apart by its line instead. */
+@media (max-width: 47.5rem) {
+  .list-bulk-group {
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+}
+
 .list-bulk-count {
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-sm);

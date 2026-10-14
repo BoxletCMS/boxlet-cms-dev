@@ -85,6 +85,13 @@ final class AiWork
             return $result['failed'] === [] ? '' : tn('ai.kept_original', count($result['failed']));
         }
 
+        // The pictures' alt text, into the library (D-260).
+        if ($part === 'pictures') {
+            $kept = AiPictures::run($db, $registry, $document, (string) $source['locale'], (string) $page['locale'], $from, $to, $words, $ask);
+
+            return $kept === 0 ? '' : tn('ai.kept_alt', $kept);
+        }
+
         // One block, by its key in the document.
         $key = substr($part, 6);
         $at = null;

@@ -41,6 +41,8 @@ return [
     // check (a missing {{tag}}, markup where there should be none).
     'ai.kept_original_one' => 'One text kept its original words; check it in the editor.',
     'ai.kept_original' => ':count texts kept their original words; check them in the editor.',
+    'ai.kept_alt_one' => 'One picture description kept its original words; check it in Media.',
+    'ai.kept_alt' => ':count picture descriptions kept their original words; check them in Media.',
     // Beside Translate: in the editor's language menu, a row's menu, and Copy into language.
     'ai.translate' => 'Translate with AI',
     'ai.translate_into' => 'Translate with AI · :language',
@@ -71,7 +73,7 @@ return [
     'ai.error.block_gone' => 'The block is no longer on the page.',
     'ai.error.busy_page' => 'The page was changed in the editor at the same moment. Try again.',
     'ai.progress.title' => 'Translating with AI',
-    'ai.progress.intro' => 'Each part of a page is translated in turn and written into its draft. Nothing is published: read each page, change what you like, then publish it. You can leave this screen; the rest waits until you come back.',
+    'ai.progress.intro' => 'Each part of a page is translated in turn and written into its draft. Nothing is published: read each page, change what you like, then publish it. A picture with no description in the page’s language gets one in Media straight away. You can leave this screen; the rest waits until you come back.',
     'ai.progress.not_ready' => 'AI translation is not set up.',
     'ai.progress.to_settings' => 'Settings → AI translation',
     'ai.progress.nothing' => 'Nothing is waiting to be translated.',

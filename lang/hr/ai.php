@@ -42,6 +42,9 @@ return [
     'ai.kept_original_one' => ':count tekst zadržao je izvorne riječi; provjerite ga u uređivaču.',
     'ai.kept_original_few' => ':count teksta zadržala su izvorne riječi; provjerite ih u uređivaču.',
     'ai.kept_original' => ':count tekstova zadržalo je izvorne riječi; provjerite ih u uređivaču.',
+    'ai.kept_alt_one' => ':count opis slike zadržao je izvorne riječi; provjerite ga u Medijima.',
+    'ai.kept_alt_few' => ':count opisa slika zadržala su izvorne riječi; provjerite ih u Medijima.',
+    'ai.kept_alt' => ':count opisa slika zadržalo je izvorne riječi; provjerite ih u Medijima.',
     // Beside Translate: in the editor's language menu, a row's menu, and Copy into language.
     'ai.translate' => 'Prevedi s AI',
     'ai.translate_into' => 'Prevedi s AI · :language',
@@ -74,7 +77,7 @@ return [
     'ai.error.block_gone' => 'Blok više nije na stranici.',
     'ai.error.busy_page' => 'Stranica je u istom trenutku promijenjena u uređivaču. Pokušajte ponovno.',
     'ai.progress.title' => 'Prevođenje s AI',
-    'ai.progress.intro' => 'Dijelovi stranice prevode se redom i upisuju u njezinu skicu. Ništa se ne objavljuje: pročitajte svaku stranicu, promijenite što želite, pa je objavite. Možete napustiti ovaj zaslon; ostatak čeka dok se ne vratite.',
+    'ai.progress.intro' => 'Dijelovi stranice prevode se redom i upisuju u njezinu skicu. Ništa se ne objavljuje: pročitajte svaku stranicu, promijenite što želite, pa je objavite. Slika koja nema opis na jeziku stranice odmah ga dobiva u Medijima. Možete napustiti ovaj zaslon; ostatak čeka dok se ne vratite.',
     'ai.progress.not_ready' => 'AI prijevod nije postavljen.',
     'ai.progress.to_settings' => 'Postavke → AI prijevod',
     'ai.progress.nothing' => 'Ništa ne čeka prijevod.',

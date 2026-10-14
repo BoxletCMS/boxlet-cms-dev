@@ -341,3 +341,42 @@ testBothDrivers('the models offered are Anthropic\'s, fetched on a save or a tes
     assertEquals(['claude-new-6', 'claude-sonnet-5-5', 'claude-sonnet-5', 'other'], $offered(), 'a save with no answer keeps the list');
     assertContains('data-ai-other', dispatch('/admin/settings')->body, 'the other model\'s field is marked for the script');
 });
+
+testBothDrivers('a page\'s pictures get their alt text in its language where they have none; the owner\'s own, and decoration, are kept', function (string $driver) {
+    $db = aiSite($driver);
+    $meta = static function (int $id, string $locale, string $alt) use ($db): void {
+        $db->query('INSERT INTO media_meta (media_id, locale, alt, caption, alt_suggested) VALUES (?, ?, ?, NULL, 0)', [$id, $locale, $alt]);
+    };
+    $wave = storedPicture($db, 'wave', []);
+    $rain = storedPicture($db, 'rain', []);
+    $owned = storedPicture($db, 'owned', []);
+    $plain = storedPicture($db, 'plain', []);
+    $meta($wave, 'en', 'A great wave over boats');
+    $meta($rain, 'en', 'Rain at night');
+    $meta($owned, 'en', 'A press');
+    $meta($owned, 'hr', 'Tiskarski stroj');
+    $meta($plain, 'en', '');
+    $source = createPage($db, 'en', 'prints', 'Prints', true, [
+        ['type' => 'picture', 'content' => ['image' => $wave, 'caption' => 'The wave']],
+        ['type' => 'gallery', 'content' => ['heading' => 'More', 'items' => [['image' => $rain], ['image' => $owned], ['image' => $plain]]]],
+    ]);
+    $copy = (int) Translations::create($db, blockRegistry(), $source, 'hr');
+
+    assertEquals(4, AiQueue::page($db, blockRegistry(), $copy), 'its words, two blocks, and its pictures');
+    $asked = [];
+    aiRunAll($db, static function (string $s, string $u) use (&$asked): array {
+        $asked[] = $u;
+
+        return aiEcho()($s, $u);
+    });
+    $alt = static fn (int $id): ?array => $db->one("SELECT alt, alt_suggested FROM media_meta WHERE media_id = ? AND locale = 'hr'", [$id]);
+    assertEquals(['alt' => 'HR A great wave over boats', 'alt_suggested' => 0], array_map(static fn ($v) => is_numeric($v) ? (int) $v : $v, $alt($wave) ?? []), 'a picture with none in Croatian gets one');
+    assertEquals('HR Rain at night', $alt($rain)['alt'] ?? null, 'inside a gallery too');
+    assertEquals('Tiskarski stroj', $alt($owned)['alt'] ?? null, 'the owner\'s own kept');
+    assertEquals(null, $alt($plain), 'decoration, an empty alt, has nothing to translate');
+    assertEquals(1, count(array_filter($asked, static fn (string $u): bool => str_contains($u, 'A great wave over boats') && str_contains($u, 'Rain at night') && !str_contains($u, 'A press'))), 'both in one question, the owner\'s not asked');
+
+    // Another page showing the same picture: nothing left to translate, so no part for it.
+    $other = (int) Translations::create($db, blockRegistry(), createPage($db, 'en', 'wave', 'Wave', true, [['type' => 'picture', 'content' => ['image' => $wave, 'caption' => 'Again']]]), 'hr');
+    assertEquals(2, AiQueue::page($db, blockRegistry(), $other), 'its words and its block, no pictures part');
+});

@@ -8,7 +8,7 @@ use App\Modules\Pages\PageDraft;
 
 /**
  * WHAT IS LEFT TO TRANSLATE (PLAN.md D-248): one row per part of a page, the page's own words
- * ('page') or one block ('block:{key}'), waiting, done or failed. Kept in the database, not in a
+ * ('page'), one block ('block:{key}') or its pictures' alt text (D-260, 'pictures'), waiting, done or failed. Kept in the database, not in a
  * request or a browser, so a translation that stops — the tab closed, the connection lost, the
  * provider busy — carries on from where it was, and a step is never more than one part long:
  * within any shared host's time limit.
@@ -17,7 +17,7 @@ final class AiQueue
 {
     /**
      * Every part of a translation queued: its own words, then each block that has words, in the
-     * order the page draws them. A page already waiting is not queued twice. A new piece of work
+     * order the page draws them, then its pictures when any has no alt in its language (D-260). A page already waiting is not queued twice. A new piece of work
      * clears the last one's finished rows, once nothing of it is waiting.
      */
     public static function page(Db $db, Blocks $registry, int $pageId): int
@@ -32,6 +32,11 @@ final class AiQueue
             if ($block['content'] !== null && AiWork::hasWords($registry, $block['type'], $block['content'])) {
                 $parts[] = 'block:' . $block['key'];
             }
+        }
+        $page = $db->one('SELECT locale, content_group_id FROM pages WHERE id = ?', [$pageId]);
+        $source = $page === null ? null : $db->one("SELECT locale FROM pages WHERE content_group_id = ? AND translation_status = 'source' AND id <> ?", [(int) ($page['content_group_id'] ?? $pageId), $pageId]);
+        if ($page !== null && $source !== null && AiPictures::missing($db, $registry, $current['document'], (string) $source['locale'], (string) $page['locale']) !== []) {
+            $parts[] = 'pictures';
         }
         $queued = 0;
         foreach ($parts as $part) {

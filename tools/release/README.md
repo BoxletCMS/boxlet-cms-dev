@@ -6,8 +6,8 @@ Upload a ZIP, open a page in your browser, answer four questions. Fifteen minute
 have a multilingual site that looks designed, not like a template with the logo swapped. No
 shell, no Composer, no Node, no build step. An FTP client and a browser are enough.
 
-> **This is a release candidate for v0.1.** It is what v0.1 will be unless testing finds a
-> fault. From v0.1 on, updates keep your site as it is: no fresh install between versions.
+> **v0.1 is the first release.** From here on, updates keep your site as it is: no fresh
+> install between versions, and each update is taken from the admin.
 
 ![The Boxlet CMS page builder: the demo's home page, its hero selected](https://raw.githubusercontent.com/BoxletCMS/boxlet-cms-dev/main/tools/release/readme/builder.jpg)
 

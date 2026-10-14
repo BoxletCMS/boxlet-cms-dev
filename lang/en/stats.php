@@ -46,6 +46,7 @@ return [
     'stats.trend' => 'Visitors and views by day',
     'stats.trend_weekly' => 'Visitors and views by week',
     'stats.trend_week' => 'The last 7 days',
+    'stats.chart_label' => 'The chart, day by day: use the left and right arrow keys to read each day’s figures.',
     'stats.as_table' => 'Show the figures as a table',
     'stats.day' => 'Day',
     'stats.week_of' => 'Week of',

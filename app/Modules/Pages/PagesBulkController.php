@@ -114,9 +114,24 @@ final class PagesBulkController
         }
 
         // "and translate with AI" (D-248): what was made, queued, and what was there (D-252).
+        // Said as what is happening, not as copies waiting for the owner's words: the screen it
+        // leads to is translating them (the owner, D-259).
+        $again = array_values(array_unique($again));
         $queued = \App\Modules\Ai\AiController::queue($this->container, $request, array_values(array_unique(array_merge($new, $again))));
         if ($queued !== null) {
-            $session->set('flash', $said . ' ' . tn('ai.bulk_queued', count(array_unique(array_merge($new, $again)))));
+            $language = ['language' => (string) $label['label']];
+            $parts = [];
+            if ($made > 0) {
+                $parts[] = tn('ai.bulk_copied', $made, $language);
+            }
+            if ($again !== []) {
+                $parts[] = tn('ai.bulk_again', count($again), $language);
+            }
+            if ($passed - count($again) > 0) {
+                $parts[] = tn('pages.bulk.copy_passed_many', $passed - count($again), $language);
+            }
+            $parts[] = t('ai.bulk_read');
+            $session->set('flash', implode(' ', $parts));
             $session->set('flash_kind', 'success');
         }
 

@@ -42,3 +42,9 @@
   margin: 0;
   font-weight: 600;
 }
+
+/* Said instead of the step button while the script runs the parts by itself (D-259). */
+.ai-progress-running {
+  margin: 0;
+  color: var(--ui-ink-muted);
+}

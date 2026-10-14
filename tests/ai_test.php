@@ -279,7 +279,27 @@ testBothDrivers('Copy into language with AI translates the versions that are the
     sort($pages);
     $made = Translations::of($db, $other)['hr'] ?? 0;
     assertEquals([$copy, $made], $pages, 'the copy there already, and the one just made');
-    assertContains(tn('ai.bulk_queued', 2), (string) ($_SESSION['flash'] ?? ''), 'said');
+    // Said as what is happening (D-259): one made and being translated, one translated again;
+    // nothing about replacing words by hand.
+    assertEquals(
+        tn('ai.bulk_copied', 1, ['language' => 'Hrvatski']) . ' ' . tn('ai.bulk_again', 1, ['language' => 'Hrvatski']) . ' ' . t('ai.bulk_read'),
+        $_SESSION['flash'] ?? null,
+        'said',
+    );
+
+    // The screen: the first page in the queue is being translated, the other waits; the note
+    // that nothing needs pressing is there for the script to show, the button for no script.
+    $screen = dispatch('/admin/translate')->body;
+    $states = [];
+    foreach ([$pages[0], $pages[1]] as $id) {
+        preg_match('~data-ai-page="' . $id . '".*?data-ai-page-state>([^<]*)<~s', $screen, $m);
+        $states[$id] = html_entity_decode($m[1] ?? '');
+    }
+    $first = (int) (AiQueue::next($db)['page_id'] ?? 0);
+    assertEquals(t('ai.progress.page_working'), $states[$first] ?? null, 'the page being translated says so');
+    assertEquals([t('ai.progress.page_waiting')], array_values(array_diff_key($states, [$first => 1])), 'the other waits');
+    assertContains('data-ai-running hidden', $screen, 'the note, for the script to show');
+    assertContains('data-ai-next', $screen, 'the button, for no script');
 });
 
 testBothDrivers('a page once published keeps its row and its address; one never published keeps a slug a live subpage stands on', function (string $driver) {

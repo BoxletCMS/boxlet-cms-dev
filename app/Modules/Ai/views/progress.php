@@ -12,6 +12,21 @@ use App\Support\Url;
  */
 $finished = $progress['done'] + $progress['failed'];
 $running = $progress['pending'] > 0 && $ready;
+// Parts go in the order they were queued, so the first page with any waiting is the one being
+// translated now (D-259); ai-progress.js says the same as each answer comes.
+$working = null;
+foreach ($progress['pages'] as $page) {
+    if ($running && $page['pending'] > 0) {
+        $working = $page['id'];
+        break;
+    }
+}
+$state = static fn (int $id, int $pending, int $failed): string => match (true) {
+    $id === $working => t('ai.progress.page_working'),
+    $pending > 0 => t('ai.progress.page_waiting'),
+    $failed > 0 => t('ai.progress.page_failed'),
+    default => t('ai.progress.page_done'),
+};
 ?>
         <div class="page-header">
             <h1><?= e(t('ai.progress.title')) ?></h1>
@@ -25,7 +40,7 @@ $running = $progress['pending'] > 0 && $ready;
 <?php else: ?>
         <section class="panel stack ai-progress" data-ai<?= $running ? ' data-ai-run' : '' ?>
                  data-ai-step="<?= e(Url::admin('translate', 'step')) ?>" data-ai-csrf="<?= e($csrf) ?>"
-                 data-ai-words="<?= e((string) json_encode(['lost' => t('ai.progress.lost'), 'retrying' => t('ai.progress.retrying'), 'of' => t('ai.progress.of')], JSON_UNESCAPED_UNICODE)) ?>">
+                 data-ai-words="<?= e((string) json_encode(['lost' => t('ai.progress.lost'), 'retrying' => t('ai.progress.retrying'), 'of' => t('ai.progress.of'), 'working' => t('ai.progress.page_working'), 'waiting' => t('ai.progress.page_waiting'), 'failed' => t('ai.progress.page_failed'), 'done' => t('ai.progress.page_done')], JSON_UNESCAPED_UNICODE)) ?>">
             <progress data-ai-bar max="<?= e((string) $progress['total']) ?>" value="<?= e((string) $finished) ?>"></progress>
             <p class="ai-progress-count" data-ai-count role="status"><?= e(t('ai.progress.of', ['done' => (string) $finished, 'total' => (string) $progress['total']])) ?></p>
             <p class="notice notice-error" data-ai-stopped role="alert" hidden></p>
@@ -34,7 +49,7 @@ $running = $progress['pending'] > 0 && $ready;
                 <li data-ai-page="<?= e((string) $page['id']) ?>">
                     <a href="<?= e(Url::admin('pages', $page['id'])) ?>"><?= e($page['title']) ?></a>
                     <span class="ai-progress-lang"><?= e(strtoupper($page['locale'])) ?></span>
-                    <span class="ai-progress-state" data-ai-page-state><?= e($page['pending'] > 0 ? t('ai.progress.page_waiting') : ($page['failed'] > 0 ? t('ai.progress.page_failed') : t('ai.progress.page_done'))) ?></span>
+                    <span class="ai-progress-state" data-ai-page-state><?= e($state($page['id'], $page['pending'], $page['failed'])) ?></span>
                 </li>
 <?php endforeach; ?>
             </ul>
@@ -50,6 +65,10 @@ $running = $progress['pending'] > 0 && $ready;
 <?php endif; ?>
             <div class="form-actions" data-ai-actions>
 <?php if ($progress['pending'] > 0): ?>
+                <?php /* With the script, the parts go one after another by themselves: the
+                         button is hidden and this says so; it comes back if the run stops
+                         (D-259). Without it, the button does one part per press. */ ?>
+                <p class="ai-progress-running" data-ai-running hidden><?= e(t('ai.progress.running')) ?></p>
                 <form method="post" action="<?= e(Url::admin('translate', 'step')) ?>" data-ai-next>
                     <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                     <button type="submit" class="button"<?= $ready ? '' : ' disabled' ?>><?= e(t('ai.progress.next')) ?></button>

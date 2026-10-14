@@ -71,6 +71,7 @@ use App\Support\Url;
     $bulkWords = 'media.bulk';
     $bulkKeep = ['q' => $search, 'show' => $show, 'kind' => $kind, 'page' => $page > 1 ? (string) $page : ''];
     $bulkExtra = '';
+    $bulkAfter = '';
     require dirname(__DIR__, 3) . '/Admin/views/bulk.php';
     require __DIR__ . '/table.php';
 ?>

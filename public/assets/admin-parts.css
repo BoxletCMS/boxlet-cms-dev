@@ -78,6 +78,18 @@
   margin-bottom: var(--ui-3);
 }
 
+/* A second group after Delete, set apart by a rule (D-265): on Pages, the language tools, which
+   act on the ticked pages in another way than publishing or deleting them. */
+.list-bulk-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-3);
+  margin-inline-start: var(--ui-3);
+  padding-inline-start: var(--ui-5);
+  border-inline-start: var(--ui-border) solid var(--ui-line);
+}
+
 .list-bulk-count {
   color: var(--ui-ink-muted);
   font-size: var(--ui-text-sm);

@@ -10,7 +10,7 @@ use App\Support\Url;
 
 /**
  * SEVERAL PAGES DELETED AT ONCE (PLAN.md D-218, the owner), copied into another language
- * (D-247) or published (D-254): the pages ticked in the list, each
+ * (D-247), published (D-254) or unpublished (D-265): the pages ticked in the list, each
  * deleted as the row's own Delete deletes it — its blocks, drafts and revisions with it, its
  * old addresses and its menu items (Page::delete) — and recorded one by one in the activity.
  * The way the owner clears the demo, with Media's after it: a picture is free to delete once
@@ -188,6 +188,53 @@ final class PagesBulkController
         }
         $session->set('flash', $said);
         if ($published === 0 || $refused !== []) {
+            $session->set('flash_kind', 'warning');
+        }
+
+        return $back;
+    }
+
+    /**
+     * SEVERAL PAGES TAKEN OFF THE SITE AT ONCE (PLAN.md D-265, the owner): each ticked page that
+     * is on the site unpublished as the row's own button does (PagePublish::unpublish: what it
+     * said becomes its draft, and it leaves the sitemap). A draft ticked with them is passed
+     * over and counted.
+     *
+     * @param array<string, string> $params
+     */
+    public function unpublish(Request $request, string $locale, array $params): Response
+    {
+        $db = $this->container->get('db');
+        $session = $this->container->get('session');
+        $query = array_filter(['lang' => $request->input('lang'), 'q' => $request->input('q')]);
+        $back = Response::redirect(Url::withQuery(Url::admin('pages'), $query));
+        $done = 0;
+        $drafts = 0;
+        foreach (self::ids($request) as $id) {
+            $page = Page::find($db, $id);
+            if ($page === null) {
+                continue;
+            }
+            if ($page['status'] !== 'published') {
+                $drafts++;
+                continue;
+            }
+            PagePublish::unpublish($this->container, $id);
+            Activity::record($db, 'page', 'unpublished', $id, (string) $page['title']);
+            $done++;
+        }
+        if ($done === 0 && $drafts === 0) {
+            $session->set('flash', t('pages.bulk.unpublish_none'));
+            $session->set('flash_kind', 'warning');
+
+            return $back;
+        }
+        $said = $done > 0 ? tn('pages.bulk.unpublished_many', $done) : t('pages.bulk.unpublished_nothing');
+        if ($drafts > 0) {
+            $said .= ' ' . tn('pages.bulk.unpublish_drafts_many', $drafts);
+        }
+        $session->set('flash', $said);
+        if ($done === 0) {
             $session->set('flash_kind', 'warning');
         }
 

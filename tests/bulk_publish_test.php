@@ -67,3 +67,45 @@ testBothDrivers('the bar offers Publish, and copies only into a language the lis
     preg_match('~<select id="bulk-copy-to"[^>]*>(.*?)</select>~s', $croatian, $shown);
     assertEquals(['en'], preg_match_all('~value="([a-z]+)"~', $shown[1] ?? '', $codes) > 0 ? $codes[1] : [], 'pages shown in Croatian are offered English, not Croatian');
 });
+
+testBothDrivers('the ticked pages on the site are unpublished; a draft ticked with them is said and left', function (string $driver) {
+    $db = adminSite($driver);
+    $about = createPage($db, 'en', 'about', 'About', true);
+    $team = createPage($db, 'en', 'team', 'Team', true);
+    $draft = createPage($db, 'en', 'news', 'News', false);
+
+    $response = adminPost('/admin/pages/unpublish', ['ids' => [(string) $about, (string) $team, (string) $draft], 'lang' => 'en']);
+    assertRedirectedTo('/admin/pages?lang=en', $response);
+    $status = static fn (int $id): ?string => $db->one('SELECT status FROM pages WHERE id = ?', [$id])['status'] ?? null;
+    assertEquals(['draft', 'draft', 'draft'], [$status($about), $status($team), $status($draft)], 'both off the site, the draft as it was');
+    assertTrue(PageDraft::exists($db, $about), 'what it said is its draft');
+    assertEquals(tn('pages.bulk.unpublished_many', 2) . ' ' . tn('pages.bulk.unpublish_drafts_many', 1), $_SESSION['flash'] ?? null, 'how many, and the draft');
+    assertEquals(2, (int) ($db->one("SELECT COUNT(*) AS n FROM activity WHERE action = 'unpublished'")['n'] ?? 0), 'each in the activity');
+
+    adminPost('/admin/pages/unpublish', []);
+    assertEquals(t('pages.bulk.unpublish_none'), $_SESSION['flash'] ?? null, 'nothing ticked');
+});
+
+testBothDrivers('each row says what Publish and Unpublish would do to it; the language tools stand apart, after Delete', function (string $driver) {
+    $db = adminSite($driver);
+    $live = createPage($db, 'en', 'about', 'About', true);
+    $changed = createPage($db, 'en', 'team', 'Team', true);
+    $draft = createPage($db, 'en', 'news', 'News', false);
+    $current = PageDraft::current($db, blockRegistry(), $changed) ?? fail('no page');
+    $current['document']['title'] = 'Our team';
+    PageDraft::save($db, $changed, $current['document'], $current['version']);
+
+    $list = dispatch('/admin/pages')->body;
+    $pick = static function (int $id) use ($list): string {
+        preg_match('~<input type="checkbox" name="ids\[\]" value="' . $id . '"[^>]*>~', $list, $m);
+
+        return $m[0] ?? '';
+    };
+    assertTrue(!str_contains($pick($live), 'data-publishable') && str_contains($pick($live), 'data-unpublishable'), 'live, nothing to publish: Unpublish only');
+    assertTrue(str_contains($pick($changed), 'data-publishable') && str_contains($pick($changed), 'data-unpublishable'), 'live with changes: both');
+    assertTrue(str_contains($pick($draft), 'data-publishable') && !str_contains($pick($draft), 'data-unpublishable'), 'a draft: Publish only');
+    assertContains('formaction="/admin/pages/unpublish" data-bulk-also data-bulk-when="unpublishable" data-bulk-quiet', $list, 'Unpublish, out of the way until it applies');
+    $delete = strpos($list, 'data-bulk-delete');
+    $group = strpos($list, 'class="list-bulk-group"');
+    assertTrue($delete !== false && $group !== false && $group > $delete && strpos($list, 'formaction="/admin/pages/copy"', (int) $group) !== false, 'Copy into language in its own group after Delete');
+});

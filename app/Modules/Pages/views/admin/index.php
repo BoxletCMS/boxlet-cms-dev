@@ -17,6 +17,7 @@ use App\Support\Url;
  * @var int $maxLevels how deep the tree may go (PagePlacing::MAX_LEVELS)
  * @var array<int, array<string, int>> $versions page id => every language's version of it, locale => id (D-247)
  * @var bool $aiReady whether Translate with AI is offered (D-248)
+ * @var array<int, true> $drafted the pages with a draft: unpublished changes, or never published (D-265)
  * @var array<int, true> $sources the pages that are originals: AI translates from them, never into them (D-252)
  * @var string $csrf
  */
@@ -95,22 +96,30 @@ foreach ($pages as $row) {
     $bulkAction = Url::admin('pages', 'delete');
     $bulkWords = 'pages.bulk';
     $bulkKeep = ['lang' => $lang, 'q' => $query];
-    // PUBLISH THE TICKED PAGES (D-254), each as its row's Publish does.
-    $bulkExtra = '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'publish')) . '" data-bulk-also>'
-        . icon('eye') . ' ' . e(t('pages.bulk.publish')) . '</button>';
+    // PUBLISH OR UNPUBLISH THE TICKED PAGES (D-254, D-265), each as its row's button does. With
+    // the script each is shown only when it applies to a ticked page, with how many it would
+    // change: Publish to a draft or a page with unpublished changes, Unpublish to a page on the
+    // site; a choice of both shows both. Without it both stand, and each passes over the rest.
+    $bulkExtra = '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'publish')) . '" data-bulk-also data-bulk-when="publishable">'
+        . icon('eye') . ' ' . e(t('pages.bulk.publish')) . '<span data-bulk-n></span></button>'
+        . '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'unpublish')) . '" data-bulk-also data-bulk-when="unpublishable" data-bulk-quiet>'
+        . icon('eye-off') . ' ' . e(t('pages.bulk.unpublish')) . '<span data-bulk-n></span></button>';
     // COPY INTO A LANGUAGE (D-247): only where the site has more than one, and only into one
-    // the list is not showing — pages filtered to Croatian are in Croatian already (D-254).
+    // the list is not showing — pages filtered to Croatian are in Croatian already (D-254). A
+    // group of its own after Delete, read as a sentence: copy into [language] [and translate
+    // with AI] (the owner, D-265).
+    $bulkAfter = '';
     $targets = array_values(array_filter($codes, static fn (string $code): bool => $code !== $lang));
     if (count($codes) > 1 && $targets !== []) {
         $chosen = $lang === '' ? $codes[1] : $targets[0];
-        $bulkExtra .= '<label class="visually-hidden" for="bulk-copy-to">' . e(t('pages.bulk.copy_label')) . '</label>'
+        $bulkAfter = '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'copy')) . '" data-bulk-also>'
+            . icon('languages') . ' ' . e(t('pages.bulk.copy')) . '</button>'
+            . '<label class="visually-hidden" for="bulk-copy-to">' . e(t('pages.bulk.copy_label')) . '</label>'
             . '<select id="bulk-copy-to" name="to" class="list-bulk-select">';
         foreach ($targets as $code) {
-            $bulkExtra .= '<option value="' . e($code) . '"' . ($code === $chosen ? ' selected' : '') . '>' . e($localeLabels[$code] ?? $code) . '</option>';
+            $bulkAfter .= '<option value="' . e($code) . '"' . ($code === $chosen ? ' selected' : '') . '>' . e($localeLabels[$code] ?? $code) . '</option>';
         }
-        $bulkExtra .= '</select>'
-            . '<button type="submit" class="button button-secondary button-small" formaction="' . e(Url::admin('pages', 'copy')) . '" data-bulk-also>'
-            . icon('languages') . ' ' . e(t('pages.bulk.copy')) . '</button>'
+        $bulkAfter .= '</select>'
             . ($aiReady ? '<label class="checkbox list-bulk-ai"><input type="checkbox" name="ai" value="1"> ' . e(t('ai.bulk')) . '</label>' : '');
     }
     require dirname(__DIR__, 3) . '/Admin/views/bulk.php';
@@ -145,7 +154,7 @@ foreach ($pages as $row) {
                              parent, the title it names as a parent, whether it is a home page,
                              which takes no subpages, and where to send the page. */ ?>
                     <tr data-page-id="<?= $id ?>" data-page-group="<?= e($group) ?>" data-depth="<?= e((string) $page['depth']) ?>" data-locale="<?= e($page['locale']) ?>" data-parent="<?= $page['parent'] > 0 ? e((string) $page['parent']) : '' ?>" data-title="<?= e($page['title']) ?>"<?= $page['slug'] === '' ? ' data-home' : '' ?> data-place="<?= e(Url::admin('pages', $id, 'place')) ?>">
-                        <td class="col-pick"><input type="checkbox" name="ids[]" value="<?= $id ?>" form="pages-bulk" data-bulk-pick aria-label="<?= e(t('pages.bulk.pick', ['title' => $page['title']])) ?>"></td>
+                        <td class="col-pick"><input type="checkbox" name="ids[]" value="<?= $id ?>" form="pages-bulk" data-bulk-pick<?= !$published || isset($drafted[$id]) ? ' data-publishable' : '' ?><?= $published ? ' data-unpublishable' : '' ?> aria-label="<?= e(t('pages.bulk.pick', ['title' => $page['title']])) ?>"></td>
                         <td class="page-order">
 <?php if ($query === ''): ?>
                             <span class="drag-handle" data-page-handle aria-hidden="true"><?= icon('grip-vertical') ?></span>

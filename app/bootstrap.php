@@ -314,6 +314,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/pages/delete', [PagesBulkController::class, 'delete'], $requireAdmin);
     $router->post('/admin/pages/copy', [PagesBulkController::class, 'copy'], $requireAdmin);
     $router->post('/admin/pages/publish', [PagesBulkController::class, 'publish'], $requireAdmin);
+    $router->post('/admin/pages/unpublish', [PagesBulkController::class, 'unpublish'], $requireAdmin);
 
     // Pictures (SPEC §5.5). The generated variants live under /m/ and are served from
     // disk by the web server; no route here ever answers for one.

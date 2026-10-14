@@ -66,10 +66,27 @@ export default {
     const into = await page.$$eval('#bulk-copy-to option', (options) => options.map((o) => o.value)).catch(() => []);
     report.verdict(`the list shown in ${target.label} does not offer to copy into ${target.label}`, into.length > 0 && !into.includes(target.value), JSON.stringify(into));
 
-    // The two drafts published together, then deleted together: the copy as it was found.
+    // Publish and Unpublish follow what is ticked (D-265): two drafts, Publish only; with a page
+    // that is on the site as well, both, each with how many it would change.
+    const UNPUBLISH = '#pages-bulk button[formaction$="/pages/unpublish"]';
+    const shown = (selector) => page.$eval(selector, (b) => (b.hidden ? 'hidden' : b.textContent.trim().replace(/\s+/g, ' ')));
     for (const row of made) {
       await page.click(`input[data-bulk-pick][value="${row.id}"]`);
     }
+    const drafts = [await shown(PUBLISH), await shown(UNPUBLISH)];
+    const live = await page.$eval('input[data-bulk-pick][data-unpublishable]', (box) => box.value).catch(() => null);
+    let mixed = null;
+    if (live !== null) {
+      await page.click(`input[data-bulk-pick][value="${live}"]`);
+      mixed = [await shown(PUBLISH), await shown(UNPUBLISH)];
+      await report.shot(page, '01a-publish-and-unpublish', { fullPage: false });
+      await page.click(`input[data-bulk-pick][value="${live}"]`);
+    }
+    report.verdict('two drafts ticked offer Publish (2) alone; with a live page, Publish (2) and Unpublish (1)',
+      /\(2\)$/.test(drafts[0]) && drafts[1] === 'hidden' && mixed !== null && /\(2\)$/.test(mixed[0]) && /\(1\)$/.test(mixed[1]),
+      JSON.stringify({ drafts, mixed }));
+
+    // The two drafts published together, then deleted together: the copy as it was found.
     if (made.length > 0) {
       await clickAndWait(page, PUBLISH);
       const said = await page.$eval('.notice, [role="status"]', (n) => n.textContent.trim()).catch(() => '');

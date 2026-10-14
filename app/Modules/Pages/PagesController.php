@@ -58,6 +58,8 @@ final class PagesController
             // Where the page just placed was, for the one Undo the list offers (D-133).
             'undo' => $this->pullUndo(),
             'maxLevels' => PagePlacing::MAX_LEVELS,
+            // Which pages Publish would change though they are on the site (D-265).
+            'drafted' => array_fill_keys(array_map('intval', array_column($this->db()->all('SELECT page_id FROM page_drafts'), 'page_id')), true),
             'versions' => self::versions($this->db()),
             // The originals, which AI translates from and never into (D-252).
             'sources' => array_fill_keys(array_map('intval', array_column($this->db()->all("SELECT id FROM pages WHERE translation_status = 'source'"), 'id')), true),

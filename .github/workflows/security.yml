@@ -1,0 +1,102 @@
+name: Security
+
+# What a person who wants into a Boxlet site would try first, checked on every push (PLAN.md
+# D-275, the owner: "sigurnost mi je jedan od glavnih ciljeva"). Branches only, not tags, as CI:
+# the Release workflow in BoxletCMS/Boxlet-CMS refuses a tag while any check on its commit is
+# unfinished or red, so a finding here stops a release until it is mended or explained.
+#
+# Weekly as well: an advisory for a library, or a new rule, can find something in code that has
+# not changed.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The libraries Boxlet ships and the tools it is checked with, against the advisories
+  # Packagist knows: a hole in a dependency is the likelier way in than one in our own code.
+  dependencies:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    name: Dependencies
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer
+          coverage: none
+
+      # From composer.lock, as shipped: nothing is installed.
+      - name: Known advisories
+        run: composer audit --locked
+
+  # Opengrep, an open fork of Semgrep: Boxlet's own rules (tools/opengrep/rules: the security
+  # rules CLAUDE.md states, each with a test) and the generic PHP rules from semgrep-rules.
+  opengrep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    name: Opengrep
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      # Pinned and checked, never `curl | bash` from a branch: a tool that guards the code must
+      # not be a way into it. Raised by hand, with the checksum GitHub publishes for the asset.
+      OPENGREP_VERSION: v1.30.2
+      OPENGREP_SHA256: a66aa3278457f02b287b985a45b6762aebcaba5000f2689245fd1ed86d1456c7
+      # semgrep-rules at a commit, likewise. Its licence (Semgrep Rules License v1.0) allows
+      # scanning one's own code; the rules are fetched here and never copied into this repository.
+      RULES_COMMIT: 9bbf021d0acffa3095fcffd17b2bc7787eb4796d
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Opengrep, the pinned release, checked
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/opengrep" "https://github.com/opengrep/opengrep/releases/download/$OPENGREP_VERSION/opengrep_manylinux_x86"
+          echo "$OPENGREP_SHA256  $RUNNER_TEMP/opengrep" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/opengrep"
+          "$RUNNER_TEMP/opengrep" --version
+
+      # The generic PHP rules, but two that only say a file is deleted or a hash is SHA-1: every
+      # delete takes a path Boxlet makes or checks (boxlet-request-to-file follows a request's
+      # value to one), and SHA-1 names files and cache entries here, never a password.
+      - name: The generic PHP rules, at the pinned commit
+        run: |
+          set -euo pipefail
+          git init -q "$RUNNER_TEMP/semgrep-rules"
+          git -C "$RUNNER_TEMP/semgrep-rules" fetch -q --depth 1 https://github.com/semgrep/semgrep-rules.git "$RULES_COMMIT"
+          git -C "$RUNNER_TEMP/semgrep-rules" checkout -q FETCH_HEAD
+          mkdir -p "$RUNNER_TEMP/rules"
+          cp -r "$RUNNER_TEMP/semgrep-rules/php/lang" "$RUNNER_TEMP/rules/php"
+          rm -f "$RUNNER_TEMP/rules/php/security/unlink-use."* "$RUNNER_TEMP/rules/php/security/weak-crypto."*
+
+      # Each Boxlet rule against its own examples: what it must find and what it must leave.
+      - name: Boxlet's rules find what they should
+        run: '"$RUNNER_TEMP/opengrep" test tools/opengrep/rules'
+
+      - name: Scan
+        run: |
+          "$RUNNER_TEMP/opengrep" scan \
+            -f tools/opengrep/rules \
+            -f "$RUNNER_TEMP/rules/php" \
+            --taint-intrafile \
+            --sarif-output=opengrep.sarif \
+            --error \
+            app public config bin
+
+      # In Security → Code scanning, each finding at its line, whether the scan passed or not.
+      - name: Findings to Code scanning
+        if: always() && hashFiles('opengrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: opengrep.sarif
+          category: opengrep

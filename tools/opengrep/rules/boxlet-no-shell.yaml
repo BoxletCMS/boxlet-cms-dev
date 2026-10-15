@@ -1,0 +1,23 @@
+rules:
+  - id: boxlet-no-shell
+    languages: [php]
+    severity: ERROR
+    message: >-
+      Boxlet runs on shared hosting with no shell, and never needs one: no exec, shell_exec,
+      system, passthru, popen, proc_open or backticks. Nor eval, create_function or unserialize,
+      which run or rebuild code from data: decode JSON instead.
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection; CWE-95: Eval Injection; CWE-502: Deserialization of Untrusted Data"
+      boxlet: "PLAN.md D-275"
+    pattern-either:
+      - pattern: exec(...)
+      - pattern: shell_exec(...)
+      - pattern: system(...)
+      - pattern: passthru(...)
+      - pattern: popen(...)
+      - pattern: proc_open(...)
+      - pattern: pcntl_exec(...)
+      - pattern: eval(...)
+      - pattern: create_function(...)
+      - pattern: unserialize(...)

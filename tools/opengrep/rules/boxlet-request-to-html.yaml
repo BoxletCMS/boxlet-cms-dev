@@ -1,0 +1,38 @@
+rules:
+  - id: boxlet-request-to-html
+    languages: [php]
+    severity: ERROR
+    mode: taint
+    options:
+      # Only a value as it came, or joined into a string: what a function returns is its own
+      # (a temporary file's name, a rendered page), or every helper would be a finding (D-275).
+      taint_assume_safe_functions: true
+    message: >-
+      A value from the request is written into HTML unescaped. Escape it with e() (or let
+      RichText::sanitize clean what is meant to be markup), or a link could run a script in the
+      admin's browser (XSS).
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-site Scripting"
+      boxlet: "PLAN.md D-275"
+    pattern-sources:
+      - pattern: $REQ->input(...)
+      - pattern: $REQ->body[...]
+      - pattern: $REQ->query[...]
+      - pattern: $REQ->header(...)
+      - pattern: $params[...]
+    pattern-sanitizers:
+      - pattern: e(...)
+      - pattern: htmlspecialchars(...)
+      - pattern: (int) $X
+      - pattern: intval(...)
+      - pattern: RichText::sanitize(...)
+      - pattern: json_encode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: echo $OUT;
+              - pattern: print($OUT);
+              - pattern: Response::html($OUT, ...)
+              - pattern: new Response($OUT, ...)
+          - focus-metavariable: $OUT

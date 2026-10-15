@@ -1,0 +1,30 @@
+rules:
+  - id: boxlet-sql-built
+    languages: [php]
+    severity: ERROR
+    message: >-
+      SQL put together from variables. Every value goes into a query as a parameter (?), never
+      into its text; the only names allowed inside the text are $marks and $placeholders, a list
+      of question marks. A table or column name from a closed list in the code may be built in
+      too, with a `nosemgrep: boxlet-sql-built` comment saying where the list is.
+    paths:
+      exclude:
+        # The one place a query's text is a parameter: Db::query() and its kin take it as given.
+        - app/Core/Db.php
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      boxlet: "PLAN.md D-275"
+    patterns:
+      - pattern: $DB->$METHOD($SQL, ...)
+      # The database itself, by the names Boxlet gives it: a model's own all() or one() is not a query.
+      - metavariable-regex:
+          metavariable: $DB
+          regex: ^(\$db|\$this->db|\$this->db\(\)|\$this->db->pdo\(\)|\$db->pdo\(\)|\$this->pdo\(\)|\$pdo)$
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(query|one|all|exec|prepare)$
+      - metavariable-regex:
+          metavariable: $SQL
+          # Matched from the start of the text, so .* first (measured: without it, nothing).
+          regex: (?s).*(\$(?!(marks|placeholders)\b)\w|['"]\s*\.|\.\s*['"])

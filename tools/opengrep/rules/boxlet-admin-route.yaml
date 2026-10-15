@@ -1,0 +1,23 @@
+rules:
+  - id: boxlet-admin-route
+    languages: [php]
+    severity: ERROR
+    message: >-
+      An /admin route without $requireAdmin is open to anyone. Only logging in, a forgotten
+      password, the reset link and the two-step code are public; every other admin route takes
+      the guard as its third argument.
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+      boxlet: "PLAN.md D-275"
+    patterns:
+      - pattern: $ROUTER->$METHOD($PATH, $HANDLER)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(get|post)$
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: ^['"]/admin
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: ^['"]/admin/(?!(login|login/code|forgot|reset/\{token:\[0-9a-f\]\{64\}\})['"]$)

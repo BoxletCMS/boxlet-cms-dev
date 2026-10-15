@@ -1,0 +1,21 @@
+rules:
+  - id: boxlet-superglobals
+    languages: [php]
+    severity: ERROR
+    message: >-
+      $_GET, $_POST, $_COOKIE, $_REQUEST and $_FILES are read in App\Core\Request only. Read the
+      request through it ($request->input(), ->query, ->body, ->files), where a value is checked
+      for what it is before use.
+    metadata:
+      category: security
+      cwe: "CWE-20: Improper Input Validation"
+      boxlet: "PLAN.md D-275"
+    paths:
+      exclude:
+        - app/Core/Request.php
+    pattern-either:
+      - pattern: $_GET
+      - pattern: $_POST
+      - pattern: $_COOKIE
+      - pattern: $_REQUEST
+      - pattern: $_FILES

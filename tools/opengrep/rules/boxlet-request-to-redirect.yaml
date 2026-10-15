@@ -1,0 +1,36 @@
+rules:
+  - id: boxlet-request-to-redirect
+    languages: [php]
+    severity: ERROR
+    mode: taint
+    options:
+      # Only a value as it came, or joined into a string: what a function returns is its own
+      # (a temporary file's name, a rendered page), or every helper would be a finding (D-275).
+      taint_assume_safe_functions: true
+    message: >-
+      A value from the request decides where a redirect goes. Anyone could send the admin a link
+      that lands on another site (an open redirect). Redirect to an address Boxlet builds
+      (Url::admin, Url::page), or check the value against this site's own prefix first.
+    metadata:
+      category: security
+      cwe: "CWE-601: Open Redirect"
+      boxlet: "PLAN.md D-275"
+    pattern-sources:
+      - pattern: $REQ->input(...)
+      - pattern: $REQ->body[...]
+      - pattern: $REQ->query[...]
+      - pattern: $REQ->header(...)
+      - pattern: $params[...]
+    pattern-sanitizers:
+      - pattern: (int) $X
+      - pattern: intval(...)
+      - pattern: Url::admin(...)
+      - pattern: Url::page(...)
+      - pattern: Url::withQuery(Url::admin(...), $Q)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: Response::redirect($TO, ...)
+              - pattern: 'header("Location: " . $TO)'
+              - pattern: "new Response($BODY, $STATUS, ['Location' => $TO, ...])"
+          - focus-metavariable: $TO

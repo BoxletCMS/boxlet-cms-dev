@@ -1,0 +1,37 @@
+rules:
+  - id: boxlet-ip-stored
+    languages: [php]
+    severity: ERROR
+    mode: taint
+    options:
+      # Only a value as it came, or joined into a string: what a function returns is its own
+      # (a temporary file's name, a rendered page), or every helper would be a finding (D-275).
+      taint_assume_safe_functions: true
+    message: >-
+      A visitor's IP address is stored as it is. Boxlet stores a keyed hash of it, never the
+      address (CLAUDE.md, SPEC §6): hash_hmac('sha256', $ip, $appKey) before it reaches the
+      database, a setting, a file or the activity.
+    metadata:
+      category: security
+      cwe: "CWE-359: Exposure of Private Personal Information"
+      boxlet: "PLAN.md D-275"
+    pattern-sources:
+      - pattern: ClientIp::of(...)
+      - pattern: $_SERVER['REMOTE_ADDR']
+      - pattern: $_SERVER['HTTP_X_FORWARDED_FOR']
+    pattern-sanitizers:
+      - pattern: hash_hmac(...)
+      - pattern: hash(...)
+      - pattern: Geo::$FN(...)
+      - pattern: $GEO->lookup(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $DB->query($SQL, $VALUE)
+              - pattern: $DB->one($SQL, $VALUE)
+              - pattern: $DB->all($SQL, $VALUE)
+              - pattern: Settings::set($DB, $KEY, $VALUE)
+              - pattern: file_put_contents($FILE, $VALUE, ...)
+              - pattern: Activity::record($DB, $KIND, $ACTION, $ID, $VALUE)
+              - pattern: error_log($VALUE, ...)
+          - focus-metavariable: $VALUE

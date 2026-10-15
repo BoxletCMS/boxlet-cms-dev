@@ -47,6 +47,8 @@ final class Activity
      */
     public static function recent(Db $db, int $limit, int $offset = 0): array
     {
+        // LIMIT and OFFSET are int parameters. (D-275)
+        // nosemgrep: boxlet-sql-built
         $rows = $db->all(
             'SELECT id, occurred_at, kind, action, subject_id, subject FROM activity
              ORDER BY occurred_at DESC, id DESC LIMIT ' . max(1, $limit) . ' OFFSET ' . max(0, $offset),

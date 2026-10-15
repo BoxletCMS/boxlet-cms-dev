@@ -1,0 +1,52 @@
+rules:
+  - id: boxlet-request-to-file
+    languages: [php]
+    severity: ERROR
+    mode: taint
+    options:
+      # Only a value as it came, or joined into a string: what a function returns is its own
+      # (a temporary file's name, a rendered page), or every helper would be a finding (D-275).
+      taint_assume_safe_functions: true
+    message: >-
+      A value from the request reaches a file path. A name a visitor or the admin sends can climb
+      out of the folder with ../; check it against a closed shape first (Backups::validName, a
+      preset name, an id cast to int) or take basename() of it.
+    metadata:
+      category: security
+      cwe: "CWE-22: Path Traversal"
+      boxlet: "PLAN.md D-275"
+    pattern-sources:
+      - pattern: $REQ->input(...)
+      - pattern: $REQ->body[...]
+      - pattern: $REQ->query[...]
+      - pattern: $REQ->files[...]
+      - pattern: $REQ->header(...)
+      - pattern: $params[...]
+    pattern-sanitizers:
+      # PHP's own name for an uploaded file's temporary copy, never the sender's.
+      - pattern: $F['tmp_name']
+      - pattern: (int) $X
+      - pattern: intval(...)
+      - pattern: basename(...)
+      - pattern: hash(...)
+      - pattern: sha1(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: unlink($PATH, ...)
+              - pattern: file_put_contents($PATH, ...)
+              - pattern: file_get_contents($PATH, ...)
+              - pattern: fopen($PATH, ...)
+              - pattern: readfile($PATH, ...)
+              - pattern: rename($PATH, ...)
+              - pattern: rename($OTHER, $PATH, ...)
+              - pattern: copy($PATH, ...)
+              - pattern: copy($OTHER, $PATH, ...)
+              - pattern: rmdir($PATH, ...)
+              - pattern: mkdir($PATH, ...)
+              - pattern: is_file($PATH)
+              - pattern: include $PATH
+              - pattern: require $PATH
+              - pattern: include_once $PATH
+              - pattern: require_once $PATH
+          - focus-metavariable: $PATH

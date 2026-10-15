@@ -185,6 +185,46 @@ function dispatch(
  * One line naming what failed and where, pointing at the test file rather than at
  * this helper.
  */
+/**
+ * A TEST THAT HANGS SAYS WHERE (PLAN.md O-51, D-275). A CI leg has stopped dead three times, each
+ * time in a different test, and run out of its 25 minutes saying only which test passed last:
+ * the one that hung printed nothing. With pcntl, each test gets $seconds (TEST_HANG_SECONDS,
+ * 240 by default: the slowest whole file takes 81); past them this prints HANG, the test's name
+ * and where the code stood, as a line and as an annotation, and ends the run with a failure.
+ * Without pcntl it does nothing. Called with null once the test is over.
+ */
+function watchTest(?string $name): void
+{
+    if (!function_exists('pcntl_alarm')) {
+        return;
+    }
+    static $installed = false;
+    static $current = '';
+    if (!$installed) {
+        pcntl_async_signals(true);
+        pcntl_signal(SIGALRM, static function () use (&$current): void {
+            $where = [];
+            foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
+                if (isset($frame['file'], $frame['line'])) {
+                    $where[] = str_replace(dirname(__DIR__) . '/', '', $frame['file']) . ':' . $frame['line'] . ' ' . ($frame['class'] ?? '') . ($frame['type'] ?? '') . $frame['function'] . '()';
+                }
+            }
+            $detail = 'no answer after ' . (getenv('TEST_HANG_SECONDS') ?: '240') . 's, at: ' . implode(' < ', array_slice($where, 0, 8));
+            echo "  HANG  {$current}\n        {$detail}\n";
+            echo '::error title=' . str_replace(['%', "\r", "\n"], ['%25', '%0D', '%0A'], 'HANG ' . $current) . '::' . str_replace(['%', "\r", "\n"], ['%25', '%0D', '%0A'], $detail) . "\n";
+            exit(1);
+        });
+        $installed = true;
+    }
+    if ($name === null) {
+        pcntl_alarm(0);
+
+        return;
+    }
+    $current = $name;
+    pcntl_alarm(max(1, (int) (getenv('TEST_HANG_SECONDS') ?: 240)));
+}
+
 function failureMessage(Throwable $e): string
 {
     $location = '';

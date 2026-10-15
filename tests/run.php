@@ -70,6 +70,10 @@ $skipped = 0;
  * copies into the job's public summary.
  */
 $seconds = [];
+// Whether a hang will be named (O-51): said once, so a log shows the guard was there.
+echo function_exists('pcntl_alarm')
+    ? '  Each test is stopped and named after ' . (getenv('TEST_HANG_SECONDS') ?: '240') . "s without an answer.\n"
+    : "  No pcntl here: a test that hangs is not named.\n";
 foreach (TestSuite::$tests as [$name, $body]) {
     $group = strstr($name, ':', true) ?: $name;
     $startedAt = microtime(true);
@@ -97,6 +101,7 @@ foreach (TestSuite::$tests as [$name, $body]) {
         }
     }
     try {
+        watchTest($name);
         $body();
         echo "  PASS  {$name}\n";
     } catch (TestSkipped $e) {
@@ -115,6 +120,7 @@ foreach (TestSuite::$tests as [$name, $body]) {
         echo '        ' . failureMessage($e) . "\n";
         $annotate($name, failureMessage($e));
     } finally {
+        watchTest(null);
         $seconds[$group] = ($seconds[$group] ?? 0.0) + (microtime(true) - $startedAt);
     }
 }

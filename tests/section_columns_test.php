@@ -173,6 +173,29 @@ test('guard (D-184): what each arrangement needs for 16rem columns agrees with S
     assertContains(".cols-sidebar > .section-column:first-child {\n  --column-weight: 3;", $css, 'the sidebar\'s');
 });
 
+test('guard (O-71): a column never grows to a word, and every block heading in it is capped', function () {
+    // The bug: an implicit grid track's minimum is auto, so the column grew to its longest word.
+    $sections = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections.css');
+    $column = preg_match('~\n\.section-column \{([^}]*)\}~', $sections, $match) === 1 ? $match[1] : fail('sections.css has no .section-column rule');
+    assertContains('grid-template-columns: minmax(0, 1fr);', $column, 'a column\'s one track');
+
+    // The cap names the headings one by one, as site.css's block language does: the two lists
+    // are one fact written twice, and a block heading added to one only would be the full
+    // display size in a quarter again.
+    $site = (string) file_get_contents(dirname(__DIR__) . '/public/assets/site.css');
+    $sized = preg_match('~:is\(([^)]*)\) \{\s*margin: 0 0 var\(--space-m\);\s*font-size: var\(--text-2xl\);~', $site, $s) === 1 ? $s[1] : fail('site.css sizes no block headings');
+    $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/sections-columns.css');
+    $capped = preg_match('~\.section-cols:not\(\.cols-one\) > \.section-column :is\(([^)]*)\) \{\s*--column-heading-size: min\(var\(--text-2xl\), 11cqi\);\s*font-size: var\(--column-heading-size\);~', $css, $c) === 1 ? $c[1] : fail('sections-columns.css caps no headings');
+    $list = static function (string $selectors): array {
+        $names = array_map('trim', explode(',', $selectors));
+        sort($names);
+
+        return $names;
+    };
+    assertEquals($list($sized), $list($capped), 'the capped headings are the sized ones');
+    assertContains(".section-cols:not(.cols-one) > .section-column {\n  container-type: inline-size;", $css, 'the column measures itself');
+});
+
 // A SECTION OF COLUMNS TAKES THE WIDE MEASURE WHERE ITS COLUMNS NEED IT (D-184): Editorial's
 // content is 42rem, and a wide-left band's narrow column came to 13.2rem there.
 test('a section of columns is composed wide when the content width cannot give each column 16rem', function () {

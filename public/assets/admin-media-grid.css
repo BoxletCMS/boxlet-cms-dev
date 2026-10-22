@@ -1,0 +1,61 @@
+/* MEDIA AS A GRID (PLAN.md O-75): the library's cards, beside its table. The card itself is
+   admin-media.css's, the picker's too; this is what the library adds to it — the tick, a file
+   drawn as one, and a line for what the table's Used and Described columns say. Admin tokens
+   only (--ui-*). */
+
+.media-card-library {
+  position: relative;
+}
+
+/* The tick sits on the picture's corner, on a backing of the panel so it reads on any picture,
+   and is there at rest: a control is never revealed by hover. */
+.media-card-pick {
+  position: absolute;
+  inset-block-start: calc(var(--ui-3) + var(--ui-2));
+  inset-inline-start: calc(var(--ui-3) + var(--ui-2));
+  z-index: 1;
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  margin: 0;
+  accent-color: var(--ui-accent);
+  background: var(--ui-panel);
+  box-shadow: 0 0 0 3px var(--ui-panel);
+  border-radius: var(--ui-radius-s);
+}
+
+/* A file is its kind's icon and extension in the square a picture takes. */
+.media-thumb-file {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--ui-1);
+  color: var(--ui-ink-muted);
+}
+
+.media-thumb-file .icon {
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+}
+
+.media-card-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-1) var(--ui-2);
+  align-items: center;
+  margin: 0;
+  color: var(--ui-ink-muted);
+  font-size: var(--ui-text-xs);
+}
+
+.media-grid-all {
+  margin-block-end: var(--ui-3);
+}
+
+/* Two to a row on a phone: at 11rem a card is the screen's width there, and a library one
+   picture at a time is not browsed but scrolled. */
+@media (max-width: 30rem) {
+  .media-grid:has(> .media-card-library) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ui-3);
+  }
+}

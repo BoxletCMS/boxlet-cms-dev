@@ -116,6 +116,42 @@ export default {
           `${card.src} -> ${served.status} ${served.type}`);
       }
 
+      // ---- the library as a grid (O-75): the same picture, its tick at rest, kept --------------
+      if (Number.isInteger(mediaId)) {
+        await page.goto(`${BASE}/admin/media?view=grid`, { waitUntil: 'networkidle2' });
+        const grid = await page.evaluate((id) => {
+          const card = [...document.querySelectorAll('.media-card-library')].find((c) => c.querySelector(`a[href$="/admin/media/${id}"]`));
+          if (!card) { return null; }
+          const tick = card.querySelector('input.media-card-pick');
+          const thumb = card.querySelector('img.media-thumb');
+          const t = tick.getBoundingClientRect();
+          const p = thumb.getBoundingClientRect();
+          const cs = getComputedStyle(tick);
+          return {
+            loaded: thumb.complete ? thumb.naturalWidth : 0,
+            tickShown: t.width > 0 && cs.visibility === 'visible' && cs.opacity === '1',
+            onPicture: t.left >= p.left && t.right <= p.right && t.top >= p.top && t.bottom <= p.bottom,
+            status: card.querySelector('.media-card-status')?.textContent.replace(/\s+/g, ' ').trim() || '',
+            current: document.querySelector('a[aria-current="page"][href*="view=grid"]') !== null,
+          };
+        }, mediaId);
+        await report.shot(page, '04-grid', { fullPage: false });
+        let counted = '';
+        if (grid !== null) {
+          await page.click(`.media-card-library input[value="${mediaId}"]`);
+          counted = await page.$eval('[data-bulk-count]', (el) => el.textContent.trim());
+          await page.click(`.media-card-library input[value="${mediaId}"]`);
+        }
+        report.verdict('as a grid, the picture is a card with its thumbnail, its tick on it at rest, and what it is used on',
+          grid !== null && grid.loaded > 0 && grid.tickShown && grid.onPicture && grid.status !== '' && grid.current && /1/.test(counted),
+          JSON.stringify({ grid, counted }));
+        await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
+        const kept = await page.$('ul.media-grid') !== null;
+        await page.goto(`${BASE}/admin/media?view=list`, { waitUntil: 'networkidle2' });
+        const back = await page.$('table.media-table') !== null;
+        report.verdict('the grid is kept for the session, and List brings the table back', kept && back, JSON.stringify({ kept, back }));
+      }
+
       // ---- a file too big is refused in the browser, before it is sent ---------------------
       const limit = await page.$eval('[data-media-upload]', (el) => Number(el.getAttribute('data-max-file')));
 

@@ -27,6 +27,8 @@ const ICONS = [
     // The rail and the Workbench screens (D-052).
     'chart-column', 'check', 'circle-alert', 'clock', 'ellipsis-vertical', 'file-text', 'gauge', 'history',
     'chevron-left', 'image', 'list', 'list-checks', 'palette', 'panels-top-left',
+    // Media as a list or a grid (O-75).
+    'layout-grid',
     // The theme switch (D-054); 'contrast' is Lucide's half-filled circle, for "match the system".
     'sun', 'moon', 'contrast',
     // What each shipped block calls itself (D-084). A block's 'icon' names one of these, and

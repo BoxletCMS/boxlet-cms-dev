@@ -220,6 +220,36 @@ testBothDrivers('the picker asks the library for the same cards, with no screen 
     );
 });
 
+// A LIST OR A GRID (PLAN.md O-75): the same rows either way, asked for in the address and kept
+// for the session; the grid's cards are the picker's, with the library's tick and status line.
+testBothDrivers('the library is a list or a grid, kept for the session, with the same ticks', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    adminUpload('/admin/media', [['name' => 'quay.jpg', 'tmp_name' => imageFixture(tmpPath('quay.jpg'), 320, 240)]]);
+    $id = (int) ($db->one('SELECT id FROM media')['id'] ?? 0);
+    $tick = 'name="ids[]" value="' . $id . '" form="media-bulk"';
+
+    $list = mediaAdminGet('/admin/media')->body;
+    assertContains('class="table media-table"', $list, 'a list by default');
+    assertContains('view=list" aria-current="page"', $list, 'List marked');
+    assertContains('view=grid"', $list, 'Grid offered');
+
+    $grid = mediaAdminGet('/admin/media?view=grid')->body;
+    assertContains('<ul class="media-grid">', $grid, 'the grid');
+    assertTrue(!str_contains($grid, 'class="table media-table"'), 'the table as well');
+    assertContains('view=grid" aria-current="page"', $grid, 'Grid marked');
+    assertContains($tick, $grid, 'each card\'s tick');
+    assertContains('data-bulk-all form="media-bulk"', $grid, 'select all');
+    assertContains('href="/admin/media/' . $id . '"', $grid, 'a card opens its picture');
+    assertContains(e(t('media.grid.unused')), $grid, 'what it is used on');
+
+    assertContains('<ul class="media-grid">', mediaAdminGet('/admin/media')->body, 'the grid kept');
+    assertContains('class="table media-table"', mediaAdminGet('/admin/media?view=list')->body, 'and the list back');
+    assertContains('class="table media-table"', mediaAdminGet('/admin/media')->body, 'kept too');
+
+    $picker = mediaAdminGet('/admin/media/pick')->body;
+    assertTrue(!str_contains($picker, 'media-card-pick') && !str_contains($picker, 'media-card-status'), 'the picker\'s cards carry the library\'s');
+});
+
 test('the library is admin-only', function () {
     installedSite();
     // No admin_id in the session: this is a redirect to the login screen.

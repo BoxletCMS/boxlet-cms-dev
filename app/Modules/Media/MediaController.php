@@ -95,10 +95,20 @@ final class MediaController
         $page = min($pages, max(1, is_string($asked) && ctype_digit($asked) ? (int) $asked : 1));
         $rows = array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
 
+        // A LIST OR A GRID (PLAN.md O-75): asked for in the address, and kept for the rest of
+        // the admin's session, so the library opens the way it was left. The same rows, the
+        // same filters, ticks and pages either way.
+        $session = $this->container->get('session');
+        $asked = $request->query['view'] ?? null;
+        if ($asked === 'list' || $asked === 'grid') {
+            $session->set('media_view', $asked);
+        }
+        $view = $session->get('media_view') === 'grid' ? 'grid' : 'list';
+
         return AdminView::render($this->container, __DIR__ . '/views', 'admin/index', [
             'title' => t('media.title'),
             'nav' => 'media',
-            'styles' => ['admin-media.css', 'admin-media-table.css'],
+            'styles' => ['admin-media.css', 'admin-media-table.css', 'admin-media-grid.css'],
             'scripts' => ['media.js', 'auto-continue.js', 'admin-bulk.js'],
             'wide' => true,
             'pictures' => $pictures,
@@ -106,6 +116,7 @@ final class MediaController
             'page' => $page,
             'pages' => $pages,
             'total' => $total,
+            'view' => $view,
             'show' => $show,
             'kind' => $kind,
             'bytes' => $bytes,

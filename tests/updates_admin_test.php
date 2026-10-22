@@ -113,3 +113,47 @@ test('a development checkout is not offered updates', function () {
     assertContains(e(t('updates.running_development')), $body, 'says so');
     assertTrue(!str_contains($body, '/admin/updates/check'), 'offers a check anyway');
 });
+
+test('a file uploaded by hand is compared with the release GitHub publishes (O-76)', function () {
+    $file = tmpPath('hand.zip');
+    file_put_contents($file, 'the release as GitHub has it');
+    $digest = 'sha256:' . hash_file('sha256', $file);
+    $asset = static fn (string $tag, string $digest): array => ['name' => 'boxlet-' . $tag . '.zip', 'digest' => $digest];
+    $github = static fn (array $list): Releases => new Releases(static fn (string $url): string => json_encode($list, JSON_THROW_ON_ERROR));
+
+    $list = [
+        ['tag_name' => 'v0.3.0', 'draft' => true, 'assets' => [$asset('v0.3.0', $digest)]],
+        ['tag_name' => 'v0.2.0', 'assets' => [['name' => 'notes.txt', 'digest' => $digest], $asset('v0.2.0', $digest)]],
+        ['tag_name' => 'v0.1.9', 'assets' => [$asset('v0.1.9', 'sha256:' . str_repeat('0', 64))]],
+        ['tag_name' => 'v0.1.8', 'assets' => [$asset('v0.1.8', '')]],
+    ];
+    assertEquals('official', $github($list)->confirm($file, 'v0.2.0'), 'the published ZIP');
+    assertEquals('different', $github($list)->confirm($file, 'v0.1.9'), 'a file that is not the published one');
+    assertEquals('unknown', $github($list)->confirm($file, 'v0.4.0'), 'a version GitHub does not publish');
+    assertEquals('unknown', $github($list)->confirm($file, 'v0.3.0'), 'a draft is not published');
+    assertEquals('unknown', $github($list)->confirm($file, 'v0.1.8'), 'a release with no digest');
+
+    $threw = false;
+    try {
+        (new Releases(static function (string $url): string {
+            throw new RuntimeException('offline');
+        }))->confirm($file, 'v0.2.0');
+    } catch (RuntimeException) {
+        $threw = true;
+    }
+    assertTrue($threw, 'GitHub out of reach is not taken for an answer');
+    unlink($file);
+});
+
+test('the Updates screen says the file is optional, where the release is, and never from elsewhere', function () {
+    [$root, $db] = oldSite();
+    createAdmin($db, 'owner@example.com', 'correct horse battery staple');
+    $_SESSION['admin_id'] = (int) ($db->one('SELECT id FROM admin')['id'] ?? 0);
+    $body = dispatch('/admin/updates', null, 'GET', [], '203.0.113.10', updatesSite($root, [], tmpPath('none.zip')))->body;
+    assertContains(e(t('updates.file_title')), $body, 'the title');
+    assertContains('href="' . e(Releases::LATEST) . '"', $body, 'the latest release linked');
+    assertContains(e(t('updates.file_warning')), $body, 'the warning');
+    assertContains('name="unconfirmed" value="1"', $body, 'the box for a file GitHub cannot confirm');
+    assertTrue(!str_contains($body, 'name="unconfirmed" value="1" checked'), 'ticked by default');
+    removeTree($root);
+});

@@ -28,7 +28,8 @@ export default {
     const saved = await page.$eval('#mail_transport', (s) => s.value);
 
     const seen = {};
-    for (const way of ['smtp', 'resend', 'sendmail', '']) {
+    // Brevo and Mailgun since O-72.
+    for (const way of ['smtp', 'resend', 'brevo', 'mailgun', 'sendmail', '']) {
       await page.select('#mail_transport', way);
       await wait(100);
       seen[way || 'none'] = await showing(page);
@@ -36,9 +37,13 @@ export default {
         await page.$eval('#mail', (el) => el.scrollIntoView({ block: 'start' }));
         await report.shot(page, '01-smtp', { fullPage: false });
       }
+      if (way === 'mailgun') {
+        await page.$eval('#mail', (el) => el.scrollIntoView({ block: 'start' }));
+        await report.shot(page, '01-mailgun', { fullPage: false });
+      }
     }
     report.verdict('each way of sending shows its own fields and no others',
-      JSON.stringify(seen) === JSON.stringify({ smtp: ['smtp'], resend: ['resend'], sendmail: ['sendmail'], none: [] }), JSON.stringify(seen));
+      JSON.stringify(seen) === JSON.stringify({ smtp: ['smtp'], resend: ['resend'], brevo: ['brevo'], mailgun: ['mailgun'], sendmail: ['sendmail'], none: [] }), JSON.stringify(seen));
 
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
     await page.goto(`${BASE}/admin/settings#mail`, { waitUntil: 'networkidle2' });

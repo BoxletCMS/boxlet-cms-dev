@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\Mailer\BrevoTransport;
+use App\Modules\Mailer\MailgunTransport;
 use App\Modules\Mailer\MailSettings;
 use App\Modules\Mailer\ResendTransport;
 use App\Support\Secret;
@@ -84,8 +86,9 @@ testBothDrivers('the transport is the way chosen, with its details', function (s
 
 test('Resend is sent the message, and its own words come back when it refuses', function () {
     $calls = [];
-    $post = static function (string $url, string $key, string $json) use (&$calls): array {
-        $calls[] = [$url, $key, json_decode($json, true)];
+    // The request as ApiTransport hands it to curl (O-72): URL, headers, body.
+    $post = static function (string $url, array $headers, string $json) use (&$calls): array {
+        $calls[] = [$url, $headers, json_decode($json, true)];
 
         return [200, '{"id":"abc-123"}'];
     };
@@ -94,7 +97,7 @@ test('Resend is sent the message, and its own words come back when it refuses', 
     $sent = (new ResendTransport('re_key', $post))->send($email);
 
     assertEquals('https://api.resend.com/emails', $calls[0][0] ?? null, 'the endpoint');
-    assertEquals('re_key', $calls[0][1] ?? null, 'the key');
+    assertTrue(in_array('Authorization: Bearer re_key', $calls[0][1] ?? [], true), 'the key');
     assertEquals([
         'from' => '"Northwind" <hello@example.com>',
         'to' => ['ana@example.com'],
@@ -112,6 +115,109 @@ test('Resend is sent the message, and its own words come back when it refuses', 
     } catch (TransportException $e) {
         assertEquals('Resend: The example.com domain is not verified.', $e->getMessage(), 'the refusal');
     }
+});
+
+test('Brevo is sent the message as its API takes it, and its own words come back (O-72)', function () {
+    $calls = [];
+    $post = static function (string $url, array $headers, string $json) use (&$calls): array {
+        $calls[] = [$url, $headers, json_decode($json, true)];
+
+        return [201, '{"messageId":"<201@brevo>"}'];
+    };
+    $email = (new Email())->from('Northwind <hello@example.com>')->to('ana@example.com')->replyTo('Vis Itor <visitor@example.org>')
+        ->subject('Hello')->text('Plain words')->html('<p>Plain words</p>');
+    $sent = (new BrevoTransport('xkeysib-1', $post))->send($email);
+
+    assertEquals('https://api.brevo.com/v3/smtp/email', $calls[0][0] ?? null, 'the endpoint');
+    assertTrue(in_array('api-key: xkeysib-1', $calls[0][1] ?? [], true), 'the key, in its header');
+    assertEquals([
+        'sender' => ['email' => 'hello@example.com', 'name' => 'Northwind'],
+        'to' => [['email' => 'ana@example.com']],
+        'replyTo' => ['email' => 'visitor@example.org', 'name' => 'Vis Itor'],
+        'subject' => 'Hello',
+        'textContent' => 'Plain words',
+        'htmlContent' => '<p>Plain words</p>',
+    ], $calls[0][2] ?? null, 'what was sent');
+    assertEquals('<201@brevo>', $sent?->getMessageId(), 'Brevo\'s id');
+
+    try {
+        (new BrevoTransport('xkeysib-1', static fn (): array => [401, '{"code":"unauthorized","message":"Key not found"}']))->send($email);
+        fail('a refusal was not reported');
+    } catch (TransportException $e) {
+        assertEquals('Brevo: Key not found', $e->getMessage(), 'the refusal');
+    }
+    try {
+        (new BrevoTransport(''))->send($email);
+        fail('no key was not reported');
+    } catch (TransportException $e) {
+        assertEquals(t('mail.brevo_key_required'), $e->getMessage(), 'no key, said before anything is sent');
+    }
+});
+
+test('Mailgun is sent a form at its region\'s address, and a refused key says what to check (O-72)', function () {
+    $calls = [];
+    $post = static function (string $url, array $headers, string $body) use (&$calls): array {
+        parse_str($body, $fields);
+        $calls[] = [$url, $headers, $fields];
+
+        return [200, '{"id":"<20261022@mg.example.com>","message":"Queued. Thank you."}'];
+    };
+    $email = (new Email())->from('Northwind <hello@mg.example.com>')->to('ana@example.com')->replyTo('visitor@example.org')
+        ->subject('Hello')->text('Plain words')->html('<p>Plain words</p>');
+    $sent = (new MailgunTransport('key-1', 'mg.example.com', 'eu', $post))->send($email);
+
+    assertEquals('https://api.eu.mailgun.net/v3/mg.example.com/messages', $calls[0][0] ?? null, 'the EU endpoint, for the domain');
+    assertTrue(in_array('Authorization: Basic ' . base64_encode('api:key-1'), $calls[0][1] ?? [], true), 'the key, as the password of "api"');
+    assertEquals([
+        'from' => '"Northwind" <hello@mg.example.com>',
+        'to' => 'ana@example.com',
+        'h:Reply-To' => 'visitor@example.org',
+        'subject' => 'Hello',
+        'text' => 'Plain words',
+        'html' => '<p>Plain words</p>',
+    ], $calls[0][2] ?? null, 'what was sent');
+    assertEquals('<20261022@mg.example.com>', $sent?->getMessageId(), 'Mailgun\'s id');
+
+    (new MailgunTransport('key-1', 'mg.example.com', 'us', $post))->send($email);
+    assertEquals('https://api.mailgun.net/v3/mg.example.com/messages', $calls[1][0] ?? null, 'the US endpoint');
+
+    try {
+        (new MailgunTransport('key-1', 'mg.example.com', 'us', static fn (): array => [401, 'Forbidden']))->send($email);
+        fail('a refusal was not reported');
+    } catch (TransportException $e) {
+        assertEquals('Mailgun: ' . t('mail.mailgun_forbidden'), $e->getMessage(), 'a bare Forbidden, said as what to check');
+    }
+});
+
+testBothDrivers('Brevo and Mailgun are chosen in the settings, their keys sealed and kept (O-72)', function (string $driver) {
+    $db = adminSite($driver);
+
+    assertEquals(['brevo_key' => t('mail.brevo_key_required')], MailSettings::save($db, ['transport' => 'brevo', 'from_address' => 'a@example.com'], MAIL_KEY), 'Brevo with no key');
+    assertEquals([], MailSettings::save($db, ['transport' => 'brevo', 'from_address' => 'a@example.com', 'brevo_key' => 'xkeysib-abcdefghij'], MAIL_KEY), 'with one');
+    assertTrue(MailSettings::transport($db, MAIL_KEY) instanceof BrevoTransport, 'brevo');
+    assertTrue(!str_contains((string) MailSettings::stored($db)['brevo_key'], 'xkeysib'), 'the key sealed');
+    assertEquals([], MailSettings::save($db, ['transport' => 'brevo', 'from_address' => 'a@example.com', 'brevo_key' => ''], MAIL_KEY), 'an empty key keeps the saved one');
+
+    $refused = MailSettings::save($db, ['transport' => 'mailgun', 'from_address' => 'a@example.com', 'mailgun_domain' => 'https://mg.example.com/'], MAIL_KEY);
+    assertEquals(t('mail.mailgun_key_required'), $refused['mailgun_key'] ?? null, 'Mailgun with no key');
+    assertEquals(t('mail.mailgun_domain_invalid'), $refused['mailgun_domain'] ?? null, 'a domain that is an address');
+    assertEquals([], MailSettings::save($db, ['transport' => 'mailgun', 'from_address' => 'a@example.com', 'mailgun_key' => 'key-1', 'mailgun_domain' => 'MG.Example.com', 'mailgun_region' => 'eu'], MAIL_KEY), 'Mailgun saved');
+    $stored = MailSettings::stored($db);
+    assertEquals(['mg.example.com', 'eu'], [$stored['mailgun_domain'], $stored['mailgun_region']], 'the domain, as a host name, and the region');
+    assertTrue(MailSettings::transport($db, MAIL_KEY) instanceof MailgunTransport, 'mailgun');
+    MailSettings::save($db, ['transport' => 'mailgun', 'from_address' => 'a@example.com', 'mailgun_domain' => 'mg.example.com', 'mailgun_region' => 'mars'], MAIL_KEY);
+    assertEquals('us', MailSettings::stored($db)['mailgun_region'], 'a region that is not one');
+
+    // Through the screen's own save, whose key seals what the screen opens.
+    assertRedirectedTo('/admin/settings#mail', adminPost('/admin/settings/mail', ['mail_transport' => 'brevo', 'mail_from_address' => 'a@example.com', 'mail_brevo_key' => 'xkeysib-abcdefghij']));
+    $panel = dispatch('/admin/settings')->body;
+    foreach (['brevo', 'mailgun'] as $way) {
+        assertContains('<option value="' . $way . '"', $panel, $way . ' offered');
+        assertContains('data-mail-group="' . $way . '"', $panel, 'its fields');
+    }
+    assertContains('placeholder="xke…ghij"', $panel, 'the saved Brevo key by its ends, never whole');
+    assertTrue(!str_contains($panel, 'xkeysib-abcdefghij'), 'the key on the screen');
+    assertContains('list="mail-smtp-hosts"', $panel, 'the providers\' SMTP hosts offered');
 });
 
 testBothDrivers('the test message goes to the notifications address, and says so', function (string $driver) {

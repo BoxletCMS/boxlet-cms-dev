@@ -209,7 +209,7 @@ final class SettingsController
      * save, with its errors — shown once. Secrets never reach the screen, only whether
      * one is set.
      *
-     * @return array{mail: array<string, string>, mailErrors: array<string, string>, mailSecrets: array{smtp_password: string, resend_key: string}}
+     * @return array{mail: array<string, string>, mailErrors: array<string, string>, mailSecrets: array<string, string>}
      */
     private function mail(): array
     {
@@ -223,7 +223,7 @@ final class SettingsController
 
         $values = [];
         foreach (MailController::FIELDS as $field) {
-            $values[$field] = in_array($field, ['smtp_password', 'resend_key'], true)
+            $values[$field] = in_array($field, MailSettings::SECRETS, true)
                 ? ''
                 : (is_string($old[$field] ?? null) ? $old[$field] : $stored[$field]);
         }
@@ -232,10 +232,11 @@ final class SettingsController
             'mail' => $values,
             'mailErrors' => array_filter($errors, 'is_string'),
             // What each saved secret shows in its empty field: a trace, never the secret.
-            'mailSecrets' => [
-                'smtp_password' => MailSettings::trace($stored['smtp_password'], $appKey, false),
-                'resend_key' => MailSettings::trace($stored['resend_key'], $appKey, true),
-            ],
+            // A key by its ends, a password by dots only.
+            'mailSecrets' => array_combine(MailSettings::SECRETS, array_map(
+                static fn (string $secret): string => MailSettings::trace($stored[$secret], $appKey, $secret !== 'smtp_password'),
+                MailSettings::SECRETS,
+            )),
         ];
     }
 

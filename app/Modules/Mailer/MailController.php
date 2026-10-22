@@ -25,7 +25,8 @@ final class MailController
     /** The panel's fields, as posted: mail_{field}. */
     public const FIELDS = [
         'transport', 'from_address', 'from_name', 'notify_address', 'smtp_host', 'smtp_port',
-        'smtp_encryption', 'smtp_username', 'smtp_password', 'resend_key',
+        'smtp_encryption', 'smtp_username', 'smtp_password', 'resend_key', 'brevo_key',
+        'mailgun_key', 'mailgun_domain', 'mailgun_region',
     ];
 
     public function __construct(private readonly Container $container)
@@ -44,7 +45,9 @@ final class MailController
         $errors = MailSettings::save($this->db(), $input, $this->appKey());
         $session = $this->container->get('session');
         if ($errors !== []) {
-            unset($input['smtp_password'], $input['resend_key']);
+            foreach (MailSettings::SECRETS as $secret) {
+                unset($input[$secret]);
+            }
             $session->set('mail_form', ['errors' => $errors, 'old' => $input]);
             $session->set('flash', t('mail.not_saved'));
             $session->set('flash_kind', 'error');

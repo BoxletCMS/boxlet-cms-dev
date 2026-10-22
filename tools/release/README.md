@@ -217,8 +217,9 @@ It gets there by leaving things out, and by keeping what it can:
   turn it on: what a visitor writes is not stored on your server unless you decide it should
   be.
 - **Spam protection with no CAPTCHA:** a hidden field, a timing check and a per-sender limit.
-- **Email through SMTP or [Resend](https://resend.com)**, whose web API still works on hosts
-  that block SMTP. A test button tells you it works before a client finds out it doesn't.
+- **Email through SMTP, [Resend](https://resend.com), [Brevo](https://www.brevo.com) or
+  [Mailgun](https://www.mailgun.com)**, whose web APIs still work on hosts that block SMTP.
+  A test button tells you it works before a client finds out it doesn't.
 
 ## An admin that's nice to be in
 

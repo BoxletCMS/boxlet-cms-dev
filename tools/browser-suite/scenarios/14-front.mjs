@@ -19,7 +19,7 @@
  */
 import { existsSync } from 'node:fs';
 import { COPY_BASE as BASE, COPY_ADMIN as ADMIN } from '../config.mjs';
-import { login, applyCharacter, fixtures } from '../harness.mjs';
+import { login, applyCharacter, currentCharacter, fixtures } from '../harness.mjs';
 import {
   PHOTOS, CONTENT_FIELD, SURFACE_FIELD, uploadPhoto, pick, save, firstPageId, photographs,
 } from '../media-helpers.mjs';
@@ -190,6 +190,9 @@ export default {
       }
     });
 
+    // As it found it: the demo is Couture (D-216), not the first character offered, which is
+    // what this put back before and left 63-appearance-finish loading Editorial over Editorial.
+    const was = await currentCharacter(page, BASE);
     const characters = await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' })
       .then(() => page.$$eval('button[name="action"][value^="preset:"]',
         (els) => els.map((e) => e.value.slice('preset:'.length))));
@@ -300,9 +303,9 @@ export default {
       leftBehind.length === 0 ? `neither picture is stored (was ${content.chosen}`
         + `${backdrop ? ' and ' + backdrop.chosen : ''})` : `still stored: ${JSON.stringify(leftBehind)}`);
 
-    // And on the character the scenarios before this one expect.
-    if (characters.length > 0) {
-      await applyCharacter(page, BASE, characters[0]);
+    // And on the character it found.
+    if (was !== null) {
+      await applyCharacter(page, BASE, was);
     }
   },
 };

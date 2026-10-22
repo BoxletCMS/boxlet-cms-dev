@@ -535,6 +535,15 @@ export async function applyCharacter(page, base, preset, action = 'save') {
 }
 
 /**
+ * The character the copy has published, so a scenario that applies others can leave the copy
+ * as it found it (25-columns-look, 14-front). Null when none is current.
+ */
+export async function currentCharacter(page, base) {
+  await page.goto(`${base}/admin/appearance`, { waitUntil: 'networkidle2' });
+  return page.$eval('.character-tile.is-current [value^="preset:"]', (el) => el.value.slice('preset:'.length)).catch(() => null);
+}
+
+/**
  * A menu in the header, on a COPY that has none: an empty header is not drawn (D-032), so a
  * check of the header's width or its submenu measured nothing. The demo seed now ships a menu
  * of its own (D-057), which this finds and keeps — it returns early — so what is left here is

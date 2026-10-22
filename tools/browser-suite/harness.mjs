@@ -545,8 +545,9 @@ export async function applyCharacter(page, base, preset, action = 'save') {
  * Returns the menu's name, or '' when it could not be set up.
  */
 export async function ensureHeaderMenu(page, base) {
-  // On Navigation since D-180, with the menus under it.
-  await page.goto(`${base}/admin/navigation`, { waitUntil: 'networkidle2' });
+  // On Navigation since D-180: the header's menu on its Header & footer tab, the menus on the
+  // first (O-74).
+  await page.goto(`${base}/admin/navigation/header-footer`, { waitUntil: 'networkidle2' });
   const current = await page.$eval('#header_menu', (select) => select.value).catch(() => null);
   if (current === null) {
     return '';
@@ -556,6 +557,7 @@ export async function ensureHeaderMenu(page, base) {
   }
 
   const name = 'Suite menu';
+  await page.goto(`${base}/admin/navigation`, { waitUntil: 'networkidle2' });
   const exists = await page.$$eval('.row-title a', (links, wanted) => links.some((a) => a.textContent.trim() === wanted), name);
   if (!exists) {
     await page.type('input[name="name"]', name, { delay: SLOW });
@@ -571,7 +573,7 @@ export async function ensureHeaderMenu(page, base) {
     }
   }
 
-  await page.goto(`${base}/admin/navigation`, { waitUntil: 'networkidle2' });
+  await page.goto(`${base}/admin/navigation/header-footer`, { waitUntil: 'networkidle2' });
   await page.select('#header_menu', name);
   await clickAndWait(page, '#navigation-form button[type="submit"]', 40000);
 

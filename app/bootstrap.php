@@ -343,6 +343,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // Menus (D-028, resolving O-7). One ordering route takes both paths, D-011: a drag
     // posts a whole sibling order, a button posts one move.
     $router->get('/admin/navigation', [NavigationController::class, 'show'], $requireAdmin);
+    $router->get('/admin/navigation/header-footer', [NavigationController::class, 'chrome'], $requireAdmin);
     $router->post('/admin/navigation', [NavigationController::class, 'save'], $requireAdmin);
     $router->post('/admin/navigation/match', [NavigationController::class, 'match'], $requireAdmin);
     $router->get('/admin/menus', [MenusController::class, 'index'], $requireAdmin);

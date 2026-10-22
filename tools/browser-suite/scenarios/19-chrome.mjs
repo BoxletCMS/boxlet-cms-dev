@@ -65,7 +65,7 @@ export default {
       panels: document.querySelectorAll('[data-view="header"] .control-group').length,
       footerPanels: document.querySelectorAll('[data-view="footer"] .control-group').length,
       logoNote: !!document.querySelector('[data-view="header"] a[href$="/admin/settings"]'),
-      toNavigation: document.querySelectorAll('.navigation-where a[href$="/admin/navigation"]').length,
+      toNavigation: document.querySelectorAll('.navigation-where a[href$="/admin/navigation/header-footer"]').length,
       words: !!document.querySelector('[name="header_menu"], [name="footer_text_en"]'),
     }));
     report.verdict('Appearance keeps the header\'s and footer\'s look, and points to Navigation for their words',
@@ -78,16 +78,27 @@ export default {
     report.verdict('the rail offers Navigation', link !== null, link === null ? 'no link to /admin/navigation' : 'the rail links to it');
     if (link === null) { return; }
     await clickAndWait(page, '.rail-nav a[href$="/admin/navigation"]');
+    // TWO TABS (O-74): the rail opens the menus; the words are the second tab, at its own address.
+    const first = await page.evaluate(() => ({
+      menus: !!document.querySelector('.navigation-menus'),
+      words: !!document.querySelector('#navigation-form'),
+      tabs: [...document.querySelectorAll('.navigation-tabs a')].map((a) => [a.getAttribute('href'), a.getAttribute('aria-current')]),
+    }));
+    await page.click('.navigation-tabs a[href$="/admin/navigation/header-footer"]');
+    await page.waitForSelector('#navigation-form');
     await openWords(page);
     const shape = await page.evaluate(() => ({
       menuSelect: !!document.querySelector('#navigation-form [name="header_menu"]'),
       footerMenus: document.querySelectorAll('#navigation-form [name^="footer_menu_"]').length,
       footerText: !!document.querySelector('#navigation-form [name="footer_text_en"]'),
       menus: !!document.querySelector('.navigation-menus'),
+      current: document.querySelector('.navigation-tabs a[aria-current="page"]')?.getAttribute('href') || null,
       bareKeys: (document.body.textContent.match(/(chrome|navigation)\.[a-z_]+/g) || []).slice(0, 3),
     }));
-    report.verdict('Navigation holds the header\'s menu and button, the footer\'s columns and words, and the menus',
-      shape.menuSelect && shape.footerMenus === 3 && shape.footerText && shape.menus, JSON.stringify(shape));
+    report.verdict('Navigation opens on its menus, and its second tab holds the header\'s menu and button, the footer\'s columns and words',
+      first.menus && !first.words && first.tabs.length === 2 && first.tabs[0][1] === 'page' && first.tabs[1][1] === null
+        && shape.menuSelect && shape.footerMenus === 3 && shape.footerText && !shape.menus && /\/admin\/navigation\/header-footer$/.test(shape.current || ''),
+      JSON.stringify({ first, shape }));
     // A key that does not exist renders as the key itself. That has happened twice: once on
     // the settings screen, once in an aria-label on the front end.
     report.verdict('no untranslated key is showing', shape.bareKeys.length === 0,
@@ -186,7 +197,7 @@ export default {
       await report.shot(page, '02-site-with-chrome');
     } finally {
       // Put every word back, whatever happened above.
-      await page.goto(`${BASE}/admin/navigation`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/navigation/header-footer`, { waitUntil: 'networkidle2' });
       await openWords(page);
       // Put the stored HTML back through the plain view of the editor, which is the
       // textarea underneath; its value reaches the field that carries the name.

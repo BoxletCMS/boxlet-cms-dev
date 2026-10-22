@@ -173,7 +173,7 @@ testBothDrivers('the footer draws tags in its words and its small print', functi
     // The small print is plain text: escaped first, then its tags drawn.
     assertContains('© ' . siteYear($db) . ' &lt;Studio&gt;', $page, 'the small print');
 
-    $navigation = dispatch('/admin/navigation')->body;
+    $navigation = dispatch('/admin/navigation/header-footer')->body;
     assertContains('data-rt="tag"', $navigation, 'the footer\'s words offer Insert');
 });
 

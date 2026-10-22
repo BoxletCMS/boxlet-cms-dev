@@ -19,7 +19,7 @@ testBothDrivers('no admin screen uses an id twice, or names one that is not ther
 
     foreach ([
         '/admin', '/admin/pages', '/admin/pages/new', '/admin/pages/' . $page, '/admin/pages/' . $page . '/form',
-        '/admin/media', '/admin/appearance', '/admin/navigation', '/admin/menus/' . $menu, '/admin/settings',
+        '/admin/media', '/admin/appearance', '/admin/navigation', '/admin/navigation/header-footer', '/admin/menus/' . $menu, '/admin/settings',
         '/admin/snippets',
     ] as $path) {
         $body = dispatch($path)->body;

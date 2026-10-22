@@ -15,7 +15,8 @@ function navigationSite(string $driver): App\Core\Db
     $db = adminSite($driver);
     Menu::create($db, 'en', 'Main');
     Menu::create($db, 'en', 'Legal');
-    assertRedirectedTo('/admin/navigation', adminPost('/admin/navigation', [
+    // Saved by a POST to /admin/navigation, which comes back to the words' own tab (O-74).
+    assertRedirectedTo('/admin/navigation/header-footer', adminPost('/admin/navigation', [
         'header_menu' => 'Main',
         'footer_menu_1' => 'Legal',
         'footer_menu_2' => SiteChrome::FOOTER_MENU_HEADER,
@@ -44,10 +45,15 @@ testBothDrivers('Navigation saves what the header and footer say and which menus
     assertEquals('Studio', SiteChrome::footer($db, 'en')['columns'][0]['title'], 'a column\'s title');
     assertEquals('© Northwind', SiteChrome::footer($db, 'en')['small_print'], 'the small print');
 
-    $page = dispatch('/admin/navigation')->body;
+    // Two tabs (O-74): the words on the second, the menus on the first.
+    $page = dispatch('/admin/navigation/header-footer')->body;
     assertContains('<option value="Main" selected>', $page, 'the screen shows the menu chosen');
     assertContains('value="Write to us"', $page, 'and the words');
-    assertContains('href="/admin/menus/', $page, 'and the menus, each to be edited');
+    assertContains('<a href="/admin/navigation/header-footer" aria-current="page">', $page, 'its tab marked');
+    $menus = dispatch('/admin/navigation')->body;
+    assertContains('href="/admin/menus/', $menus, 'and the menus, each to be edited');
+    assertContains('<a href="/admin/navigation" aria-current="page">', $menus, 'the first tab marked');
+    assertTrue(!str_contains($menus, 'name="header_menu"'), 'the words on the menus\' tab too');
 });
 
 testBothDrivers('publishing Appearance never takes away a word or a menu', function (string $driver) {
@@ -74,7 +80,7 @@ test('Appearance carries no word or menu field, and says where they went', funct
     foreach (['header_menu', 'footer_menu_1', 'header_button_label_en', 'footer_text_en', 'footer_small_print_en'] as $field) {
         assertTrue(!str_contains($body, 'name="' . $field . '"'), $field . ' is on Appearance');
     }
-    assertEquals(2, preg_match_all('~class="hint hint-always navigation-where">[^<]*<a href="/admin/navigation"~', $body), 'the header\'s and the footer\'s line to Navigation');
+    assertEquals(2, preg_match_all('~class="hint hint-always navigation-where">[^<]*<a href="/admin/navigation/header-footer"~', $body), 'the header\'s and the footer\'s line to Navigation\'s words');
 });
 
 test('an address Navigation would not follow is refused, and nothing is saved', function () {
@@ -83,6 +89,7 @@ test('an address Navigation would not follow is refused, and nothing is saved', 
     $refused = adminPost('/admin/navigation', ['header_menu' => '', 'header_button_label_en' => 'Go', 'header_button_url_en' => 'javascript:alert(1)']);
     assertEquals(422, $refused->status, 'refused');
     assertContains(e(t('chrome.button_url_refused')), $refused->body, 'saying why');
+    assertContains('<a href="/admin/navigation/header-footer" aria-current="page">', $refused->body, 'on the words\' own tab');
     assertEquals('Main', SiteChrome::menuName($db), 'the menu as it was');
     assertEquals('Write to us', SiteChrome::header($db, 'en')['button']['label'], 'the words as they were');
 });
@@ -94,7 +101,7 @@ test('the menus are listed on Navigation, and the old address leads there', func
     $refused = adminPost('/admin/menus', ['name' => '', 'locale' => 'en']);
     assertEquals(422, $refused->status, 'a new menu with no name');
     assertContains(e(t('menus.name_required')), $refused->body, 'said on Navigation');
-    assertContains('name="header_menu"', $refused->body, 'which is the whole screen');
+    assertContains('<a href="/admin/navigation" aria-current="page">', $refused->body, 'on its menus\' tab');
     $legal = Menu::all($db);
     $id = 0;
     foreach ($legal as $menu) {

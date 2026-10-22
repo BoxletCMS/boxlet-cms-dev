@@ -158,7 +158,7 @@ testBothDrivers('every admin screen draws', function (string $driver) {
 
     foreach ([
         '/admin', '/admin/pages', '/admin/pages/new', '/admin/pages/' . $page, '/admin/pages/' . $page . '/form',
-        '/admin/media', '/admin/media/' . $picture, '/admin/appearance', '/admin/navigation', '/admin/menus/' . $menu,
+        '/admin/media', '/admin/media/' . $picture, '/admin/appearance', '/admin/navigation', '/admin/navigation/header-footer', '/admin/menus/' . $menu,
         '/admin/appearance', '/admin/settings',
     ] as $path) {
         $response = dispatch($path);

@@ -95,7 +95,9 @@ final class Search
             [t('admin.nav.dashboard'), Url::admin(), 'dashboard home start'],
             [t('admin.nav.pages'), Url::admin('pages'), ''],
             [t('admin.nav.media'), Url::admin('media'), 'pictures images photos library'],
-            [t('admin.nav.menus'), Url::admin('navigation'), 'menus menu header footer button small print'],
+            [t('admin.nav.menus'), Url::admin('navigation'), 'menus menu'],
+            // Navigation's second tab (O-74): the words a search for them should land on.
+            [t('navigation.tab_chrome'), Url::admin('navigation', 'header-footer'), 'navigation header footer button small print words'],
             [t('admin.nav.forms'), Url::admin('forms'), 'contact messages'],
             [t('admin.nav.appearance'), Url::admin('appearance'), 'design character colours colors fonts type header footer chrome'],
             [t('admin.nav.settings'), Url::admin('settings'), ''],

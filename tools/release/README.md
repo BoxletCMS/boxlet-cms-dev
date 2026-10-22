@@ -216,6 +216,8 @@ It gets there by leaving things out, and by keeping what it can:
   sender. Keeping them in the admin as well is your choice for each form, and off until you
   turn it on: what a visitor writes is not stored on your server unless you decide it should
   be.
+- **Messages sent on to a web address (a webhook)**, signed JSON for Zapier, Make, n8n or your
+  own code. One the address does not take is kept until you send it again.
 - **Spam protection with no CAPTCHA:** a hidden field, a timing check and a per-sender limit.
 - **Email through SMTP, [Resend](https://resend.com), [Brevo](https://www.brevo.com) or
   [Mailgun](https://www.mailgun.com)**, whose web APIs still work on hosts that block SMTP.

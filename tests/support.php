@@ -162,6 +162,10 @@ function dispatch(
         $container->set('ai_models', static fn () => static function (): array {
             throw new \App\Modules\Ai\AiFailure('no request leaves a test');
         });
+        // Nor to a form's web address (O-77). A test that wants an answer sets its own.
+        $container->set('form_webhook', static fn () => static function (): array {
+            throw new \RuntimeException('no request leaves a test');
+        });
         // Replace a service before anything resolves it. The configurator above takes the
         // Router, which is built from the container and so cannot reach it — a test that
         // needs the request to see a different service (a pending update, say) has

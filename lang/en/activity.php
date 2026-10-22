@@ -77,6 +77,7 @@ return [
     'activity.form.saved' => 'Edited the form “:name”',
     'activity.form.deleted' => 'Deleted the form “:name”',
     'activity.message.received' => 'A message came in through “:name”',
+    'activity.message.webhook_failed' => 'A message through “:name” did not reach its web address, and is kept to be sent again',
 
     'activity.design.saved' => 'Published how the site looks',
     'activity.design.header_saved' => 'Saved the header and footer',

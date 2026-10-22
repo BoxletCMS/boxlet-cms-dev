@@ -79,6 +79,7 @@ return [
     'activity.form.saved' => 'Uređen obrazac „:name“',
     'activity.form.deleted' => 'Obrisan obrazac „:name“',
     'activity.message.received' => 'Stigla je poruka putem obrasca „:name“',
+    'activity.message.webhook_failed' => 'Poruka putem obrasca „:name“ nije stigla na web-adresu i čuva se za ponovno slanje',
 
     'activity.design.saved' => 'Objavljen izgled web-stranice',
     'activity.design.header_saved' => 'Spremljeni zaglavlje i podnožje',

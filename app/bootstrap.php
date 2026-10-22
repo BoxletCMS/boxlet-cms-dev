@@ -144,6 +144,9 @@ $container->set('ai_models', fn (Container $c) => static function () use ($c): a
 
     return \App\Modules\Ai\ClaudeClient::models($settings['key']);
 });
+// A form's message sent on to the owner's web address (O-77): checked, pinned, sent. Tests
+// replace it, so no request leaves them.
+$container->set('form_webhook', fn () => static fn (string $url, array $headers, string $body): array => \App\Modules\Forms\FormWebhook::post($url, array_values(array_map('strval', $headers)), $body));
 $container->set('mail_transport', fn (Container $c) => MailSettings::transport($c->get('db'), (string) (($c->get('config')->get('app', []))['key'] ?? '')));
 // Media (SPEC §5.5). The encoder probes what this server can actually write, so a host
 // without a WebP delegate refuses clearly instead of writing files nobody can open.
@@ -385,6 +388,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/forms/{id:\d+}', [FormsController::class, 'edit'], $requireAdmin);
     $router->post('/admin/forms/{id:\d+}', [FormsController::class, 'update'], $requireAdmin);
     $router->post('/admin/forms/{id:\d+}/delete', [FormsController::class, 'delete'], $requireAdmin);
+    $router->post('/admin/forms/{id:\d+}/webhook-test', [FormsController::class, 'testWebhook'], $requireAdmin);
+    $router->post('/admin/forms/{id:\d+}/messages/{message:\d+}/resend', [MessagesController::class, 'resend'], $requireAdmin);
     $router->get('/admin/forms/{id:\d+}/messages', [MessagesController::class, 'index'], $requireAdmin);
     $router->get('/admin/forms/{id:\d+}/messages/{message:\d+}', [MessagesController::class, 'show'], $requireAdmin);
     $router->post('/admin/forms/{id:\d+}/messages/{message:\d+}/delete', [MessagesController::class, 'delete'], $requireAdmin);

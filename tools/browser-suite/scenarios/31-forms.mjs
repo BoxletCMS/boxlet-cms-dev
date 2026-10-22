@@ -54,6 +54,22 @@ export default {
         after.map((f) => f.label).join('|') === 'Your name|Email|Topic|Message' && after[2].type === 'select',
         after.map((f) => `${f.label}:${f.type}`).join(', '));
 
+      // ---- a web address (O-77): a private one refused, a public one given a secret, and a
+      // test sent for real. boxletcms.org answers a POST it has no page for with 405, which is
+      // the "not taken" path through the network, with nobody else's server asked.
+      await retype(page, '#form-webhook', 'https://192.168.1.10/hook');
+      await clickAndWait(page, 'form.form-builder .form-actions button[value="save"]');
+      const refused = await page.$eval('#webhook', (el) => el.querySelector('.field-error')?.textContent.trim() || '').catch(() => '');
+      await retype(page, '#form-webhook', 'https://boxletcms.org/boxlet-suite-webhook-probe');
+      await clickAndWait(page, 'form.form-builder .form-actions button[value="save"]');
+      const secret = await page.$eval('#form-webhook-secret', (el) => el.value).catch(() => '');
+      await clickAndWait(page, '#webhook button[formaction$="/webhook-test"]', 20000);
+      const said = await page.evaluate(() => document.querySelector('.notice[role=status]')?.textContent.trim() || '');
+      await page.$eval('#webhook', (el) => el.scrollIntoView({ block: 'start' }));
+      await report.shot(page, '03-webhook', { fullPage: false });
+      report.verdict('a private web address is refused, a public one gets a signing secret, and a test is really sent',
+        /private network/.test(refused) && /^whsec_[0-9a-f]{48}$/.test(secret) && /405/.test(said), JSON.stringify({ refused, secret: secret.slice(0, 8), said }));
+
       await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
       await page.reload({ waitUntil: 'networkidle2' });
       const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

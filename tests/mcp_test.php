@@ -286,7 +286,8 @@ testBothDrivers('the owner makes a key, sees it once, and revokes it', function 
     $panel = dispatch('/admin/settings')->body;
     preg_match('~id="mcp-new-key" value="(bxk_[0-9a-f]{48})"~', $panel, $made);
     assertEquals(['writes' => true, 'publishes' => true], tool($made[1] ?? '', 'get_site')['structuredContent']['this_key'] ?? null, 'a key made to publish publishes');
-    assertContains('<td>Read, write, and publish pages</td>', $panel, 'and says so in the list');
+    // Everything the level below may, named again: "publish" alone read as a narrower right.
+    assertContains('<td>Read, write drafts, pictures and design sets, and publish pages</td>', $panel, 'and says so in the list, the lower level\'s rights named in it');
     assertTrue(!str_contains($panel, 'name="publish"') && !str_contains($panel, 'action="/admin/settings/mcp"'), 'no checkbox for every key, and no Save');
 });
 

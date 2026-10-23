@@ -16,7 +16,7 @@ return [
     'mcp.may' => 'Smije',
     'mcp.may.read' => 'Samo čitati',
     'mcp.may.write' => 'Čitati i pisati nacrte, slike i dizajn setove',
-    'mcp.may.publish' => 'Čitati, pisati i objavljivati stranice',
+    'mcp.may.publish' => 'Čitati, pisati nacrte, slike i dizajn setove te objavljivati stranice',
     'mcp.may_hint' => 'Samo ključ koji smije objavljivati može stranicu objaviti bez vas.',
     'mcp.never' => 'Još nije',
     'mcp.revoked_badge' => 'Opozvan',

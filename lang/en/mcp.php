@@ -16,7 +16,7 @@ return [
     'mcp.may' => 'It may',
     'mcp.may.read' => 'Read only',
     'mcp.may.write' => 'Read, and write drafts, pictures and design sets',
-    'mcp.may.publish' => 'Read, write, and publish pages',
+    'mcp.may.publish' => 'Read, write drafts, pictures and design sets, and publish pages',
     'mcp.may_hint' => 'Only a key that publishes may put a page live without you.',
     'mcp.never' => 'Not yet',
     'mcp.revoked_badge' => 'Revoked',

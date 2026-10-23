@@ -6,6 +6,9 @@
  *     Analytics, a statistics script, with its cookies filled in;
  *   - Check finds what the site sets that no script lists, and leaves this browser as it was;
  *   - a visitor's first page: the box, and nothing run and nothing set;
+ *   - only the necessary (Choose, statistics left off, Save): nothing runs, nothing is set, and the
+ *     next page runs nothing either, though the code is in its source as on every page (the owner,
+ *     2026-10-23, read it there as not blocked; it waits in a <template>, which never runs);
  *   - Accept all: the script runs and sets its cookie, the box goes, the next page runs it again;
  *   - Cookie settings, statistics taken back: the page reloads, the cookie is gone, nothing runs;
  *   - on a phone the box keeps inside the screen.
@@ -71,6 +74,25 @@ export default {
         await report.shot(v, '02-first-visit', { fullPage: false });
         report.verdict('a first visit: the box, and nothing run, nothing set', first.box && first.ran === 0 && first.cookies === '', JSON.stringify(first));
 
+        await v.click('[data-consent-more]');
+        await sleep(200);
+        const statsOn = await v.$eval('[data-consent-choice="statistics"]', (i) => i.checked);
+        if (statsOn) {
+          await v.click('[data-consent-choice="statistics"]');
+        }
+        await v.click('[data-consent-save]');
+        await sleep(300);
+        const necessary = await visitorState(v);
+        await v.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
+        const necessaryNext = { ...await visitorState(v), inSource: await v.evaluate(() => !!document.querySelector('template[data-consent-kind="statistics"]')) };
+        report.verdict('only the necessary: nothing runs or is set, on this page or the next, though the code waits in the source',
+          necessary.ran === 0 && necessary.cookies === '' && !necessary.box && necessaryNext.ran === 0 && necessaryNext.cookies === '' && !necessaryNext.box && necessaryNext.inSource,
+          JSON.stringify({ necessary, necessaryNext }));
+
+        // The same visitor changes their mind: the box again, from the footer, and Accept all.
+        await v.$eval('[data-consent-open]', (b) => b.scrollIntoView());
+        await v.click('[data-consent-open]');
+        await sleep(200);
         await v.click('[data-consent-all="yes"]');
         await sleep(300);
         const accepted = await visitorState(v);

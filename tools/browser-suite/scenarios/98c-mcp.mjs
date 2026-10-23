@@ -2,7 +2,8 @@
  * AI ACCESS OVER MCP (PLAN.md O-78), from the owner's side and an AI client's.
  *
  *   - Settings → AI access: a key made, shown once, with the line that connects Claude Code;
- *   - the endpoint answers that key over real HTTP: a modern server/discover, and a tool;
+ *   - the endpoint answers that key over real HTTP: a modern server/discover, the tool list with
+ *     its caching hints, and a tool;
  *   - a page drawn again shows the key no more;
  *   - revoked, the key opens nothing; removed, it is off the list.
  *
@@ -48,7 +49,13 @@ export default {
         /^bxk_[0-9a-f]{48}$/.test(key) && shown.connect.includes(`Bearer ${key}`) && shown.endpoint.endsWith('/mcp'), JSON.stringify({ ...shown, key: key.slice(0, 8) }));
 
       const discover = await call(key, 'server/discover');
+      const list = await call(key, 'tools/list');
       const site = await call(key, 'tools/call', { name: 'get_site', arguments: {} });
+      // ttlMs and cacheScope are required: Claude Code refused a list without them.
+      const hints = [discover.body?.result, list.body?.result].map((r) => [r?.ttlMs, r?.cacheScope]);
+      report.verdict('discover and the tool list carry the caching hints a modern client requires',
+        Number.isInteger(hints[0][0]) && hints[0][1] === 'public' && Number.isInteger(hints[1][0]) && hints[1][1] === 'private' && list.body?.result?.tools?.length > 0,
+        JSON.stringify(hints));
       report.verdict('over HTTP the key opens the endpoint: discover, and a tool',
         discover.status === 200 && discover.body?.result?.supportedVersions?.includes('2026-07-28') && site.status === 200 && site.body?.result?.structuredContent?.this_key?.writes === true,
         JSON.stringify({ discover: discover.status, site: site.body?.result?.structuredContent?.name }));

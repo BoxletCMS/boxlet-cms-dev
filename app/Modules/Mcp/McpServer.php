@@ -84,19 +84,24 @@ final class McpServer
                 : self::error($id, -32022, 'Unsupported protocol version', ['supported' => array_merge(self::MODERN, self::LEGACY), 'requested' => $headerVersion])];
         }
         $complete = static fn (array $result): array => $modern ? ['resultType' => 'complete'] + $result : $result;
+        // CACHING HINTS, which a modern client requires on discover and on a list (the
+        // caching utility: ttlMs and cacheScope are required fields of DiscoverResult and
+        // ListToolsResult). Discover is the same for every caller; the tools follow the key and
+        // the owner's publish setting, so they are private, and fresh for a minute.
+        $cached = static fn (array $result, int $ttlMs, string $scope): array => $modern ? $complete($result) + ['ttlMs' => $ttlMs, 'cacheScope' => $scope] : $result;
 
         switch ($method) {
             case 'server/discover':
-                return [200, self::result($id, $complete([
+                return [200, self::result($id, $cached([
                     'supportedVersions' => array_merge(self::MODERN, self::LEGACY),
                     'capabilities' => ['tools' => ['listChanged' => false]],
                     '_meta' => ['io.modelcontextprotocol/serverInfo' => $this->info()],
                     'instructions' => self::INSTRUCTIONS,
-                ]))];
+                ], 3600000, 'public'))];
             case 'ping':
                 return [200, self::result($id, $complete([]))];
             case 'tools/list':
-                return [200, self::result($id, $complete(['tools' => $this->tools->definitions($key)]))];
+                return [200, self::result($id, $cached(['tools' => $this->tools->definitions($key)], 60000, 'private'))];
             case 'tools/call':
                 $name = is_string($params['name'] ?? null) ? $params['name'] : '';
                 $arguments = is_array($params['arguments'] ?? null) ? $params['arguments'] : [];

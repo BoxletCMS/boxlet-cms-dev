@@ -90,6 +90,12 @@ testBothDrivers('only a key, from no other site, opens the endpoint', function (
     $discover = json_decode(mcp($message, $key, $headers)->body, true);
     assertEquals(['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26'], $discover['result']['supportedVersions'] ?? null, 'the versions it speaks');
     assertEquals('complete', $discover['result']['resultType'] ?? null, 'a modern result');
+    // The caching hints a modern client requires (Claude Code refused a list without them).
+    assertEquals([3600000, 'public'], [$discover['result']['ttlMs'] ?? null, $discover['result']['cacheScope'] ?? null], 'discover, the same for every caller');
+    [$list, $listHeaders] = modern('tools/list');
+    $tools = json_decode(mcp($list, $key, $listHeaders)->body, true)['result'] ?? [];
+    assertEquals(['complete', 60000, 'private'], [$tools['resultType'] ?? null, $tools['ttlMs'] ?? null, $tools['cacheScope'] ?? null], 'the tools, which follow the key');
+    assertTrue(($tools['tools'] ?? []) !== [], 'and the tools are there');
 
     McpKeys::revoke($db, (int) ($db->one('SELECT id FROM mcp_keys')['id'] ?? 0));
     assertEquals(401, mcp($message, $key, $headers)->status, 'a revoked key');

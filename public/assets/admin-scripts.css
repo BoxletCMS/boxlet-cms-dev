@@ -1,12 +1,5 @@
-/* THE OWNER'S SCRIPTS (PLAN.md O-73): their code in a fixed-width face, the cookies as rows of
-   four, the check's hidden frame and its list. Admin tokens only (--ui-*). */
-
-.code-input {
-  font-family: var(--ui-mono);
-  font-size: var(--ui-text-sm);
-  line-height: 1.5;
-  tab-size: 2;
-}
+/* THE OWNER'S SCRIPTS (PLAN.md O-73): the cookies as rows of four, the check's hidden frame and
+   its list. Admin tokens only (--ui-*). */
 
 .scripts-cookies {
   display: grid;

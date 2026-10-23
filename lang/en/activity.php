@@ -81,6 +81,10 @@ return [
     'activity.form.saved' => 'Edited the form “:name”',
     'activity.form.deleted' => 'Deleted the form “:name”',
     'activity.message.received' => 'A message came in through “:name”',
+    'activity.page.ai_created' => 'An AI client created the page “:name”',
+    'activity.page.ai_drafted' => 'An AI client saved a draft of “:name”',
+    'activity.media.ai_added' => 'An AI client added the picture “:name”',
+    'activity.design.ai_added' => 'An AI client kept the design “:name”',
     'activity.message.webhook_failed' => 'A message through “:name” did not reach its web address, and is kept to be sent again',
 
     'activity.design.saved' => 'Published how the site looks',
@@ -93,6 +97,8 @@ return [
     'activity.design.character_missing' => 'The character “:name” went missing; the site composes with the default',
 
     'activity.settings.saved' => 'Saved the site settings',
+    'activity.settings.mcp_key_created' => 'Made the AI access key “:name”',
+    'activity.settings.mcp_key_revoked' => 'Revoked the AI access key “:name”',
     'activity.settings.mail_saved' => 'Saved how the site sends mail',
     'activity.settings.ai_saved' => 'Saved the AI translation settings',
     'activity.settings.language_added' => 'Added :name',

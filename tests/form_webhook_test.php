@@ -73,11 +73,11 @@ function webhookSite(string $driver, bool $keep): array
 test('an address is https on the public internet, or it is not saved', function () {
     assertEquals('', FormWebhook::invalid(''), 'none');
     assertEquals('', FormWebhook::invalid('https://hooks.zapier.com/hooks/catch/1/abc/'), 'a public address');
-    assertEquals(t('forms.webhook_https'), FormWebhook::invalid('http://hooks.example.com/in'), 'plain http');
-    assertEquals(t('forms.webhook_https'), FormWebhook::invalid('https://user:pass@hooks.example.com/in'), 'a password in the address');
-    assertEquals(t('forms.webhook_https'), FormWebhook::invalid('hooks.example.com/in'), 'no scheme');
+    assertEquals(t('address.https'), FormWebhook::invalid('http://hooks.example.com/in'), 'plain http');
+    assertEquals(t('address.https'), FormWebhook::invalid('https://user:pass@hooks.example.com/in'), 'a password in the address');
+    assertEquals(t('address.https'), FormWebhook::invalid('hooks.example.com/in'), 'no scheme');
     foreach (['https://localhost/in', 'https://127.0.0.1/in', 'https://10.0.0.5/in', 'https://192.168.1.2/in', 'https://169.254.169.254/latest', 'https://[::1]/in', 'https://printer.local/in'] as $private) {
-        assertEquals(t('forms.webhook_private'), FormWebhook::invalid($private), $private);
+        assertEquals(t('address.private'), FormWebhook::invalid($private), $private);
     }
 });
 
@@ -91,9 +91,9 @@ test('a name that resolves to a private address is not called', function () {
 
         return 'called';
     };
-    assertEquals(t('forms.webhook_private'), $refused(static fn (): array => ['10.1.2.3']), 'a private address');
-    assertEquals(t('forms.webhook_private'), $refused(static fn (): array => ['93.184.215.14', '127.0.0.1']), 'one private among public ones');
-    assertEquals(t('forms.webhook_unknown_host', ['host' => 'hooks.example.com']), $refused(static fn (): array => []), 'a name that resolves to nothing');
+    assertEquals(t('address.private'), $refused(static fn (): array => ['10.1.2.3']), 'a private address');
+    assertEquals(t('address.private'), $refused(static fn (): array => ['93.184.215.14', '127.0.0.1']), 'one private among public ones');
+    assertEquals(t('address.unknown_host', ['host' => 'hooks.example.com']), $refused(static fn (): array => []), 'a name that resolves to nothing');
 });
 
 testBothDrivers('each message is sent on, signed, and a form that keeps nothing keeps nothing', function (string $driver) {
@@ -178,7 +178,7 @@ testBothDrivers('the form screen saves an address, makes its secret once, and se
 
     $refused = $post('https://192.168.1.10/hook');
     assertEquals(422, $refused->status, 'a private address refused');
-    assertContains(e(t('forms.webhook_private')), $refused->body, 'saying why');
+    assertContains(e(t('address.private')), $refused->body, 'saying why');
     assertRedirectedTo("/admin/forms/{$site['form']}", $post('https://hooks.example.com/in'));
     $saved = Form::find($site['db'], $site['form'])['settings'];
     assertEquals('https://hooks.example.com/in', $saved['webhook'], 'the address, enough on its own for a message to reach the owner');

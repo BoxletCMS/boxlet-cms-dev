@@ -201,7 +201,7 @@ final class SettingsController
             'geoNotice' => $this->geoNotice(),
             'privacy' => PrivacyText::all($stats, $geo !== null),
             'uploadLimit' => Bytes::limits()['fileLabel'],
-        ] + $this->mail() + $this->ai(), $status);
+        ] + $this->mail() + $this->ai() + \App\Modules\Mcp\McpSettingsController::panel($this->container), $status);
     }
 
     /**

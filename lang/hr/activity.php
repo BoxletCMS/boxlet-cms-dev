@@ -83,6 +83,10 @@ return [
     'activity.form.saved' => 'Uređen obrazac „:name“',
     'activity.form.deleted' => 'Obrisan obrazac „:name“',
     'activity.message.received' => 'Stigla je poruka putem obrasca „:name“',
+    'activity.page.ai_created' => 'AI klijent izradio je stranicu „:name“',
+    'activity.page.ai_drafted' => 'AI klijent spremio je nacrt stranice „:name“',
+    'activity.media.ai_added' => 'AI klijent dodao je sliku „:name“',
+    'activity.design.ai_added' => 'AI klijent spremio je dizajn „:name“',
     'activity.message.webhook_failed' => 'Poruka putem obrasca „:name“ nije stigla na web-adresu i čuva se za ponovno slanje',
 
     'activity.design.saved' => 'Objavljen izgled web-stranice',
@@ -95,6 +99,8 @@ return [
     'activity.design.character_missing' => 'Karakter „:name“ više ne postoji; web-stranica koristi zadani karakter',
 
     'activity.settings.saved' => 'Spremljene postavke web-stranice',
+    'activity.settings.mcp_key_created' => 'Izrađen ključ za AI pristup „:name“',
+    'activity.settings.mcp_key_revoked' => 'Opozvan ključ za AI pristup „:name“',
     'activity.settings.mail_saved' => 'Spremljene postavke slanja e-pošte',
     'activity.settings.ai_saved' => 'Spremljene postavke AI prijevoda',
     'activity.settings.language_added' => 'Dodan jezik :name',

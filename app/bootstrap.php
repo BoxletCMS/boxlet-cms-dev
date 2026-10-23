@@ -147,6 +147,8 @@ $container->set('ai_models', fn (Container $c) => static function () use ($c): a
 // A form's message sent on to the owner's web address (O-77): checked, pinned, sent. Tests
 // replace it, so no request leaves them.
 $container->set('form_webhook', fn () => static fn (string $url, array $headers, string $body): array => \App\Modules\Forms\FormWebhook::post($url, array_values(array_map('strval', $headers)), $body));
+// A picture an AI client asks the site to fetch (O-78): checked, pinned, read. Tests replace it.
+$container->set('mcp_fetch', fn () => static fn (string $url): array => \App\Modules\Mcp\McpSite::fetch($url));
 $container->set('mail_transport', fn (Container $c) => MailSettings::transport($c->get('db'), (string) (($c->get('config')->get('app', []))['key'] ?? '')));
 // Media (SPEC §5.5). The encoder probes what this server can actually write, so a host
 // without a WebP delegate refuses clearly instead of writing files nobody can open.
@@ -422,6 +424,11 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // AI translation (D-248): its panel, the screen that runs it, and Translate again on a block.
     $router->post('/admin/settings/ai', [\App\Modules\Ai\AiController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/ai/test', [\App\Modules\Ai\AiController::class, 'test'], $requireAdmin);
+    // AI access over MCP (O-78): its keys, and whether an AI client may publish.
+    $router->post('/admin/settings/mcp', [\App\Modules\Mcp\McpSettingsController::class, 'save'], $requireAdmin);
+    $router->post('/admin/settings/mcp/keys', [\App\Modules\Mcp\McpSettingsController::class, 'create'], $requireAdmin);
+    $router->post('/admin/settings/mcp/keys/{id:\d+}/revoke', [\App\Modules\Mcp\McpSettingsController::class, 'revoke'], $requireAdmin);
+    $router->post('/admin/settings/mcp/keys/{id:\d+}/remove', [\App\Modules\Mcp\McpSettingsController::class, 'remove'], $requireAdmin);
     $router->get('/admin/translate', [\App\Modules\Ai\AiController::class, 'progress'], $requireAdmin);
     $router->post('/admin/translate/step', [\App\Modules\Ai\AiController::class, 'step'], $requireAdmin);
     $router->post('/admin/translate/retry', [\App\Modules\Ai\AiController::class, 'retry'], $requireAdmin);
@@ -482,6 +489,9 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // addressed by the slugs above it too, /usluge/web-dizajn (D-129); the last one finds it.
     // A visitor sending a form (D-046). Unprefixed: the form knows its own language.
     $router->visitorPost('/form/{id:\d+}', [FormSubmitController::class, 'submit']);
+    // An AI client's calls (O-78): no session, guarded by its key, its Origin and its limit.
+    $router->visitorPost('/mcp', [\App\Modules\Mcp\McpController::class, 'handle']);
+    $router->get('/mcp', [\App\Modules\Mcp\McpController::class, 'refuse']);
     // The sitemap for a host where public/sitemap.xml cannot be written (D-049).
     // A file from the library, to save (D-126). Registered before the pages, whose nested
     // addresses (D-129) would otherwise be able to claim /download/{id}/{name}; 'download'

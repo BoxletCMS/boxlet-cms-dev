@@ -3,6 +3,7 @@
 namespace App\Modules\Forms;
 
 use App\Core\Container;
+use App\Support\PublicAddress;
 use App\Support\Secret;
 use App\Support\Url;
 use Closure;
@@ -41,22 +42,7 @@ final class FormWebhook
      */
     public static function invalid(string $url): string
     {
-        if ($url === '') {
-            return '';
-        }
-        $parts = parse_url($url);
-        $host = is_array($parts) ? strtolower((string) ($parts['host'] ?? '')) : '';
-        if (!is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https' || $host === ''
-            || isset($parts['user']) || isset($parts['pass']) || mb_strlen($url) > 500) {
-            return t('forms.webhook_https');
-        }
-        $ip = trim($host, '[]');
-        if ($host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local')
-            || (filter_var($ip, FILTER_VALIDATE_IP) !== false && !self::public($ip))) {
-            return t('forms.webhook_private');
-        }
-
-        return '';
+        return $url === '' ? '' : PublicAddress::invalid($url);
     }
 
     /**
@@ -122,21 +108,7 @@ final class FormWebhook
      */
     public static function post(string $url, array $headers, string $body, ?Closure $resolve = null): array
     {
-        $invalid = self::invalid($url);
-        if ($invalid !== '') {
-            throw new RuntimeException($invalid);
-        }
-        $host = trim(strtolower((string) parse_url($url, PHP_URL_HOST)), '[]');
-        $port = (int) (parse_url($url, PHP_URL_PORT) ?? 443);
-        $addresses = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : ($resolve ?? self::resolve(...))($host);
-        if ($addresses === []) {
-            throw new RuntimeException(t('forms.webhook_unknown_host', ['host' => $host]));
-        }
-        foreach ($addresses as $address) {
-            if (!self::public($address)) {
-                throw new RuntimeException(t('forms.webhook_private'));
-            }
-        }
+        $address = PublicAddress::check($url, $resolve);
 
         $handle = curl_init($url);
         if ($handle === false) {
@@ -149,7 +121,7 @@ final class FormWebhook
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
-            CURLOPT_RESOLVE => [$host . ':' . $port . ':' . (str_contains($addresses[0], ':') ? '[' . $addresses[0] . ']' : $addresses[0])],
+            CURLOPT_RESOLVE => [$address['pin']],
             CURLOPT_CONNECTTIMEOUT => self::CONNECT_SECONDS,
             CURLOPT_TIMEOUT => self::SECONDS,
         ]);
@@ -158,7 +130,7 @@ final class FormWebhook
         $error = curl_error($handle);
         curl_close($handle);
         if (!is_string($answer)) {
-            throw new RuntimeException(t('forms.webhook_unreachable', ['host' => $host, 'error' => $error]));
+            throw new RuntimeException(t('address.unreachable', ['host' => $address['host'], 'error' => $error]));
         }
 
         return [$status, $answer];
@@ -168,28 +140,5 @@ final class FormWebhook
     public static function newSecret(): string
     {
         return 'whsec_' . bin2hex(random_bytes(24));
-    }
-
-    /** An address on the public internet: no private, loopback, link-local or reserved range. */
-    public static function public(string $ip): bool
-    {
-        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function resolve(string $host): array
-    {
-        $records = @dns_get_record($host, DNS_A | DNS_AAAA);
-        $addresses = [];
-        foreach (is_array($records) ? $records : [] as $record) {
-            $address = $record['ip'] ?? $record['ipv6'] ?? null;
-            if (is_string($address)) {
-                $addresses[] = $address;
-            }
-        }
-
-        return $addresses;
     }
 }

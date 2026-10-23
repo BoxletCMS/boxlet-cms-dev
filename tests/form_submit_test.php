@@ -150,13 +150,15 @@ testBothDrivers('a form speaks its page\'s language, and only on a page of that 
     assertTrue(!str_contains(dispatch('/write')->body, '<form class="site-form"'), 'a Croatian form on an English page');
 });
 
-// Guard (source, not behaviour): the session CSRF check is waived for exactly one route.
-// Every other POST still meets it; a second visitorPost() is a decision, not a convenience.
-test('only the form route is sent without the session\'s CSRF token', function () {
+// Guard (source, not behaviour): the session CSRF check is waived for exactly the routes named
+// here. Every other POST still meets it; another visitorPost() is a decision, not a convenience.
+// The second was decided in PLAN.md O-78: /mcp, which no browser session reaches and which is
+// guarded by its key, its Origin check and its limit (McpController; mcp_test).
+test('only the form route and the MCP endpoint are sent without the session\'s CSRF token', function () {
     $bootstrap = (string) file_get_contents(dirname(__DIR__) . '/app/bootstrap.php');
     preg_match_all('~->visitorPost\(\'([^\']+)\'~', $bootstrap, $routes);
 
-    assertEquals(['/form/{id:\d+}'], $routes[1], 'routes exempt from the CSRF check');
+    assertEquals(['/form/{id:\d+}', '/mcp'], $routes[1], 'routes exempt from the CSRF check');
     // And an admin POST without a token is still refused.
     adminSite('sqlite');
     assertEquals(403, dispatch('/admin/forms', null, 'POST', ['name' => 'x', 'locale' => 'en'])->status, 'an admin POST without a token');

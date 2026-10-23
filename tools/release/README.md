@@ -215,6 +215,19 @@ It gets there by leaving things out, and by keeping what it can:
 - **Checked, not trusted.** Markup, `{{tags}}`, addresses and the words you list as never to
   translate stay as they are. An answer that fails a check keeps the original words and says so.
 
+## Working with your AI assistant (MCP)
+
+- **Claude and other AI apps can work on your site** through the Model Context Protocol. Make a
+  key in Settings → AI access and connect: for Claude Code it is one line, shown with the key.
+- **They read** your pages, block by block, your pictures and your design; **they write**
+  pages as drafts, pictures fetched from an address, and design sets for you to try in
+  Appearance.
+- **You stay in charge.** Every change waits for you: a draft until you publish it, a design
+  until you apply it. Nothing is deleted, every change is in the activity log, a key can read
+  only, and publishing is off until you turn it on.
+- **Runs on ordinary hosting.** No long-running connection: each call is one request, so
+  shared hosting serves it like any page.
+
 ## Forms and email
 
 - **A form builder** with text, email, phone, long text, choice and checkbox fields.

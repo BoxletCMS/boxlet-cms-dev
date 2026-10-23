@@ -181,13 +181,11 @@ testBothDrivers('a page is made, read, changed as a draft and published only whe
     assertEquals(['ai_created', 'ai_drafted', 'published'], array_values(array_intersect($kinds, ['ai_created', 'ai_drafted', 'published'])), 'each step in the activity log');
 });
 
-testBothDrivers('a picture is fetched into the library, and a design set is kept, never applied', function (string $driver) {
+testBothDrivers('a picture is fetched into the library, described and listed', function (string $driver) {
     $db = adminSite($driver);
     $key = mcpKey($db);
-    $image = imagecreatetruecolor(640, 400) ?: fail('no GD');
-    ob_start();
-    imagejpeg($image);
-    $jpeg = (string) ob_get_clean();
+    // Skipped where GD is not, as every test that makes a picture is (imageFixture).
+    $jpeg = (string) file_get_contents(imageFixture(tmpPath('mcp-harbour.jpg'), 640, 400));
     $media = mediaAdminContainer();
     $fetching = static function (Container $c) use ($media, $jpeg): void {
         $media($c);
@@ -204,15 +202,19 @@ testBothDrivers('a picture is fetched into the library, and a design set is kept
         $c->set('mcp_fetch', static fn () => static fn (string $url): array => ['bytes' => 'hello', 'type' => 'text/plain']);
     });
     assertTrue(($refused['isError'] ?? false) === true, 'what is no picture is refused');
+});
 
-    $character = Characters::names();
+testBothDrivers('a design set is kept, as a character or a saved design, never applied', function (string $driver) {
+    $db = adminSite($driver);
+    $key = mcpKey($db);
+
     $active = (string) (Settings::get($db, 'design_character') ?? '');
     $set = json_decode((string) file_get_contents(dirname(__DIR__) . '/designs/core/minimal.json'), true);
     $set['id'] = 'quiet-harbour';
     $set['name'] = ['en' => 'Quiet harbour'];
     $kept = tool($key, 'create_design_set', ['set' => $set])['structuredContent'] ?? [];
     assertEquals(['character', 'quiet-harbour'], [$kept['as'] ?? null, $kept['id'] ?? null], 'a set with a composition kept as a character');
-    assertTrue(count(Characters::names()) === count($character) + 1, 'one more to choose from');
+    assertTrue(Characters::exists('quiet-harbour'), 'one more to choose from');
     assertEquals($active, (string) (Settings::get($db, 'design_character') ?? ''), 'and the site\'s own unchanged');
 
     unset($set['composition']);

@@ -4,6 +4,8 @@
  *   - Settings → AI access: a key made, shown once, with the line that connects Claude Code;
  *   - the endpoint answers that key over real HTTP: a modern server/discover, the tool list with
  *     its caching hints, and a tool;
+ *   - a design set the client keeps is where its link lands, marked as an AI client's (D-290:
+ *     the owner looked for one among the characters and did not find it); removed again here;
  *   - a page drawn again shows the key no more;
  *   - revoked, the key opens nothing; removed, it is off the list.
  *
@@ -13,6 +15,7 @@ import { BASE, ADMIN } from '../config.mjs';
 import { login, clickAndWait } from '../harness.mjs';
 
 const NAME = `Suite client ${Date.now()}`;
+const DESIGN = `Suite navy ${Date.now()}`;
 
 async function call(key, method, params = {}) {
   const meta = { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientInfo': { name: 'suite', version: '1' }, 'io.modelcontextprotocol/clientCapabilities': {} };
@@ -32,6 +35,7 @@ export default {
       return;
     }
     let key = '';
+    let designId = null;
     try {
       await page.goto(`${BASE}/admin/settings#mcp`, { waitUntil: 'networkidle2' });
       await page.type('#mcp-name', NAME);
@@ -60,10 +64,32 @@ export default {
         discover.status === 200 && discover.body?.result?.supportedVersions?.includes('2026-07-28') && site.status === 200 && site.body?.result?.structuredContent?.this_key?.writes === true,
         JSON.stringify({ discover: discover.status, site: site.body?.result?.structuredContent?.name }));
 
+      const set = { format: 'boxlet-design-set', version: 2, id: 'suite-navy', name: { en: DESIGN }, decisions: { seed: '#1f3a68' } };
+      const kept = (await call(key, 'tools/call', { name: 'create_design_set', arguments: { set } })).body?.result?.structuredContent || {};
+      designId = kept.id || null;
+      // The address the client is given, as the owner would open it: its path, on this copy.
+      const link = new URL(kept.try_it || '/', BASE);
+      await page.goto(`${BASE}${link.pathname}${link.hash}`, { waitUntil: 'networkidle2' });
+      const landed = await page.evaluate((name) => {
+        const row = [...document.querySelectorAll('#group-designs .design-row')].find((li) => li.querySelector('.design-row-name')?.textContent === name);
+        const box = row?.getBoundingClientRect();
+        return { found: !!row, inView: !!box && box.top >= 0 && box.bottom <= window.innerHeight, marked: !!row?.querySelector('.design-row-ai'), mark: row?.querySelector('.design-row-ai')?.textContent || '' };
+      }, DESIGN);
+      await report.shot(page, '02-design-kept', { fullPage: false });
+      report.verdict('a design set the client keeps is in view where its link lands, marked as an AI client\'s',
+        link.hash === '#group-designs' && landed.found && landed.inView && landed.marked, JSON.stringify({ hash: link.hash, ...landed }));
+
       await page.reload({ waitUntil: 'networkidle2' });
       const again = await page.evaluate((k) => document.body.innerHTML.includes(k), key);
       report.verdict('drawn again, the screen no longer shows the key', !again, again ? 'the key is still on the page' : '');
     } finally {
+      if (designId) {
+        // Thrown away through the screen's own delete, by the id the client was given.
+        await page.goto(`${BASE}/admin/appearance`, { waitUntil: 'networkidle2' });
+        await clickAndWait(page, `button[value="library:delete:${designId}"]`);
+        const left = await page.evaluate((name) => [...document.querySelectorAll('.design-row-name')].some((el) => el.textContent === name), DESIGN);
+        report.verdict('the scenario\'s design removed again', !left, left ? 'still listed' : '');
+      }
       await page.goto(`${BASE}/admin/settings#mcp`, { waitUntil: 'networkidle2' });
       const id = await page.evaluate((name) => {
         const row = [...document.querySelectorAll('#mcp tbody tr')].find((tr) => tr.textContent.includes(name));

@@ -105,13 +105,22 @@ final class McpSite
     {
         $characters = [];
         foreach (Characters::names() as $id) {
-            $characters[] = ['id' => $id, 'name' => Characters::label($id)];
+            $characters[] = ['id' => $id, 'name' => Characters::label($id), 'by_ai' => Characters::byAi($id)];
         }
+        // The designs kept in the library, so a client can see what it kept and what the owner
+        // has (D-290); their content is the owner's to bring back in Appearance.
+        $saved = array_map(static fn (array $design): array => [
+            'id' => $design['id'],
+            'name' => $design['name'],
+            'from_character' => $design['character'],
+            'by_ai' => $design['by_ai'],
+        ], DesignLibrary::all($this->db()));
 
         return [
             'character' => Composition::active($this->db()),
             'set' => json_decode(DesignExport::forSite($this->db(), 'site-design', Settings::text($this->db(), 'site_name')), true),
             'characters' => $characters,
+            'saved_designs' => $saved,
         ];
     }
 
@@ -182,15 +191,22 @@ final class McpSite
         $name = $parsed['name']['en'] ?? (string) reset($parsed['name']);
         if ($parsed['composition'] !== null) {
             // As an imported character: the owner may delete it as any other they brought in.
-            $id = Characters::addImported($db, $parsed, 'import');
-            $kept = ['as' => 'character', 'id' => $id];
+            // Marked as an AI client's (D-290), on its tile at the top of Appearance.
+            $id = Characters::addImported($db, $parsed, 'ai');
+            $kept = ['as' => 'character', 'id' => $id, 'try_it' => Url::withOrigin(Url::admin('appearance'))];
         } else {
             $name = DesignLibrary::cleanName($name) !== '' ? DesignLibrary::cleanName($name) : 'AI design';
-            $kept = ['as' => 'saved design', 'id' => DesignLibrary::save($db, $name, $parsed['decisions'], $parsed['look'], Composition::active($db), $parsed['dark'])];
+            // A saved design is at the foot of Appearance, under Your designs: the link lands on
+            // that group, where the owner did not think to look (D-290).
+            $kept = [
+                'as' => 'saved design',
+                'id' => DesignLibrary::save($db, $name, $parsed['decisions'], $parsed['look'], Composition::active($db), $parsed['dark'], true),
+                'try_it' => Url::withOrigin(Url::admin('appearance') . '#group-designs'),
+            ];
         }
         Activity::record($db, 'design', 'ai_added', null, $name);
 
-        return $kept + ['name' => $name, 'warnings' => $read['warnings'], 'try_it' => Url::withOrigin(Url::admin('appearance'))];
+        return $kept + ['name' => $name, 'warnings' => $read['warnings'], 'where' => $kept['as'] === 'character' ? 'Appearance, among the characters' : 'Appearance, at the foot, under Your designs'];
     }
 
     /**

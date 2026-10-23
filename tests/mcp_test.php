@@ -3,6 +3,7 @@
 use App\Core\Container;
 use App\Core\Response;
 use App\Core\Settings;
+use App\Modules\Appearance\DesignLibrary;
 use App\Modules\Design\Characters;
 use App\Modules\Mcp\McpKeys;
 use App\Modules\Mcp\McpTools;
@@ -223,9 +224,25 @@ testBothDrivers('a design set is kept, as a character or a saved design, never a
     assertTrue(Characters::exists('quiet-harbour'), 'one more to choose from');
     assertEquals($active, (string) (Settings::get($db, 'design_character') ?? ''), 'and the site\'s own unchanged');
 
+    assertTrue(Characters::byAi('quiet-harbour') && !Characters::byAi('minimal'), 'marked as an AI client\'s');
+
     unset($set['composition']);
     $set['name'] = ['en' => 'Harbour colours'];
-    assertEquals('saved design', tool($key, 'create_design_set', ['set' => $set])['structuredContent']['as'] ?? null, 'one without, a saved design');
+    $saved = tool($key, 'create_design_set', ['set' => $set])['structuredContent'] ?? [];
+    assertEquals('saved design', $saved['as'] ?? null, 'one without, a saved design');
+    // D-290: the owner looked for it among the characters; the link lands on Your designs.
+    assertEquals('http://example.test/admin/appearance#group-designs', $saved['try_it'] ?? null, 'the link lands where it is');
+    $listed = tool($key, 'get_design')['structuredContent']['saved_designs'] ?? [];
+    assertEquals([['id' => $saved['id'] ?? null, 'name' => 'Harbour colours', 'from_character' => 'minimal', 'by_ai' => true]], $listed, 'get_design lists it, as an AI client\'s');
+    assertEquals($saved['id'] ?? null, tool($key, 'create_design_set', ['set' => $set])['structuredContent']['id'] ?? null, 'the same name again writes over it');
+    assertEquals(1, count(DesignLibrary::all($db)), 'rather than adding a second');
+
+    $screen = dispatch('/admin/appearance')->body;
+    assertEquals(1, preg_match('~id="group-designs".*?Harbour colours</span>\s*<span class="design-row-from"><span class="design-row-ai"~s', $screen), 'Appearance marks it under Your designs');
+    assertEquals(1, preg_match('~Quiet harbour</span>\s*<span class="tile-tags"><span class="tile-custom" title="[^"]+">AI</span>~', $screen), 'and the character\'s tile');
+    DesignLibrary::save($db, 'Harbour colours', [], []);
+    assertTrue(!DesignLibrary::all($db)[0]['by_ai'], 'the owner\'s save over it makes it theirs');
+    assertTrue(!str_contains(dispatch('/admin/appearance')->body, 'class="design-row-ai"'), 'and the mark goes');
     $bad = $set;
     $bad['decisions'] = ['seed' => 'not a colour'];
     assertTrue((tool($key, 'create_design_set', ['set' => $bad])['isError'] ?? false) === true, 'one that does not read, refused with why');

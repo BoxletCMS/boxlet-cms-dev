@@ -11,7 +11,7 @@
  * the end, the form's message with it.
  */
 import { BASE, ADMIN } from '../config.mjs';
-import { login, deletePage, clickAndWait, SLOW, openBuilder, addBlock, publish } from '../harness.mjs';
+import { login, deletePage, clickAndWait, SLOW, openBuilder, addBlock, publish, retype } from '../harness.mjs';
 
 const STAMP = Date.now();
 const FORM = `Zz contact check ${STAMP}`;
@@ -34,6 +34,11 @@ export default {
       await page.type('#form-name', FORM);
       await clickAndWait(page, 'form[action$="/admin/forms"] button[type="submit"]');
       formId = Number((page.url().match(/\/admin\/forms\/(\d+)$/) || [])[1]) || null;
+      // KEPT, so the message can be seen in the admin: a new form keeps nothing since D-269
+      // (GDPR), and the copy sends no mail, so without this the visitor is told it was not sent
+      // — which is right, and is what this scenario then met (2026-10-23).
+      await page.click('form.form-builder input[name="settings[keep]"]');
+      await clickAndWait(page, 'form.form-builder .form-actions button[value="save"]');
 
       // ---- a page with the Form block --------------------------------------------------------
       await page.goto(`${BASE}/admin/pages/new`, { waitUntil: 'networkidle2' });
@@ -48,7 +53,8 @@ export default {
       const fields = `[data-pb-inspector] [data-block-fields="${key}"]`;
       await page.select(`${fields} select[name$="[form]"]`, String(formId));
       await page.$eval('#ins-content', (d) => { d.open = true; });
-      await page.type(`${fields} input[name$="[heading]"]`, 'Write to us', { delay: SLOW });
+      // Over what the field holds: a new block's heading is not empty (it read "Write to usGet in touch").
+      await retype(page, `${fields} input[name$="[heading]"]`, 'Write to us');
       await page.waitForFunction(() => document.querySelector('[data-pb-canvas]').contentDocument.querySelector('form.site-form') !== null, { timeout: 15000 }).catch(() => {});
       const onCanvas = await page.evaluate(() => document.querySelector('[data-pb-canvas]').contentDocument.querySelector('form.site-form') !== null);
       await report.shot(page, '01-editor', { fullPage: false });

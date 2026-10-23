@@ -29,6 +29,8 @@ const ICONS = [
     'chevron-left', 'image', 'list', 'list-checks', 'palette', 'panels-top-left',
     // Media as a list or a grid (O-75).
     'layout-grid',
+    // The owner's scripts and the cookies they set, in the rail (O-73).
+    'cookie',
     // The theme switch (D-054); 'contrast' is Lucide's half-filled circle, for "match the system".
     'sun', 'moon', 'contrast',
     // What each shipped block calls itself (D-084). A block's 'icon' names one of these, and

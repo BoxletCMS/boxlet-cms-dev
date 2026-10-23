@@ -44,12 +44,18 @@ visitor's cookie jar stayed empty.
 - **Videos and maps load only when pressed.** Until a visitor presses Play, nothing of
   YouTube's, Vimeo's or Google's is loaded, and YouTube then comes from
   `youtube-nocookie.com`. A map can be OpenStreetMap instead, which stores nothing.
-- **Almost no JavaScript** on the public site: four small scripts, each loaded only on a page
+- **Almost no JavaScript** on the public site: five small scripts, each loaded only on a page
   that needs it. One folds the menu on a phone, one starts a video or a map when it is
-  pressed, one brings a section in as it is scrolled to, and one opens a picture larger,
-  where you asked for those.
+  pressed, one brings a section in as it is scrolled to, one opens a picture larger, and one
+  asks about cookies, where you asked for those.
 - **A suggested privacy-policy paragraph** for the statistics, written from your own
   settings, in every language the site speaks.
+
+- **Your own scripts, asked about properly.** Add Google Analytics, a pixel or a chat window
+  under Scripts & cookies, and Boxlet recognises the common ones and lists the cookies they
+  set. A statistics or marketing script runs only after a visitor agrees to it, in a box drawn
+  from your site's own design, with Reject as easy as Accept; until then nothing of it is
+  loaded. Cookieless statistics such as Plausible need no box at all, and Boxlet says so.
 
 So in the usual case you don't need a consent banner at all. The fine print is that Boxlet
 takes care of what *Boxlet* does. If you embed a Google Map or a Vimeo video, that provider

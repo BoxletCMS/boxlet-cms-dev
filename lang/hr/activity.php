@@ -29,6 +29,7 @@ return [
     'activity.kind.account' => 'Prijava',
     'activity.kind.redirect' => 'Preusmjeravanje',
     'activity.kind.snippet' => 'Isječak',
+    'activity.kind.script' => 'Skripta',
 
     'activity.page.created' => 'Izrađena stranica „:name“',
     'activity.page.saved' => 'Uređena stranica „:name“',
@@ -71,6 +72,9 @@ return [
     'activity.backup.deleted' => 'Obrisana sigurnosna kopija :name',
     'activity.redirect.created' => 'Dodano preusmjeravanje za :name',
     'activity.redirect.deleted' => 'Obrisano preusmjeravanje za :name',
+    'activity.script.created' => 'Dodana skripta „:name“',
+    'activity.script.saved' => 'Uređena skripta „:name“',
+    'activity.script.deleted' => 'Obrisana skripta „:name“',
     'activity.snippet.created' => 'Dodan isječak „:name“',
     'activity.snippet.saved' => 'Uređen isječak „:name“',
     'activity.snippet.deleted' => 'Obrisan isječak „:name“',

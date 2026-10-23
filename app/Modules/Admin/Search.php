@@ -99,6 +99,7 @@ final class Search
             // Navigation's second tab (O-74): the words a search for them should land on.
             [t('navigation.tab_chrome'), Url::admin('navigation', 'header-footer'), 'navigation header footer button small print words'],
             [t('admin.nav.forms'), Url::admin('forms'), 'contact messages'],
+            [t('admin.nav.scripts'), Url::admin('scripts'), 'scripts javascript code cookies consent banner analytics tracking gdpr'],
             [t('admin.nav.appearance'), Url::admin('appearance'), 'design character colours colors fonts type header footer chrome'],
             [t('admin.nav.settings'), Url::admin('settings'), ''],
             [t('activity.title'), Url::admin('activity'), 'log history changes'],

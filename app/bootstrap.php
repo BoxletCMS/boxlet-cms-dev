@@ -363,6 +363,12 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->get('/admin/redirects', [RedirectsController::class, 'index'], $requireAdmin);
     $router->post('/admin/redirects', [RedirectsController::class, 'store'], $requireAdmin);
     $router->post('/admin/redirects/{id:\d+}/delete', [RedirectsController::class, 'delete'], $requireAdmin);
+    // The owner's scripts and the cookies they set (O-73).
+    $router->get('/admin/scripts', [\App\Modules\Scripts\ScriptsController::class, 'index'], $requireAdmin);
+    $router->post('/admin/scripts', [\App\Modules\Scripts\ScriptsController::class, 'store'], $requireAdmin);
+    $router->get('/admin/scripts/{id:\d+}', [\App\Modules\Scripts\ScriptsController::class, 'edit'], $requireAdmin);
+    $router->post('/admin/scripts/{id:\d+}', [\App\Modules\Scripts\ScriptsController::class, 'update'], $requireAdmin);
+    $router->post('/admin/scripts/{id:\d+}/delete', [\App\Modules\Scripts\ScriptsController::class, 'delete'], $requireAdmin);
 
     // Snippets (D-201): a few words per language, placed in rich text as {{snippet:name}}.
     $snippetName = '{name:' . Snippets::NAME . '}';

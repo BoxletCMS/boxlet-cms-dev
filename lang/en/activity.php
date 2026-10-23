@@ -27,6 +27,7 @@ return [
     'activity.kind.account' => 'Login',
     'activity.kind.redirect' => 'Redirect',
     'activity.kind.snippet' => 'Snippet',
+    'activity.kind.script' => 'Script',
 
     'activity.page.created' => 'Created “:name”',
     'activity.page.saved' => 'Edited “:name”',
@@ -69,6 +70,9 @@ return [
     'activity.backup.deleted' => 'Deleted the backup :name',
     'activity.redirect.created' => 'Added a redirect for :name',
     'activity.redirect.deleted' => 'Deleted the redirect for :name',
+    'activity.script.created' => 'Added the script “:name”',
+    'activity.script.saved' => 'Edited the script “:name”',
+    'activity.script.deleted' => 'Deleted the script “:name”',
     'activity.snippet.created' => 'Added the snippet “:name”',
     'activity.snippet.saved' => 'Edited the snippet “:name”',
     'activity.snippet.deleted' => 'Deleted the snippet “:name”',

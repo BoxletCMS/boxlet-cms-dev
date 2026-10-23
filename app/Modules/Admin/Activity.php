@@ -93,6 +93,7 @@ final class Activity
             'message' => Url::admin('forms', $subjectId, 'messages'),
             'redirect' => Url::admin('redirects'),
             'snippet' => Url::admin('snippets'),
+            'script' => Url::admin('scripts', $subjectId),
             default => null,
         };
     }

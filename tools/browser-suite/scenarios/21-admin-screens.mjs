@@ -33,6 +33,7 @@ const SCREENS = [
   ['/admin/appearance', 'appearance'],
   ['/admin/navigation', 'navigation'],
   ['/admin/navigation/header-footer', 'navigation-words'],
+  ['/admin/scripts', 'scripts'],
   ['first:/admin/menus', 'menu'],
   ['/admin/settings', 'settings'],
   ['/admin/update', 'update'],

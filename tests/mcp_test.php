@@ -6,7 +6,6 @@ use App\Core\Settings;
 use App\Modules\Appearance\DesignLibrary;
 use App\Modules\Design\Characters;
 use App\Modules\Mcp\McpKeys;
-use App\Modules\Mcp\McpTools;
 use App\Modules\Pages\Page;
 use App\Modules\Pages\PageDraft;
 
@@ -140,9 +139,10 @@ testBothDrivers('a legacy client opens with initialize, and is served without a 
     $names = static fn (string $key): array => array_column(json_decode(mcp(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'], $key, ['MCP-Protocol-Version' => '2025-06-18'])->body, true)['result']['tools'] ?? [], 'name');
     assertTrue(in_array('get_page', $names($read), true) && !in_array('update_page', $names($read), true), 'a key that reads is offered reading');
     assertTrue(in_array('update_page', $names($write), true) && !in_array('publish_page', $names($write), true), 'one that writes, writing, not publishing');
-    Settings::set($db, McpTools::PUBLISH_SETTING, true);
-    assertTrue(in_array('publish_page', $names($write), true), 'publishing, once the owner allows it');
-    assertTrue(!in_array('publish_page', $names($read), true), 'and never to a key that reads');
+    // D-291: publishing is the key's own, chosen as it is made; no setting for every key.
+    $publisher = McpKeys::create($db, 'Publisher', false, MCP_APP_KEY, true)['key'];
+    assertTrue(in_array('publish_page', $names($publisher), true) && in_array('update_page', $names($publisher), true), 'one that publishes, publishing, and writing with it');
+    assertTrue(!in_array('publish_page', $names($write), true) && !in_array('publish_page', $names($read), true), 'and the others still not');
 });
 
 testBothDrivers('a page is made, read, changed as a draft and published only where allowed', function (string $driver) {
@@ -178,9 +178,8 @@ testBothDrivers('a page is made, read, changed as a draft and published only whe
     assertEquals('draft', (string) (Page::find($db, $id)['status'] ?? ''), 'still unpublished');
 
     [$call, $headers] = modern('tools/call', ['name' => 'publish_page', 'arguments' => ['id' => $id]]);
-    assertEquals(-32602, json_decode(mcp($call, $key, $headers)->body, true)['error']['code'] ?? null, 'publishing not offered until the owner allows it');
-    Settings::set($db, McpTools::PUBLISH_SETTING, true);
-    $published = tool($key, 'publish_page', ['id' => $id]);
+    assertEquals(-32602, json_decode(mcp($call, $key, $headers)->body, true)['error']['code'] ?? null, 'publishing not offered to a key that only writes');
+    $published = tool(McpKeys::create($db, 'Publisher', true, MCP_APP_KEY, true)['key'], 'publish_page', ['id' => $id]);
     assertEquals(true, $published['structuredContent']['published'] ?? null, 'published');
     assertTrue(!PageDraft::exists($db, $id), 'the draft is the page now');
     assertContains('Every day but Monday.', dispatch('/opening-hours')->body, 'and visitors see it');
@@ -280,8 +279,33 @@ testBothDrivers('the owner makes a key, sees it once, and revokes it', function 
     assertContains('/admin/settings/mcp/keys/' . $id . '/remove', dispatch('/admin/settings')->body, 'a revoked key may be taken off the list');
     assertRedirectedTo('/admin/settings#mcp', adminPost('/admin/settings/mcp/keys/' . $id . '/remove', []));
     assertTrue($db->one('SELECT id FROM mcp_keys WHERE id = ?', [$id]) === null, 'and is');
-    assertRedirectedTo('/admin/settings#mcp', adminPost('/admin/settings/mcp', ['publish' => '1']));
-    assertEquals(true, Settings::get($db, McpTools::PUBLISH_SETTING), 'publishing allowed');
+
+    // D-291: the owner read the panel's Save as saving the whole panel; it saved one checkbox.
+    // Now a key is made to publish, and there is no checkbox and no Save.
+    assertRedirectedTo('/admin/settings#mcp', adminPost('/admin/settings/mcp/keys', ['name' => 'Publisher', 'write' => '2']));
+    $panel = dispatch('/admin/settings')->body;
+    preg_match('~id="mcp-new-key" value="(bxk_[0-9a-f]{48})"~', $panel, $made);
+    assertEquals(['writes' => true, 'publishes' => true], tool($made[1] ?? '', 'get_site')['structuredContent']['this_key'] ?? null, 'a key made to publish publishes');
+    assertContains('<td>Read, write, and publish pages</td>', $panel, 'and says so in the list');
+    assertTrue(!str_contains($panel, 'name="publish"') && !str_contains($panel, 'action="/admin/settings/mcp"'), 'no checkbox for every key, and no Save');
+});
+
+testBothDrivers('migration 0051 carries the old checkbox over to the keys that wrote', function (string $driver) {
+    $db = adminSite($driver);
+    $reads = McpKeys::create($db, 'Reads', false, MCP_APP_KEY)['id'];
+    $writes = McpKeys::create($db, 'Writes', true, MCP_APP_KEY)['id'];
+    $revoked = McpKeys::create($db, 'Revoked', true, MCP_APP_KEY)['id'];
+    McpKeys::revoke($db, $revoked);
+    Settings::set($db, 'mcp_publish', true);
+    $sql = (string) file_get_contents(dirname(__DIR__) . '/migrations/0051_mcp_key_publishes.sql');
+    foreach (array_filter(array_map('trim', explode(';', (string) preg_replace('~^--.*$~m', '', $sql)))) as $statement) {
+        if (!str_starts_with($statement, 'ALTER')) {
+            $db->query($statement);
+        }
+    }
+    $publishes = static fn (int $id): int => (int) ($db->one('SELECT can_publish FROM mcp_keys WHERE id = ?', [$id])['can_publish'] ?? -1);
+    assertEquals([0, 1, 0], [$publishes($reads), $publishes($writes), $publishes($revoked)], 'the key that wrote publishes; not one that read, nor one revoked');
+    assertEquals(null, Settings::get($db, 'mcp_publish'), 'and the setting is gone');
 });
 
 testBothDrivers('the site, its block types and its design are read as a model needs them', function (string $driver) {

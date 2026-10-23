@@ -2,6 +2,7 @@
  * AI ACCESS OVER MCP (PLAN.md O-78), from the owner's side and an AI client's.
  *
  *   - Settings → AI access: a key made, shown once, with the line that connects Claude Code;
+ *     whether it may publish is chosen with it, and the panel has no checkbox and no Save (D-291);
  *   - the endpoint answers that key over real HTTP: a modern server/discover, the tool list with
  *     its caching hints, and a tool;
  *   - a design set the client keeps is where its link lands, marked as an AI client's (D-290:
@@ -38,6 +39,13 @@ export default {
     let designId = null;
     try {
       await page.goto(`${BASE}/admin/settings#mcp`, { waitUntil: 'networkidle2' });
+      const panel = await page.evaluate(() => ({
+        levels: [...document.querySelectorAll('#mcp-write option')].map((o) => o.value),
+        checkbox: !!document.querySelector('#mcp input[type="checkbox"]'),
+        forms: [...document.querySelectorAll('#mcp form')].map((f) => f.getAttribute('action').replace(/^.*\/admin\//, '')),
+      }));
+      report.verdict('a key reads, writes drafts or also publishes, and the panel has no checkbox and no Save',
+        panel.levels.join() === '0,1,2' && !panel.checkbox && panel.forms.every((a) => a.startsWith('settings/mcp/keys')), JSON.stringify(panel));
       await page.type('#mcp-name', NAME);
       await page.select('#mcp-write', '1');
       await clickAndWait(page, 'form[action$="/admin/settings/mcp/keys"] button[type="submit"]');

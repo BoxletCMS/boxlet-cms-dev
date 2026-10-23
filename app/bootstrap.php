@@ -425,7 +425,6 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/settings/ai', [\App\Modules\Ai\AiController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/ai/test', [\App\Modules\Ai\AiController::class, 'test'], $requireAdmin);
     // AI access over MCP (O-78): its keys, and whether an AI client may publish.
-    $router->post('/admin/settings/mcp', [\App\Modules\Mcp\McpSettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/mcp/keys', [\App\Modules\Mcp\McpSettingsController::class, 'create'], $requireAdmin);
     $router->post('/admin/settings/mcp/keys/{id:\d+}/revoke', [\App\Modules\Mcp\McpSettingsController::class, 'revoke'], $requireAdmin);
     $router->post('/admin/settings/mcp/keys/{id:\d+}/remove', [\App\Modules\Mcp\McpSettingsController::class, 'remove'], $requireAdmin);

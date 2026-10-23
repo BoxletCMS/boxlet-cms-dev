@@ -3,7 +3,6 @@
 namespace App\Modules\Mcp;
 
 use App\Core\Container;
-use App\Core\Settings;
 use PDOException;
 use RuntimeException;
 use Throwable;
@@ -27,8 +26,6 @@ use Throwable;
  */
 final class McpTools
 {
-    public const PUBLISH_SETTING = 'mcp_publish';
-
     private const EMPTY = ['type' => 'object', 'additionalProperties' => false];
     private const DOCUMENT = 'Sections and blocks as get_page gives them. sections: [{key, id, layout, stack, style}], blocks: '
         . '[{key, id, type, content, layout, options, style, section, column}]. Keep key and id of what exists; a new section has '
@@ -67,8 +64,8 @@ final class McpTools
                 self::tool('add_media_from_url', 'Add a picture', 'Fetches a picture (JPEG, PNG, WebP, GIF, AVIF) from a public https address into the library, its sizes made as for an upload. The same picture twice is kept once.', self::object(['url' => ['type' => 'string'], 'alt' => ['type' => 'string', 'description' => 'What the picture shows, for people who cannot see it'], 'locale' => ['type' => 'string', 'description' => 'The alt text\'s language; the main one when left out']], ['url']), $write),
                 self::tool('create_design_set', 'Keep a design set', 'Checks a boxlet-design-set file as an import is checked and keeps it: as a character when it has a composition, else as a saved design. Never applied to the site: the owner tries it in Appearance; the answer says where. A saved design is kept under its name, so the same name again writes over it rather than adding a second; a character always gets an id of its own, so sending one again adds another. get_design lists both.', self::object(['set' => ['type' => 'object']], ['set']), $write),
             );
-            if (Settings::get($this->container->get('db'), self::PUBLISH_SETTING) === true) {
-                $tools[] = self::tool('publish_page', 'Publish a page', 'Publishes the page\'s draft, or the page as it is. Allowed by the owner in Settings.', self::object(['id' => ['type' => 'integer']], ['id']), ['readOnlyHint' => false, 'destructiveHint' => true, 'openWorldHint' => false]);
+            if ($key['can_publish']) {
+                $tools[] = self::tool('publish_page', 'Publish a page', 'Publishes the page\'s draft, or the page as it is. Allowed by the owner for this key.', self::object(['id' => ['type' => 'integer']], ['id']), ['readOnlyHint' => false, 'destructiveHint' => true, 'openWorldHint' => false]);
             }
         }
 

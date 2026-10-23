@@ -3,7 +3,7 @@
 // AI pristup preko MCP-a (PLAN.md O-78).
 return [
     'mcp.title' => 'AI pristup (MCP)',
-    'mcp.intro' => 'Omogućuje AI aplikaciji poput Claudea da čita ovu web-stranicu i piše u nju preko protokola Model Context Protocol: stranice kao nacrte, slike, dizajn setove. Sve čeka vas — nacrt dok ga ne objavite, dizajn set dok ga ne isprobate u Izgledu — i ništa se ne briše. Svaka aplikacija dobiva svoj ključ.',
+    'mcp.intro' => 'Omogućuje AI aplikaciji poput Claudea da čita ovu web-stranicu i piše u nju preko protokola Model Context Protocol: stranice kao nacrte, slike, dizajn setove. Nacrti čekaju da ih vi objavite, dizajn setovi da ih isprobate u Izgledu, i ništa se ne briše. Svaka aplikacija dobiva svoj ključ, koji čita, piše ili i objavljuje.',
     'mcp.endpoint' => 'Adresa na koju se AI aplikacija spaja',
     'mcp.new_key' => 'Ključ „:name“ je izrađen. Kopirajte ga sada: više se neće prikazati, a čuva se samo njegov otisak.',
     'mcp.key' => 'Ključ',
@@ -16,6 +16,8 @@ return [
     'mcp.may' => 'Smije',
     'mcp.may.read' => 'Samo čitati',
     'mcp.may.write' => 'Čitati i pisati nacrte, slike i dizajn setove',
+    'mcp.may.publish' => 'Čitati, pisati i objavljivati stranice',
+    'mcp.may_hint' => 'Samo ključ koji smije objavljivati može stranicu objaviti bez vas.',
     'mcp.never' => 'Još nije',
     'mcp.revoked_badge' => 'Opozvan',
     'mcp.revoke' => 'Opozovi',
@@ -26,8 +28,4 @@ return [
     'mcp.name_hint' => 'Koja ga aplikacija ili osoba ima, da znate koji opozvati.',
     'mcp.key_default' => 'AI aplikacija',
     'mcp.create' => 'Izradi ključ',
-    'mcp.publish' => 'Dopusti AI aplikacijama objavu stranica',
-    'mcp.publish_hint' => 'Isključeno: AI aplikacija sprema nacrte, a vi ih objavljujete. Uključeno: ključ koji smije pisati smije i objaviti stranicu.',
-    'mcp.save' => 'Spremi',
-    'mcp.saved' => 'AI pristup je spremljen.',
 ];

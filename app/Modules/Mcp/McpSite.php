@@ -60,7 +60,7 @@ final class McpSite
             'character' => Composition::active($db),
             'pages' => (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? 0),
             'pictures' => (int) ($db->one("SELECT COUNT(*) AS n FROM media WHERE kind = 'picture'")['n'] ?? 0),
-            'this_key' => ['writes' => $key['can_write'], 'publishes' => $key['can_write'] && Settings::get($db, McpTools::PUBLISH_SETTING) === true],
+            'this_key' => ['writes' => $key['can_write'], 'publishes' => $key['can_publish']],
         ];
     }
 

@@ -3,7 +3,7 @@
 // AI access over MCP (PLAN.md O-78).
 return [
     'mcp.title' => 'AI access (MCP)',
-    'mcp.intro' => 'Lets an AI app such as Claude read this site and write to it through the Model Context Protocol: pages as drafts, pictures, design sets. Everything waits for you — a draft until you publish it, a design set until you try it in Appearance — and nothing is deleted. Each app gets its own key.',
+    'mcp.intro' => 'Lets an AI app such as Claude read this site and write to it through the Model Context Protocol: pages as drafts, pictures, design sets. Drafts wait for you to publish them, design sets for you to try them in Appearance, and nothing is deleted. Each app gets its own key, which reads, writes, or also publishes.',
     'mcp.endpoint' => 'The address an AI app connects to',
     'mcp.new_key' => 'The key “:name” is made. Copy it now: it is not shown again, and only its fingerprint is kept.',
     'mcp.key' => 'Key',
@@ -16,6 +16,8 @@ return [
     'mcp.may' => 'It may',
     'mcp.may.read' => 'Read only',
     'mcp.may.write' => 'Read, and write drafts, pictures and design sets',
+    'mcp.may.publish' => 'Read, write, and publish pages',
+    'mcp.may_hint' => 'Only a key that publishes may put a page live without you.',
     'mcp.never' => 'Not yet',
     'mcp.revoked_badge' => 'Revoked',
     'mcp.revoke' => 'Revoke',
@@ -26,8 +28,4 @@ return [
     'mcp.name_hint' => 'Which app or person has it, so you know which to revoke.',
     'mcp.key_default' => 'AI app',
     'mcp.create' => 'Make a key',
-    'mcp.publish' => 'Let AI apps publish pages',
-    'mcp.publish_hint' => 'Off, an AI app saves drafts and you publish them. On, a key that writes may also publish a page.',
-    'mcp.save' => 'Save',
-    'mcp.saved' => 'AI access is saved.',
 ];

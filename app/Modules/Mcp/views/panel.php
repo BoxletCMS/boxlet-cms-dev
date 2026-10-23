@@ -4,10 +4,11 @@ use App\Support\Url;
 
 /**
  * AI ACCESS on the Settings screen (PLAN.md O-78): the address, a key just made (shown this once,
- * with the line that connects Claude Code to it), the keys, a new one, and whether AI clients may
- * publish. Fed by McpSettingsController::panel().
+ * with the line that connects Claude Code to it), the keys, and a new one, which reads, writes drafts
+ * or also publishes (D-291: no checkbox for every key, and no Save). Fed by
+ * McpSettingsController::panel().
  *
- * @var array{endpoint: string, keys: list<array{id: int, name: string, can_write: bool, created_at: string, last_used_at: string|null, revoked_at: string|null}>, publish: bool, newKey: array{name: string, key: string}|null} $mcp
+ * @var array{endpoint: string, keys: list<array{id: int, name: string, can_write: bool, can_publish: bool, created_at: string, last_used_at: string|null, revoked_at: string|null}>, newKey: array{name: string, key: string}|null} $mcp
  * @var string $csrf
  */
 ?>
@@ -50,7 +51,7 @@ use App\Support\Url;
 <?php foreach ($mcp['keys'] as $key): ?>
                         <tr>
                             <td class="row-title"><?= e($key['name']) ?></td>
-                            <td><?= e(t($key['can_write'] ? 'mcp.may.write' : 'mcp.may.read')) ?></td>
+                            <td><?= e(t($key['can_publish'] ? 'mcp.may.publish' : ($key['can_write'] ? 'mcp.may.write' : 'mcp.may.read'))) ?></td>
                             <td><?= e($key['last_used_at'] === null ? t('mcp.never') : substr($key['last_used_at'], 0, 16)) ?></td>
                             <td class="row-actions">
 <?php if ($key['revoked_at'] !== null): ?>
@@ -83,26 +84,16 @@ use App\Support\Url;
                     </div>
                     <div class="field">
                         <label for="mcp-write"><?= e(t('mcp.may')) ?></label>
-                        <select id="mcp-write" name="write">
+                        <select id="mcp-write" name="write" aria-describedby="mcp-write-hint">
                             <option value="0"><?= e(t('mcp.may.read')) ?></option>
                             <option value="1"><?= e(t('mcp.may.write')) ?></option>
+                            <option value="2"><?= e(t('mcp.may.publish')) ?></option>
                         </select>
+                        <span class="hint" id="mcp-write-hint"><?= e(t('mcp.may_hint')) ?></span>
                     </div>
                 </div>
                 <div>
                     <button type="submit" class="button button-secondary"><?= e(t('mcp.create')) ?></button>
-                </div>
-            </form>
-
-            <form method="post" action="<?= e(Url::admin('settings', 'mcp')) ?>" class="stack">
-                <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-                <label class="checkbox">
-                    <input type="checkbox" name="publish" value="1"<?= $mcp['publish'] ? ' checked' : '' ?>>
-                    <?= e(t('mcp.publish')) ?>
-                </label>
-                <p class="hint"><?= e(t('mcp.publish_hint')) ?></p>
-                <div>
-                    <button type="submit" class="button"><?= e(t('mcp.save')) ?></button>
                 </div>
             </form>
         </div>

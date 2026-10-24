@@ -3,7 +3,7 @@
 // Skripte vlasnika i kolačići koje postavljaju (PLAN.md O-73).
 return [
     'scripts.title' => 'Skripte i kolačići',
-    'scripts.intro' => 'Vaš vlastiti kod na svakoj stranici, poput statistike ili prozora za chat. Skripta koja postavlja kolačiće za statistiku ili marketing pokreće se tek kad posjetitelj pristane, a okvir koji pita pojavljuje se sam.',
+    'scripts.intro' => 'Boxlet sam ne postavlja kolačiće vašim posjetiteljima, pa mu ne treba obavijest o kolačićima. Ako želite statistiku, marketing ili prozor za chat koji ih postavljaju, ovdje dodajte njihov kod. Stavlja se na svaku stranicu; skripta koja postavlja kolačiće za statistiku ili marketing pokreće se tek kad posjetitelj pristane, a okvir koji pita pojavljuje se sam.',
     'scripts.no_banner' => 'Posjetitelje se ništa ne pita: nijedna skripta ne čeka pristanak, pa nema ni obavijesti o kolačićima.',
     'scripts.banner' => 'Posjetitelje se pita za: :kinds. Okvir se prikazuje dok ne odgovore, a „Postavke kolačića“ u podnožju omogućuju im da se predomisle.',
     'scripts.none' => 'Još nema skripti.',

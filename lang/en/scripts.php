@@ -3,7 +3,7 @@
 // The owner's scripts and the cookies they set (PLAN.md O-73).
 return [
     'scripts.title' => 'Scripts & cookies',
-    'scripts.intro' => 'Code of your own on every page, such as statistics or a chat window. A script that sets cookies for statistics or marketing runs only once a visitor agrees, and the box that asks appears by itself.',
+    'scripts.intro' => 'Boxlet itself sets no cookies for your visitors, so it needs no cookie banner. If you want statistics, marketing or a chat window that does set them, add its code here. It is put on every page; a script that sets cookies for statistics or marketing runs only once a visitor agrees, and the box that asks appears by itself.',
     'scripts.no_banner' => 'Visitors are asked nothing: no script waits for consent, so there is no cookie banner.',
     'scripts.banner' => 'Visitors are asked about: :kinds. The box appears until they answer, and "Cookie settings" in the footer lets them change their mind.',
     'scripts.none' => 'No scripts yet.',

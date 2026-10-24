@@ -32,6 +32,9 @@ use App\Support\Url;
             <li class="media-card<?= $picking ? '' : ' media-card-library' ?>"<?= !$picking && !$file && !$picture['complete'] ? ' data-media-id="' . e((string) $picture['id']) . '" data-media-unfinished' : '' ?>>
 <?php if (!$picking): ?>
                 <input type="checkbox" class="media-card-pick" name="ids[]" value="<?= e((string) $picture['id']) ?>" form="media-bulk" data-bulk-pick aria-label="<?= e(t('media.bulk.pick', ['name' => $name])) ?>">
+                <?php /* The tick's mark, drawn over the box when it is ticked (D-297): an input has no
+                         ::before in every browser, so the mark is its neighbour. */ ?>
+                <span class="media-card-tick" aria-hidden="true"></span>
                 <?php /* THE ROW'S MENU, ON THE CARD (the owner, 2026-10-24: the grid had no ⋯).
                          The list's own, the same actions, on the picture's other corner from the
                          tick, drawn at rest on the panel so it reads on any picture. */ ?>

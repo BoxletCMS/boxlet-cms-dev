@@ -8,7 +8,8 @@
 }
 
 /* The card's ⋯, on the picture's other corner from the tick: the list's own menu, its button
-   on the panel with the tick's ring, so it reads on a light picture and a dark one alike. */
+   smaller than a row's and on the panel with a soft shadow, so it reads on a light picture and
+   a dark one alike (D-297; the owner, 2026-10-24: a little smaller). */
 .media-card-menu {
   position: absolute;
   inset-block-start: calc(var(--ui-3) + var(--ui-1));
@@ -17,24 +18,68 @@
 }
 
 .media-card-menu > summary {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
   background: var(--ui-panel);
-  box-shadow: 0 0 0 2px var(--ui-panel);
+  box-shadow: var(--ui-shadow-s);
 }
 
-/* The tick sits on the picture's corner, on a backing of the panel so it reads on any picture,
-   and is there at rest: a control is never revealed by hover. */
-.media-card-pick {
+.media-card-menu > summary svg {
+  inline-size: 0.875rem;
+  block-size: 0.875rem;
+}
+
+/* THE TICK (D-297; the owner, 2026-10-24: the square frame around it was not liked). Drawn by
+   the admin rather than the browser: a rounded box on the panel with the control's edge and a
+   soft shadow, there at rest on any picture; ticked, it fills with the accent and its mark is
+   drawn over it in the ink that stands on the accent. A control is never revealed by hover. */
+.media-card-pick,
+.media-card-tick {
   position: absolute;
-  inset-block-start: calc(var(--ui-3) + var(--ui-2));
-  inset-inline-start: calc(var(--ui-3) + var(--ui-2));
-  z-index: 1;
-  inline-size: 1.125rem;
-  block-size: 1.125rem;
+  inset-block-start: calc(var(--ui-3) + var(--ui-1) + 0.125rem);
+  inset-inline-start: calc(var(--ui-3) + var(--ui-1) + 0.125rem);
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
   margin: 0;
-  accent-color: var(--ui-accent);
-  background: var(--ui-panel);
-  box-shadow: 0 0 0 3px var(--ui-panel);
+}
+
+.media-card-pick {
+  z-index: 1;
+  appearance: none;
+  border: 1.5px solid var(--ui-control-line);
   border-radius: var(--ui-radius-s);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow-s);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.media-card-pick:hover {
+  border-color: var(--ui-accent);
+}
+
+.media-card-pick:checked {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent);
+}
+
+.media-card-pick:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+/* The mark: a check cut from the ink on the accent by a mask, so its colour is the token's in
+   either theme. It lets a click through to the box under it. */
+.media-card-tick {
+  z-index: 2;
+  display: none;
+  background: var(--ui-on-accent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 0.875rem no-repeat;
+  pointer-events: none;
+}
+
+.media-card-pick:checked + .media-card-tick {
+  display: block;
 }
 
 /* A file is its kind's icon and extension in the square a picture takes. */

@@ -26,7 +26,7 @@ require __DIR__ . '/parts/words.php';
         </div>
         <?php /* THE TABS (O-74): links, each to its own address, the current one marked as the
                  Settings screen marks its section. Legible at rest; hover raises the other. */ ?>
-        <nav class="navigation-tabs" aria-label="<?= e(t('navigation.tabs')) ?>">
+        <nav class="tabs navigation-tabs" aria-label="<?= e(t('navigation.tabs')) ?>">
 <?php foreach (['menus' => [Url::admin('navigation'), t('menus.title')], 'header-footer' => [Url::admin('navigation', 'header-footer'), t('navigation.tab_chrome')]] as $name => [$href, $label]): ?>
             <a href="<?= e($href) ?>"<?= $name === $tab ? ' aria-current="page"' : '' ?>><?= e($label) ?></a>
 <?php endforeach; ?>

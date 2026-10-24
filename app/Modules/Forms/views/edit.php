@@ -117,14 +117,14 @@ $settings = $form['settings'];
                 <p class="hint"><?= e(t('forms.keep_hint')) ?></p>
                 <?= $error('keep') ?>
 <?php if (!$settings['keep'] && !$mailReady): ?>
-                <p class="notice notice-warning"><?= e(t('forms.mail_missing')) ?> <a href="<?= e(Url::admin('settings') . '#mail') ?>"><?= e(t('forms.mail_settings')) ?></a></p>
+                <p class="notice notice-warning"><?= e(t('forms.mail_missing')) ?> <a href="<?= e(Url::admin('settings', 'mail')) ?>"><?= e(t('forms.mail_settings')) ?></a></p>
 <?php endif; ?>
 
                 <label class="checkbox">
                     <input type="checkbox" name="settings[notify]" value="1"<?= $settings['notify'] ? ' checked' : '' ?>>
                     <?= e(t('forms.notify')) ?>
                 </label>
-                <p class="hint"><?= e(t('forms.notify_hint')) ?> <a href="<?= e(Url::admin('settings') . '#mail') ?>"><?= e(t('forms.mail_settings')) ?></a></p>
+                <p class="hint"><?= e(t('forms.notify_hint')) ?> <a href="<?= e(Url::admin('settings', 'mail')) ?>"><?= e(t('forms.mail_settings')) ?></a></p>
 
                 <label class="checkbox">
                     <input type="checkbox" name="settings[autoreply]" value="1"<?= $settings['autoreply'] ? ' checked' : '' ?>>

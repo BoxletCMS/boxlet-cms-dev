@@ -38,7 +38,7 @@ export default {
     let key = '';
     let designId = null;
     try {
-      await page.goto(`${BASE}/admin/settings#mcp`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/ai/access`, { waitUntil: 'networkidle2' });
       const panel = await page.evaluate(() => ({
         levels: [...document.querySelectorAll('#mcp-write option')].map((o) => o.value),
         checkbox: !!document.querySelector('#mcp input[type="checkbox"]'),
@@ -98,7 +98,7 @@ export default {
         const left = await page.evaluate((name) => [...document.querySelectorAll('.design-row-name')].some((el) => el.textContent === name), DESIGN);
         report.verdict('the scenario\'s design removed again', !left, left ? 'still listed' : '');
       }
-      await page.goto(`${BASE}/admin/settings#mcp`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/ai/access`, { waitUntil: 'networkidle2' });
       const id = await page.evaluate((name) => {
         const row = [...document.querySelectorAll('#mcp tbody tr')].find((tr) => tr.textContent.includes(name));
         const form = row?.querySelector('form[action$="/revoke"]');

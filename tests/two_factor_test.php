@@ -72,7 +72,7 @@ testBothDrivers('setting it up shows a QR code, and only a code from the app swi
     assertEquals(10, preg_match_all('~<li><code>[a-z0-9]{5}-[a-z0-9]{5}</code></li>~', $shown->body), 'recovery codes shown');
     $stored = (string) ($db->one('SELECT totp_secret, recovery_codes_json FROM admin')['totp_secret'] ?? '');
     assertTrue($stored !== '' && !str_contains($stored, $secret), 'the secret is stored as it is');
-    assertContains(e(t('twofactor.on_now')), dispatch('/admin/settings')->body, 'settings say it is on');
+    assertContains(e(t('twofactor.on_now')), dispatch('/admin/settings/account')->body, 'settings say it is on');
 });
 
 testBothDrivers('with it on, the password alone does not log in, and the code does', function (string $driver) {
@@ -114,13 +114,13 @@ testBothDrivers('new recovery codes need a code from the app, and turning it off
     $on = twoStepOn();
 
     adminPost('/admin/two-step/codes', ['code' => '000000']);
-    assertContains(e(t('twofactor.code_wrong')), dispatch('/admin/settings')->body, 'renewed without a code');
+    assertContains(e(t('twofactor.code_wrong')), dispatch('/admin/settings/account')->body, 'renewed without a code');
     $renewed = adminPost('/admin/two-step/codes', ['code' => appCode($on['secret'])])->body;
     assertEquals(10, preg_match_all('~<li><code>[a-z0-9]{5}-[a-z0-9]{5}</code></li>~', $renewed), 'new codes');
 
     adminPost('/admin/two-step/off', ['password' => 'wrong']);
     assertTrue((new TwoFactor($db, 'test-key-not-a-secret'))->enabled(1), 'turned off with a wrong password');
-    assertRedirectedTo('/admin/settings#two-step', adminPost('/admin/two-step/off', ['password' => TWO_STEP_PASSWORD]));
+    assertRedirectedTo('/admin/settings/account#two-step', adminPost('/admin/two-step/off', ['password' => TWO_STEP_PASSWORD]));
     assertTrue(!(new TwoFactor($db, 'test-key-not-a-secret'))->enabled(1), 'still on');
     assertRedirectedTo('/admin', passwordStep());
 });

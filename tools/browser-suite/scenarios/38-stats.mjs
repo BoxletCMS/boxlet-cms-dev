@@ -22,7 +22,7 @@ export default {
     }
 
     // The country database, fetched from DB-IP with the button when the site has none.
-    await page.goto(`${BASE}/admin/settings#statistics`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/statistics/settings`, { waitUntil: 'networkidle2' });
     const hadDatabase = await page.$eval('#statistics', (el) => /Location database in use/.test(el.textContent));
     if (!hadDatabase) {
       // Fetched in place since D-237: no page load, the sentence above the buttons changes.
@@ -114,7 +114,7 @@ export default {
 
     for (const [name, viewport] of [['01-desktop', { width: 1400, height: 1000 }], ['02-phone', { width: 390, height: 844 }]]) {
       await page.setViewport({ ...viewport, deviceScaleFactor: 2 });
-      await page.goto(`${BASE}/admin/settings#statistics`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/statistics/settings`, { waitUntil: 'networkidle2' });
       const panel = await page.$eval('#statistics', (el) => ({
         text: el.textContent.replace(/\s+/g, ' ').trim(),
         boxes: [...el.querySelectorAll('input[type=checkbox]')].map((c) => c.name + '=' + c.checked),
@@ -145,7 +145,7 @@ export default {
     await page.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
 
     // The suggested privacy text, opened in Croatian.
-    await page.goto(`${BASE}/admin/settings#statistics`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/statistics/settings`, { waitUntil: 'networkidle2' });
     await page.$eval('details.stats-privacy:has(textarea[lang="hr"])', (el) => { el.open = true; el.scrollIntoView({ block: 'center' }); });
     await report.shot(page, '06-privacy-hr', { fullPage: false });
     const text = await page.$eval('textarea[lang="hr"]', (el) => el.value);

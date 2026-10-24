@@ -33,10 +33,10 @@ testBothDrivers('saving stores passwords sealed, keeps them when left empty, and
         'mail_smtp_username' => 'hello@example.com', 'mail_smtp_password' => 'hunter2-secret',
     ];
 
-    assertRedirectedTo('/admin/settings#mail', adminPost('/admin/settings/mail', $form));
+    assertRedirectedTo('/admin/settings/mail', adminPost('/admin/settings/mail', $form));
     $stored = (string) ($db->one("SELECT value_json FROM settings WHERE `key` = 'mail_smtp_password'")['value_json'] ?? '');
     assertTrue($stored !== '' && !str_contains($stored, 'hunter2-secret'), 'the password is stored as typed');
-    $screen = dispatch('/admin/settings')->body;
+    $screen = dispatch('/admin/settings/mail')->body;
     assertTrue(!str_contains($screen, 'hunter2-secret'), 'the password is shown on the screen');
     assertContains('id="mail_smtp_password" name="mail_smtp_password" value="" autocomplete="new-password" placeholder="••••••••"', $screen, 'a trace that a password is saved');
 
@@ -49,7 +49,7 @@ testBothDrivers('a save that cannot work is refused, field by field, and keeps w
     $db = adminSite($driver);
 
     adminPost('/admin/settings/mail', ['mail_transport' => 'smtp', 'mail_from_address' => 'not an address', 'mail_smtp_host' => '', 'mail_smtp_port' => '99999']);
-    $body = dispatch('/admin/settings')->body;
+    $body = dispatch('/admin/settings/mail')->body;
     foreach (['mail.address_invalid', 'mail.smtp_host_required', 'mail.smtp_port_invalid'] as $message) {
         assertContains(e(t($message)), $body, $message);
     }
@@ -57,7 +57,7 @@ testBothDrivers('a save that cannot work is refused, field by field, and keeps w
     assertEquals('', MailSettings::stored($db)['transport'], 'a refused save was written');
 
     adminPost('/admin/settings/mail', ['mail_transport' => 'resend', 'mail_from_address' => 'hello@example.com', 'mail_resend_key' => '']);
-    assertContains(e(t('mail.resend_key_required')), dispatch('/admin/settings')->body, 'Resend with no key');
+    assertContains(e(t('mail.resend_key_required')), dispatch('/admin/settings/mail')->body, 'Resend with no key');
 });
 
 testBothDrivers('the transport is the way chosen, with its details', function (string $driver) {
@@ -209,8 +209,8 @@ testBothDrivers('Brevo and Mailgun are chosen in the settings, their keys sealed
     assertEquals('us', MailSettings::stored($db)['mailgun_region'], 'a region that is not one');
 
     // Through the screen's own save, whose key seals what the screen opens.
-    assertRedirectedTo('/admin/settings#mail', adminPost('/admin/settings/mail', ['mail_transport' => 'brevo', 'mail_from_address' => 'a@example.com', 'mail_brevo_key' => 'xkeysib-abcdefghij']));
-    $panel = dispatch('/admin/settings')->body;
+    assertRedirectedTo('/admin/settings/mail', adminPost('/admin/settings/mail', ['mail_transport' => 'brevo', 'mail_from_address' => 'a@example.com', 'mail_brevo_key' => 'xkeysib-abcdefghij']));
+    $panel = dispatch('/admin/settings/mail')->body;
     foreach (['brevo', 'mailgun'] as $way) {
         assertContains('<option value="' . $way . '"', $panel, $way . ' offered');
         assertContains('data-mail-group="' . $way . '"', $panel, 'its fields');
@@ -229,12 +229,12 @@ testBothDrivers('the test message goes to the notifications address, and says so
 
     dispatch('/admin/settings/mail/test', null, 'POST', ['_csrf' => (new App\Core\Session())->csrfToken()], '203.0.113.10', $withCapture);
     assertEquals([], $capture->sent, 'sent with no way of sending chosen');
-    assertContains(e(t('mail.test_not_configured')), dispatch('/admin/settings')->body, 'what it says instead');
+    assertContains(e(t('mail.test_not_configured')), dispatch('/admin/settings/mail')->body, 'what it says instead');
 
     MailSettings::save($db, ['transport' => 'sendmail', 'from_address' => 'hello@example.com'], MAIL_KEY);
     dispatch('/admin/settings/mail/test', null, 'POST', ['_csrf' => (new App\Core\Session())->csrfToken()], '203.0.113.10', $withCapture);
     $message = $capture->sent[0] ?? fail('no test message');
     assertEquals('owner@example.com', $message->getTo()[0]->getAddress(), 'to the admin\'s own address');
     assertEquals('hello@example.com', $message->getFrom()[0]->getAddress(), 'from the address set');
-    assertContains(e(t('mail.test_sent', ['address' => 'owner@example.com'])), dispatch('/admin/settings')->body, 'what it says');
+    assertContains(e(t('mail.test_sent', ['address' => 'owner@example.com'])), dispatch('/admin/settings/mail')->body, 'what it says');
 });

@@ -84,7 +84,7 @@ test('where public/ cannot be written, the Settings panel says llms.txt is missi
     try {
         adminPost('/admin/settings/llms', ['llms_txt' => '1']);
         assertTrue(!is_file($root . '/llms.txt'), 'a file appeared in a folder that cannot be written');
-        assertContains('could not be written', dispatch('/admin/settings')->body, 'the panel');
+        assertContains('could not be written', dispatch('/admin/settings/ai/search')->body, 'the panel');
     } finally {
         chmod($root, 0700);
     }

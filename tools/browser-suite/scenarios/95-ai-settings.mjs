@@ -20,7 +20,7 @@ export default {
       return;
     }
     await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
-    await page.goto(`${BASE}/admin/settings#ai`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/ai`, { waitUntil: 'networkidle2' });
     const shown = () => page.$eval('#ai_model_other', (input) => input.offsetParent !== null).catch(() => null);
 
     const first = await page.$eval('#ai_model', (s) => s.value).catch(() => null);

@@ -23,7 +23,7 @@ use App\Support\Url;
 
 <?php if ($failure !== null): ?>
         <div class="notice notice-warning" role="status">
-            <p><?= e(t('messages.mail_failed', ['when' => \App\Support\Dates::local($failure['at'], $zone), 'reason' => $failure['reason']])) ?> <a href="<?= e(Url::admin('settings') . '#mail') ?>"><?= e(t('forms.mail_settings')) ?></a></p>
+            <p><?= e(t('messages.mail_failed', ['when' => \App\Support\Dates::local($failure['at'], $zone), 'reason' => $failure['reason']])) ?> <a href="<?= e(Url::admin('settings', 'mail')) ?>"><?= e(t('forms.mail_settings')) ?></a></p>
         </div>
 <?php endif; ?>
 

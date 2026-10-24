@@ -56,7 +56,7 @@ final class MailController
             $session->set('flash', t('mail.saved'));
         }
 
-        return Response::redirect(Url::admin('settings') . '#mail');
+        return Response::redirect(Url::admin('settings', 'mail'));
     }
 
     /**
@@ -74,7 +74,7 @@ final class MailController
             $session->set('flash', t('mail.test_not_configured'));
             $session->set('flash_kind', 'error');
 
-            return Response::redirect(Url::admin('settings') . '#mail');
+            return Response::redirect(Url::admin('settings', 'mail'));
         }
 
         $site = Settings::text($db, 'site_name');
@@ -92,7 +92,7 @@ final class MailController
             $session->set('flash_kind', 'error');
         }
 
-        return Response::redirect(Url::admin('settings') . '#mail');
+        return Response::redirect(Url::admin('settings', 'mail'));
     }
 
     private function appKey(): string
@@ -103,5 +103,41 @@ final class MailController
     private function db(): Db
     {
         return $this->container->get('db');
+    }
+
+    /**
+     * The Email tab's values (D-045, D-294): what is stored, or what was typed into a refused
+     * save, with its errors — shown once. Secrets never reach the screen, only whether
+     * one is set.
+     *
+     * @return array{mail: array<string, string>, mailErrors: array<string, string>, mailSecrets: array<string, string>}
+     */
+    public static function panel(Container $container): array
+    {
+        $stored = MailSettings::stored($container->get('db'));
+        $appKey = (string) $container->get('config')->get('app.key');
+        $session = $container->get('session');
+        $refused = $session->get('mail_form');
+        $session->remove('mail_form');
+        $old = is_array($refused) && is_array($refused['old'] ?? null) ? $refused['old'] : [];
+        $errors = is_array($refused) && is_array($refused['errors'] ?? null) ? $refused['errors'] : [];
+
+        $values = [];
+        foreach (self::FIELDS as $field) {
+            $values[$field] = in_array($field, MailSettings::SECRETS, true)
+                ? ''
+                : (is_string($old[$field] ?? null) ? $old[$field] : $stored[$field]);
+        }
+
+        return [
+            'mail' => $values,
+            'mailErrors' => array_filter($errors, 'is_string'),
+            // What each saved secret shows in its empty field: a trace, never the secret.
+            // A key by its ends, a password by dots only.
+            'mailSecrets' => array_combine(MailSettings::SECRETS, array_map(
+                static fn (string $secret): string => MailSettings::trace($stored[$secret], $appKey, $secret !== 'smtp_password'),
+                MailSettings::SECRETS,
+            )),
+        ];
     }
 }

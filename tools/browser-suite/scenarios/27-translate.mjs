@@ -27,7 +27,7 @@ export default {
     }
 
     // ---- a second language, added for this run ---------------------------------------------
-    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/languages`, { waitUntil: 'networkidle2' });
     CODE = await page.$$eval('#language-code option', (options) => (options.find((o) => o.value !== '') || {}).value || '');
     if (CODE === '') {
       report.fail('translate: a language to add', 'Settings offers no language the site does not have');
@@ -72,7 +72,7 @@ export default {
       if (made !== null && made !== PAGE) {
         await deletePage(page, BASE, made);
       }
-      await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/languages`, { waitUntil: 'networkidle2' });
       await page.$eval(`form[action$="/languages/${CODE}/delete"] button`, (b) => b.removeAttribute('data-confirm')).catch(() => {});
       await clickAndWait(page, `form[action$="/languages/${CODE}/delete"] button`).catch(() => {});
       const left = await page.$$eval('#languages code', (codes) => codes.map((c) => c.textContent));

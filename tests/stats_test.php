@@ -278,13 +278,13 @@ testBothDrivers('a public page sets no cookie, and the admin\'s own page is neve
 testBothDrivers('the Settings panel switches it off and on, and deletes every count', function (string $driver) {
     $db = statsSite($driver);
     statsView($db);
-    assertContains(e(t('stats.on_now')), dispatch('/admin/settings')->body, 'on by default');
+    assertContains(e(t('stats.on_now')), dispatch('/admin/statistics/settings')->body, 'on by default');
 
-    assertRedirectedTo('/admin/settings#statistics', adminPost('/admin/settings/statistics', ['stats_retention' => '12']));
+    assertRedirectedTo('/admin/statistics/settings', adminPost('/admin/settings/statistics', ['stats_retention' => '12']));
     // cityMin: a post that names no floor keeps the one that is stored, and five is the
     // default (D-109) — a form that sent no field must never be read as asking for one.
     assertEquals(['enabled' => false, 'dnt' => false, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3, 'cityMin' => 5], Tracker::settings($db), 'saved');
-    assertContains(e(t('stats.off_now')), dispatch('/admin/settings')->body, 'said to be off');
+    assertContains(e(t('stats.off_now')), dispatch('/admin/statistics/settings')->body, 'said to be off');
 
     adminPost('/admin/settings/statistics', ['stats_enabled' => '1', 'stats_dnt' => '1', 'stats_retention' => '99']);
     assertEquals(['enabled' => true, 'dnt' => true, 'retention' => 12, 'missing' => false, 'group' => false, 'location' => 'country', 'cityMonths' => 3, 'cityMin' => 5], Tracker::settings($db), 'a retention not offered');
@@ -372,7 +372,7 @@ testBothDrivers('switched off, the screen, the rail\'s link and the Overview\'s 
     assertContains(e(t('overview.visitors')), dispatch('/admin')->body, 'visitors on the Overview while on');
 
     Settings::set($db, 'stats_enabled', false);
-    assertRedirectedTo('/admin/settings#statistics', dispatch('/admin/statistics'));
+    assertRedirectedTo('/admin/statistics/settings', dispatch('/admin/statistics'));
     $dashboard = dispatch('/admin')->body;
     assertTrue(!str_contains($dashboard, e(t('overview.visitors'))), 'visitors on the Overview while off');
     assertTrue(!str_contains($dashboard, e(t('admin.nav.statistics'))), 'the bar\'s link while off');
@@ -591,17 +591,17 @@ testBothDrivers('the screen credits DB-IP only while its database is in use, and
     statsSite($driver);
     $storage = geoStorage();
     assertTrue(!str_contains(dispatch('/admin/statistics')->body, e(t('stats.attribution'))), 'credited with no database');
-    assertContains(e(t('stats.geo_none')), dispatch('/admin/settings')->body, 'the panel without one');
+    assertContains(e(t('stats.geo_none')), dispatch('/admin/statistics/settings')->body, 'the panel without one');
 
     writeMmdb(tmpPath('geo.mmdb'), STATS_NETWORKS);
     App\Modules\Stats\Geo::install($storage, tmpPath('geo.mmdb'));
     assertContains(e(t('stats.attribution')), dispatch('/admin/statistics')->body, 'the credit');
-    assertContains(e(t('stats.geo_in_use', ['date' => '2026-09-01'])), dispatch('/admin/settings')->body, 'the panel with one');
+    assertContains(e(t('stats.geo_in_use', ['date' => '2026-09-01'])), dispatch('/admin/statistics/settings')->body, 'the panel with one');
 
     // Back at the maps' part, and said there, coloured as a refusal and read out as one (D-237:
     // it was said in the bar at the top, which the page, standing at this part, did not show).
-    assertRedirectedTo('/admin/settings#geo', adminPost('/admin/settings/statistics/countries/upload', []));
-    assertContains('notice notice-error" role="alert" data-geo-notice>' . e(t('stats.geo_upload_none')), dispatch('/admin/settings')->body, 'the refusal, coloured as one');
+    assertRedirectedTo('/admin/statistics/settings#geo', adminPost('/admin/settings/statistics/countries/upload', []));
+    assertContains('notice notice-error" role="alert" data-geo-notice>' . e(t('stats.geo_upload_none')), dispatch('/admin/statistics/settings')->body, 'the refusal, coloured as one');
     removeTree($storage . '/geo');
 });
 
@@ -648,12 +648,12 @@ testBothDrivers('the city floor is saved, refuses a number nobody offered, and w
     // AT ONE THE SCREEN SAYS SO, in the settings and on the statistics page, because the
     // note that explains the gathered row would otherwise describe a row that is not there.
     $post('1');
-    assertContains(e(t('stats.city_min_one')), dispatch('/admin/settings')->body, 'the warning at one');
+    assertContains(e(t('stats.city_min_one')), dispatch('/admin/statistics/settings')->body, 'the warning at one');
     $page = dispatch('/admin/statistics?period=30d')->body;
     assertTrue(!str_contains($page, e(t('stats.places_note', ['count' => '1']))), 'the note still speaks of a floor');
 
     $post('5');
-    assertTrue(!str_contains(dispatch('/admin/settings')->body, e(t('stats.city_min_one'))), 'the warning stayed after the floor went back');
+    assertTrue(!str_contains(dispatch('/admin/statistics/settings')->body, e(t('stats.city_min_one'))), 'the warning stayed after the floor went back');
 });
 
 /*
@@ -705,7 +705,7 @@ test('the privacy text withholds the promise about small places when the floor i
 testBothDrivers('the Settings panel offers the privacy text', function (string $driver) {
     statsSite($driver);
     geoStorage();
-    $settings = dispatch('/admin/settings')->body;
+    $settings = dispatch('/admin/statistics/settings')->body;
     assertContains(e(t('stats.privacy_title')), $settings, 'the section');
     assertContains('lang="hr"', $settings, 'the Croatian version');
     assertContains(e('We count visits to this website on our own server'), $settings, 'the English text');

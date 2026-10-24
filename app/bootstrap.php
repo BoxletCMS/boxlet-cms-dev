@@ -412,6 +412,10 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // Light, dark or the machine's own (D-054): the switch in the strip posts here.
     $router->post('/admin/theme', [ThemeController::class, 'save'], $requireAdmin);
     $router->get('/admin/settings', [SettingsController::class, 'show'], $requireAdmin);
+    // Settings in tabs (D-294), each its own address: General above, these beside it, and AI in three.
+    $router->get('/admin/settings/{tab:maintenance|languages|mail|account}', [SettingsController::class, 'tab'], $requireAdmin);
+    $router->get('/admin/settings/ai', [SettingsController::class, 'ai'], $requireAdmin);
+    $router->get('/admin/settings/ai/{sub:access|search}', [SettingsController::class, 'ai'], $requireAdmin);
     $router->post('/admin/settings', [SettingsController::class, 'save'], $requireAdmin);
     $router->post('/admin/settings/maintenance-message', [SettingsController::class, 'saveMessage'], $requireAdmin);
     $router->post('/admin/settings/cache', [CacheController::class, 'save'], $requireAdmin);
@@ -445,6 +449,8 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // Visit statistics (D-051): the screen, the Settings panel's settings, and deleting
     // every count.
     $router->get('/admin/statistics', [StatsController::class, 'index'], $requireAdmin);
+    // Its Settings tab (D-294), moved here from the Settings screen; their saves keep their addresses.
+    $router->get('/admin/statistics/settings', [StatsSettingsController::class, 'show'], $requireAdmin);
     // Taking the counts out and putting them back (O-20).
     $router->get('/admin/statistics/export', [StatsDataController::class, 'export'], $requireAdmin);
     $router->post('/admin/settings/statistics', [StatsSettingsController::class, 'save'], $requireAdmin);

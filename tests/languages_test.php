@@ -10,7 +10,7 @@ use App\Modules\Languages\Locales;
 /** The flash message a redirect left, read off the screen it leads to. */
 function languagesScreen(): string
 {
-    return dispatch('/admin/settings')->body;
+    return dispatch('/admin/settings/languages')->body;
 }
 
 testBothDrivers('the panel lists the languages, the main one first and marked, and offers the rest', function (string $driver) {
@@ -34,7 +34,7 @@ testBothDrivers('the panel lists the languages, the main one first and marked, a
 testBothDrivers('an added language is on, last, falls back to the main one, and serves its pages', function (string $driver) {
     $db = adminSite($driver);
 
-    assertRedirectedTo('/admin/settings#languages', adminPost('/admin/languages', ['code' => 'de']));
+    assertRedirectedTo('/admin/settings/languages', adminPost('/admin/languages', ['code' => 'de']));
     $row = $db->one('SELECT label, enabled, fallback, sort FROM locales WHERE code = ?', ['de']);
     assertEquals('Deutsch', $row['label'] ?? null, 'its name, in its own language');
     assertEquals(1, (int) ($row['enabled'] ?? 0), 'switched on');
@@ -61,7 +61,7 @@ testBothDrivers('a language switched off stops being served, and the main one ca
     createPage($db, 'hr', 'o-nama', 'O nama');
     assertEquals(200, dispatch('/hr/o-nama')->status, 'served while on');
 
-    assertRedirectedTo('/admin/settings#languages', adminPost('/admin/languages/hr/enabled', ['enabled' => '0']));
+    assertRedirectedTo('/admin/settings/languages', adminPost('/admin/languages/hr/enabled', ['enabled' => '0']));
     assertEquals(404, dispatch('/hr/o-nama')->status, 'still served once switched off');
     assertEquals(1, (int) ($db->one('SELECT COUNT(*) AS n FROM pages WHERE locale = ?', ['hr'])['n'] ?? 0), 'its page was not kept');
 
@@ -94,7 +94,7 @@ testBothDrivers('only a language nothing is written in can be removed', function
     assertTrue($db->one('SELECT code FROM locales WHERE code = ?', ['hr']) !== null, 'a language holding a page was removed');
     assertContains('cannot be removed while it holds 1 pages', html_entity_decode(languagesScreen()), 'the refusal names what it holds');
 
-    assertRedirectedTo('/admin/settings#languages', adminPost('/admin/languages/de/delete', []));
+    assertRedirectedTo('/admin/settings/languages', adminPost('/admin/languages/de/delete', []));
     assertEquals(null, $db->one('SELECT code FROM locales WHERE code = ?', ['de']), 'an empty language was kept');
     assertEquals(null, $db->one('SELECT alt FROM media_meta WHERE locale = ?', ['de']), 'its alt texts were left behind');
 

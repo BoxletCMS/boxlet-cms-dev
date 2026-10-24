@@ -43,7 +43,7 @@ export default {
     let on = false;
     try {
       // ---- set up -----------------------------------------------------------------------------
-      await page.goto(`${BASE}/admin/settings#two-step`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/account#two-step`, { waitUntil: 'networkidle2' });
       // The link to the setup, named by where it goes: since D-132 two-step login is a part
       // of Your login, and #two-step is its heading rather than a panel around it.
       await clickAndWait(page, '#account a.button[href$="/admin/two-step"]');
@@ -71,7 +71,7 @@ export default {
       report.verdict('after the password it asks for a code, and the code logs in', asked && /\/admin$/.test(page.url()), page.url());
 
       // ---- off --------------------------------------------------------------------------------
-      await page.goto(`${BASE}/admin/settings#two-step`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/account#two-step`, { waitUntil: 'networkidle2' });
       await page.type('#two-step-off-password', ADMIN.password);
       await clickAndWait(page, 'form[action$="/two-step/off"] button');
       const said = await flash(page);

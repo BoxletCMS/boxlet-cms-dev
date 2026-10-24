@@ -19,7 +19,9 @@ testBothDrivers('no admin screen uses an id twice, or names one that is not ther
 
     foreach ([
         '/admin', '/admin/pages', '/admin/pages/new', '/admin/pages/' . $page, '/admin/pages/' . $page . '/form',
-        '/admin/media', '/admin/appearance', '/admin/navigation', '/admin/navigation/header-footer', '/admin/menus/' . $menu, '/admin/settings',
+        '/admin/media', '/admin/appearance', '/admin/navigation', '/admin/navigation/header-footer', '/admin/menus/' . $menu,
+        // Every Settings tab on its own since D-294: they were one page, checked as one.
+        '/admin/settings', '/admin/settings/maintenance', '/admin/settings/languages', '/admin/settings/mail', '/admin/settings/ai', '/admin/settings/ai/access', '/admin/settings/ai/search', '/admin/settings/account', '/admin/statistics/settings',
         '/admin/snippets',
     ] as $path) {
         $body = dispatch($path)->body;

@@ -60,10 +60,10 @@ export default {
     // bar is the bottom a menu opens against, and the rail's foot has to clear it. Switched
     // on through Settings and off again at the end, so the copy is left as it was found.
     const toggleMaintenance = async () => {
-      await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
       await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');
     };
-    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
     const wasOn = await page.$('.boxlet-maintenance-bar') !== null;
     if (!wasOn) {
       await toggleMaintenance();

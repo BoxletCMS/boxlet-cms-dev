@@ -42,11 +42,11 @@ testBothDrivers('saving writes the settings the installer wrote, rather than key
 testBothDrivers('the maintenance message saves from beside the switch', function (string $driver) {
     $db = adminSite($driver);
 
-    assertRedirectedTo('/admin/settings', adminPost('/admin/settings/maintenance-message', [
+    assertRedirectedTo('/admin/settings/maintenance', adminPost('/admin/settings/maintenance-message', [
         'maintenance_message' => 'Back this afternoon.',
     ]));
     assertEquals('Back this afternoon.', Settings::get($db, 'maintenance_message'), 'the message');
-    assertContains('Back this afternoon.', dispatch('/admin/settings')->body, 'the screen shows it');
+    assertContains('Back this afternoon.', dispatch('/admin/settings/maintenance')->body, 'the screen shows it');
 });
 
 testBothDrivers('a time zone this server does not know is refused and nothing is written', function (string $driver) {

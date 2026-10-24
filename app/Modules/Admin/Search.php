@@ -130,12 +130,17 @@ final class Search
             [t('settings.logo'), $settings . '#site_logo', 'branding'],
             [t('settings.favicon'), $settings . '#site_favicon', 'branding icon tab'],
             [t('settings.share_image'), $settings . '#site_share_image', 'branding social sharing'],
-            [t('languages.title'), $settings . '#languages', 'language translation'],
-            [t('mail.title'), $settings . '#mail', 'mail smtp resend sending'],
-            [t('ai.title'), $settings . '#ai', 'ai claude anthropic translate translation api key'],
-            [t('twofactor.title'), $settings . '#two-step', 'security login 2fa code'],
-            [t('stats.title'), $settings . '#statistics', 'statistics tracking privacy'],
-            [t('maintenance.title'), $settings . '#maintenance', 'closed offline'],
+            // Each tab at its own address since D-294, and those the one long page's list missed.
+            [t('maintenance.title'), Url::admin('settings', 'maintenance'), 'closed offline'],
+            [t('cache.title'), Url::admin('settings', 'maintenance') . '#cache', 'cache speed fast'],
+            [t('languages.title'), Url::admin('settings', 'languages'), 'language translation'],
+            [t('mail.title'), Url::admin('settings', 'mail'), 'mail smtp resend brevo mailgun sending'],
+            [t('ai.title'), Url::admin('settings', 'ai'), 'ai claude anthropic translate translation api key'],
+            [t('mcp.title'), Url::admin('settings', 'ai', 'access'), 'ai mcp claude code key access agent'],
+            [t('llms.title'), Url::admin('settings', 'ai', 'search'), 'ai llms.txt search crawler'],
+            [t('account.title'), Url::admin('settings', 'account'), 'email password login account'],
+            [t('twofactor.title'), Url::admin('settings', 'account') . '#two-step', 'security login 2fa code'],
+            [t('stats.settings_link'), Url::admin('statistics', 'settings'), 'statistics tracking privacy'],
         ] as [$label, $href, $words]) {
             $entries[] = ['kind' => 'setting', 'label' => $label, 'hint' => t('admin.nav.settings'), 'href' => $href, 'words' => $words];
         }

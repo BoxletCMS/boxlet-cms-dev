@@ -24,7 +24,7 @@ export default {
       report.fail('mail: log in', `could not log in as ${ADMIN.email || '(no admin configured)'}`);
       return;
     }
-    await page.goto(`${BASE}/admin/settings#mail`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/mail`, { waitUntil: 'networkidle2' });
     const saved = await page.$eval('#mail_transport', (s) => s.value);
 
     const seen = {};
@@ -46,7 +46,7 @@ export default {
       JSON.stringify(seen) === JSON.stringify({ smtp: ['smtp'], resend: ['resend'], brevo: ['brevo'], mailgun: ['mailgun'], sendmail: ['sendmail'], none: [] }), JSON.stringify(seen));
 
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-    await page.goto(`${BASE}/admin/settings#mail`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/mail`, { waitUntil: 'networkidle2' });
     await page.select('#mail_transport', 'smtp');
     await page.$eval('#mail', (el) => el.scrollIntoView({ block: 'start' }));
     const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
@@ -58,7 +58,7 @@ export default {
       report.skip('the test button without a way of sending', `the site sends through ${saved}; not sending a test on the owner's behalf`);
       return;
     }
-    await page.goto(`${BASE}/admin/settings#mail`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/mail`, { waitUntil: 'networkidle2' });
     await clickAndWait(page, 'form.mail-test button');
     const said = await page.$$eval('[role="alert"], [role="status"], .flash, .notice', (els) => els.map((e) => e.textContent.trim()).join(' | '));
     report.verdict('the test button says a way of sending must be chosen first', /Choose a way of sending/.test(said), said);

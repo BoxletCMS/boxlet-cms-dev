@@ -36,6 +36,15 @@ const SCREENS = [
   ['/admin/scripts', 'scripts'],
   ['first:/admin/menus', 'menu'],
   ['/admin/settings', 'settings'],
+  // Each Settings tab is its own screen since D-294, and Statistics' settings a tab of its own.
+  ['/admin/settings/maintenance', 'settings-maintenance'],
+  ['/admin/settings/languages', 'settings-languages'],
+  ['/admin/settings/mail', 'settings-mail'],
+  ['/admin/settings/ai', 'settings-ai'],
+  ['/admin/settings/ai/access', 'settings-ai-access'],
+  ['/admin/settings/ai/search', 'settings-ai-search'],
+  ['/admin/settings/account', 'settings-account'],
+  ['/admin/statistics/settings', 'statistics-settings'],
   ['/admin/update', 'update'],
 ];
 

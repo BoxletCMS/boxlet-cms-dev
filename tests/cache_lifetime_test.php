@@ -55,7 +55,7 @@ testBothDrivers('every static file the site and the admin link changes its addre
     }
     assertEquals([], unversioned($visitor), '/about');
 
-    foreach (['/admin', '/admin/pages', "/admin/pages/{$id}", "/admin/pages/{$id}/form", '/admin/appearance', '/admin/navigation', '/admin/navigation/header-footer', '/admin/settings', '/admin/snippets', '/admin/media', "/admin/media/{$picture}"] as $path) {
+    foreach (['/admin', '/admin/pages', "/admin/pages/{$id}", "/admin/pages/{$id}/form", '/admin/appearance', '/admin/navigation', '/admin/navigation/header-footer', '/admin/settings', '/admin/settings/maintenance', '/admin/settings/languages', '/admin/settings/mail', '/admin/settings/ai', '/admin/settings/ai/access', '/admin/settings/ai/search', '/admin/settings/account', '/admin/statistics/settings', '/admin/snippets', '/admin/media', "/admin/media/{$picture}"] as $path) {
         assertEquals([], unversioned(staticAddresses(dispatch($path)->body)), $path);
     }
 });

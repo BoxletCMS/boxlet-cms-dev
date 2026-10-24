@@ -264,26 +264,26 @@ testBothDrivers('a key has its minute\'s worth of calls', function (string $driv
 
 testBothDrivers('the owner makes a key, sees it once, and revokes it', function (string $driver) {
     $db = adminSite($driver);
-    assertRedirectedTo('/admin/settings#mcp', adminPost('/admin/settings/mcp/keys', ['name' => 'Claude', 'write' => '1']));
-    $first = dispatch('/admin/settings')->body;
+    assertRedirectedTo('/admin/settings/ai/access', adminPost('/admin/settings/mcp/keys', ['name' => 'Claude', 'write' => '1']));
+    $first = dispatch('/admin/settings/ai/access')->body;
     preg_match('~id="mcp-new-key" value="(bxk_[0-9a-f]{48})"~', $first, $shown);
     $key = $shown[1] ?? fail('the key was not shown');
     assertContains('claude mcp add --transport http boxlet http://example.test/mcp --header "Authorization: Bearer ' . $key, $first, 'with the line that connects Claude Code');
-    assertTrue(!str_contains(dispatch('/admin/settings')->body, $key), 'and never again');
+    assertTrue(!str_contains(dispatch('/admin/settings/ai/access')->body, $key), 'and never again');
     [$message, $headers] = modern('server/discover');
     assertEquals(200, mcp($message, $key, $headers)->status, 'it opens the endpoint');
 
     $id = (int) ($db->one('SELECT id FROM mcp_keys')['id'] ?? 0);
-    assertRedirectedTo('/admin/settings#mcp', adminPost('/admin/settings/mcp/keys/' . $id . '/revoke', []));
+    assertRedirectedTo('/admin/settings/ai/access', adminPost('/admin/settings/mcp/keys/' . $id . '/revoke', []));
     assertEquals(401, mcp($message, $key, $headers)->status, 'revoked, it opens nothing');
-    assertContains('/admin/settings/mcp/keys/' . $id . '/remove', dispatch('/admin/settings')->body, 'a revoked key may be taken off the list');
-    assertRedirectedTo('/admin/settings#mcp', adminPost('/admin/settings/mcp/keys/' . $id . '/remove', []));
+    assertContains('/admin/settings/mcp/keys/' . $id . '/remove', dispatch('/admin/settings/ai/access')->body, 'a revoked key may be taken off the list');
+    assertRedirectedTo('/admin/settings/ai/access', adminPost('/admin/settings/mcp/keys/' . $id . '/remove', []));
     assertTrue($db->one('SELECT id FROM mcp_keys WHERE id = ?', [$id]) === null, 'and is');
 
     // D-291: the owner read the panel's Save as saving the whole panel; it saved one checkbox.
     // Now a key is made to publish, and there is no checkbox and no Save.
-    assertRedirectedTo('/admin/settings#mcp', adminPost('/admin/settings/mcp/keys', ['name' => 'Publisher', 'write' => '2']));
-    $panel = dispatch('/admin/settings')->body;
+    assertRedirectedTo('/admin/settings/ai/access', adminPost('/admin/settings/mcp/keys', ['name' => 'Publisher', 'write' => '2']));
+    $panel = dispatch('/admin/settings/ai/access')->body;
     preg_match('~id="mcp-new-key" value="(bxk_[0-9a-f]{48})"~', $panel, $made);
     assertEquals(['writes' => true, 'publishes' => true], tool($made[1] ?? '', 'get_site')['structuredContent']['this_key'] ?? null, 'a key made to publish publishes');
     // Everything the level below may, named again: "publish" alone read as a narrower right.

@@ -34,7 +34,7 @@ export default {
        it hidden. The checks below start from open, so a closed site is opened first and
        closed again at the end: the finally used to leave it open whatever it found, and on
        2026-09-25 that opened a site the owner had closed (PLAN.md D-117). */
-    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
     const foundClosed = await page.evaluate(() => /Turn off maintenance mode/i.test(document.body.textContent));
     if (foundClosed) {
       await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');
@@ -46,7 +46,7 @@ export default {
       // dashboard no longer carries it. This scenario kept clicking the old place and
       // threw — a check left looking where the thing used to be, the same rot that hid
       // six media scenarios when the photographs were renamed.
-      await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
       const before = await text(page);
       await report.shot(page, '01-settings-off');
       report.verdict('the settings screen says the site is visible and offers to hide it',
@@ -111,7 +111,7 @@ export default {
         bar === null ? 'no bar' : `position: ${bar.position}`);
 
       // ---- switch it off ------------------------------------------------------------------
-      await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
       await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');
       const afterOff = await text(page);
       report.verdict('switching it off is confirmed', /Maintenance mode is off|visible to everyone/i.test(afterOff),
@@ -127,7 +127,7 @@ export default {
       // As it was found: open, or closed by the owner. Left closed by this scenario, every
       // scenario after it would fail; left open over the owner's choice, the site is shown.
       try {
-        await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+        await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
         const closedNow = await page.evaluate(() => /Turn off maintenance mode/i.test(document.body.textContent));
         if (closedNow !== foundClosed) {
           await clickAndWait(page, 'form[action$="/admin/maintenance"] button[type="submit"]');

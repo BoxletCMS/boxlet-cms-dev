@@ -18,7 +18,7 @@ const TEMPORARY = 'a temporary password for the scenario';
 
 /** Fills Your login's password form, found inside the form that posts to it, and sends it. */
 async function changePassword(page, from, to) {
-  await page.goto(`${BASE}/admin/settings#account`, { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE}/admin/settings/account`, { waitUntil: 'networkidle2' });
   const form = 'form[action$="/admin/account/password"]';
   await page.type(`${form} [name="current_password"]`, from);
   await page.type(`${form} [name="new_password"]`, to);

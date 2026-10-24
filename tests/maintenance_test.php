@@ -92,7 +92,7 @@ testBothDrivers('switching maintenance off restores the site', function (string 
     turnMaintenanceOn();
 
     // Back to site settings, where the switch lives since D-028, not to the dashboard.
-    assertRedirectedTo('/admin/settings', adminPost('/admin/maintenance', ['state' => 'off']));
+    assertRedirectedTo('/admin/settings/maintenance', adminPost('/admin/maintenance', ['state' => 'off']));
     assertTrue(!is_file(maintenanceFlag()), 'the flag file is still there');
 
     unset($_SESSION['admin_id']);
@@ -122,11 +122,11 @@ testBothDrivers('site settings says which way round the site is, and offers the 
     // looked for the cause in the flag, the storage path and the stat cache. The "off"
     // sentence happens to contain no quotes and so matched either way: a trap left for
     // whoever writes the next assertion.
-    $off = dispatch('/admin/settings')->body;
+    $off = dispatch('/admin/settings/maintenance')->body;
     assertContains(e(t('maintenance.off_now')), $off, 'it does not say the site is visible');
     assertContains(e(t('maintenance.turn_on')), $off, 'no way to turn it on');
 
-    assertRedirectedTo('/admin/settings', adminPost('/admin/maintenance', ['state' => 'on']));
+    assertRedirectedTo('/admin/settings/maintenance', adminPost('/admin/maintenance', ['state' => 'on']));
 
     // Printed rather than inferred. Four separate reproductions of this sequence outside
     // the runner have passed while this failed inside it, so the state at the moment of
@@ -139,7 +139,7 @@ testBothDrivers('site settings says which way round the site is, and offers the 
         (string) (TestSite::$env['STORAGE_PATH'] ?? '(unset)'),
     );
 
-    $on = dispatch('/admin/settings')->body;
+    $on = dispatch('/admin/settings/maintenance')->body;
     assertContains(e(t('maintenance.on_now')), $on, "it does not say the site is hidden — {$state}");
     assertContains(e(t('maintenance.turn_off')), $on, "no way to turn it off — {$state}");
 

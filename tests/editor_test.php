@@ -139,7 +139,7 @@ test('guard (source, not behaviour): the picker\'s resting state is more than a 
 
     foreach ([
         'app/Modules/Pages/views/admin/block.php',
-        'app/Modules/Settings/views/settings.php',
+        'app/Modules/Settings/views/tabs/general.php',
     ] as $template) {
         assertContains(
             'pickerAttributes()',

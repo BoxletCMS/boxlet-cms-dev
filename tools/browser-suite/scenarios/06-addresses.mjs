@@ -63,7 +63,7 @@ export default {
     // none of this scenario's checks use, so the routing below is untouched by it, and taken
     // away again through its own delete, which a language with no pages has.
     await login(page, BASE, ADMIN.email, ADMIN.password);
-    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/languages`, { waitUntil: 'networkidle2' });
     const added = await page.$$eval('form.language-add select[name="code"] option', (options) => {
       const codes = options.map((o) => o.value).filter((v) => v !== '');
       return ['it', 'fr', 'es', 'nl', 'pt'].find((c) => codes.includes(c)) || codes.find((c) => !['en', 'hr', 'de'].includes(c)) || null;

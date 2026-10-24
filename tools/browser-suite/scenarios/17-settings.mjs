@@ -112,15 +112,15 @@ export default {
     // WHICH WAY ROUND THE SITE WAS FOUND, so the end puts back exactly that (D-090, D-117). It
     // used to leave the site open whatever it found — and on 2026-09-25 that opened the
     // development site the owner had closed an hour before.
-    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
     const found = await page.$eval('form[action$="/admin/maintenance"] input[name="state"]', (i) => i.value)
       .catch(() => 'on');
     try {
-      await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
       const before = await page.$eval('form[action$="/admin/maintenance"] button', (b) => b.textContent.trim());
       await clickAndWait(page, 'form[action$="/admin/maintenance"] button', 40000);
 
-      const back = page.url().includes('/admin/settings');
+      const back = page.url().includes('/admin/settings/maintenance');
       const after = await page.$eval('form[action$="/admin/maintenance"] button', (b) => b.textContent.trim());
       report.verdict('the maintenance switch is here and comes back here', back && after !== before,
         `landed at ${page.url()}; the button went from ${JSON.stringify(before)} to ${JSON.stringify(after)}`);
@@ -133,7 +133,7 @@ export default {
     } finally {
       // Whatever happened above, the switch ends where it was found. The hidden input is
       // what the button would DO: `on` offers to close the site, so the site is open.
-      await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+      await page.goto(`${BASE}/admin/settings/maintenance`, { waitUntil: 'networkidle2' });
       const button = await page.$eval('form[action$="/admin/maintenance"] input[name="state"]', (i) => i.value)
         .catch(() => null);
       if (button !== null && button !== found) {

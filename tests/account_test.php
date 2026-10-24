@@ -27,13 +27,13 @@ testBothDrivers('the admin changes their password with the current one, and only
         'a short new one' => [['new_password' => 'short', 'new_password_confirm' => 'short'], t('install.admin.short_password', ['min' => 12])],
         'two that differ' => [['new_password_confirm' => 'a different long phrase'], t('install.admin.mismatch')],
     ] as $what => [$fields, $said]) {
-        assertRedirectedTo('/admin/settings#account', $send($fields));
+        assertRedirectedTo('/admin/settings/account', $send($fields));
         assertEquals($said, $_SESSION['flash'] ?? null, $what . ': what the admin is told');
         assertEquals('error', $_SESSION['flash_kind'] ?? null, $what . ': told as a refusal');
         assertEquals($before, adminHash($db), $what . ': the password changed anyway');
     }
 
-    assertRedirectedTo('/admin/settings#account', $send([]));
+    assertRedirectedTo('/admin/settings/account', $send([]));
     assertEquals(t('account.password_changed'), $_SESSION['flash'] ?? null, 'the change is confirmed');
     assertTrue(password_verify('a much longer phrase now', adminHash($db)), 'the new password does not open the account');
     assertTrue(!password_verify(ACCOUNT_PASSWORD, adminHash($db)), 'the old password still does');
@@ -59,14 +59,14 @@ testBothDrivers('the admin changes their login email with the current password',
     assertEquals(t('account.email_invalid'), $_SESSION['flash'] ?? null, 'not an address');
     assertEquals('owner@example.com', $db->one('SELECT email FROM admin')['email'] ?? null, 'changed by a refused request');
 
-    assertRedirectedTo('/admin/settings#account', adminPost('/admin/account/email', ['email' => '  New.Owner@Example.com ', 'current_password' => ACCOUNT_PASSWORD]));
+    assertRedirectedTo('/admin/settings/account', adminPost('/admin/account/email', ['email' => '  New.Owner@Example.com ', 'current_password' => ACCOUNT_PASSWORD]));
     assertEquals('new.owner@example.com', $db->one('SELECT email FROM admin')['email'] ?? null, 'the address, trimmed and in lower case as a login reads it');
 
     // And the screen says so, under Your login, which the rail's foot leads to.
-    $screen = dispatch('/admin/settings')->body;
+    $screen = dispatch('/admin/settings/account')->body;
     assertContains('id="account"', $screen, 'Your login');
     assertContains('value="new.owner@example.com"', $screen, 'the address shown');
-    assertContains('href="/admin/settings#account"', $screen, 'the rail\'s foot leads there');
+    assertContains('href="/admin/settings/account"', $screen, 'the rail\'s foot leads there');
 });
 
 /*

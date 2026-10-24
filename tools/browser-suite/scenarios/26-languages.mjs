@@ -32,7 +32,7 @@ export default {
       return;
     }
 
-    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/languages`, { waitUntil: 'networkidle2' });
     const before = await rows(page);
     const offered = await page.$$eval('#language-code option', (options) => options.map((o) => o.value));
     const code = WANTED.find((c) => offered.includes(c));
@@ -63,7 +63,7 @@ export default {
 
     // ---- on a phone ---------------------------------------------------------------------------
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-    await page.goto(`${BASE}/admin/settings#languages`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/languages`, { waitUntil: 'networkidle2' });
     await page.$eval('#languages', (el) => el.scrollIntoView({ block: 'start' }));
     const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     await report.shot(page, '02-phone', { fullPage: false });
@@ -71,7 +71,7 @@ export default {
     await page.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
 
     // ---- remove: the site is left as it was ---------------------------------------------------
-    await page.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/settings/languages`, { waitUntil: 'networkidle2' });
     await page.$eval(`form[action$="/languages/${code}/delete"] button`, (b) => b.removeAttribute('data-confirm'));
     await clickAndWait(page, `form[action$="/languages/${code}/delete"] button`);
     const after = await rows(page);

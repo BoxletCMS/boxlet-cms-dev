@@ -27,7 +27,7 @@ export default {
       return;
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
-    await page.goto(`${BASE}/admin/settings#geo`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE}/admin/statistics/settings#geo`, { waitUntil: 'networkidle2' });
     let loads = 0;
     page.on('load', () => { loads += 1; });
 

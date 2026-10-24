@@ -59,7 +59,7 @@ testBothDrivers('the key is sealed, shown only in part, and taken away on reques
     assertTrue(AiSettings::ready($db, (string) TestSite::$env['APP_KEY']), 'ready with a key');
     assertEquals("Boxlet\nPrintworks", $stored['keep'], 'the words to keep');
 
-    $settings = dispatch('/admin/settings')->body;
+    $settings = dispatch('/admin/settings/ai')->body;
     assertContains('id="ai"', $settings, 'the panel');
     assertTrue(!str_contains($settings, AI_KEY), 'the key never drawn back');
     assertContains('sk-…mnop', $settings, 'only its ends');
@@ -324,7 +324,7 @@ testBothDrivers('a page once published keeps its row and its address; one never 
 testBothDrivers('the models offered are Anthropic\'s, fetched on a save or a test; without an answer the built-in list stays', function (string $driver) {
     $db = aiSite($driver);
     $offered = static function (): array {
-        preg_match('~<select id="ai_model"[^>]*>(.*?)</select>~s', dispatch('/admin/settings')->body, $select);
+        preg_match('~<select id="ai_model"[^>]*>(.*?)</select>~s', dispatch('/admin/settings/ai')->body, $select);
         preg_match_all('~value="([^"]+)"~', $select[1] ?? '', $values);
 
         return $values[1];
@@ -335,11 +335,11 @@ testBothDrivers('the models offered are Anthropic\'s, fetched on a save or a tes
     $form = ['_csrf' => (new App\Core\Session())->csrfToken(), 'ai_provider' => 'anthropic', 'ai_model' => 'claude-sonnet-5', 'ai_key' => ''];
     dispatch('/admin/settings/ai', null, 'POST', $form, '203.0.113.10', $models);
     assertEquals(['claude-new-6', 'claude-sonnet-5-5', 'claude-sonnet-5', 'other'], $offered(), 'what Anthropic listed, after a save');
-    assertContains('Claude Sonnet 5.5 — ' . t('ai.model_recommended'), dispatch('/admin/settings')->body, 'the newest Sonnet recommended');
+    assertContains('Claude Sonnet 5.5 — ' . t('ai.model_recommended'), dispatch('/admin/settings/ai')->body, 'the newest Sonnet recommended');
     dispatch('/admin/settings/ai', null, 'POST', ['ai_model' => 'claude-new-6'] + $form);
     assertEquals('claude-new-6', AiSettings::stored($db)['model'], 'a listed model is taken');
     assertEquals(['claude-new-6', 'claude-sonnet-5-5', 'claude-sonnet-5', 'other'], $offered(), 'a save with no answer keeps the list');
-    assertContains('data-ai-other', dispatch('/admin/settings')->body, 'the other model\'s field is marked for the script');
+    assertContains('data-ai-other', dispatch('/admin/settings/ai')->body, 'the other model\'s field is marked for the script');
 });
 
 testBothDrivers('a page\'s pictures get their alt text in its language where they have none; the owner\'s own, and decoration, are kept', function (string $driver) {

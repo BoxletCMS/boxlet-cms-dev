@@ -64,8 +64,8 @@ testBothDrivers('a download that fails says why, in JSON for the script and besi
 
     // No script: back at the maps' part, and the words are there, not in the bar at the top.
     $form = geoPress('/admin/settings/statistics/cities', false, $nothing);
-    assertEquals('/admin/settings#geo', $form->headers['Location'] ?? null, 'back at the maps');
-    $page = dispatch('/admin/settings')->body;
+    assertEquals('/admin/statistics/settings#geo', $form->headers['Location'] ?? null, 'back at the maps');
+    $page = dispatch('/admin/statistics/settings')->body;
     $panel = substr($page, (int) strpos($page, 'id="geo"'));
     assertContains('data-geo-notice>', $panel, 'said in the maps\' part');
     assertContains('HTTP 404', substr($panel, 0, 4000), 'with the reason');
@@ -79,7 +79,7 @@ testBothDrivers('opened part-way down, the panel shows how far it is and carries
     geoPress('/admin/settings/statistics/cities', true, fakeFetch($body));
     geoPress('/admin/settings/statistics/cities/step', true, fakeFetch($body));
 
-    $page = dispatch('/admin/settings')->body;
+    $page = dispatch('/admin/statistics/settings')->body;
     assertContains('data-geo-running', $page, 'the script told to carry on');
     assertContains('value="' . App\Modules\Stats\GeoDownload::CHUNK . '"', $page, 'the bar where it got to');
     assertContains('Fetching the city database', $page, 'in words');

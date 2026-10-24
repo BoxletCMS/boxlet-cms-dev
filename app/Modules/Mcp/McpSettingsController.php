@@ -53,7 +53,7 @@ final class McpSettingsController
         Activity::record($this->db(), 'settings', 'mcp_key_created', $made['id'], $name);
         $this->container->get('session')->set(self::NEW_KEY, ['name' => $name, 'key' => $made['key']]);
 
-        return Response::redirect(Url::admin('settings') . '#mcp');
+        return Response::redirect(Url::admin('settings', 'ai', 'access'));
     }
 
     /**
@@ -70,7 +70,7 @@ final class McpSettingsController
         $session = $this->container->get('session');
         $session->set('flash', t('mcp.revoked'));
 
-        return Response::redirect(Url::admin('settings') . '#mcp');
+        return Response::redirect(Url::admin('settings', 'ai', 'access'));
     }
 
     /**
@@ -82,7 +82,7 @@ final class McpSettingsController
     {
         McpKeys::remove($this->db(), (int) $params['id']);
 
-        return Response::redirect(Url::admin('settings') . '#mcp');
+        return Response::redirect(Url::admin('settings', 'ai', 'access'));
     }
 
     private function db(): Db

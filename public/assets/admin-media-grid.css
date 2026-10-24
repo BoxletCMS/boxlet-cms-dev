@@ -7,6 +7,20 @@
   position: relative;
 }
 
+/* The card's ⋯, on the picture's other corner from the tick: the list's own menu, its button
+   on the panel with the tick's ring, so it reads on a light picture and a dark one alike. */
+.media-card-menu {
+  position: absolute;
+  inset-block-start: calc(var(--ui-3) + var(--ui-1));
+  inset-inline-end: calc(var(--ui-3) + var(--ui-1));
+  z-index: 1;
+}
+
+.media-card-menu > summary {
+  background: var(--ui-panel);
+  box-shadow: 0 0 0 2px var(--ui-panel);
+}
+
 /* The tick sits on the picture's corner, on a backing of the panel so it reads on any picture,
    and is there at rest: a control is never revealed by hover. */
 .media-card-pick {

@@ -132,7 +132,10 @@ export default {
           const t = tick.getBoundingClientRect();
           const p = thumb.getBoundingClientRect();
           const cs = getComputedStyle(tick);
+          // The row's ⋯ on the card (the owner, 2026-10-24), on the picture's other corner.
+          const menu = card.querySelector('.media-card-menu > summary')?.getBoundingClientRect();
           return {
+            menu: !!menu && menu.width > 0 && menu.left > t.right && menu.top >= p.top && menu.right <= p.right,
             loaded: thumb.complete ? thumb.naturalWidth : 0,
             tickShown: t.width > 0 && cs.visibility === 'visible' && cs.opacity === '1',
             onPicture: t.left >= p.left && t.right <= p.right && t.top >= p.top && t.bottom <= p.bottom,
@@ -147,8 +150,8 @@ export default {
           counted = await page.$eval('[data-bulk-count]', (el) => el.textContent.trim());
           await page.click(`.media-card-library input[value="${mediaId}"]`);
         }
-        report.verdict('as a grid, the picture is a card with its thumbnail, its tick on it at rest, and what it is used on',
-          grid !== null && grid.loaded > 0 && grid.tickShown && grid.onPicture && grid.status !== '' && grid.current && /1/.test(counted),
+        report.verdict('as a grid, the picture is a card with its thumbnail, its tick and its ⋯ on it at rest, and what it is used on',
+          grid !== null && grid.loaded > 0 && grid.tickShown && grid.onPicture && grid.menu && grid.status !== '' && grid.current && /1/.test(counted),
           JSON.stringify({ grid, counted }));
         await page.goto(`${BASE}/admin/media`, { waitUntil: 'networkidle2' });
         const kept = await page.$('ul.media-grid') !== null;

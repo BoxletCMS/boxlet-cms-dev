@@ -32,6 +32,25 @@ use App\Support\Url;
             <li class="media-card<?= $picking ? '' : ' media-card-library' ?>"<?= !$picking && !$file && !$picture['complete'] ? ' data-media-id="' . e((string) $picture['id']) . '" data-media-unfinished' : '' ?>>
 <?php if (!$picking): ?>
                 <input type="checkbox" class="media-card-pick" name="ids[]" value="<?= e((string) $picture['id']) ?>" form="media-bulk" data-bulk-pick aria-label="<?= e(t('media.bulk.pick', ['name' => $name])) ?>">
+                <?php /* THE ROW'S MENU, ON THE CARD (the owner, 2026-10-24: the grid had no ⋯).
+                         The list's own, the same actions, on the picture's other corner from the
+                         tick, drawn at rest on the panel so it reads on any picture. */ ?>
+                <details class="row-menu media-card-menu" data-menu>
+                    <summary title="<?= e(t('media.more', ['name' => $name])) ?>"><?= icon('ellipsis-vertical') ?><span class="visually-hidden"><?= e(t('media.more', ['name' => $name])) ?></span></summary>
+                    <div class="row-menu-list">
+                        <a href="<?= e(Url::admin('media', $picture['id'])) ?>"><?= icon('pencil') ?> <?= e(t('media.open')) ?></a>
+<?php if (!$picture['complete'] && !$file): ?>
+                        <form method="post" action="<?= e(Url::admin('media', $picture['id'], 'finish')) ?>">
+                            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                            <button type="submit"><?= icon('check') ?> <?= e(t('media.finish')) ?></button>
+                        </form>
+<?php endif; ?>
+                        <form method="post" action="<?= e(Url::admin('media', $picture['id'], 'delete')) ?>">
+                            <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+                            <button type="submit" class="row-menu-danger" data-confirm="<?= e(t('media.delete_confirm', ['name' => $picture['filename']])) ?>"><?= icon('trash-2') ?> <?= e(t('media.delete')) ?></button>
+                        </form>
+                    </div>
+                </details>
 <?php endif; ?>
 <?php if ($picking): ?>
                 <button type="button" class="media-card-link" data-pick="<?= e($picture['id']) ?>" data-pick-name="<?= e($picture['filename']) ?>" data-pick-complete="<?= $picture['complete'] ? '1' : '0' ?>">

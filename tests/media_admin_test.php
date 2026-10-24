@@ -290,6 +290,9 @@ testBothDrivers('the library is a list or a grid, kept for the session, with the
     assertContains('data-bulk-all form="media-bulk"', $grid, 'select all');
     assertContains('href="/admin/media/' . $id . '"', $grid, 'a card opens its picture');
     assertContains(e(t('media.grid.unused')), $grid, 'what it is used on');
+    // The row's ⋯ on each card (the owner, 2026-10-24): the list's own actions.
+    assertContains('<details class="row-menu media-card-menu" data-menu>', $grid, 'the card\'s menu');
+    assertContains('action="/admin/media/' . $id . '/delete"', $grid, 'with Delete in it');
 
     assertContains('<ul class="media-grid">', mediaAdminGet('/admin/media')->body, 'the grid kept');
     assertContains('class="table media-table"', mediaAdminGet('/admin/media?view=list')->body, 'and the list back');

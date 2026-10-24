@@ -175,3 +175,10 @@ testBothDrivers('a site whose main language Boxlet has no admin for keeps it in 
     assertContains('<html lang="en" data-decimal="."', $pages, 'German has no admin: English');
     assertContains(e(AdminLang::strings('en')['pages.title']), $pages, 'in English words');
 });
+
+test('a placeholder is filled whole, never inside a longer one, and a value is not read again (D-295)', function () {
+    // The library said "Page 1 of 1s · 58 in all": :page was filled inside :pages.
+    assertEquals('Page 1 of 2 · 58 in all', t('media.page_of', ['page' => '1', 'pages' => '2', 'total' => '58']), 'the pager');
+    assertEquals('Page 1 of 2 · 58 in all', t('media.page_of', ['pages' => '2', 'page' => '1', 'total' => '58']), 'in either order');
+    assertContains(':total', t('media.page_of', ['page' => ':total', 'pages' => '2', 'total' => '58']), 'a value holding a name stays as it was given');
+});

@@ -324,7 +324,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     // Pictures (SPEC §5.5). The generated variants live under /m/ and are served from
     // disk by the web server; no route here ever answers for one.
     $router->get('/admin/media', [MediaController::class, 'index'], $requireAdmin);
-    $router->post('/admin/media', [MediaController::class, 'store'], $requireAdmin);
+    $router->post('/admin/media', [\App\Modules\Media\MediaStoreController::class, 'store'], $requireAdmin);
     // The media browser a picture field opens (D-145): a page of cards, and an upload from
     // inside the editor, cropped on the way in if asked.
     $router->get('/admin/media/pick', [MediaPickController::class, 'index'], $requireAdmin);
@@ -343,7 +343,7 @@ $container->set('router', function (Container $c) use ($request, $cache): Router
     $router->post('/admin/media/{id:\d+}/delete', [MediaItemController::class, 'delete'], $requireAdmin);
     // The pictures and files ticked in the list, deleted together (D-218).
     $router->post('/admin/media/delete', [MediaBulkController::class, 'delete'], $requireAdmin);
-    $router->post('/admin/media/{id:\d+}/finish', [MediaController::class, 'finish'], $requireAdmin);
+    $router->post('/admin/media/{id:\d+}/finish', [\App\Modules\Media\MediaStoreController::class, 'finish'], $requireAdmin);
 
     // Menus (D-028, resolving O-7). One ordering route takes both paths, D-011: a drag
     // posts a whole sibling order, a button posts one move.

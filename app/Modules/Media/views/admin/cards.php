@@ -29,14 +29,14 @@ use App\Support\Url;
     $file = ($picture['kind'] ?? 'picture') === 'file';
     $name = $picture['filename'] . (($picture['ext'] ?? '') !== '' ? '.' . $picture['ext'] : '');
     ?>
-            <li class="media-card<?= $picking ? '' : ' media-card-library' ?>">
+            <li class="media-card<?= $picking ? '' : ' media-card-library' ?>"<?= !$picking && !$file && !$picture['complete'] ? ' data-media-id="' . e((string) $picture['id']) . '" data-media-unfinished' : '' ?>>
 <?php if (!$picking): ?>
                 <input type="checkbox" class="media-card-pick" name="ids[]" value="<?= e((string) $picture['id']) ?>" form="media-bulk" data-bulk-pick aria-label="<?= e(t('media.bulk.pick', ['name' => $name])) ?>">
 <?php endif; ?>
 <?php if ($picking): ?>
                 <button type="button" class="media-card-link" data-pick="<?= e($picture['id']) ?>" data-pick-name="<?= e($picture['filename']) ?>" data-pick-complete="<?= $picture['complete'] ? '1' : '0' ?>">
 <?php else: ?>
-                <a class="media-card-link" href="<?= e(Url::admin('media', $picture['id'])) ?>">
+                <a class="media-card-link" href="<?= e(Url::admin('media', $picture['id'])) ?>" data-media-thumb="200x200">
 <?php endif; ?>
                     <?php /* An empty alt: the filename is the link text right below, so
                              announcing it twice would be noise. */ ?>
@@ -77,7 +77,7 @@ use App\Support\Url;
                 </p>
 <?php endif; ?>
 <?php if (!$picture['complete'] && !$picking): ?>
-                <div class="media-pending">
+                <div class="media-pending" data-media-pending>
                     <p class="hint"><?= e(t('media.incomplete')) ?></p>
                     <form method="post" action="<?= e(Url::admin('media', $picture['id'], 'finish')) ?>">
                         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">

@@ -182,6 +182,55 @@ testBothDrivers('an unfinished picture offers to finish, and finishing completes
     assertEquals('complete', (string) ($db->one('SELECT status FROM media WHERE id = ?', [$id])['status'] ?? ''), 'status');
 });
 
+/**
+ * A request as media-upload.js sends it, asking for JSON (D-295).
+ *
+ * @param list<array{name: string, tmp_name: string, error?: int}> $files
+ * @return array<string, mixed>
+ */
+function scriptUpload(string $path, array $files): array
+{
+    $_SERVER['HTTP_ACCEPT'] = 'application/json';
+    try {
+        $response = adminUpload($path, $files);
+    } finally {
+        unset($_SERVER['HTTP_ACCEPT']);
+    }
+    assertEquals(200, $response->status, $path . ': ' . $response->body);
+
+    return json_decode($response->body, true) ?? fail($path . ': not JSON: ' . $response->body);
+}
+
+testBothDrivers('the script sends one file a request and asks for its sizes until it has them (D-295)', function (string $driver) {
+    $db = mediaAdminSite($driver);
+    unset($_SESSION['flash']);
+    $answer = scriptUpload('/admin/media', [['name' => 'one.jpg', 'tmp_name' => imageFixture(tmpPath('one.jpg'), 400, 300)]]);
+    $id = (int) ($db->one('SELECT id FROM media')['id'] ?? 0);
+    assertEquals(['stored' => [['id' => $id, 'complete' => true, 'duplicate' => false]], 'messages' => []], $answer, 'what was stored, and that it is complete');
+    $again = scriptUpload('/admin/media', [['name' => 'one-again.jpg', 'tmp_name' => imageFixture(tmpPath('one-again.jpg'), 400, 300)]]);
+    assertEquals([['id' => $id, 'complete' => true, 'duplicate' => true]], $again['stored'] ?? null, 'the same picture again: there, not refused');
+    assertContains('one-again.jpg', implode(' ', $again['messages'] ?? []), 'and said so');
+    assertTrue(!isset($_SESSION['flash']), 'no flash: the script says it');
+
+    $refused = scriptUpload('/admin/media', [['name' => 'notes.exe', 'tmp_name' => (static function (): string {
+        file_put_contents(tmpPath('notes.exe'), 'MZ not a picture');
+
+        return tmpPath('notes.exe');
+    })()]]);
+    assertEquals([], $refused['stored'] ?? null, 'nothing stored');
+    assertContains('notes.exe', implode(' ', $refused['messages'] ?? []), 'and why, naming the file');
+
+    // As a host that cut the request off would leave it.
+    $db->query("UPDATE media SET status = 'incomplete', variants_json = NULL WHERE id = ?", [$id]);
+    $library = mediaAdminGet('/admin/media')->body;
+    assertContains('data-media-id="' . $id . '" data-media-unfinished', $library, 'the row marked for the script to finish');
+    assertContains('data-upload-words=', $library, 'and the script\'s words on the form');
+    $finished = scriptUpload('/admin/media/' . $id . '/finish', []);
+    assertEquals([$id, true], [$finished['id'] ?? null, $finished['complete'] ?? null], 'finished');
+    assertTrue(is_string($finished['thumb'] ?? null) && str_contains($finished['thumb'], '/m/'), 'with the thumbnail to draw');
+    assertTrue(!str_contains(mediaAdminGet('/admin/media')->body, 'data-media-unfinished'), 'and no longer marked');
+});
+
 testBothDrivers('the library searches by name, and says so when nothing matches', function (string $driver) {
     mediaAdminSite($driver);
     adminUpload('/admin/media', [['name' => 'harbour.jpg', 'tmp_name' => imageFixture(tmpPath('harbour.jpg'), 320, 240)]]);

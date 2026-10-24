@@ -206,4 +206,13 @@ return [
     'media.remake_auto' => 'Postupak se nastavlja sam. Možete napustiti ovu stranicu; kad se vratite, postupak se nastavlja.',
     'media.remake_progress' => 'Još za ponovnu izradu: :left.',
     'media.remake_done' => 'Veličine svih slika ponovno su izrađene.',
+    'media.upload.waiting' => 'Čeka',
+    'media.upload.sending' => 'Šalje se… :percent %',
+    'media.upload.sizes' => 'Rade se veličine…',
+    'media.upload.done' => 'Gotovo',
+    'media.upload.unfinished' => 'Nije dovršeno: dovršite je iz izbornika retka',
+    'media.upload.failed' => 'Nije poslano: veza je prekinuta ili server nije odgovorio.',
+    'media.upload.progress' => 'Gotovo: :done od :total',
+    'media.upload.show' => 'Prikaži knjižnicu',
+    'media.upload.finishing' => 'Dovršavaju se nedovršene slike: :done od :total',
 ];

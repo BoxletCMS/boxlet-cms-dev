@@ -201,4 +201,13 @@ return [
     'media.remake_auto' => 'Continuing by itself. You can leave this page; coming back carries on.',
     'media.remake_progress' => 'Still to make again: :left.',
     'media.remake_done' => 'Every picture\'s sizes were made again.',
+    'media.upload.waiting' => 'Waiting',
+    'media.upload.sending' => 'Sending… :percent%',
+    'media.upload.sizes' => 'Making its sizes…',
+    'media.upload.done' => 'Done',
+    'media.upload.unfinished' => 'Not finished: finish it from its row’s menu',
+    'media.upload.failed' => 'Not sent: the connection broke or the server did not answer.',
+    'media.upload.progress' => 'Done: :done of :total',
+    'media.upload.show' => 'Show the library',
+    'media.upload.finishing' => 'Finishing the unfinished pictures: :done of :total',
 ];

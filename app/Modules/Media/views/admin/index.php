@@ -127,7 +127,10 @@ use App\Support\Url;
               data-request-label="<?= e($limits['requestLabel']) ?>"
               data-too-large="<?= e(t('media.too_large_named')) ?>"
               data-too-large-total="<?= e(t('media.too_large_total')) ?>"
-              data-uploading="<?= e(t('media.uploading')) ?>">
+              data-uploading="<?= e(t('media.uploading')) ?>"
+              <?php /* One file a request, each with its progress (D-295): media-upload.js's words. */ ?>
+              data-upload-words="<?= e((string) json_encode(['waiting' => t('media.upload.waiting'), 'sending' => t('media.upload.sending'), 'sizes' => t('media.upload.sizes'), 'done' => t('media.upload.done'), 'unfinished' => t('media.upload.unfinished'), 'failed' => t('media.upload.failed'), 'progress' => t('media.upload.progress'), 'finishing' => t('media.upload.finishing')], JSON_UNESCAPED_UNICODE)) ?>"
+              data-finish-url="<?= e(Url::admin('media')) ?>">
             <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
             <?php /* The zone is the file input's label, so a click anywhere in it opens the
                      file chooser without a script. */ ?>
@@ -139,6 +142,12 @@ use App\Support\Url;
             <input type="file" id="media-files" name="files[]" multiple class="visually-hidden"
                    accept="<?= e($accept) ?>" data-media-input>
             <p class="field-error" data-media-error role="alert" hidden></p>
+            <?php /* Each file sent, as it goes (D-295); drawn by media-upload.js. */ ?>
+            <div class="upload-progress" data-upload-progress hidden>
+                <p class="upload-progress-total" role="status" data-upload-total></p>
+                <ol class="upload-list" data-upload-list></ol>
+                <p data-upload-after hidden><a class="button button-secondary" href="<?= e(Url::admin('media')) ?>"><?= e(t('media.upload.show')) ?></a></p>
+            </div>
             <?php /* Only without a script, where nothing uploads by itself. */ ?>
             <button type="submit" class="button no-js-only"><?= e(t('media.upload_submit')) ?></button>
         </form>

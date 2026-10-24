@@ -17,7 +17,7 @@ import { existsSync, writeFileSync, rmSync, statSync } from 'node:fs';
 import { BASE, ADMIN } from '../config.mjs';
 import { login, submitVia, heading, fixtures } from '../harness.mjs';
 import {
-  PHOTO, PHOTOS, notice, variantFiles, cardFor, claimants, clearReferences, attemptDelete, markerFor,
+  PHOTO, PHOTOS, variantFiles, cardFor, claimants, clearReferences, attemptDelete, markerFor,
 } from '../media-helpers.mjs';
 
 const BIG = `${PHOTOS}/.oversized-fixture.jpg`;
@@ -67,17 +67,22 @@ export default {
         report.fail('the library offers a file input', 'no input[name="files[]"] on the screen');
         return;
       }
-      // Choosing a file uploads it at once (D-038): the navigation is the upload.
-      await Promise.all([
+      // Choosing a file uploads it at once (D-038). Since D-295 media-upload.js sends it on its
+      // own, asking for JSON, shows its row, and draws the library again once all are in: the
+      // confirmation is the server's answer to that request, and the reload the end of it. It
+      // was the flash "Uploaded 1." after the form's redirect, which the script does not set
+      // (RULE CHANGED, DELIBERATELY: the screen says it row by row instead).
+      // The answer's headers, not its body: a body cannot be read once the page is drawn again.
+      const [answer] = await Promise.all([
+        page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname.endsWith('/admin/media'), { timeout: 60000 }),
         page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
         input.uploadFile(PHOTO),
       ]);
-
-      const said = await notice(page);
+      const sent = { status: answer.status(), type: answer.headers()['content-type'] || '', asked: answer.request().headers().accept || '' };
       await report.shot(page, '02-after-upload');
-      report.verdict('uploading a photograph is confirmed',
-        /Uploaded/i.test(said) || /already in the library/i.test(said),
-        `the screen says "${said.slice(0, 140)}"`);
+      report.verdict('uploading a photograph is answered in JSON, and the library drawn again',
+        sent.status === 200 && sent.type.startsWith('application/json') && sent.asked.includes('application/json'),
+        JSON.stringify(sent));
 
       const card = await cardFor(page, MARKER);
       report.verdict('the uploaded picture appears with a thumbnail that loaded',

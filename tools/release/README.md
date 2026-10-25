@@ -9,8 +9,8 @@ shell, no Composer, no Node, no build step. An FTP client and a browser are enou
 **[⬇ Download the latest Boxlet](https://github.com/BoxletCMS/Boxlet-CMS/releases/latest)** ·
 [Try the demo](https://demo.boxletcms.org)
 
-> **v0.1 is the first release.** From here on, updates keep your site as it is: no fresh
-> install between versions, and each update is taken from the admin.
+> **v0.2 is out.** Updates keep your site as it is: no fresh install between versions, and
+> each update is taken from the admin, with a backup made first.
 
 ![The Boxlet CMS page builder: the demo's home page, its hero selected](https://raw.githubusercontent.com/BoxletCMS/boxlet-cms-dev/main/tools/release/readme/builder.jpg)
 
@@ -150,8 +150,10 @@ This is the part Boxlet is really about.
 - **Files as well.** PDFs, documents, spreadsheets and ZIPs sit in the same library,
   each with its own icon. The Downloads block offers them to visitors and counts the
   downloads.
-- **Tidy up in one go.** Tick pictures and files to delete them together. Anything a page
-  still shows is kept, and Boxlet tells you where it is used.
+- **Drop as many as you like.** Each file goes up on its own, with its own progress, and
+  every size is made before it says done, even on a host with a short time limit.
+- **A list or a grid,** and tidy up in one go: tick pictures and files to delete them
+  together. Anything a page still shows is kept, and Boxlet tells you where it is used.
 
 ## Fast without trying
 
@@ -218,13 +220,15 @@ It gets there by leaving things out, and by keeping what it can:
 ## Working with your AI assistant (MCP)
 
 - **Claude and other AI apps can work on your site** through the Model Context Protocol. Make a
-  key in Settings → AI access and connect: for Claude Code it is one line, shown with the key.
+  key in Settings → AI → AI access and connect: for Claude Code it is one line, shown with the
+  key.
 - **They read** your pages, block by block, your pictures and your design; **they write**
   pages as drafts, pictures fetched from an address, and design sets for you to try in
   Appearance.
 - **You stay in charge.** Every change waits for you: a draft until you publish it, a design
-  until you apply it. Nothing is deleted, every change is in the activity log, a key can read
-  only, and publishing is off until you turn it on.
+  until you apply it. Nothing is deleted and every change is in the activity log. Each key is
+  made to read only, to write drafts, or to publish as well, so each app has only what you
+  gave it.
 - **Runs on ordinary hosting.** No long-running connection: each call is one request, so
   shared hosting serves it like any page.
 

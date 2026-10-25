@@ -88,7 +88,7 @@ use App\Support\Url;
         $pictures = $rows;
         $picking = false;
         // The table's tick in its head, as a line of its own: a grid has no head.
-        echo '<label class="checkbox media-grid-all js-only"><input type="checkbox" data-bulk-all form="media-bulk"> <span>' . e(t('media.grid.all')) . '</span></label>';
+        echo '<label class="checkbox media-grid-all js-only"><span class="pick"><input type="checkbox" class="pick-box" data-bulk-all form="media-bulk"><span class="pick-mark" aria-hidden="true"></span></span> <span>' . e(t('media.grid.all')) . '</span></label>';
         require __DIR__ . '/cards.php';
     } else {
         require __DIR__ . '/table.php';

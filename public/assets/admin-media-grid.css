@@ -29,22 +29,30 @@
   block-size: 0.875rem;
 }
 
-/* THE TICK (D-297; the owner, 2026-10-24: the square frame around it was not liked). Drawn by
-   the admin rather than the browser: a rounded box on the panel with the control's edge and a
-   soft shadow, there at rest on any picture; ticked, it fills with the accent and its mark is
-   drawn over it in the ink that stands on the accent. A control is never revealed by hover. */
-.media-card-pick,
-.media-card-tick {
-  position: absolute;
-  inset-block-start: calc(var(--ui-3) + var(--ui-1) + 0.125rem);
-  inset-inline-start: calc(var(--ui-3) + var(--ui-1) + 0.125rem);
+/* THE TICK (D-297; the owner, 2026-10-24: the square frame around it was not liked, and the
+   list's to match the grid's). Drawn by the admin rather than the browser, in the grid, the
+   list and Select all: a rounded box on the panel with the control's edge and a soft shadow,
+   there at rest on any picture; ticked, it fills with the accent and its mark is drawn over it
+   in the ink that stands on the accent; partly ticked (Select all), a dash. The mark is the
+   box's neighbour, as an input has no ::before in every browser, and both stand in one grid
+   cell, so a list needs no positioning. A control is never revealed by hover. */
+.pick {
+  display: inline-grid;
+  vertical-align: middle;
+}
+
+.js .pick.js-only {
+  display: inline-grid;
+}
+
+.pick > * {
+  grid-area: 1 / 1;
+}
+
+.pick-box {
   inline-size: 1.25rem;
   block-size: 1.25rem;
   margin: 0;
-}
-
-.media-card-pick {
-  z-index: 1;
   appearance: none;
   border: 1.5px solid var(--ui-control-line);
   border-radius: var(--ui-radius-s);
@@ -54,32 +62,47 @@
   transition: background-color 120ms ease, border-color 120ms ease;
 }
 
-.media-card-pick:hover {
+.pick-box:hover {
   border-color: var(--ui-accent);
 }
 
-.media-card-pick:checked {
+.pick-box:checked,
+.pick-box:indeterminate {
   border-color: var(--ui-accent);
   background: var(--ui-accent);
 }
 
-.media-card-pick:focus-visible {
+.pick-box:focus-visible {
   outline: none;
   box-shadow: var(--ui-ring);
 }
 
-/* The mark: a check cut from the ink on the accent by a mask, so its colour is the token's in
-   either theme. It lets a click through to the box under it. */
-.media-card-tick {
-  z-index: 2;
+/* The mark: cut from the ink on the accent by a mask, so its colour is the token's in either
+   theme. It lets a click through to the box under it. */
+.pick-mark {
   display: none;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
   background: var(--ui-on-accent);
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 0.875rem no-repeat;
   pointer-events: none;
 }
 
-.media-card-pick:checked + .media-card-tick {
+.pick-box:checked + .pick-mark {
   display: block;
+}
+
+.pick-box:indeterminate + .pick-mark {
+  display: block;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8h8' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* On a card, the tick stands on the picture's corner, level with the ⋯ opposite. */
+.media-card-pick-at {
+  position: absolute;
+  inset-block-start: calc(var(--ui-3) + var(--ui-1) + 0.125rem);
+  inset-inline-start: calc(var(--ui-3) + var(--ui-1) + 0.125rem);
+  z-index: 1;
 }
 
 /* A file is its kind's icon and extension in the square a picture takes. */

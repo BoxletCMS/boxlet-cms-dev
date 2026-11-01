@@ -118,35 +118,8 @@ final class AiController
     public function step(Request $request, string $locale, array $params): Response
     {
         $db = $this->db();
-        $next = AiQueue::next($db);
-        $stopped = '';
-        if ($next !== null) {
-            try {
-                $words = AiSettings::forRequest($db, $this->appKey()) ?? throw new AiFailure(t('ai.error.not_ready'));
-                // More time for one part where the host sets a limit at all. Never one where there
-                // is none: a command line given 120 s here kept it for everything after, and the
-                // test suite died in the next file on a slow CI runner (D-251), as it once did on
-                // the demo's pictures (DemoPictures).
-                $limit = (int) ini_get('max_execution_time');
-                if ($limit > 0) {
-                    @set_time_limit(max($limit, 120));
-                }
-                $kept = AiWork::run($db, $this->container->get('blocks'), $next['page_id'], $next['part'], $words, $this->container->get('ai_ask'));
-                AiQueue::finish($db, $next['id'], 'done', $kept);
-            } catch (AiFailure $e) {
-                if ($e->provider !== '' || in_array($e->getMessage(), [t('ai.error.not_ready'), t('ai.error.key'), t('ai.error.credit'), t('ai.error.no_curl')], true)) {
-                    // Nothing more will get through: the run stops here, this part still waiting.
-                    $stopped = $e->getMessage();
-                } else {
-                    AiQueue::finish($db, $next['id'], 'failed', $e->getMessage());
-                }
-            }
-        }
+        $stopped = self::translateNext($this->container);
         $progress = AiQueue::progress($db);
-        if ($progress['pending'] === 0 && $next !== null && $stopped === '') {
-            $pages = array_column($progress['pages'], 'title');
-            Activity::record($db, 'page', 'ai_translated', null, implode(', ', array_slice($pages, 0, 3)));
-        }
         if (str_contains((string) $request->header('accept'), 'application/json')) {
             return Response::json(['progress' => $progress, 'stopped' => $stopped], $stopped === '' ? 200 : 422);
         }
@@ -216,6 +189,49 @@ final class AiController
         AiQueue::page($db, $this->container->get('blocks'), $pageId);
 
         return Response::redirect(Url::withQuery(Url::admin('translate'), ['back' => (string) $pageId]));
+    }
+
+    /**
+     * The oldest waiting part translated (D-248), for this screen's step and an AI client's
+     * translation_progress (D-299): '' when it went, or the sentence that stops the run, the part
+     * still waiting. A part the provider took but could not do is failed with its sentence and the
+     * rest go on. When the last part is done, the activity log says so once.
+     */
+    public static function translateNext(Container $container): string
+    {
+        $db = $container->get('db');
+        $next = AiQueue::next($db);
+        if ($next === null) {
+            return '';
+        }
+        $stopped = '';
+        try {
+            $words = AiSettings::forRequest($db, (string) $container->get('config')->get('app.key')) ?? throw new AiFailure(t('ai.error.not_ready'));
+            // More time for one part where the host sets a limit at all. Never one where there
+            // is none: a command line given 120 s here kept it for everything after, and the
+            // test suite died in the next file on a slow CI runner (D-251), as it once did on
+            // the demo's pictures (DemoPictures).
+            $limit = (int) ini_get('max_execution_time');
+            if ($limit > 0) {
+                @set_time_limit(max($limit, 120));
+            }
+            $kept = AiWork::run($db, $container->get('blocks'), $next['page_id'], $next['part'], $words, $container->get('ai_ask'));
+            AiQueue::finish($db, $next['id'], 'done', $kept);
+        } catch (AiFailure $e) {
+            if ($e->provider !== '' || in_array($e->getMessage(), [t('ai.error.not_ready'), t('ai.error.key'), t('ai.error.credit'), t('ai.error.no_curl')], true)) {
+                // Nothing more will get through: the run stops here, this part still waiting.
+                $stopped = $e->getMessage();
+            } else {
+                AiQueue::finish($db, $next['id'], 'failed', $e->getMessage());
+            }
+        }
+        $progress = AiQueue::progress($db);
+        if ($progress['pending'] === 0 && $stopped === '') {
+            $pages = array_column($progress['pages'], 'title');
+            Activity::record($db, 'page', 'ai_translated', null, implode(', ', array_slice($pages, 0, 3)));
+        }
+
+        return $stopped;
     }
 
     /**

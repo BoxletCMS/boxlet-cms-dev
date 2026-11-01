@@ -124,6 +124,11 @@ final class McpPages
         if (!in_array($locale, $this->locales(), true)) {
             throw new RuntimeException("The site has no language {$locale}; get_site lists them.");
         }
+        // D-299: a page in another language is a translation, linked to its original, and is made
+        // only by translate_pages; written here it would be a page of its own, linked to nothing.
+        if ($locale !== Url::primaryLocale()) {
+            throw new RuntimeException("A page in {$locale} is made only as a translation: create it in the main language (" . Url::primaryLocale() . '), then translate_pages copies it into ' . $locale . ' as its linked translation and translates it. An existing translation is changed with update_page.');
+        }
         if ($title === '') {
             throw new RuntimeException('A page needs a title.');
         }

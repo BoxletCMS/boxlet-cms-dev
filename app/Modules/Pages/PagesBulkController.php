@@ -80,30 +80,11 @@ final class PagesBulkController
             return $back;
         }
 
-        $ids = self::parentsFirst($db, $ids);
-        $made = 0;
-        $passed = 0;
-        $new = [];
-        // With "and translate with AI" (D-252), a version there already is translated again
-        // rather than passed over: what the owner ticked, they asked to have in that language.
-        $again = [];
-        foreach ($ids as $id) {
-            $page = Page::find($db, $id);
-            if ($page === null) {
-                continue;
-            }
-            $result = $page['locale'] === $to ? null : TranslationController::translate($db, $this->container->get('blocks'), $id, $to);
-            if ($result !== null && $result['new'] && is_int($result['id'])) {
-                $made++;
-                $new[] = $result['id'];
-            } else {
-                $passed++;
-                $there = $page['locale'] === $to ? $id : (Translations::of($db, $id)[$to] ?? null);
-                if ($there !== null && $db->one("SELECT id FROM pages WHERE id = ? AND translation_status <> 'source'", [$there]) !== null) {
-                    $again[] = $there;
-                }
-            }
-        }
+        $copied = TranslationController::copyAll($db, $this->container->get('blocks'), $ids, $to);
+        $made = count($copied['made']);
+        $passed = $copied['passed'];
+        $new = $copied['made'];
+        $again = $copied['again'];
         $said = $made > 0 ? tn('pages.bulk.copied_many', $made, ['language' => (string) $label['label']]) : t('pages.bulk.copied_none', ['language' => (string) $label['label']]);
         if ($passed > 0) {
             $said .= ' ' . tn('pages.bulk.copy_passed_many', $passed, ['language' => (string) $label['label']]);
@@ -116,7 +97,6 @@ final class PagesBulkController
         // "and translate with AI" (D-248): what was made, queued, and what was there (D-252).
         // Said as what is happening, not as copies waiting for the owner's words: the screen it
         // leads to is translating them (the owner, D-259).
-        $again = array_values(array_unique($again));
         $queued = \App\Modules\Ai\AiController::queue($this->container, $request, array_values(array_unique(array_merge($new, $again))));
         if ($queued !== null) {
             $language = ['language' => (string) $label['label']];
@@ -163,7 +143,7 @@ final class PagesBulkController
         $published = 0;
         $live = 0;
         $refused = [];
-        foreach (self::parentsFirst($db, $ids) as $id) {
+        foreach (TranslationController::parentsFirst($db, $ids) as $id) {
             $page = Page::find($db, $id);
             if ($page === null) {
                 continue;
@@ -239,33 +219,6 @@ final class PagesBulkController
         }
 
         return $back;
-    }
-
-    /**
-     * The ids with a page above its subpages, then in the order they were ticked: a copy lands
-     * under its parent's new version, and a parent is live before the pages under it.
-     *
-     * @param list<int> $ids
-     * @return list<int>
-     */
-    private static function parentsFirst(\App\Core\Db $db, array $ids): array
-    {
-        $parents = [];
-        foreach ($db->all('SELECT id, parent_id FROM pages') as $row) {
-            $parents[(int) $row['id']] = $row['parent_id'] === null ? null : (int) $row['parent_id'];
-        }
-        $depth = static function (int $id) use ($parents): int {
-            $n = 0;
-            for ($at = $parents[$id] ?? null; $at !== null && $n < 50; $at = $parents[$at] ?? null) {
-                $n++;
-            }
-
-            return $n;
-        };
-        $order = array_flip($ids);
-        usort($ids, static fn (int $a, int $b): int => [$depth($a), $order[$a]] <=> [$depth($b), $order[$b]]);
-
-        return $ids;
     }
 
     /**

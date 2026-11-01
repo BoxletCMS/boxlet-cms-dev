@@ -328,3 +328,50 @@ testBothDrivers('the site, its block types and its design are read as a model ne
     assertEquals(['boxlet-design-set', 2], [$design['set']['format'] ?? null, $design['set']['version'] ?? null], 'the site\'s design as a set file');
     assertTrue(in_array('minimal', array_column($design['characters'] ?? [], 'id'), true), 'and the characters to start from');
 });
+
+testBothDrivers('translation goes through the site\'s own, and a page in another language only that way (D-299)', function (string $driver) {
+    $db = adminSite($driver);
+    $key = mcpKey($db);
+    $echo = static function (Container $c): void {
+        $c->set('ai_ask', static fn () => aiEcho('HR '));
+    };
+    $made = tool($key, 'create_page', ['locale' => 'en', 'title' => 'Boiler service', 'sections' => [['key' => 'm1', 'layout' => 'one']], 'blocks' => [
+        ['key' => 'n1', 'type' => 'text', 'section' => 'm1', 'content' => ['heading' => 'Yearly service', 'body' => '<p>We check every part.</p>']],
+    ]]);
+    $id = (int) ($made['structuredContent']['id'] ?? 0);
+
+    // A page in another language is a translation, made only by translate_pages.
+    $refused = tool($key, 'create_page', ['locale' => 'hr', 'title' => 'Servis bojlera']);
+    assertTrue(($refused['isError'] ?? false) === true && str_contains((string) ($refused['content'][0]['text'] ?? ''), 'translate_pages'), 'create_page in Croatian refused, pointing to translate_pages');
+    assertEquals(0, (int) ($db->one("SELECT COUNT(*) AS n FROM pages WHERE locale = 'hr'")['n'] ?? -1), 'and nothing made');
+
+    // Without the owner's key, nothing is copied: a copy untranslated is what this prevents.
+    assertTrue(str_starts_with((string) (tool($key, 'get_site')['structuredContent']['ai_translation'] ?? ''), 'not set up'), 'get_site says translation is not set up');
+    $none = tool($key, 'translate_pages', ['pages' => [$id], 'locale' => 'hr']);
+    assertTrue(($none['isError'] ?? false) === true && str_contains((string) ($none['content'][0]['text'] ?? ''), 'Settings'), 'translate_pages without a key says where to add one');
+    assertEquals(0, (int) ($db->one("SELECT COUNT(*) AS n FROM pages WHERE locale = 'hr'")['n'] ?? -1), 'and copies nothing');
+
+    App\Modules\Ai\AiSettings::save($db, ['provider' => 'anthropic', 'model' => 'claude-sonnet-5', 'model_other' => '', 'key' => 'sk-ant-test-0123456789abcdefghijklmnop', 'keep' => '', 'voice' => '', 'remove_key' => false], (string) TestSite::$env['APP_KEY']);
+    assertTrue(str_starts_with((string) (tool($key, 'get_site')['structuredContent']['ai_translation'] ?? ''), 'ready'), 'and ready once there is one');
+    $queued = tool($key, 'translate_pages', ['pages' => [$id], 'locale' => 'hr'], $echo)['structuredContent'] ?? [];
+    $translation = (int) ($queued['pages'][0]['translation'] ?? 0);
+    assertTrue($translation > 0 && ($queued['pages'][0]['new'] ?? false) === true && ($queued['queued_parts'] ?? 0) > 0, 'copied as its translation, and queued: ' . json_encode($queued));
+    $row = $db->one('SELECT locale, translation_status, content_group_id FROM pages WHERE id = ?', [$translation]) ?? [];
+    assertEquals(['hr', (int) ($db->one('SELECT content_group_id FROM pages WHERE id = ?', [$id])['content_group_id'] ?? 0)], [(string) ($row['locale'] ?? ''), (int) ($row['content_group_id'] ?? 0)], 'in Croatian, linked to its original');
+
+    $progress = tool($key, 'translation_progress', [], $echo)['structuredContent'] ?? [];
+    assertEquals([0, 0], [$progress['pending'] ?? null, $progress['failed'] ?? null], 'every part translated: ' . json_encode($progress));
+    assertTrue(($progress['done'] ?? 0) > 0 && str_starts_with((string) ($progress['next'] ?? ''), 'Done'), 'and said to be done');
+    $draft = json_encode(tool($key, 'get_page', ['id' => $translation])['structuredContent'] ?? [], JSON_UNESCAPED_UNICODE);
+    assertContains('HR Yearly service', (string) $draft, 'its words translated, in its draft');
+    assertEquals('draft', (string) ($db->one('SELECT status FROM pages WHERE id = ?', [$translation])['status'] ?? ''), 'unpublished, for the owner to review');
+
+    // Again: the translation there is translated again from its original, not copied twice.
+    $again = tool($key, 'translate_pages', ['pages' => [$id], 'locale' => 'hr'], $echo)['structuredContent'] ?? [];
+    assertEquals([$translation, false], [$again['pages'][0]['translation'] ?? null, $again['pages'][0]['new'] ?? null], 'the same translation, again');
+    assertEquals(1, (int) ($db->one("SELECT COUNT(*) AS n FROM pages WHERE locale = 'hr'")['n'] ?? -1), 'one Croatian page still');
+    $read = mcpKey($db, false);
+    [$list, $listHeaders] = modern('tools/list');
+    $readTools = array_column(json_decode(mcp($list, $read, $listHeaders)->body, true)['result']['tools'] ?? [], 'name');
+    assertTrue(!in_array('translate_pages', $readTools, true) && !in_array('translation_progress', $readTools, true), 'a key that reads cannot translate');
+});

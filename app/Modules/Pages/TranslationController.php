@@ -101,4 +101,69 @@ final class TranslationController
     {
         return $this->container->get('db');
     }
+
+    /**
+     * PAGES COPIED INTO A LANGUAGE (D-043, D-252), for Copy into language and for an AI client's
+     * translate_pages (D-299): a page above its subpages first, each copied where it has no
+     * version there; one that has a version there already, made from an original, is named as
+     * "again", to be translated again rather than passed over, as the owner asked (D-252). A page
+     * in that language already, or one not there, is passed.
+     *
+     * @param list<int> $ids
+     * @return array{made: list<int>, again: list<int>, passed: int, pairs: list<array{from: int, to: int, new: bool}>}
+     */
+    public static function copyAll(Db $db, \App\Core\Blocks $registry, array $ids, string $to): array
+    {
+        $made = [];
+        $again = [];
+        $passed = 0;
+        $pairs = [];
+        foreach (self::parentsFirst($db, $ids) as $id) {
+            $page = Page::find($db, $id);
+            if ($page === null) {
+                continue;
+            }
+            $result = $page['locale'] === $to ? null : self::translate($db, $registry, $id, $to);
+            if ($result !== null && $result['new'] && is_int($result['id'])) {
+                $made[] = $result['id'];
+                $pairs[] = ['from' => $id, 'to' => $result['id'], 'new' => true];
+            } else {
+                $passed++;
+                $there = $page['locale'] === $to ? $id : (Translations::of($db, $id)[$to] ?? null);
+                if ($there !== null && $db->one("SELECT id FROM pages WHERE id = ? AND translation_status <> 'source'", [$there]) !== null) {
+                    $again[] = (int) $there;
+                    $pairs[] = ['from' => $id, 'to' => (int) $there, 'new' => false];
+                }
+            }
+        }
+
+        return ['made' => $made, 'again' => array_values(array_unique($again)), 'passed' => $passed, 'pairs' => $pairs];
+    }
+
+    /**
+     * The ids with a page above its subpages, then in the order they were ticked: a copy lands
+     * under its parent's new version, and a parent is live before the pages under it.
+     *
+     * @param list<int> $ids
+     * @return list<int>
+     */
+    public static function parentsFirst(\App\Core\Db $db, array $ids): array
+    {
+        $parents = [];
+        foreach ($db->all('SELECT id, parent_id FROM pages') as $row) {
+            $parents[(int) $row['id']] = $row['parent_id'] === null ? null : (int) $row['parent_id'];
+        }
+        $depth = static function (int $id) use ($parents): int {
+            $n = 0;
+            for ($at = $parents[$id] ?? null; $at !== null && $n < 50; $at = $parents[$at] ?? null) {
+                $n++;
+            }
+
+            return $n;
+        };
+        $order = array_flip($ids);
+        usort($ids, static fn (int $a, int $b): int => [$depth($a), $order[$a]] <=> [$depth($b), $order[$b]]);
+
+        return $ids;
+    }
 }

@@ -61,6 +61,10 @@ final class McpSite
             'pages' => (int) ($db->one('SELECT COUNT(*) AS n FROM pages')['n'] ?? 0),
             'pictures' => (int) ($db->one("SELECT COUNT(*) AS n FROM media WHERE kind = 'picture'")['n'] ?? 0),
             'this_key' => ['writes' => $key['can_write'], 'publishes' => $key['can_publish']],
+            // D-299: whether the site's own translation can run, which translate_pages needs.
+            'ai_translation' => \App\Modules\Ai\AiSettings::ready($db, (string) $this->container->get('config')->get('app.key'))
+                ? 'ready: translate pages with translate_pages'
+                : 'not set up: the owner adds an API key in Settings → AI → Translation before translate_pages can run',
         ];
     }
 

@@ -224,7 +224,8 @@ It gets there by leaving things out, and by keeping what it can:
   key.
 - **They read** your pages, block by block, your pictures and your design; **they write**
   pages as drafts, pictures fetched from an address, and design sets for you to try in
-  Appearance.
+  Appearance. Asked to translate, they use Boxlet's own AI translation, so each page is linked
+  to its original as its translation, menus and forms included.
 - **You stay in charge.** Every change waits for you: a draft until you publish it, a design
   until you apply it. Nothing is deleted and every change is in the activity log. Each key is
   made to read only, to write drafts, or to publish as well, so each app has only what you

@@ -4,7 +4,8 @@
  *   - Settings → AI access: a key made, shown once, with the line that connects Claude Code;
  *     whether it may publish is chosen with it, and the panel has no checkbox and no Save (D-291);
  *   - the endpoint answers that key over real HTTP: a modern server/discover, the tool list with
- *     its caching hints, and a tool;
+ *     its caching hints, and a tool; translation offered, and another language refused to
+ *     create_page (D-299; the translation itself costs the owner's API, measured once instead);
  *   - a design set the client keeps is where its link lands, marked as an AI client's (D-290:
  *     the owner looked for one among the characters and did not find it); removed again here;
  *   - a page drawn again shows the key no more;
@@ -63,6 +64,13 @@ export default {
       const discover = await call(key, 'server/discover');
       const list = await call(key, 'tools/list');
       const site = await call(key, 'tools/call', { name: 'get_site', arguments: {} });
+      // D-299: translation is the site's own; a page in another language is made only that way.
+      const offered = (list.body?.result?.tools || []).map((t) => t.name);
+      const refused = await call(key, 'tools/call', { name: 'create_page', arguments: { locale: 'hr', title: 'Suite translation probe' } });
+      const refusal = refused.body?.result?.content?.[0]?.text || '';
+      report.verdict('a key that writes is offered translate_pages and translation_progress, and create_page in another language points to them',
+        offered.includes('translate_pages') && offered.includes('translation_progress') && refused.body?.result?.isError === true && refusal.includes('translate_pages'),
+        JSON.stringify({ offered: offered.filter((t) => t.startsWith('translat')), refusal: refusal.slice(0, 80) }));
       // ttlMs and cacheScope are required: Claude Code refused a list without them.
       const hints = [discover.body?.result, list.body?.result].map((r) => [r?.ttlMs, r?.cacheScope]);
       report.verdict('discover and the tool list carry the caching hints a modern client requires',

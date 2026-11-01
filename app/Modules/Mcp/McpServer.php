@@ -120,7 +120,10 @@ final class McpServer
         . 'read one with get_page, change the document and give the whole of it back to update_page, which saves a draft the owner '
         . 'reviews and publishes; create_page makes a new one, unpublished. list_block_types says what each block holds and in what '
         . 'form. Pictures are media ids from list_media or add_media_from_url. A design set (get_design, get_design_set_schema, '
-        . 'create_design_set) is kept for the owner to try in Appearance, never applied to the site by this server.';
+        . 'create_design_set) is kept for the owner to try in Appearance, never applied to the site by this server. '
+        . 'Pages are written in the main language; to translate them, always use translate_pages, then translation_progress '
+        . 'until nothing is pending: the site\'s own translation links each page to its original, and create_page refuses '
+        . 'any other language.';
 
     /**
      * @return array{name: string, title: string, version: string}

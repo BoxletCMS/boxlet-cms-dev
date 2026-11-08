@@ -83,6 +83,8 @@ return [
     'activity.form.saved' => 'Uređen obrazac „:name“',
     'activity.form.deleted' => 'Obrisan obrazac „:name“',
     'activity.message.received' => 'Stigla je poruka putem obrasca „:name“',
+    'activity.message.emailed' => 'Stigla je poruka putem obrasca „:name“ i poslana vam je e-mailom; obrazac ovdje ne čuva kopiju',
+    'activity.message.sent_on' => 'Stigla je poruka putem obrasca „:name“ i proslijeđena je na web-adresu obrasca; obrazac ovdje ne čuva kopiju',
     'activity.page.ai_created' => 'AI klijent izradio je stranicu „:name“',
     'activity.page.ai_drafted' => 'AI klijent spremio je nacrt stranice „:name“',
     'activity.media.ai_added' => 'AI klijent dodao je sliku „:name“',

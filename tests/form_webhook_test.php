@@ -197,3 +197,14 @@ testBothDrivers('the form screen saves an address, makes its secret once, and se
     assertTrue(in_array('X-Boxlet-Event: form.test', $web->call(0)[1], true), 'marked as a test');
     assertEquals('https://hooks.example.com/other', $web->call(0)[0], 'to the saved address');
 });
+
+testBothDrivers('the log says a message was sent on, or that it came in and waits to be sent again', function (string $driver) {
+    $actions = static fn (App\Core\Db $db): array => array_column($db->all("SELECT action FROM activity WHERE kind = 'message' ORDER BY id"), 'action');
+    $site = webhookSite($driver, false);
+    ($site['send'])(['name' => 'Ana', 'email' => 'ana@example.org', 'message' => 'Hello']);
+    assertEquals(['sent_on'], $actions($site['db']), 'taken by the address, kept nowhere: sent on');
+
+    $site['web']->answer = 500;
+    ($site['send'])(['name' => 'Ana', 'email' => 'ana@example.org', 'message' => 'Again']);
+    assertEquals(['sent_on', 'webhook_failed', 'received'], $actions($site['db']), 'not taken: kept to be sent again, so it is here');
+});

@@ -88,13 +88,17 @@ final class FormSubmitController
         };
         $kept = $form['settings']['keep'] ? $keep(null) : 0;
         $notified = FormMail::send($this->container, $form, $answers, $page);
+        $heldForWebhook = false;
         if ($form['settings']['webhook'] !== '') {
             self::prune($db, $form);
             $failed = FormWebhook::send($this->container, $form, FormWebhook::payload($form, $answers, $page, $now));
             if ($failed !== '') {
-                $kept > 0
-                    ? $db->query('UPDATE form_submissions SET webhook_error = ? WHERE id = ?', [$failed, $kept])
-                    : $keep($failed);
+                if ($kept > 0) {
+                    $db->query('UPDATE form_submissions SET webhook_error = ? WHERE id = ?', [$failed, $kept]);
+                } else {
+                    $keep($failed);
+                    $heldForWebhook = true;
+                }
                 Activity::record($db, 'message', 'webhook_failed', (int) $form['id'], (string) $form['name']);
             }
         }
@@ -103,8 +107,15 @@ final class FormSubmitController
         if (!$form['settings']['keep'] && !$notified && $form['settings']['webhook'] === '') {
             return $this->again($page, $form['id'], [], $old, site_t('site.form.not_sent', $form['locale']), 503);
         }
-        // A visitor's message, logged against its form: the owner's Overview says one came.
-        Activity::record($db, 'message', 'received', (int) $form['id'], (string) $form['name']);
+        // A visitor's message, logged against its form: the owner's Overview says one came, and,
+        // from a form that keeps nothing, where it went instead (the owner, 2026-11-08: two came
+        // in on boxletcms.org and Messages was empty, as it is meant to be for such a form).
+        $went = match (true) {
+            $form['settings']['keep'] || $heldForWebhook => 'received',
+            $notified => 'emailed',
+            default => 'sent_on',
+        };
+        Activity::record($db, 'message', $went, (int) $form['id'], (string) $form['name']);
 
         return $thanks;
     }

@@ -222,3 +222,21 @@ testBothDrivers('a form must keep its messages or email them; the editor says wh
     assertContains(e(t('forms.mail_missing')), $editor, 'and the warning: no email, nowhere for a message to go');
     assertContains(e(t('forms.not_kept')), dispatch('/admin/forms/' . $site['form'] . '/messages')->body, 'Messages says so');
 });
+
+// The log says where a message went when the form keeps none (the owner, 2026-11-08: two came in
+// on boxletcms.org, "A message came in", and Messages was empty, as it is for such a form).
+testBothDrivers('the log says a message from a form that keeps none was emailed, and a kept one came in', function (string $driver) {
+    $actions = static fn (App\Core\Db $db): array => array_column($db->all("SELECT action FROM activity WHERE kind = 'message' ORDER BY id"), 'action');
+    $fields = ['name' => 'Ana', 'email' => 'ana@example.org', 'message' => 'Hello'];
+
+    $site = formSite($driver, 'en', false);
+    MailSettings::save($site['db'], ['transport' => 'sendmail', 'from_address' => 'hello@example.com'], FORM_KEY);
+    assertEquals(303, (($site['send'])($fields))->status, 'thanked');
+    assertEquals(['emailed'], $actions($site['db']), 'emailed, not said to be here');
+    assertEquals('A message came in through “Contact” and was emailed to you; the form keeps no copy here', App\Modules\Admin\Activity::describe('message', 'emailed', 'Contact'), 'in words');
+
+    $kept = formSite($driver, 'en', true);
+    MailSettings::save($kept['db'], ['transport' => 'sendmail', 'from_address' => 'hello@example.com'], FORM_KEY);
+    ($kept['send'])($fields);
+    assertEquals(['received'], $actions($kept['db']), 'a form that keeps it: came in, as before');
+});

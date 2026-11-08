@@ -81,6 +81,8 @@ return [
     'activity.form.saved' => 'Edited the form “:name”',
     'activity.form.deleted' => 'Deleted the form “:name”',
     'activity.message.received' => 'A message came in through “:name”',
+    'activity.message.emailed' => 'A message came in through “:name” and was emailed to you; the form keeps no copy here',
+    'activity.message.sent_on' => 'A message came in through “:name” and was sent on to its web address; the form keeps no copy here',
     'activity.page.ai_created' => 'An AI client created the page “:name”',
     'activity.page.ai_drafted' => 'An AI client saved a draft of “:name”',
     'activity.media.ai_added' => 'An AI client added the picture “:name”',
